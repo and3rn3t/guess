@@ -1,12 +1,11 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ArrowLeft, TreeStructure, Sparkle, Check, X, Lightning, Users, Sword, Brain, Planet, User, Backpack, Heart } from '@phosphor-icons/react'
+import { ArrowLeft, TreeStructure, Sparkle, Check, X, Lightning, Users, Sword, Brain, Planet, User, Backpack, Heart, ChartLineUp } from '@phosphor-icons/react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { toast } from 'sonner'
 import type { Character } from '@/lib/types'
 import {
@@ -14,9 +13,10 @@ import {
   type AttributeRecommendation,
   type AttributeCategory,
   getCategoryInfo,
+  getAvailableAttributesForCategory,
 } from '@/lib/categoryRecommender'
 
-interface BulkHabitatEnhancerProps {
+interface MultiCategoryEnhancerProps {
   characters: Character[]
   onUpdateCharacters: (updatedCharacters: Character[]) => void
   onBack: () => void
@@ -50,25 +50,26 @@ const CATEGORY_COLORS: Record<AttributeCategory, { bg: string; border: string; t
   relationships: { bg: 'bg-rose-500/10', border: 'border-rose-500/50', text: 'text-rose-400' },
 }
 
-export function BulkHabitatEnhancer({
+export function MultiCategoryEnhancer({
   characters,
   onUpdateCharacters,
   onBack,
-}: BulkHabitatEnhancerProps) {
+}: MultiCategoryEnhancerProps) {
   const [enhancements, setEnhancements] = useState<Map<string, CharacterEnhancement>>(new Map())
   const [currentCharacterIndex, setCurrentCharacterIndex] = useState(0)
   const [isGeneratingAll, setIsGeneratingAll] = useState(false)
   const [globalProgress, setGlobalProgress] = useState(0)
   const [selectedCategory, setSelectedCategory] = useState<AttributeCategory>('environment')
+  const [showDashboard, setShowDashboard] = useState(true)
 
   const currentCharacter = characters[currentCharacterIndex]
   const currentEnhancement = enhancements.get(currentCharacter?.id)
 
   useEffect(() => {
-    if (currentCharacter && !enhancements.has(currentCharacter.id)) {
+    if (currentCharacter && !enhancements.has(currentCharacter.id) && !showDashboard) {
       loadRecommendationsForCharacter(currentCharacter)
     }
-  }, [currentCharacter, selectedCategory])
+  }, [currentCharacter, selectedCategory, showDashboard])
 
   const loadRecommendationsForCharacter = async (character: Character) => {
     setEnhancements((prev) => {
@@ -231,6 +232,7 @@ export function BulkHabitatEnhancer({
 
   const handleSkipToCharacter = (index: number) => {
     setCurrentCharacterIndex(index)
+    setShowDashboard(false)
   }
 
   const handleFinish = () => {
@@ -238,6 +240,7 @@ export function BulkHabitatEnhancer({
       (sum, e) => sum + e.acceptedCount,
       0
     )
+    const categoryInfo = getCategoryInfo(selectedCategory)
     toast.success(`Enhanced ${enhancements.size} characters with ${totalAccepted} ${categoryInfo.description} attributes!`)
     onBack()
   }
@@ -290,19 +293,138 @@ export function BulkHabitatEnhancer({
     setSelectedCategory(category)
     setEnhancements(new Map())
     setCurrentCharacterIndex(0)
+    setShowDashboard(true)
+  }
+
+  const getCategoryStats = (category: AttributeCategory) => {
+    const categoryInfo = getCategoryInfo(category)
+    let totalAvailable = 0
+    let totalFilled = 0
+
+    characters.forEach((char) => {
+      const available = getAvailableAttributesForCategory(category, char.attributes)
+      const categoryAttrs = Object.keys(char.attributes).filter(key => {
+        const label = key
+        return categoryInfo.attributeFilter(key, label)
+      })
+      totalAvailable += available.length + categoryAttrs.length
+      totalFilled += categoryAttrs.length
+    })
+
+    const completionRate = totalAvailable > 0 ? (totalFilled / totalAvailable) * 100 : 0
+    return { totalAvailable, totalFilled, completionRate }
+  }
+
+  const handleStartCategory = (category: AttributeCategory) => {
+    setSelectedCategory(category)
+    setShowDashboard(false)
+    setEnhancements(new Map())
+    setCurrentCharacterIndex(0)
+  }
+
+  if (showDashboard) {
+    const allCategories: AttributeCategory[] = ['environment', 'abilities', 'equipment', 'physical', 'personality', 'origins', 'relationships']
+
+    return (
+      <div className="max-w-6xl mx-auto space-y-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <Button onClick={onBack} variant="outline" size="sm">
+              <ArrowLeft size={20} />
+            </Button>
+            <div>
+              <div className="flex items-center gap-3">
+                <ChartLineUp size={32} weight="duotone" className="text-accent" />
+                <h1 className="text-3xl font-bold text-foreground">Character Enrichment Hub</h1>
+              </div>
+              <p className="text-muted-foreground mt-1">
+                Enhance all {characters.length} characters across different attribute categories
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {allCategories.map((category) => {
+            const Icon = CATEGORY_ICONS[category]
+            const colors = CATEGORY_COLORS[category]
+            const info = getCategoryInfo(category)
+            const stats = getCategoryStats(category)
+
+            return (
+              <Card key={category} className={`p-6 ${colors.bg} border-2 ${colors.border} hover:shadow-lg transition-all cursor-pointer group`}>
+                <div className="space-y-4">
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center gap-3">
+                      <Icon size={32} weight="duotone" className={colors.text} />
+                      <div>
+                        <h3 className="font-bold text-foreground">{info.name}</h3>
+                        <p className="text-xs text-muted-foreground">{info.description}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground">Completion</span>
+                      <span className={`font-semibold ${colors.text}`}>
+                        {Math.round(stats.completionRate)}%
+                      </span>
+                    </div>
+                    <Progress value={stats.completionRate} className="h-2" />
+                    <div className="text-xs text-muted-foreground">
+                      {stats.totalFilled} / {stats.totalAvailable} attributes filled
+                    </div>
+                  </div>
+
+                  <Button
+                    onClick={() => handleStartCategory(category)}
+                    className={`w-full ${colors.bg} ${colors.border} ${colors.text} hover:opacity-80`}
+                    variant="outline"
+                  >
+                    <Lightning size={16} className="mr-2" />
+                    Enhance Category
+                  </Button>
+                </div>
+              </Card>
+            )
+          })}
+        </div>
+
+        <Card className="p-6 bg-card/30 border-primary/20">
+          <h3 className="text-lg font-semibold text-foreground mb-4">Overall Progress</h3>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="bg-background/50 rounded-lg p-4">
+              <div className="text-2xl font-bold text-accent">{characters.length}</div>
+              <div className="text-sm text-muted-foreground">Total Characters</div>
+            </div>
+            {allCategories.slice(0, 3).map((category) => {
+              const info = getCategoryInfo(category)
+              const stats = getCategoryStats(category)
+              return (
+                <div key={category} className="bg-background/50 rounded-lg p-4">
+                  <div className="text-2xl font-bold text-accent">{Math.round(stats.completionRate)}%</div>
+                  <div className="text-sm text-muted-foreground">{info.name}</div>
+                </div>
+              )
+            })}
+          </div>
+        </Card>
+      </div>
+    )
   }
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <Button onClick={onBack} variant="outline" size="sm">
+          <Button onClick={() => setShowDashboard(true)} variant="outline" size="sm">
             <ArrowLeft size={20} />
           </Button>
           <div>
             <div className="flex items-center gap-3">
               <CategoryIcon size={32} weight="duotone" className="text-accent" />
-              <h1 className="text-3xl font-bold text-foreground">Bulk Attribute Enhancer</h1>
+              <h1 className="text-3xl font-bold text-foreground">{categoryInfo.name} Enhancement</h1>
             </div>
             <p className="text-muted-foreground mt-1">
               Add {categoryInfo.description} attributes to characters using AI suggestions
@@ -320,61 +442,14 @@ export function BulkHabitatEnhancer({
             Generate All
           </Button>
           <Button
-            onClick={handleFinish}
+            onClick={() => setShowDashboard(true)}
             className="flex items-center gap-2 bg-accent hover:bg-accent/90"
           >
             <Check size={20} weight="bold" />
-            Finish ({totalEnhancements} added)
+            Done ({totalEnhancements} added)
           </Button>
         </div>
       </div>
-
-      <Card className="p-6 bg-card/30 border-primary/20">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-sm font-semibold text-foreground">Select Attribute Category</h3>
-          <Badge variant="outline" className={`${categoryColors.bg} ${categoryColors.border} ${categoryColors.text}`}>
-            {categoryInfo.name}
-          </Badge>
-        </div>
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
-          {[
-            { key: 'environment' as AttributeCategory, label: 'Environment', Icon: TreeStructure, desc: 'Habitats & locations' },
-            { key: 'abilities' as AttributeCategory, label: 'Abilities', Icon: Lightning, desc: 'Powers & skills' },
-            { key: 'equipment' as AttributeCategory, label: 'Equipment', Icon: Backpack, desc: 'Tools & weapons' },
-            { key: 'physical' as AttributeCategory, label: 'Physical', Icon: User, desc: 'Appearance' },
-            { key: 'personality' as AttributeCategory, label: 'Personality', Icon: Brain, desc: 'Traits & behavior' },
-            { key: 'origins' as AttributeCategory, label: 'Origins', Icon: Planet, desc: 'Background' },
-            { key: 'relationships' as AttributeCategory, label: 'Relationships', Icon: Heart, desc: 'Connections' },
-          ].map(({ key, label, Icon, desc }) => {
-            const isActive = selectedCategory === key
-            const colors = CATEGORY_COLORS[key]
-            return (
-              <button
-                key={key}
-                onClick={() => handleCategoryChange(key)}
-                disabled={isGeneratingAll}
-                className={`p-4 rounded-lg border-2 transition-all text-left ${
-                  isActive
-                    ? `${colors.bg} ${colors.border} shadow-sm`
-                    : 'bg-card/20 border-border/30 hover:border-border/50 hover:bg-card/40'
-                }`}
-              >
-                <Icon 
-                  size={28} 
-                  weight={isActive ? 'duotone' : 'regular'}
-                  className={isActive ? colors.text : 'text-muted-foreground'}
-                />
-                <div className="mt-2">
-                  <div className={`font-semibold text-sm ${isActive ? 'text-foreground' : 'text-muted-foreground'}`}>
-                    {label}
-                  </div>
-                  <div className="text-xs text-muted-foreground mt-0.5">{desc}</div>
-                </div>
-              </button>
-            )
-          })}
-        </div>
-      </Card>
 
       {isGeneratingAll && (
         <Card className="p-6 bg-accent/5 border-accent/30">
@@ -623,8 +698,8 @@ export function BulkHabitatEnhancer({
                         </Button>
                       )}
                       {currentCharacterIndex === characters.length - 1 && (
-                        <Button onClick={handleFinish} className="bg-accent hover:bg-accent/90">
-                          Finish Enhancement
+                        <Button onClick={() => setShowDashboard(true)} className="bg-accent hover:bg-accent/90">
+                          Back to Dashboard
                         </Button>
                       )}
                     </div>

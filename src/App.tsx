@@ -17,7 +17,7 @@ import { AttributeCoverageReport } from '@/components/AttributeCoverageReport'
 import { AttributeRecommender } from '@/components/AttributeRecommender'
 import { CategoryRecommender } from '@/components/CategoryRecommender'
 import { EnvironmentTest } from '@/components/EnvironmentTest'
-import { BulkHabitatEnhancer } from '@/components/BulkHabitatEnhancer'
+import { MultiCategoryEnhancer } from '@/components/MultiCategoryEnhancer'
 import { DEFAULT_CHARACTERS, DEFAULT_QUESTIONS } from '@/lib/database'
 import {
   selectBestQuestion,
@@ -262,7 +262,7 @@ function App() {
     return (
       <div className="min-h-screen bg-background">
         <div className="container mx-auto px-4 py-8">
-          <BulkHabitatEnhancer
+          <MultiCategoryEnhancer
             characters={characters || DEFAULT_CHARACTERS}
             onUpdateCharacters={handleUpdateCharacters}
             onBack={handleExitBulkHabitat}
@@ -451,10 +451,10 @@ function App() {
                         onClick={handleOpenBulkHabitat}
                         variant="outline"
                         size="sm"
-                        className="flex items-center gap-2 bg-emerald-500/10 hover:bg-emerald-500/20 border-emerald-500/30"
+                        className="flex items-center gap-2 bg-gradient-to-r from-emerald-500/10 to-purple-500/10 hover:from-emerald-500/20 hover:to-purple-500/20 border-emerald-500/30"
                       >
                         <Lightbulb size={20} weight="fill" />
-                        <span className="hidden sm:inline">Bulk Enhancer</span>
+                        <span className="hidden sm:inline">Enrich All</span>
                       </Button>
                     </>
                   )}
