@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useKV } from '@github/spark/hooks'
 import { AnimatePresence } from 'framer-motion'
-import { Sparkle, Play } from '@phosphor-icons/react'
+import { Sparkle, Play, Gear } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import { Toaster, toast } from 'sonner'
@@ -9,6 +9,7 @@ import { QuestionCard } from '@/components/QuestionCard'
 import { ReasoningPanel } from '@/components/ReasoningPanel'
 import { GuessReveal, GameOver } from '@/components/GuessReveal'
 import { TeachingMode } from '@/components/TeachingMode'
+import { QuestionManager } from '@/components/QuestionManager'
 import { DEFAULT_CHARACTERS, DEFAULT_QUESTIONS } from '@/lib/database'
 import {
   selectBestQuestion,
@@ -19,11 +20,11 @@ import {
 } from '@/lib/gameEngine'
 import type { Character, Question, Answer, AnswerValue, ReasoningExplanation } from '@/lib/types'
 
-type GamePhase = 'welcome' | 'playing' | 'guessing' | 'gameOver' | 'teaching'
+type GamePhase = 'welcome' | 'playing' | 'guessing' | 'gameOver' | 'teaching' | 'manage'
 
 function App() {
   const [characters, setCharacters] = useKV<Character[]>('characters', DEFAULT_CHARACTERS)
-  const [questions] = useKV<Question[]>('questions', DEFAULT_QUESTIONS)
+  const [questions, setQuestions] = useKV<Question[]>('questions', DEFAULT_QUESTIONS)
 
   const [gamePhase, setGamePhase] = useState<GamePhase>('welcome')
   const [answers, setAnswers] = useState<Answer[]>([])
@@ -128,6 +129,18 @@ function App() {
     setGamePhase('gameOver')
   }
 
+  const handleManageQuestions = () => {
+    setGamePhase('manage')
+  }
+
+  const handleAddQuestions = (newQuestions: Question[]) => {
+    setQuestions((currentQuestions) => [...(currentQuestions || []), ...newQuestions])
+  }
+
+  const handleBackToWelcome = () => {
+    setGamePhase('welcome')
+  }
+
   return (
     <>
       <Toaster position="top-center" richColors />
@@ -153,11 +166,24 @@ function App() {
                     Mystic Guesser
                   </h1>
                 </div>
-                {gamePhase !== 'welcome' && (
-                  <div className="text-sm text-muted-foreground">
-                    Questions: {answers.length}
-                  </div>
-                )}
+                <div className="flex items-center gap-3">
+                  {gamePhase === 'welcome' && (
+                    <Button
+                      onClick={handleManageQuestions}
+                      variant="outline"
+                      size="sm"
+                      className="flex items-center gap-2"
+                    >
+                      <Gear size={20} />
+                      <span className="hidden sm:inline">Manage Questions</span>
+                    </Button>
+                  )}
+                  {gamePhase !== 'welcome' && (
+                    <div className="text-sm text-muted-foreground">
+                      Questions: {answers.length}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </header>
@@ -282,6 +308,56 @@ function App() {
                   onAddCharacter={handleAddCharacter}
                   onSkip={handleSkipTeaching}
                 />
+              </div>
+            )}
+
+            {gamePhase === 'manage' && (
+              <div className="max-w-4xl mx-auto space-y-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h2 className="text-3xl font-bold text-foreground">Question Pool Manager</h2>
+                    <p className="text-muted-foreground mt-1">
+                      Generate new questions from user-taught characters
+                    </p>
+                  </div>
+                  <Button onClick={handleBackToWelcome} variant="outline">
+                    Back to Game
+                  </Button>
+                </div>
+                <QuestionManager
+                  characters={characters || DEFAULT_CHARACTERS}
+                  questions={questions || DEFAULT_QUESTIONS}
+                  onAddQuestions={handleAddQuestions}
+                />
+                <div className="bg-card/50 backdrop-blur-sm border border-border/50 rounded-lg p-6">
+                  <h3 className="text-lg font-semibold text-foreground mb-3">
+                    Current Statistics
+                  </h3>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    <div className="bg-background/50 rounded-lg p-4">
+                      <div className="text-2xl font-bold text-accent">
+                        {(characters || DEFAULT_CHARACTERS).length}
+                      </div>
+                      <div className="text-sm text-muted-foreground">Total Characters</div>
+                    </div>
+                    <div className="bg-background/50 rounded-lg p-4">
+                      <div className="text-2xl font-bold text-accent">
+                        {(questions || DEFAULT_QUESTIONS).length}
+                      </div>
+                      <div className="text-sm text-muted-foreground">Total Questions</div>
+                    </div>
+                    <div className="bg-background/50 rounded-lg p-4">
+                      <div className="text-2xl font-bold text-accent">
+                        {
+                          (characters || DEFAULT_CHARACTERS).filter(
+                            (c) => c.id.startsWith('char-')
+                          ).length
+                        }
+                      </div>
+                      <div className="text-sm text-muted-foreground">User-Taught</div>
+                    </div>
+                  </div>
+                </div>
               </div>
             )}
           </main>
