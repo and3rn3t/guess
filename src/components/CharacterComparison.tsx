@@ -11,6 +11,7 @@ import type { Character } from '@/lib/types'
 interface CharacterComparisonProps {
   characters: Character[]
   onBack: () => void
+  onOpenRecommender?: (character: Character) => void
 }
 
 interface AttributeAnalysis {

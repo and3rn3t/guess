@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useKV } from '@github/spark/hooks'
 import { AnimatePresence } from 'framer-motion'
-import { Sparkle, Play, Gear, Flask, ChartBar, Users, ClipboardText } from '@phosphor-icons/react'
+import { Sparkle, Play, Gear, Flask, ChartBar, Users, ClipboardText, Lightbulb } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import { Toaster, toast } from 'sonner'
@@ -14,6 +14,7 @@ import { QuestionGeneratorDemo } from '@/components/QuestionGeneratorDemo'
 import { StatsDashboard } from '@/components/StatsDashboard'
 import { CharacterComparison } from '@/components/CharacterComparison'
 import { AttributeCoverageReport } from '@/components/AttributeCoverageReport'
+import { AttributeRecommender } from '@/components/AttributeRecommender'
 import { DEFAULT_CHARACTERS, DEFAULT_QUESTIONS } from '@/lib/database'
 import {
   selectBestQuestion,
@@ -24,7 +25,7 @@ import {
 } from '@/lib/gameEngine'
 import type { Character, Question, Answer, AnswerValue, ReasoningExplanation } from '@/lib/types'
 
-type GamePhase = 'welcome' | 'playing' | 'guessing' | 'gameOver' | 'teaching' | 'manage' | 'demo' | 'stats' | 'compare' | 'coverage'
+type GamePhase = 'welcome' | 'playing' | 'guessing' | 'gameOver' | 'teaching' | 'manage' | 'demo' | 'stats' | 'compare' | 'coverage' | 'recommender'
 
 interface GameHistoryEntry {
   characterId: string
@@ -47,6 +48,7 @@ function App() {
   const [isThinking, setIsThinking] = useState(false)
   const [gameWon, setGameWon] = useState(false)
   const [askedQuestionIds, setAskedQuestionIds] = useState<string[]>([])
+  const [selectedCharacterForRec, setSelectedCharacterForRec] = useState<Character | null>(null)
 
   useEffect(() => {
     if (gamePhase === 'playing' && currentQuestion === null && possibleCharacters.length > 0) {
@@ -212,6 +214,25 @@ function App() {
     setGamePhase('welcome')
   }
 
+  const handleOpenRecommender = (character: Character) => {
+    setSelectedCharacterForRec(character)
+    setGamePhase('recommender')
+  }
+
+  const handleUpdateCharacter = (updatedCharacter: Character) => {
+    setCharacters((currentCharacters) =>
+      (currentCharacters || []).map((char) =>
+        char.id === updatedCharacter.id ? updatedCharacter : char
+      )
+    )
+    toast.success(`Updated ${updatedCharacter.name}'s attributes!`)
+  }
+
+  const handleExitRecommender = () => {
+    setSelectedCharacterForRec(null)
+    setGamePhase('welcome')
+  }
+
   if (gamePhase === 'demo') {
     return <QuestionGeneratorDemo onBack={handleExitDemo} />
   }
@@ -229,6 +250,20 @@ function App() {
     )
   }
 
+  if (gamePhase === 'recommender' && selectedCharacterForRec) {
+    return (
+      <div className="min-h-screen bg-background">
+        <div className="container mx-auto px-4 py-8">
+          <AttributeRecommender
+            character={selectedCharacterForRec}
+            onUpdateCharacter={handleUpdateCharacter}
+            onBack={handleExitRecommender}
+          />
+        </div>
+      </div>
+    )
+  }
+
   if (gamePhase === 'compare') {
     return (
       <div className="min-h-screen bg-background">
@@ -236,6 +271,7 @@ function App() {
           <CharacterComparison
             characters={characters || DEFAULT_CHARACTERS}
             onBack={handleExitCompare}
+            onOpenRecommender={handleOpenRecommender}
           />
         </div>
       </div>
