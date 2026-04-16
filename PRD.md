@@ -47,6 +47,12 @@ This is a focused game experience with question-answer flow, character database 
 - Progression: AI guesses wrong → GameOver screen with "Teach Me" option → Teaching Mode form appears → Shows all attributes that will be remembered → User enters character name → System saves with all answers as attributes → Success confirmation → Option to play again
 - Success criteria: Teaching flow is intuitive, character name and all answered questions saved as attributes, new entries persist in KV storage, game uses new characters in future rounds
 
+**Enhanced Attribute System**
+- Functionality: Characters now have 47 unique attributes covering physical traits, abilities, relationships, origins, and personality
+- Purpose: Enables much deeper character differentiation and more strategic question selection
+- Categories: Basic identity (isHuman, isAnimal, isRobot), Abilities (canFly, canTeleport, canShapeshift, canControlElements), Physical traits (wearsHat, hasTail, wearsCape, hasFacialHair), Social (hasFamily, hasCompanion, hasSidekick, isLeader), Origins (fromSpace, fromVideoGame, fromMovie, fromBook), and Personality (isFunny, isVillain, isHero)
+- Success criteria: Question generator discovers new attributes from user-taught characters, game asks more diverse and strategic questions, characters are more easily distinguishable
+
 ## Edge Case Handling
 
 - **Obscure Subjects**: If user thinks of something too niche, AI gracefully admits uncertainty after reasonable attempts and invites them to teach it
