@@ -454,7 +454,7 @@ function App() {
                         className="flex items-center gap-2 bg-emerald-500/10 hover:bg-emerald-500/20 border-emerald-500/30"
                       >
                         <Lightbulb size={20} weight="fill" />
-                        <span className="hidden sm:inline">Bulk Habitat</span>
+                        <span className="hidden sm:inline">Bulk Enhancer</span>
                       </Button>
                     </>
                   )}

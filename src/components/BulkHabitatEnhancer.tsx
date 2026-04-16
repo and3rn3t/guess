@@ -1,16 +1,19 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ArrowLeft, TreeStructure, Sparkle, Check, X, Lightning, Users } from '@phosphor-icons/react'
+import { ArrowLeft, TreeStructure, Sparkle, Check, X, Lightning, Users, Sword, Brain, Planet, User, Backpack, Heart } from '@phosphor-icons/react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { toast } from 'sonner'
 import type { Character } from '@/lib/types'
 import {
   generateCategoryRecommendations,
   type AttributeRecommendation,
+  type AttributeCategory,
+  getCategoryInfo,
 } from '@/lib/categoryRecommender'
 
 interface BulkHabitatEnhancerProps {
@@ -27,6 +30,26 @@ interface CharacterEnhancement {
   acceptedCount: number
 }
 
+const CATEGORY_ICONS: Record<AttributeCategory, typeof TreeStructure> = {
+  environment: TreeStructure,
+  abilities: Lightning,
+  equipment: Backpack,
+  physical: User,
+  personality: Brain,
+  origins: Planet,
+  relationships: Heart,
+}
+
+const CATEGORY_COLORS: Record<AttributeCategory, string> = {
+  environment: 'emerald',
+  abilities: 'purple',
+  equipment: 'amber',
+  physical: 'blue',
+  personality: 'pink',
+  origins: 'cyan',
+  relationships: 'rose',
+}
+
 export function BulkHabitatEnhancer({
   characters,
   onUpdateCharacters,
@@ -36,6 +59,7 @@ export function BulkHabitatEnhancer({
   const [currentCharacterIndex, setCurrentCharacterIndex] = useState(0)
   const [isGeneratingAll, setIsGeneratingAll] = useState(false)
   const [globalProgress, setGlobalProgress] = useState(0)
+  const [selectedCategory, setSelectedCategory] = useState<AttributeCategory>('environment')
 
   const currentCharacter = characters[currentCharacterIndex]
   const currentEnhancement = enhancements.get(currentCharacter?.id)
@@ -44,7 +68,7 @@ export function BulkHabitatEnhancer({
     if (currentCharacter && !enhancements.has(currentCharacter.id)) {
       loadRecommendationsForCharacter(currentCharacter)
     }
-  }, [currentCharacter])
+  }, [currentCharacter, selectedCategory])
 
   const loadRecommendationsForCharacter = async (character: Character) => {
     setEnhancements((prev) => {
@@ -63,7 +87,7 @@ export function BulkHabitatEnhancer({
       const recs = await generateCategoryRecommendations(
         character.name,
         character.attributes,
-        'environment'
+        selectedCategory
       )
 
       setEnhancements((prev) => {
@@ -77,7 +101,8 @@ export function BulkHabitatEnhancer({
         return newMap
       })
 
-      toast.success(`Generated ${recs.length} recommendations for ${character.name}`)
+      const categoryInfo = getCategoryInfo(selectedCategory)
+      toast.success(`Generated ${recs.length} ${categoryInfo.name.toLowerCase()} recommendations for ${character.name}`)
     } catch (error) {
       toast.error(`Failed to generate recommendations for ${character.name}`)
       console.error(error)
@@ -213,7 +238,7 @@ export function BulkHabitatEnhancer({
       (sum, e) => sum + e.acceptedCount,
       0
     )
-    toast.success(`Enhanced ${enhancements.size} characters with ${totalAccepted} habitat attributes!`)
+    toast.success(`Enhanced ${enhancements.size} characters with ${totalAccepted} ${categoryInfo.description} attributes!`)
     onBack()
   }
 
@@ -257,6 +282,16 @@ export function BulkHabitatEnhancer({
     0
   )
 
+  const categoryInfo = getCategoryInfo(selectedCategory)
+  const CategoryIcon = CATEGORY_ICONS[selectedCategory]
+  const categoryColor = CATEGORY_COLORS[selectedCategory]
+
+  const handleCategoryChange = (category: AttributeCategory) => {
+    setSelectedCategory(category)
+    setEnhancements(new Map())
+    setCurrentCharacterIndex(0)
+  }
+
   return (
     <div className="max-w-7xl mx-auto space-y-6">
       <div className="flex items-center justify-between">
@@ -266,11 +301,11 @@ export function BulkHabitatEnhancer({
           </Button>
           <div>
             <div className="flex items-center gap-3">
-              <TreeStructure size={32} weight="duotone" className="text-accent" />
-              <h1 className="text-3xl font-bold text-foreground">Bulk Habitat Enhancer</h1>
+              <CategoryIcon size={32} weight="duotone" className="text-accent" />
+              <h1 className="text-3xl font-bold text-foreground">Bulk Attribute Enhancer</h1>
             </div>
             <p className="text-muted-foreground mt-1">
-              Add habitat & environment attributes to characters using AI suggestions
+              Add {categoryInfo.description} attributes to characters using AI suggestions
             </p>
           </div>
         </div>
@@ -294,12 +329,54 @@ export function BulkHabitatEnhancer({
         </div>
       </div>
 
+      <Card className="p-6 bg-card/30 border-primary/20">
+        <h3 className="text-sm font-semibold text-foreground mb-3">Select Attribute Category</h3>
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
+          {[
+            { key: 'environment' as AttributeCategory, label: 'Environment', Icon: TreeStructure, desc: 'Habitats & locations' },
+            { key: 'abilities' as AttributeCategory, label: 'Abilities', Icon: Lightning, desc: 'Powers & skills' },
+            { key: 'equipment' as AttributeCategory, label: 'Equipment', Icon: Backpack, desc: 'Tools & weapons' },
+            { key: 'physical' as AttributeCategory, label: 'Physical', Icon: User, desc: 'Appearance' },
+            { key: 'personality' as AttributeCategory, label: 'Personality', Icon: Brain, desc: 'Traits & behavior' },
+            { key: 'origins' as AttributeCategory, label: 'Origins', Icon: Planet, desc: 'Background' },
+            { key: 'relationships' as AttributeCategory, label: 'Relationships', Icon: Heart, desc: 'Connections' },
+          ].map(({ key, label, Icon, desc }) => {
+            const isActive = selectedCategory === key
+            const color = CATEGORY_COLORS[key]
+            return (
+              <button
+                key={key}
+                onClick={() => handleCategoryChange(key)}
+                disabled={isGeneratingAll}
+                className={`p-4 rounded-lg border-2 transition-all text-left ${
+                  isActive
+                    ? `bg-${color}-500/10 border-${color}-500/50 shadow-sm`
+                    : 'bg-card/20 border-border/30 hover:border-border/50 hover:bg-card/40'
+                }`}
+              >
+                <Icon 
+                  size={28} 
+                  weight={isActive ? 'duotone' : 'regular'}
+                  className={isActive ? `text-${color}-400` : 'text-muted-foreground'}
+                />
+                <div className="mt-2">
+                  <div className={`font-semibold text-sm ${isActive ? 'text-foreground' : 'text-muted-foreground'}`}>
+                    {label}
+                  </div>
+                  <div className="text-xs text-muted-foreground mt-0.5">{desc}</div>
+                </div>
+              </button>
+            )
+          })}
+        </div>
+      </Card>
+
       {isGeneratingAll && (
         <Card className="p-6 bg-accent/5 border-accent/30">
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <span className="text-sm font-medium text-foreground">
-                Generating recommendations for all characters...
+                Generating {categoryInfo.name.toLowerCase()} recommendations for all characters...
               </span>
               <span className="text-sm text-muted-foreground">{Math.round(globalProgress)}%</span>
             </div>
@@ -416,7 +493,7 @@ export function BulkHabitatEnhancer({
                     <div className="flex items-center gap-3">
                       <Sparkle size={24} className="text-accent animate-pulse" />
                       <span className="text-sm font-medium text-foreground">
-                        Analyzing {currentCharacter.name}'s habitat...
+                        Analyzing {currentCharacter.name}'s {categoryInfo.description}...
                       </span>
                     </div>
                     <Skeleton className="h-20 w-full" />
@@ -432,7 +509,7 @@ export function BulkHabitatEnhancer({
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
                       <h3 className="text-lg font-semibold text-foreground">
-                        Environment Recommendations ({currentEnhancement.recommendations.length})
+                        {categoryInfo.name} Recommendations ({currentEnhancement.recommendations.length})
                       </h3>
                       <Button
                         onClick={handleAcceptAll}
@@ -531,7 +608,7 @@ export function BulkHabitatEnhancer({
                     </h3>
                     <p className="text-muted-foreground mb-6">
                       {currentEnhancement.acceptedCount > 0
-                        ? `Added ${currentEnhancement.acceptedCount} habitat attributes`
+                        ? `Added ${currentEnhancement.acceptedCount} ${categoryInfo.description} attributes`
                         : 'No more recommendations for this character'}
                     </p>
                     <div className="flex items-center justify-center gap-3">
