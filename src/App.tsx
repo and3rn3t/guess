@@ -17,6 +17,7 @@ import { AttributeCoverageReport } from '@/components/AttributeCoverageReport'
 import { AttributeRecommender } from '@/components/AttributeRecommender'
 import { CategoryRecommender } from '@/components/CategoryRecommender'
 import { EnvironmentTest } from '@/components/EnvironmentTest'
+import { BulkHabitatEnhancer } from '@/components/BulkHabitatEnhancer'
 import { DEFAULT_CHARACTERS, DEFAULT_QUESTIONS } from '@/lib/database'
 import {
   selectBestQuestion,
@@ -27,7 +28,7 @@ import {
 } from '@/lib/gameEngine'
 import type { Character, Question, Answer, AnswerValue, ReasoningExplanation } from '@/lib/types'
 
-type GamePhase = 'welcome' | 'playing' | 'guessing' | 'gameOver' | 'teaching' | 'manage' | 'demo' | 'stats' | 'compare' | 'coverage' | 'recommender' | 'categoryRecommender' | 'environmentTest'
+type GamePhase = 'welcome' | 'playing' | 'guessing' | 'gameOver' | 'teaching' | 'manage' | 'demo' | 'stats' | 'compare' | 'coverage' | 'recommender' | 'categoryRecommender' | 'environmentTest' | 'bulkHabitat'
 
 interface GameHistoryEntry {
   characterId: string
@@ -245,6 +246,32 @@ function App() {
     setGamePhase('welcome')
   }
 
+  const handleOpenBulkHabitat = () => {
+    setGamePhase('bulkHabitat')
+  }
+
+  const handleExitBulkHabitat = () => {
+    setGamePhase('welcome')
+  }
+
+  const handleUpdateCharacters = (updatedCharacters: Character[]) => {
+    setCharacters(() => updatedCharacters)
+  }
+
+  if (gamePhase === 'bulkHabitat') {
+    return (
+      <div className="min-h-screen bg-background">
+        <div className="container mx-auto px-4 py-8">
+          <BulkHabitatEnhancer
+            characters={characters || DEFAULT_CHARACTERS}
+            onUpdateCharacters={handleUpdateCharacters}
+            onBack={handleExitBulkHabitat}
+          />
+        </div>
+      </div>
+    )
+  }
+
   if (gamePhase === 'demo') {
     return <QuestionGeneratorDemo onBack={handleExitDemo} />
   }
@@ -419,6 +446,15 @@ function App() {
                       >
                         <TreeStructure size={20} />
                         <span className="hidden sm:inline">Test Environment</span>
+                      </Button>
+                      <Button
+                        onClick={handleOpenBulkHabitat}
+                        variant="outline"
+                        size="sm"
+                        className="flex items-center gap-2 bg-emerald-500/10 hover:bg-emerald-500/20 border-emerald-500/30"
+                      >
+                        <Lightbulb size={20} weight="fill" />
+                        <span className="hidden sm:inline">Bulk Habitat</span>
                       </Button>
                     </>
                   )}
