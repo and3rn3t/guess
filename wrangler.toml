@@ -1,0 +1,14 @@
+#:schema node_modules/wrangler/config-schema.json
+
+name = "guess"
+compatibility_date = "2025-04-01"
+pages_build_output_dir = "./dist"
+
+# Cloudflare Pages static site deployment
+# Build: pnpm build (outputs to dist/)
+# Deploy: pnpm run deploy
+
+# Uncomment below to add Cloudflare bindings when migrating from Spark KV:
+# [[kv_namespaces]]
+# binding = "GUESS_KV"
+# id = "<your-kv-namespace-id>"

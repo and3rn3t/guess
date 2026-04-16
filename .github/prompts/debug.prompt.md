@@ -13,6 +13,7 @@ Diagnose and fix a bug in the Guess application.
 3. Trace the data flow: KV state → game engine → component rendering
 4. Check common failure points:
    - KV state returning `undefined` (always provide defaults with `useKV`)
+   - localStorage corruption or quota exceeded
    - Attribute key mismatches between characters and questions
    - Missing null checks on `boolean | null` attributes
    - Animation timing issues with Framer Motion `AnimatePresence`

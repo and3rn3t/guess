@@ -9,10 +9,13 @@
         "build": "tsc -b --noCheck && vite build",
         "lint": "eslint .",
         "optimize": "vite optimize",
-        "preview": "vite preview"
+        "preview": "vite preview",
+        "deploy": "pnpm build && wrangler pages deploy",
+        "deploy:preview": "pnpm build && wrangler pages deploy --branch preview",
+        "cf:login": "wrangler login",
+        "cf:dev": "wrangler pages dev -- pnpm dev"
     },
     "dependencies": {
-        "@github/spark": ">=0.43.1 <1",
         "@heroicons/react": "^2.2.0",
         "@hookform/resolvers": "^4.1.3",
         "@octokit/core": "^6.1.4",

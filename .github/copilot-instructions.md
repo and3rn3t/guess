@@ -1,10 +1,10 @@
 # Copilot Instructions for Guess
 
 ## Project Overview
-This is an AI-powered guessing game built on **GitHub Spark** using React 19, TypeScript, Vite 7, Tailwind CSS v4, and shadcn/ui. The AI asks strategic yes/no questions to deduce what character the user is thinking of, with full reasoning transparency.
+This is an AI-powered guessing game deployed on **Cloudflare Pages** using React 19, TypeScript, Vite 7, Tailwind CSS v4, and shadcn/ui. The AI asks strategic yes/no questions to deduce what character the user is thinking of, with full reasoning transparency.
 
 ## Tech Stack & Platform
-- **GitHub Spark** app — uses `@github/spark` for KV persistence (`useKV` hook), NOT a standard React SPA
+- **Cloudflare Pages** static site deployment
 - React 19 + TypeScript (strict null checks) + Vite 7
 - Tailwind CSS v4 + shadcn/ui (new-york style, `components.json`)
 - Framer Motion for animations
@@ -36,8 +36,8 @@ This is an AI-powered guessing game built on **GitHub Spark** using React 19, Ty
 - Respect `prefers-reduced-motion`
 
 ### State Management
-- Spark KV for persistence: `useKV<T>(key, default)` from `@github/spark/hooks`
-- KV keys: `characters`, `questions`, `game-history`
+- localStorage persistence: `useKV<T>(key, default)` from `@/hooks/useKV`
+- KV keys (prefixed `kv:` in storage): `characters`, `questions`, `game-history`
 - Local React state for ephemeral game state (current question, answers, phase)
 
 ### Game Logic
@@ -49,15 +49,21 @@ This is an AI-powered guessing game built on **GitHub Spark** using React 19, Ty
 
 ## Commands
 ```bash
-pnpm dev        # Start dev server
-pnpm build      # Type-check + build
-pnpm lint       # ESLint
-pnpm preview    # Preview build
+pnpm dev            # Start dev server
+pnpm build          # Type-check + build
+pnpm lint           # ESLint
+pnpm preview        # Preview build
+pnpm deploy         # Build + deploy to Cloudflare Pages (production)
+pnpm deploy:preview # Build + deploy to Cloudflare Pages (preview)
+pnpm cf:login       # Authenticate with Cloudflare
+pnpm cf:dev         # Dev server with Cloudflare bindings
 ```
 
+## Deployment (Cloudflare Pages)
+- Config: `wrangler.toml` (project name: `guess`, output: `dist/`)
+- MCP: `.vscode/mcp.json` configures the Cloudflare MCP server for AI-assisted deployment
+
 ## Important Warnings
-- Do NOT import from `@github/spark` paths other than documented hooks
 - Do NOT manually edit files in `src/components/ui/` — use `npx shadcn@latest add <component>`
-- The `runtime.config.json` and `spark.meta.json` are Spark platform files — do not modify
 - Character IDs must be unique lowercase strings
 - All attribute keys must be camelCase booleans

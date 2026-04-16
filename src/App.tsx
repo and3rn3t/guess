@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useKV } from '@github/spark/hooks'
+import { useKV } from '@/hooks/useKV'
 import { AnimatePresence } from 'framer-motion'
 import { Sparkle, Play, Gear, Flask, ChartBar, Users, ClipboardText, Brain, TreeStructure } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'

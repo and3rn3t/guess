@@ -1,0 +1,22 @@
+{
+  "servers": {
+    "cloudflare": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "@cloudflare/mcp-server-cloudflare"
+      ],
+      "env": {
+        "CLOUDFLARE_ACCOUNT_ID": "${input:cloudflare-account-id}"
+      }
+    }
+  },
+  "inputs": [
+    {
+      "id": "cloudflare-account-id",
+      "type": "promptString",
+      "description": "Your Cloudflare Account ID (find it at dash.cloudflare.com > Workers & Pages > Overview)",
+      "password": false
+    }
+  ]
+}

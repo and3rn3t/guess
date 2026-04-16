@@ -15,7 +15,7 @@ Create a new React component in `src/components/` following project conventions.
 - Use Framer Motion for animations (`AnimatePresence`, `motion`)
 - Icons from `@phosphor-icons/react`
 - Use Tailwind utility classes — follow the cosmic purple theme
-- For persistent state, use `useKV` from `@github/spark/hooks`
+- For persistent state, use `useKV` from `@/hooks/useKV`
 - For ephemeral state, use React `useState`/`useEffect`
 
 ## Structure Template
