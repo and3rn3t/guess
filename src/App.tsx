@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useKV } from '@github/spark/hooks'
 import { AnimatePresence } from 'framer-motion'
-import { Sparkle, Play, Gear, Flask } from '@phosphor-icons/react'
+import { Sparkle, Play, Gear, Flask, ChartBar } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import { Toaster, toast } from 'sonner'
@@ -11,6 +11,7 @@ import { GuessReveal, GameOver } from '@/components/GuessReveal'
 import { TeachingMode } from '@/components/TeachingMode'
 import { QuestionManager } from '@/components/QuestionManager'
 import { QuestionGeneratorDemo } from '@/components/QuestionGeneratorDemo'
+import { StatsDashboard } from '@/components/StatsDashboard'
 import { DEFAULT_CHARACTERS, DEFAULT_QUESTIONS } from '@/lib/database'
 import {
   selectBestQuestion,
@@ -21,11 +22,19 @@ import {
 } from '@/lib/gameEngine'
 import type { Character, Question, Answer, AnswerValue, ReasoningExplanation } from '@/lib/types'
 
-type GamePhase = 'welcome' | 'playing' | 'guessing' | 'gameOver' | 'teaching' | 'manage' | 'demo'
+type GamePhase = 'welcome' | 'playing' | 'guessing' | 'gameOver' | 'teaching' | 'manage' | 'demo' | 'stats'
+
+interface GameHistoryEntry {
+  characterId: string
+  questionsAsked: string[]
+  won: boolean
+  timestamp: number
+}
 
 function App() {
   const [characters, setCharacters] = useKV<Character[]>('characters', DEFAULT_CHARACTERS)
   const [questions, setQuestions] = useKV<Question[]>('questions', DEFAULT_QUESTIONS)
+  const [gameHistory, setGameHistory] = useKV<GameHistoryEntry[]>('game-history', [])
 
   const [gamePhase, setGamePhase] = useState<GamePhase>('welcome')
   const [answers, setAnswers] = useState<Answer[]>([])
@@ -35,6 +44,7 @@ function App() {
   const [finalGuess, setFinalGuess] = useState<Character | null>(null)
   const [isThinking, setIsThinking] = useState(false)
   const [gameWon, setGameWon] = useState(false)
+  const [askedQuestionIds, setAskedQuestionIds] = useState<string[]>([])
 
   useEffect(() => {
     if (gamePhase === 'playing' && currentQuestion === null && possibleCharacters.length > 0) {
@@ -50,6 +60,7 @@ function App() {
     setReasoning(null)
     setFinalGuess(null)
     setGameWon(false)
+    setAskedQuestionIds([])
   }
 
   const generateNextQuestion = () => {
@@ -75,6 +86,7 @@ function App() {
         const newReasoning = generateReasoning(nextQuestion, filtered, answers)
         setCurrentQuestion(nextQuestion)
         setReasoning(newReasoning)
+        setAskedQuestionIds((prev) => [...prev, nextQuestion.id])
       } else {
         const guess = getBestGuess(filtered, answers)
         setFinalGuess(guess)
@@ -109,12 +121,36 @@ function App() {
     setGameWon(true)
     setGamePhase('gameOver')
     toast.success('🎉 I got it right!')
+    
+    if (finalGuess) {
+      setGameHistory((currentHistory) => [
+        ...(currentHistory || []),
+        {
+          characterId: finalGuess.id,
+          questionsAsked: askedQuestionIds,
+          won: true,
+          timestamp: Date.now(),
+        },
+      ])
+    }
   }
 
   const handleIncorrectGuess = () => {
     setGameWon(false)
     setGamePhase('gameOver')
     toast.error("I'll learn from this and do better next time!")
+    
+    if (finalGuess) {
+      setGameHistory((currentHistory) => [
+        ...(currentHistory || []),
+        {
+          characterId: finalGuess.id,
+          questionsAsked: askedQuestionIds,
+          won: false,
+          timestamp: Date.now(),
+        },
+      ])
+    }
   }
 
   const handleTeachMode = () => {
@@ -150,8 +186,31 @@ function App() {
     setGamePhase('welcome')
   }
 
+  const handleOpenStats = () => {
+    setGamePhase('stats')
+  }
+
+  const handleExitStats = () => {
+    setGamePhase('welcome')
+  }
+
   if (gamePhase === 'demo') {
     return <QuestionGeneratorDemo onBack={handleExitDemo} />
+  }
+
+  if (gamePhase === 'stats') {
+    return (
+      <div className="min-h-screen bg-background">
+        <div className="container mx-auto px-4 py-8">
+          <StatsDashboard
+            characters={characters || DEFAULT_CHARACTERS}
+            questions={questions || DEFAULT_QUESTIONS}
+            gameHistory={gameHistory || []}
+            onBack={handleExitStats}
+          />
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -183,10 +242,19 @@ function App() {
                   {gamePhase === 'welcome' && (
                     <>
                       <Button
-                        onClick={handleOpenDemo}
+                        onClick={handleOpenStats}
                         variant="outline"
                         size="sm"
                         className="flex items-center gap-2 bg-accent/10 hover:bg-accent/20 border-accent/30"
+                      >
+                        <ChartBar size={20} />
+                        <span className="hidden sm:inline">Statistics</span>
+                      </Button>
+                      <Button
+                        onClick={handleOpenDemo}
+                        variant="outline"
+                        size="sm"
+                        className="flex items-center gap-2"
                       >
                         <Flask size={20} />
                         <span className="hidden sm:inline">Test Generator</span>

@@ -62,6 +62,18 @@ This is a focused game experience with question-answer flow, character database 
 - New Questions: Added 10 new questions for recently discovered attributes from user-taught characters
 - Success criteria: Question generator discovers new attributes from user-taught characters, game asks more diverse and strategic questions, characters are more easily distinguishable
 
+**Statistics Dashboard**
+- Functionality: Comprehensive analytics dashboard showing question usage patterns, attribute diversity metrics, and character pool composition
+- Purpose: Provides insights into game performance, identifies underutilized questions, reveals attribute entropy for strategic improvement, and tracks learning system growth
+- Trigger: User clicks "Statistics" button from welcome screen
+- Progression: Click Statistics → Dashboard loads with three tabs (Question Usage, Attribute Analysis, Character Diversity) → View detailed metrics → Return to game
+- Key Metrics:
+  - Question Performance: Times asked, average position in game, success rate per question
+  - Attribute Entropy: Information gain potential for each attribute, yes/no/null distribution, character coverage percentage
+  - Character Diversity: Total characters, user-taught vs default breakdown, most/least common attributes, diversity score
+  - Game History: Tracked wins/losses with questions asked per game for performance analytics
+- Success criteria: Dashboard loads instantly, metrics update as games are played, entropy calculations guide question strategy, visualizations clearly communicate patterns
+
 ## Edge Case Handling
 
 - **Obscure Subjects**: If user thinks of something too niche, AI gracefully admits uncertainty after reasonable attempts and invites them to teach it
