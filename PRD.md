@@ -48,9 +48,18 @@ This is a focused game experience with question-answer flow, character database 
 - Success criteria: Teaching flow is intuitive, character name and all answered questions saved as attributes, new entries persist in KV storage, game uses new characters in future rounds
 
 **Enhanced Attribute System**
-- Functionality: Characters now have 47 unique attributes covering physical traits, abilities, relationships, origins, and personality
+- Functionality: Characters now have 57 unique attributes covering physical traits, abilities, relationships, origins, and personality
 - Purpose: Enables much deeper character differentiation and more strategic question selection
-- Categories: Basic identity (isHuman, isAnimal, isRobot), Abilities (canFly, canTeleport, canShapeshift, canControlElements), Physical traits (wearsHat, hasTail, wearsCape, hasFacialHair), Social (hasFamily, hasCompanion, hasSidekick, isLeader), Origins (fromSpace, fromVideoGame, fromMovie, fromBook), and Personality (isFunny, isVillain, isHero)
+- Categories: 
+  - Basic identity (isHuman, isAnimal, isRobot)
+  - Abilities (canFly, canTeleport, canShapeshift, canControlElements, canRegenerate)
+  - Physical traits (wearsHat, hasTail, wearsCape, hasFacialHair, hasClaws, hasWings, hasTentacles)
+  - Powers (hasSuperpowers, hasMagicPowers, hasWebShooters, hasSpiderSense, shootsLasers, controlsWeather)
+  - Movement (climbsWalls, canSwim, canBreatheUnderwater)
+  - Social (hasFamily, hasCompanion, hasSidekick, isLeader)
+  - Origins (fromSpace, fromVideoGame, fromMovie, fromBook, livesInNewYork, livesInCity)
+  - Personality (isFunny, isVillain, isHero)
+- New Questions: Added 10 new questions for recently discovered attributes from user-taught characters
 - Success criteria: Question generator discovers new attributes from user-taught characters, game asks more diverse and strategic questions, characters are more easily distinguishable
 
 ## Edge Case Handling
