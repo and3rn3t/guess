@@ -14,6 +14,8 @@ import {
   Star,
   TrendUp,
   Lightbulb,
+  TreeStructure,
+  Sword,
 } from '@phosphor-icons/react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -33,7 +35,7 @@ interface CategoryRecommenderProps {
   onBack: () => void
 }
 
-type CategoryKey = 'physical' | 'abilities' | 'personality' | 'origins' | 'relationships'
+type CategoryKey = 'physical' | 'abilities' | 'personality' | 'origins' | 'relationships' | 'environment' | 'equipment'
 
 interface CategoryInfo {
   key: CategoryKey
@@ -78,6 +80,20 @@ const CATEGORIES: CategoryInfo[] = [
     icon: UsersIcon,
     description: 'Companions, family, and social connections',
     color: 'from-green-500/20 to-emerald-500/20 border-green-500/40',
+  },
+  {
+    key: 'environment',
+    label: 'Environment & Habitat',
+    icon: TreeStructure,
+    description: 'Where they live, operate, or spend time',
+    color: 'from-teal-500/20 to-cyan-500/20 border-teal-500/40',
+  },
+  {
+    key: 'equipment',
+    label: 'Equipment & Tools',
+    icon: Sword,
+    description: 'Weapons, vehicles, gadgets, and tools they use',
+    color: 'from-orange-500/20 to-red-500/20 border-orange-500/40',
   },
 ]
 
@@ -212,7 +228,7 @@ export function CategoryRecommender({
           </div>
         </Card>
 
-        <div className="grid md:grid-cols-2 gap-4">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {CATEGORIES.map((category) => {
             const Icon = category.icon
             return (
@@ -222,29 +238,29 @@ export function CategoryRecommender({
                 whileTap={{ scale: 0.98 }}
               >
                 <Card
-                  className={`bg-gradient-to-br ${category.color} p-6 cursor-pointer hover:shadow-lg transition-all group`}
+                  className={`bg-gradient-to-br ${category.color} p-5 cursor-pointer hover:shadow-lg transition-all group h-full`}
                   onClick={() => handleCategorySelect(category.key)}
                 >
-                  <div className="flex items-start gap-4">
-                    <div className="flex-shrink-0 p-3 bg-background/50 rounded-lg group-hover:bg-background/70 transition-colors">
-                      <Icon size={28} weight="duotone" className="text-foreground" />
-                    </div>
-                    <div className="flex-1 space-y-1">
-                      <h3 className="text-lg font-semibold text-foreground">
+                  <div className="flex flex-col gap-3 h-full">
+                    <div className="flex items-center gap-3">
+                      <div className="flex-shrink-0 p-2.5 bg-background/50 rounded-lg group-hover:bg-background/70 transition-colors">
+                        <Icon size={24} weight="duotone" className="text-foreground" />
+                      </div>
+                      <h3 className="text-base font-semibold text-foreground">
                         {category.label}
                       </h3>
-                      <p className="text-sm text-muted-foreground">
-                        {category.description}
-                      </p>
-                      <div className="pt-2">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="text-foreground hover:text-accent -ml-2"
-                        >
-                          Generate Recommendations →
-                        </Button>
-                      </div>
+                    </div>
+                    <p className="text-sm text-muted-foreground leading-relaxed flex-1">
+                      {category.description}
+                    </p>
+                    <div className="pt-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-foreground hover:text-accent -ml-2 text-xs"
+                      >
+                        Generate →
+                      </Button>
                     </div>
                   </div>
                 </Card>

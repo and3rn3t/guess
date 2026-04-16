@@ -7,7 +7,7 @@ export interface AttributeRecommendation {
   priority: 'high' | 'medium' | 'low'
 }
 
-export type AttributeCategory = 'physical' | 'abilities' | 'personality' | 'origins' | 'relationships'
+export type AttributeCategory = 'physical' | 'abilities' | 'personality' | 'origins' | 'relationships' | 'environment' | 'equipment'
 
 interface CategoryDefinition {
   name: string
@@ -29,7 +29,12 @@ const CATEGORY_DEFINITIONS: Record<AttributeCategory, CategoryDefinition> = {
       key.includes('hasClaws') ||
       key.includes('hasTentacles') ||
       key.includes('hasFacialHair') ||
-      key.includes('hasArmor'),
+      key.includes('hasArmor') ||
+      key.includes('isMale') ||
+      key.includes('isFemale') ||
+      key.includes('isHuman') ||
+      key.includes('isAnimal') ||
+      key.includes('isRobot'),
     examplePrompt: 'Focus on what they look like, what they wear, and their physical characteristics',
   },
   abilities: {
@@ -71,6 +76,10 @@ const CATEGORY_DEFINITIONS: Record<AttributeCategory, CategoryDefinition> = {
       key.includes('Fictional') ||
       key.includes('Royalty') ||
       key.includes('isFrom') ||
+      key.includes('Job') ||
+      key.includes('Famous') ||
+      key.includes('Alive') ||
+      key.includes('Awards') ||
       label.toLowerCase().includes('from '),
     examplePrompt: 'Focus on where they come from, their background, and their world or universe',
   },
@@ -88,6 +97,45 @@ const CATEGORY_DEFINITIONS: Record<AttributeCategory, CategoryDefinition> = {
       label.toLowerCase().includes('relationship') ||
       label.toLowerCase().includes('companion'),
     examplePrompt: 'Focus on their relationships, companions, family, and social connections',
+  },
+  environment: {
+    name: 'Environment & Habitat',
+    description: 'where they live, operate, or spend time',
+    attributeFilter: (key, label) =>
+      key.startsWith('livesIn') ||
+      key.includes('City') ||
+      key.includes('Space') ||
+      key.includes('Underwater') ||
+      key.includes('Forest') ||
+      key.includes('Mountain') ||
+      key.includes('Desert') ||
+      key.includes('Castle') ||
+      key.includes('Location') ||
+      label.toLowerCase().includes('lives in') ||
+      label.toLowerCase().includes('location') ||
+      label.toLowerCase().includes('habitat') ||
+      label.toLowerCase().includes('environment'),
+    examplePrompt: 'Focus on where they live, their typical environment, and the locations they inhabit',
+  },
+  equipment: {
+    name: 'Equipment & Tools',
+    description: 'weapons, vehicles, gadgets, and tools they use',
+    attributeFilter: (key, label) =>
+      key.includes('Weapon') ||
+      key.includes('Vehicle') ||
+      key.includes('Technology') ||
+      key.includes('Armor') ||
+      key.includes('Shield') ||
+      key.includes('Sword') ||
+      key.includes('Gun') ||
+      key.includes('Gadget') ||
+      key.includes('Tool') ||
+      key.includes('uses') ||
+      key.includes('has') && (label.toLowerCase().includes('weapon') || 
+                               label.toLowerCase().includes('vehicle') || 
+                               label.toLowerCase().includes('tool') ||
+                               label.toLowerCase().includes('gadget')),
+    examplePrompt: 'Focus on their weapons, vehicles, tools, gadgets, and equipment they use',
   },
 }
 
