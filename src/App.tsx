@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useKV } from '@github/spark/hooks'
 import { AnimatePresence } from 'framer-motion'
-import { Sparkle, Play, Gear, Flask, ChartBar, Users, ClipboardText, Lightbulb } from '@phosphor-icons/react'
+import { Sparkle, Play, Gear, Flask, ChartBar, Users, ClipboardText, Lightbulb, TreeStructure } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import { Toaster, toast } from 'sonner'
@@ -16,6 +16,7 @@ import { CharacterComparison } from '@/components/CharacterComparison'
 import { AttributeCoverageReport } from '@/components/AttributeCoverageReport'
 import { AttributeRecommender } from '@/components/AttributeRecommender'
 import { CategoryRecommender } from '@/components/CategoryRecommender'
+import { EnvironmentTest } from '@/components/EnvironmentTest'
 import { DEFAULT_CHARACTERS, DEFAULT_QUESTIONS } from '@/lib/database'
 import {
   selectBestQuestion,
@@ -26,7 +27,7 @@ import {
 } from '@/lib/gameEngine'
 import type { Character, Question, Answer, AnswerValue, ReasoningExplanation } from '@/lib/types'
 
-type GamePhase = 'welcome' | 'playing' | 'guessing' | 'gameOver' | 'teaching' | 'manage' | 'demo' | 'stats' | 'compare' | 'coverage' | 'recommender' | 'categoryRecommender'
+type GamePhase = 'welcome' | 'playing' | 'guessing' | 'gameOver' | 'teaching' | 'manage' | 'demo' | 'stats' | 'compare' | 'coverage' | 'recommender' | 'categoryRecommender' | 'environmentTest'
 
 interface GameHistoryEntry {
   characterId: string
@@ -234,8 +235,32 @@ function App() {
     setGamePhase('welcome')
   }
 
+  const handleOpenEnvironmentTest = (character: Character) => {
+    setSelectedCharacterForRec(character)
+    setGamePhase('environmentTest')
+  }
+
+  const handleExitEnvironmentTest = () => {
+    setSelectedCharacterForRec(null)
+    setGamePhase('welcome')
+  }
+
   if (gamePhase === 'demo') {
     return <QuestionGeneratorDemo onBack={handleExitDemo} />
+  }
+
+  if (gamePhase === 'environmentTest' && selectedCharacterForRec) {
+    return (
+      <div className="min-h-screen bg-background">
+        <div className="container mx-auto px-4 py-8">
+          <EnvironmentTest
+            character={selectedCharacterForRec}
+            onUpdateCharacter={handleUpdateCharacter}
+            onBack={handleExitEnvironmentTest}
+          />
+        </div>
+      </div>
+    )
   }
 
   if (gamePhase === 'coverage') {
@@ -380,6 +405,20 @@ function App() {
                       >
                         <Gear size={20} />
                         <span className="hidden sm:inline">Manage Questions</span>
+                      </Button>
+                      <Button
+                        onClick={() => {
+                          const spongebob = (characters || DEFAULT_CHARACTERS).find(c => c.id === 'spongebob')
+                          if (spongebob) {
+                            handleOpenEnvironmentTest(spongebob)
+                          }
+                        }}
+                        variant="outline"
+                        size="sm"
+                        className="flex items-center gap-2 bg-teal-500/10 hover:bg-teal-500/20 border-teal-500/30"
+                      >
+                        <TreeStructure size={20} />
+                        <span className="hidden sm:inline">Test Environment</span>
                       </Button>
                     </>
                   )}
