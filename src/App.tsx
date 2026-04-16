@@ -451,10 +451,10 @@ function App() {
                         onClick={handleOpenBulkHabitat}
                         variant="outline"
                         size="sm"
-                        className="flex items-center gap-2 bg-gradient-to-r from-emerald-500/10 to-purple-500/10 hover:from-emerald-500/20 hover:to-purple-500/20 border-emerald-500/30"
+                        className="flex items-center gap-2 bg-gradient-to-r from-pink-500/10 to-purple-500/10 hover:from-pink-500/20 hover:to-purple-500/20 border-pink-500/30"
                       >
                         <Lightbulb size={20} weight="fill" />
-                        <span className="hidden sm:inline">Enrich All</span>
+                        <span className="hidden sm:inline">Personality Traits</span>
                       </Button>
                     </>
                   )}

@@ -62,9 +62,41 @@ const CATEGORY_DEFINITIONS: Record<AttributeCategory, CategoryDefinition> = {
       key.includes('Leader') ||
       key.includes('Evil') ||
       key.includes('Good') ||
+      key.startsWith('is') && (
+        key.includes('Brave') ||
+        key.includes('Intelligent') ||
+        key.includes('Wise') ||
+        key.includes('Arrogant') ||
+        key.includes('Loyal') ||
+        key.includes('Cunning') ||
+        key.includes('Optimistic') ||
+        key.includes('Pessimistic') ||
+        key.includes('Shy') ||
+        key.includes('Confident') ||
+        key.includes('Aggressive') ||
+        key.includes('Gentle') ||
+        key.includes('Serious') ||
+        key.includes('Playful') ||
+        key.includes('Honest') ||
+        key.includes('Deceptive') ||
+        key.includes('Patient') ||
+        key.includes('Impulsive') ||
+        key.includes('Ambitious') ||
+        key.includes('Lazy') ||
+        key.includes('Creative') ||
+        key.includes('Caring') ||
+        key.includes('Selfish') ||
+        key.includes('Merciful') ||
+        key.includes('Ruthless') ||
+        key.includes('Humble') ||
+        key.includes('Jealous') ||
+        key.includes('Independent') ||
+        key.includes('TeamPlayer') ||
+        key.includes('Rebellious')
+      ) ||
       label.toLowerCase().includes('personality') ||
       label.toLowerCase().includes('behavior'),
-    examplePrompt: 'Focus on their personality, moral alignment, and how they behave',
+    examplePrompt: 'Focus on their personality traits, moral alignment, temperament, and behavioral characteristics',
   },
   origins: {
     name: 'Origins & Background',

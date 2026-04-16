@@ -59,7 +59,7 @@ export function MultiCategoryEnhancer({
   const [currentCharacterIndex, setCurrentCharacterIndex] = useState(0)
   const [isGeneratingAll, setIsGeneratingAll] = useState(false)
   const [globalProgress, setGlobalProgress] = useState(0)
-  const [selectedCategory, setSelectedCategory] = useState<AttributeCategory>('environment')
+  const [selectedCategory, setSelectedCategory] = useState<AttributeCategory>('personality')
   const [showDashboard, setShowDashboard] = useState(true)
 
   const currentCharacter = characters[currentCharacterIndex]
