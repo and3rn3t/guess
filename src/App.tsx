@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useKV } from '@github/spark/hooks'
 import { AnimatePresence } from 'framer-motion'
-import { Sparkle, Play, Gear, Flask, ChartBar, Users, ClipboardText, Lightbulb, TreeStructure } from '@phosphor-icons/react'
+import { Sparkle, Play, Gear, Flask, ChartBar, Users, ClipboardText, Brain, TreeStructure } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import { Toaster, toast } from 'sonner'
@@ -453,8 +453,8 @@ function App() {
                         size="sm"
                         className="flex items-center gap-2 bg-gradient-to-r from-pink-500/10 to-purple-500/10 hover:from-pink-500/20 hover:to-purple-500/20 border-pink-500/30"
                       >
-                        <Lightbulb size={20} weight="fill" />
-                        <span className="hidden sm:inline">Personality Traits</span>
+                        <Brain size={20} weight="fill" />
+                        <span className="hidden sm:inline">AI Attribute Enrichment</span>
                       </Button>
                     </>
                   )}
