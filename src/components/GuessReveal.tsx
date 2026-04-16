@@ -76,9 +76,10 @@ interface GameOverProps {
   won: boolean
   character: Character | null
   onPlayAgain: () => void
+  onTeachMode?: () => void
 }
 
-export function GameOver({ won, character, onPlayAgain }: GameOverProps) {
+export function GameOver({ won, character, onPlayAgain, onTeachMode }: GameOverProps) {
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.9 }}
@@ -111,14 +112,27 @@ export function GameOver({ won, character, onPlayAgain }: GameOverProps) {
             </>
           )}
 
-          <Button
-            onClick={onPlayAgain}
-            size="lg"
-            className="mt-4 h-14 text-lg bg-accent hover:bg-accent/90 text-accent-foreground shadow-lg hover:scale-105 transition-transform"
-          >
-            <ArrowClockwise size={24} weight="bold" className="mr-2" />
-            Play Again
-          </Button>
+          <div className="flex flex-col sm:flex-row gap-3 justify-center mt-4">
+            <Button
+              onClick={onPlayAgain}
+              size="lg"
+              className="h-14 text-lg bg-accent hover:bg-accent/90 text-accent-foreground shadow-lg hover:scale-105 transition-transform"
+            >
+              <ArrowClockwise size={24} weight="bold" className="mr-2" />
+              Play Again
+            </Button>
+            {!won && onTeachMode && (
+              <Button
+                onClick={onTeachMode}
+                size="lg"
+                variant="outline"
+                className="h-14 text-lg hover:scale-105 transition-transform border-accent/50 hover:border-accent"
+              >
+                <Sparkle size={24} weight="fill" className="mr-2" />
+                Teach Me
+              </Button>
+            )}
+          </div>
         </div>
       </Card>
     </motion.div>

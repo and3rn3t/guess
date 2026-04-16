@@ -40,12 +40,12 @@ This is a focused game experience with question-answer flow, character database 
 - Progression: AI confidence builds → Guess screen appears → User confirms/denies → Win/lose state shows → Option to play again
 - Success criteria: Guesses feel accurate, win/loss feedback is satisfying, easy restart flow
 
-**Learning System**
-- Functionality: When AI guesses wrong, allows user to teach it the correct answer and distinguishing characteristics
+**Learning System (Teaching Mode)**
+- Functionality: When AI guesses wrong, allows user to teach it the correct answer by entering the character name; the system automatically saves all answered questions as attributes
 - Purpose: Makes the database grow smarter over time and gives users agency in improving the system
-- Trigger: User indicates AI's guess was incorrect
-- Progression: AI guesses wrong → "Teach me" form appears → User enters correct answer → User provides distinguishing question → System saves → Thank you message
-- Success criteria: Teaching flow is intuitive, new entries persist, game becomes smarter over time
+- Trigger: User indicates AI's guess was incorrect and clicks "Teach Me" button
+- Progression: AI guesses wrong → GameOver screen with "Teach Me" option → Teaching Mode form appears → Shows all attributes that will be remembered → User enters character name → System saves with all answers as attributes → Success confirmation → Option to play again
+- Success criteria: Teaching flow is intuitive, character name and all answered questions saved as attributes, new entries persist in KV storage, game uses new characters in future rounds
 
 ## Edge Case Handling
 

@@ -8,6 +8,7 @@ import { Toaster, toast } from 'sonner'
 import { QuestionCard } from '@/components/QuestionCard'
 import { ReasoningPanel } from '@/components/ReasoningPanel'
 import { GuessReveal, GameOver } from '@/components/GuessReveal'
+import { TeachingMode } from '@/components/TeachingMode'
 import { DEFAULT_CHARACTERS, DEFAULT_QUESTIONS } from '@/lib/database'
 import {
   selectBestQuestion,
@@ -18,10 +19,10 @@ import {
 } from '@/lib/gameEngine'
 import type { Character, Question, Answer, AnswerValue, ReasoningExplanation } from '@/lib/types'
 
-type GamePhase = 'welcome' | 'playing' | 'guessing' | 'gameOver'
+type GamePhase = 'welcome' | 'playing' | 'guessing' | 'gameOver' | 'teaching'
 
 function App() {
-  const [characters] = useKV<Character[]>('characters', DEFAULT_CHARACTERS)
+  const [characters, setCharacters] = useKV<Character[]>('characters', DEFAULT_CHARACTERS)
   const [questions] = useKV<Question[]>('questions', DEFAULT_QUESTIONS)
 
   const [gamePhase, setGamePhase] = useState<GamePhase>('welcome')
@@ -112,6 +113,19 @@ function App() {
     setGameWon(false)
     setGamePhase('gameOver')
     toast.error("I'll learn from this and do better next time!")
+  }
+
+  const handleTeachMode = () => {
+    setGamePhase('teaching')
+  }
+
+  const handleAddCharacter = (character: Character) => {
+    setCharacters((currentCharacters) => [...(currentCharacters || []), character])
+    toast.success(`I've learned about ${character.name}!`)
+  }
+
+  const handleSkipTeaching = () => {
+    setGamePhase('gameOver')
   }
 
   return (
@@ -252,7 +266,22 @@ function App() {
 
             {gamePhase === 'gameOver' && (
               <div className="max-w-2xl mx-auto">
-                <GameOver won={gameWon} character={finalGuess} onPlayAgain={startGame} />
+                <GameOver
+                  won={gameWon}
+                  character={finalGuess}
+                  onPlayAgain={startGame}
+                  onTeachMode={!gameWon ? handleTeachMode : undefined}
+                />
+              </div>
+            )}
+
+            {gamePhase === 'teaching' && (
+              <div className="max-w-2xl mx-auto">
+                <TeachingMode
+                  answers={answers}
+                  onAddCharacter={handleAddCharacter}
+                  onSkip={handleSkipTeaching}
+                />
               </div>
             )}
           </main>
