@@ -9,16 +9,20 @@ import {
   Robot,
   Brain,
   TrendUp,
+  MagnifyingGlass,
+  Star,
 } from '@phosphor-icons/react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
+import { toast } from 'sonner'
 import type { Character } from '@/lib/types'
 import {
   getAttributeRecommendations,
   generateAttributeRecommendationsWithAI,
+  generateSmartAttributeSuggestions,
   detectCharacterType,
   type AttributeRecommendation,
 } from '@/lib/attributeRecommender'
@@ -40,6 +44,8 @@ export function AttributeRecommender({
   const [appliedAttributes, setAppliedAttributes] = useState<Set<string>>(new Set())
   const [localAttributes, setLocalAttributes] = useState(character.attributes)
   const [activeTab, setActiveTab] = useState<'rule-based' | 'ai'>('rule-based')
+  const [focusedCategory, setFocusedCategory] = useState<'physical' | 'abilities' | 'personality' | 'origins' | 'relationships' | null>(null)
+  const [loadingCategory, setLoadingCategory] = useState(false)
 
   const detectedType = detectCharacterType(character.name)
 
@@ -50,6 +56,7 @@ export function AttributeRecommender({
 
   const handleGenerateAIRecommendations = async () => {
     setIsLoadingAI(true)
+    setFocusedCategory(null)
     try {
       const recs = await generateAttributeRecommendationsWithAI(
         character.name,
@@ -57,10 +64,32 @@ export function AttributeRecommender({
       )
       setAiRecs(recs)
       setActiveTab('ai')
+      toast.success(`Generated ${recs.length} AI recommendations for ${character.name}`)
     } catch (error) {
       console.error('Failed to generate AI recommendations:', error)
+      toast.error('Failed to generate AI recommendations')
     } finally {
       setIsLoadingAI(false)
+    }
+  }
+
+  const handleFocusedRecommendation = async (category: 'physical' | 'abilities' | 'personality' | 'origins' | 'relationships') => {
+    setLoadingCategory(true)
+    setFocusedCategory(category)
+    try {
+      const recs = await generateSmartAttributeSuggestions(
+        character.name,
+        localAttributes,
+        category
+      )
+      setAiRecs(recs)
+      setActiveTab('ai')
+      toast.success(`Generated ${recs.length} ${category} recommendations`)
+    } catch (error) {
+      console.error('Failed to generate focused recommendations:', error)
+      toast.error(`Failed to generate ${category} recommendations`)
+    } finally {
+      setLoadingCategory(false)
     }
   }
 
@@ -74,6 +103,8 @@ export function AttributeRecommender({
 
     const updatedRecs = getAttributeRecommendations(character.name, newAttributes)
     setRuleBasedRecs(updatedRecs)
+    
+    toast.success(`Applied: ${rec.label}`)
   }
 
   const handleSaveChanges = () => {
@@ -230,49 +261,139 @@ export function AttributeRecommender({
                 <span className="font-semibold text-foreground">{character.name}</span> and
                 recommend the most relevant attributes.
               </p>
-              <Button
-                onClick={handleGenerateAIRecommendations}
-                disabled={isLoadingAI}
-                size="lg"
-                className="bg-accent hover:bg-accent/90 text-accent-foreground"
-              >
-                {isLoadingAI ? (
-                  <>
-                    <div className="animate-spin mr-2">
-                      <Sparkle size={20} />
-                    </div>
-                    Analyzing...
-                  </>
-                ) : (
-                  <>
-                    <Sparkle size={20} weight="fill" className="mr-2" />
-                    Generate AI Recommendations
-                  </>
-                )}
-              </Button>
-              {isLoadingAI && (
+              
+              <div className="flex flex-col gap-3 max-w-md mx-auto mb-6">
+                <Button
+                  onClick={handleGenerateAIRecommendations}
+                  disabled={isLoadingAI || loadingCategory}
+                  size="lg"
+                  className="bg-accent hover:bg-accent/90 text-accent-foreground w-full"
+                >
+                  {isLoadingAI ? (
+                    <>
+                      <div className="animate-spin mr-2">
+                        <Sparkle size={20} />
+                      </div>
+                      Analyzing Character...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkle size={20} weight="fill" className="mr-2" />
+                      Generate Complete Analysis (15 Attributes)
+                    </>
+                  )}
+                </Button>
+
+                <div className="text-sm text-muted-foreground font-semibold mt-4 mb-2">
+                  Or focus on specific categories:
+                </div>
+
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                  <Button
+                    onClick={() => handleFocusedRecommendation('physical')}
+                    disabled={isLoadingAI || loadingCategory}
+                    variant="outline"
+                    size="sm"
+                    className="flex items-center gap-2"
+                  >
+                    <Star size={16} />
+                    Physical
+                  </Button>
+                  <Button
+                    onClick={() => handleFocusedRecommendation('abilities')}
+                    disabled={isLoadingAI || loadingCategory}
+                    variant="outline"
+                    size="sm"
+                    className="flex items-center gap-2"
+                  >
+                    <Sparkle size={16} />
+                    Abilities
+                  </Button>
+                  <Button
+                    onClick={() => handleFocusedRecommendation('personality')}
+                    disabled={isLoadingAI || loadingCategory}
+                    variant="outline"
+                    size="sm"
+                    className="flex items-center gap-2"
+                  >
+                    <MagnifyingGlass size={16} />
+                    Personality
+                  </Button>
+                  <Button
+                    onClick={() => handleFocusedRecommendation('origins')}
+                    disabled={isLoadingAI || loadingCategory}
+                    variant="outline"
+                    size="sm"
+                    className="flex items-center gap-2"
+                  >
+                    <Brain size={16} />
+                    Origins
+                  </Button>
+                  <Button
+                    onClick={() => handleFocusedRecommendation('relationships')}
+                    disabled={isLoadingAI || loadingCategory}
+                    variant="outline"
+                    size="sm"
+                    className="flex items-center gap-2 col-span-2 md:col-span-1"
+                  >
+                    <Robot size={16} />
+                    Relationships
+                  </Button>
+                </div>
+              </div>
+
+              {(isLoadingAI || loadingCategory) && (
                 <div className="mt-6">
                   <Progress value={undefined} className="h-2" />
                   <p className="text-xs text-muted-foreground mt-2">
-                    AI is analyzing character traits...
+                    AI is analyzing {character.name}
+                    {focusedCategory && ` (${focusedCategory} traits)`}...
                   </p>
                 </div>
               )}
             </Card>
           ) : (
-            <div className="space-y-3">
-              {aiRecs.map((rec, index) => (
-                <RecommendationCard
-                  key={rec.attribute}
-                  rec={rec}
-                  index={index}
-                  isApplied={appliedAttributes.has(rec.attribute)}
-                  onApply={handleApplyAttribute}
-                  getPriorityColor={getPriorityColor}
-                  getPriorityIcon={getPriorityIcon}
-                />
-              ))}
-            </div>
+            <>
+              <Card className="p-4 bg-gradient-to-r from-primary/10 to-accent/10 border-accent/30">
+                <div className="flex items-start gap-3">
+                  <Sparkle size={24} weight="fill" className="text-accent flex-shrink-0 mt-1" />
+                  <div className="flex-1">
+                    <h3 className="text-sm font-semibold text-foreground mb-1">
+                      AI Analysis{focusedCategory && ` - ${focusedCategory.charAt(0).toUpperCase() + focusedCategory.slice(1)}`}
+                    </h3>
+                    <p className="text-xs text-muted-foreground">
+                      AI has analyzed <span className="font-semibold text-foreground">{character.name}</span> and
+                      generated {aiRecs.length} personalized recommendations based on character knowledge.
+                      {focusedCategory && ` Focused on ${focusedCategory} attributes for deeper insights.`}
+                    </p>
+                  </div>
+                  <Button
+                    onClick={handleGenerateAIRecommendations}
+                    variant="outline"
+                    size="sm"
+                    disabled={isLoadingAI}
+                    className="flex-shrink-0"
+                  >
+                    <Sparkle size={16} className="mr-1" />
+                    Regenerate
+                  </Button>
+                </div>
+              </Card>
+              
+              <div className="space-y-3">
+                {aiRecs.map((rec, index) => (
+                  <RecommendationCard
+                    key={rec.attribute}
+                    rec={rec}
+                    index={index}
+                    isApplied={appliedAttributes.has(rec.attribute)}
+                    onApply={handleApplyAttribute}
+                    getPriorityColor={getPriorityColor}
+                    getPriorityIcon={getPriorityIcon}
+                  />
+                ))}
+              </div>
+            </>
           )}
         </TabsContent>
       </Tabs>

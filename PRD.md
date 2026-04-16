@@ -89,6 +89,26 @@ This is a focused game experience with question-answer flow, character database 
   - Coverage: Percentage of characters that have defined (non-null) values for each attribute
 - Success criteria: Tool loads instantly, discrimination calculations accurately identify strategic attributes, similarity analysis reveals problematic character overlaps, comparison view clearly shows differences between any two characters
 
+**AI-Powered Attribute Recommendations**
+- Functionality: Advanced AI recommendation system that analyzes characters deeply and suggests strategic attributes based on comprehensive character knowledge across all media
+- Purpose: Uses AI (GPT-4o) to provide intelligent, character-specific attribute suggestions that go beyond rule-based recommendations with detailed reasoning that demonstrates real character knowledge
+- Trigger: User navigates to a character from the Compare tool, clicks a recommendation icon/button
+- Progression: Character selected → Recommendation screen loads with two tabs (Rule-Based, AI-Powered) → View rule-based suggestions based on character type detection → Generate AI recommendations (full analysis or category-focused) → Review detailed reasoning → Apply attributes with Yes/No/Maybe → Save changes
+- Key Features:
+  - **Rule-Based Tab**: Automatic character type detection (Superhero, Villain, Video Game, Fantasy, Sci-Fi, Animal, Historical, Celebrity, Robot, Cartoon) with tailored core/recommended/optional attributes, priority-based recommendations (high/medium/low)
+  - **AI-Powered Tab**: Two recommendation modes:
+    - **Complete Analysis**: Generates 15 comprehensive attribute recommendations across all categories using GPT-4o with deep character analysis, factual accuracy validation, strategic value assessment, detailed specific reasoning that shows character knowledge
+    - **Focused Recommendations**: Category-specific analysis (Physical, Abilities, Personality, Origins, Relationships) generating 8 targeted attributes per category with specialized filtering
+  - **Smart Application**: One-click apply with Yes/No/Maybe values, visual feedback showing applied attributes, live update of available recommendations as attributes are added, bulk save functionality
+  - **Quality Reasoning**: AI provides specific, insightful explanations (e.g., "Spider-Man climbs walls using his spider abilities gained from the radioactive spider bite") rather than generic descriptions
+- AI Prompt Engineering:
+  - Displays current attributes with values to AI for context
+  - Shows available attribute pool to prevent hallucination
+  - Requests priority classification and specific reasoning
+  - Uses GPT-4o for highest accuracy on character knowledge
+  - Fallback to rule-based if AI fails
+- Success criteria: AI generates accurate character-specific recommendations, reasoning demonstrates real character knowledge, focused categories provide relevant attributes, applying attributes is smooth with instant feedback, changes persist when saved
+
 ## Edge Case Handling
 
 - **Obscure Subjects**: If user thinks of something too niche, AI gracefully admits uncertainty after reasonable attempts and invites them to teach it

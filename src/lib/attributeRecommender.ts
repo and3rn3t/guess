@@ -273,43 +273,173 @@ export async function generateAttributeRecommendationsWithAI(
   const existingKeys = Object.keys(existingAttributes)
   const availableAttributes = Object.entries(ALL_KNOWN_ATTRIBUTES)
     .filter(([key]) => !existingKeys.includes(key))
-    .map(([key, label]) => `${key}: ${label}`)
-    .slice(0, 50)
+    .map(([key, label]) => ({ key, label }))
   
-  const prompt = `You are helping to build a character guessing game. Given a character name and their existing attributes, recommend the top 10 most relevant additional attributes to add.
+  const existingAttrDisplay = Object.entries(existingAttributes)
+    .map(([key, value]) => {
+      const label = ALL_KNOWN_ATTRIBUTES[key] || key
+      const valueStr = value === true ? 'YES' : value === false ? 'NO' : 'MAYBE'
+      return `  - ${label} (${key}): ${valueStr}`
+    })
+    .join('\n')
 
-Character: ${characterName}
+  const prompt = `You are an expert character analyst helping to enhance a character guessing game database. You have deep knowledge of characters across all media - movies, TV, books, video games, comics, history, and pop culture.
 
-Existing attributes: ${JSON.stringify(existingAttributes, null, 2)}
+CHARACTER ANALYSIS REQUEST:
+Character Name: ${characterName}
 
-Available attributes to choose from:
-${availableAttributes.join('\n')}
+CURRENT ATTRIBUTES (Already Defined):
+${existingAttrDisplay || '  (No attributes defined yet)'}
 
-Analyze the character and recommend exactly 10 attributes that would be most useful for distinguishing this character in a guessing game. For each recommendation, classify the priority as "high", "medium", or "low" and provide a brief reason.
+AVAILABLE ATTRIBUTES TO CHOOSE FROM:
+${availableAttributes.map(({ key, label }) => `  - ${label} (${key})`).join('\n')}
 
-Return your response as a JSON object with a single "recommendations" property containing an array of objects with this structure:
+YOUR TASK:
+Analyze "${characterName}" thoroughly and recommend the top 15 most relevant attributes to add. Use your knowledge of this character to make accurate, strategic recommendations.
+
+SELECTION CRITERIA:
+1. **Accuracy**: Only recommend attributes that are factually correct for this character
+2. **Distinctiveness**: Prioritize attributes that help differentiate this character from similar ones
+3. **Strategic Value**: Focus on attributes that would be useful in a guessing game (meaningful for narrowing down possibilities)
+4. **Coverage**: Include a mix of physical traits, abilities, relationships, origins, and personality
+5. **Priority Classification**:
+   - HIGH: Essential traits that strongly define this character
+   - MEDIUM: Important but not defining traits
+   - LOW: Interesting details that add depth but aren't crucial
+
+REASONING QUALITY:
+For each recommendation, provide a specific, insightful reason that demonstrates your knowledge of the character. Examples:
+- Good: "Spider-Man climbs walls using his spider abilities gained from the radioactive spider bite"
+- Bad: "This might be useful for the character"
+
+Return your response as a JSON object with a single "recommendations" property containing an array of exactly 15 recommendation objects:
+
 {
   "recommendations": [
     {
       "attribute": "attribute_key",
       "label": "Human Readable Label",
-      "reason": "Why this attribute is relevant",
+      "reason": "Specific, detailed reason showing character knowledge",
       "priority": "high" | "medium" | "low"
     }
   ]
 }
 
-Focus on attributes that:
-1. Are factually accurate for this character
-2. Help distinguish them from other characters
-3. Are meaningful for gameplay`
+Provide exactly 15 recommendations. Be specific and accurate about ${characterName}.`
 
   try {
-    const response = await window.spark.llm(prompt, 'gpt-4o-mini', true)
+    const response = await window.spark.llm(prompt, 'gpt-4o', true)
     const parsed = JSON.parse(response)
     return parsed.recommendations || []
   } catch (error) {
     console.error('AI recommendation failed:', error)
     return getAttributeRecommendations(characterName, existingAttributes)
+  }
+}
+
+export async function generateSmartAttributeSuggestions(
+  characterName: string,
+  existingAttributes: Record<string, boolean | null>,
+  focusArea?: 'physical' | 'abilities' | 'personality' | 'origins' | 'relationships'
+): Promise<AttributeRecommendation[]> {
+  const existingKeys = Object.keys(existingAttributes)
+  const availableAttributes = Object.entries(ALL_KNOWN_ATTRIBUTES)
+    .filter(([key]) => !existingKeys.includes(key))
+  
+  let focusDescription = ''
+  let attributeFilter: ((key: string, label: string) => boolean) | undefined
+  
+  if (focusArea === 'physical') {
+    focusDescription = 'physical appearance and traits (what they look like, what they wear)'
+    attributeFilter = (key, label) => 
+      label.toLowerCase().includes('wear') || 
+      label.toLowerCase().includes('has ') ||
+      key.includes('has') && (key.includes('Hair') || key.includes('Wings') || key.includes('Tail') || key.includes('Claws'))
+  } else if (focusArea === 'abilities') {
+    focusDescription = 'powers, abilities, and what they can do'
+    attributeFilter = (key) => 
+      key.startsWith('can') || 
+      key.includes('Powers') || 
+      key.includes('shoots') ||
+      key.includes('controls') ||
+      key.includes('climbs')
+  } else if (focusArea === 'personality') {
+    focusDescription = 'personality traits and moral alignment'
+    attributeFilter = (key) => 
+      key.includes('Funny') || 
+      key.includes('Villain') || 
+      key.includes('Hero') ||
+      key.includes('Leader')
+  } else if (focusArea === 'origins') {
+    focusDescription = 'where they come from and their background'
+    attributeFilter = (key, label) => 
+      key.startsWith('from') || 
+      key.startsWith('livesIn') ||
+      key.includes('Real') ||
+      label.includes('From ')
+  } else if (focusArea === 'relationships') {
+    focusDescription = 'relationships, companions, and social connections'
+    attributeFilter = (key) => 
+      key.includes('Family') || 
+      key.includes('Companion') || 
+      key.includes('Sidekick') ||
+      key.includes('Pet') ||
+      key.includes('Minions')
+  }
+
+  const filteredAttributes = focusArea 
+    ? availableAttributes.filter(([key, label]) => attributeFilter?.(key, label) || false)
+    : availableAttributes
+
+  if (filteredAttributes.length === 0) {
+    return []
+  }
+
+  const existingAttrDisplay = Object.entries(existingAttributes)
+    .map(([key, value]) => {
+      const label = ALL_KNOWN_ATTRIBUTES[key] || key
+      const valueStr = value === true ? 'YES' : value === false ? 'NO' : 'MAYBE'
+      return `  - ${label}: ${valueStr}`
+    })
+    .join('\n')
+
+  const prompt = `You are analyzing "${characterName}" for a character guessing game.
+
+CURRENT ATTRIBUTES:
+${existingAttrDisplay || '  (None defined yet)'}
+
+FOCUS AREA: ${focusDescription || 'general character traits'}
+
+AVAILABLE ATTRIBUTES IN THIS CATEGORY:
+${filteredAttributes.map(([key, label]) => `  - ${label} (${key})`).join('\n')}
+
+Recommend the top 8 most accurate and strategic attributes from this category for "${characterName}". 
+
+For each recommendation:
+- Ensure it's factually accurate for this character
+- Explain specifically why it applies to ${characterName}
+- Classify priority as "high" (defining trait), "medium" (important), or "low" (interesting detail)
+
+Return as JSON:
+{
+  "recommendations": [
+    {
+      "attribute": "attribute_key",
+      "label": "Human Readable Label", 
+      "reason": "Specific explanation for ${characterName}",
+      "priority": "high" | "medium" | "low"
+    }
+  ]
+}
+
+Provide exactly 8 recommendations focused on ${focusDescription || 'general traits'}.`
+
+  try {
+    const response = await window.spark.llm(prompt, 'gpt-4o', true)
+    const parsed = JSON.parse(response)
+    return parsed.recommendations || []
+  } catch (error) {
+    console.error('AI focused recommendation failed:', error)
+    return []
   }
 }
