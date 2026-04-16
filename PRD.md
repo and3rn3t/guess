@@ -74,6 +74,21 @@ This is a focused game experience with question-answer flow, character database 
   - Game History: Tracked wins/losses with questions asked per game for performance analytics
 - Success criteria: Dashboard loads instantly, metrics update as games are played, entropy calculations guide question strategy, visualizations clearly communicate patterns
 
+**Character Comparison Tool**
+- Functionality: Interactive analysis tool that examines attribute overlaps between characters, identifies similar pairs, and enables detailed two-character comparisons
+- Purpose: Reveals patterns in the character database, highlights areas where differentiation is weak, helps identify opportunities for new questions, and assists in understanding which characters are too similar
+- Trigger: User clicks "Compare" button from welcome screen
+- Progression: Click Compare → Dashboard loads with three tabs (Attribute Analysis, Similar Pairs, Compare Two) → Explore metrics and select characters → View detailed breakdowns → Return to game
+- Key Features:
+  - **Attribute Analysis Tab**: All attributes ranked by discrimination power (ability to differentiate characters), showing yes/no/maybe counts, coverage percentage, and a composite discrimination score
+  - **Similar Pairs Tab**: Top 10 most similar character pairs with similarity percentage, shared vs different attribute counts, visual similarity bars
+  - **Compare Two Tab**: Interactive character selector with search, side-by-side attribute comparison showing shared attributes (green), different attributes (red with value indicators), and similarity score
+- Analysis Metrics:
+  - Discrimination Power: Calculated from attribute coverage × distribution evenness × value variety
+  - Similarity Score: Percentage of matching attribute values between two characters
+  - Coverage: Percentage of characters that have defined (non-null) values for each attribute
+- Success criteria: Tool loads instantly, discrimination calculations accurately identify strategic attributes, similarity analysis reveals problematic character overlaps, comparison view clearly shows differences between any two characters
+
 ## Edge Case Handling
 
 - **Obscure Subjects**: If user thinks of something too niche, AI gracefully admits uncertainty after reasonable attempts and invites them to teach it

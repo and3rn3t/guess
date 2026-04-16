@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useKV } from '@github/spark/hooks'
 import { AnimatePresence } from 'framer-motion'
-import { Sparkle, Play, Gear, Flask, ChartBar } from '@phosphor-icons/react'
+import { Sparkle, Play, Gear, Flask, ChartBar, Users } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import { Toaster, toast } from 'sonner'
@@ -12,6 +12,7 @@ import { TeachingMode } from '@/components/TeachingMode'
 import { QuestionManager } from '@/components/QuestionManager'
 import { QuestionGeneratorDemo } from '@/components/QuestionGeneratorDemo'
 import { StatsDashboard } from '@/components/StatsDashboard'
+import { CharacterComparison } from '@/components/CharacterComparison'
 import { DEFAULT_CHARACTERS, DEFAULT_QUESTIONS } from '@/lib/database'
 import {
   selectBestQuestion,
@@ -22,7 +23,7 @@ import {
 } from '@/lib/gameEngine'
 import type { Character, Question, Answer, AnswerValue, ReasoningExplanation } from '@/lib/types'
 
-type GamePhase = 'welcome' | 'playing' | 'guessing' | 'gameOver' | 'teaching' | 'manage' | 'demo' | 'stats'
+type GamePhase = 'welcome' | 'playing' | 'guessing' | 'gameOver' | 'teaching' | 'manage' | 'demo' | 'stats' | 'compare'
 
 interface GameHistoryEntry {
   characterId: string
@@ -194,8 +195,29 @@ function App() {
     setGamePhase('welcome')
   }
 
+  const handleOpenCompare = () => {
+    setGamePhase('compare')
+  }
+
+  const handleExitCompare = () => {
+    setGamePhase('welcome')
+  }
+
   if (gamePhase === 'demo') {
     return <QuestionGeneratorDemo onBack={handleExitDemo} />
+  }
+
+  if (gamePhase === 'compare') {
+    return (
+      <div className="min-h-screen bg-background">
+        <div className="container mx-auto px-4 py-8">
+          <CharacterComparison
+            characters={characters || DEFAULT_CHARACTERS}
+            onBack={handleExitCompare}
+          />
+        </div>
+      </div>
+    )
   }
 
   if (gamePhase === 'stats') {
@@ -249,6 +271,15 @@ function App() {
                       >
                         <ChartBar size={20} />
                         <span className="hidden sm:inline">Statistics</span>
+                      </Button>
+                      <Button
+                        onClick={handleOpenCompare}
+                        variant="outline"
+                        size="sm"
+                        className="flex items-center gap-2"
+                      >
+                        <Users size={20} />
+                        <span className="hidden sm:inline">Compare</span>
                       </Button>
                       <Button
                         onClick={handleOpenDemo}
