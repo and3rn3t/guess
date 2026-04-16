@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useKV } from '@github/spark/hooks'
 import { AnimatePresence } from 'framer-motion'
-import { Sparkle, Play, Gear } from '@phosphor-icons/react'
+import { Sparkle, Play, Gear, Flask } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import { Toaster, toast } from 'sonner'
@@ -10,6 +10,7 @@ import { ReasoningPanel } from '@/components/ReasoningPanel'
 import { GuessReveal, GameOver } from '@/components/GuessReveal'
 import { TeachingMode } from '@/components/TeachingMode'
 import { QuestionManager } from '@/components/QuestionManager'
+import { QuestionGeneratorDemo } from '@/components/QuestionGeneratorDemo'
 import { DEFAULT_CHARACTERS, DEFAULT_QUESTIONS } from '@/lib/database'
 import {
   selectBestQuestion,
@@ -20,7 +21,7 @@ import {
 } from '@/lib/gameEngine'
 import type { Character, Question, Answer, AnswerValue, ReasoningExplanation } from '@/lib/types'
 
-type GamePhase = 'welcome' | 'playing' | 'guessing' | 'gameOver' | 'teaching' | 'manage'
+type GamePhase = 'welcome' | 'playing' | 'guessing' | 'gameOver' | 'teaching' | 'manage' | 'demo'
 
 function App() {
   const [characters, setCharacters] = useKV<Character[]>('characters', DEFAULT_CHARACTERS)
@@ -141,6 +142,18 @@ function App() {
     setGamePhase('welcome')
   }
 
+  const handleOpenDemo = () => {
+    setGamePhase('demo')
+  }
+
+  const handleExitDemo = () => {
+    setGamePhase('welcome')
+  }
+
+  if (gamePhase === 'demo') {
+    return <QuestionGeneratorDemo onBack={handleExitDemo} />
+  }
+
   return (
     <>
       <Toaster position="top-center" richColors />
@@ -168,15 +181,26 @@ function App() {
                 </div>
                 <div className="flex items-center gap-3">
                   {gamePhase === 'welcome' && (
-                    <Button
-                      onClick={handleManageQuestions}
-                      variant="outline"
-                      size="sm"
-                      className="flex items-center gap-2"
-                    >
-                      <Gear size={20} />
-                      <span className="hidden sm:inline">Manage Questions</span>
-                    </Button>
+                    <>
+                      <Button
+                        onClick={handleOpenDemo}
+                        variant="outline"
+                        size="sm"
+                        className="flex items-center gap-2 bg-accent/10 hover:bg-accent/20 border-accent/30"
+                      >
+                        <Flask size={20} />
+                        <span className="hidden sm:inline">Test Generator</span>
+                      </Button>
+                      <Button
+                        onClick={handleManageQuestions}
+                        variant="outline"
+                        size="sm"
+                        className="flex items-center gap-2"
+                      >
+                        <Gear size={20} />
+                        <span className="hidden sm:inline">Manage Questions</span>
+                      </Button>
+                    </>
                   )}
                   {gamePhase !== 'welcome' && (
                     <div className="text-sm text-muted-foreground">
