@@ -15,6 +15,7 @@ import { StatsDashboard } from '@/components/StatsDashboard'
 import { CharacterComparison } from '@/components/CharacterComparison'
 import { AttributeCoverageReport } from '@/components/AttributeCoverageReport'
 import { AttributeRecommender } from '@/components/AttributeRecommender'
+import { CategoryRecommender } from '@/components/CategoryRecommender'
 import { DEFAULT_CHARACTERS, DEFAULT_QUESTIONS } from '@/lib/database'
 import {
   selectBestQuestion,
@@ -25,7 +26,7 @@ import {
 } from '@/lib/gameEngine'
 import type { Character, Question, Answer, AnswerValue, ReasoningExplanation } from '@/lib/types'
 
-type GamePhase = 'welcome' | 'playing' | 'guessing' | 'gameOver' | 'teaching' | 'manage' | 'demo' | 'stats' | 'compare' | 'coverage' | 'recommender'
+type GamePhase = 'welcome' | 'playing' | 'guessing' | 'gameOver' | 'teaching' | 'manage' | 'demo' | 'stats' | 'compare' | 'coverage' | 'recommender' | 'categoryRecommender'
 
 interface GameHistoryEntry {
   characterId: string
@@ -216,7 +217,7 @@ function App() {
 
   const handleOpenRecommender = (character: Character) => {
     setSelectedCharacterForRec(character)
-    setGamePhase('recommender')
+    setGamePhase('categoryRecommender')
   }
 
   const handleUpdateCharacter = (updatedCharacter: Character) => {
@@ -244,6 +245,20 @@ function App() {
           <AttributeCoverageReport
             characters={characters || DEFAULT_CHARACTERS}
             onBack={handleExitCoverage}
+          />
+        </div>
+      </div>
+    )
+  }
+
+  if (gamePhase === 'categoryRecommender' && selectedCharacterForRec) {
+    return (
+      <div className="min-h-screen bg-background">
+        <div className="container mx-auto px-4 py-8">
+          <CategoryRecommender
+            character={selectedCharacterForRec}
+            onUpdateCharacter={handleUpdateCharacter}
+            onBack={handleExitRecommender}
           />
         </div>
       </div>
