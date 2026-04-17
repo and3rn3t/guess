@@ -31,6 +31,18 @@ import {
 } from "@/lib/sharing";
 import type { SharePayload } from "@/lib/sharing";
 import {
+  playAnswer,
+  playThinking,
+  playCorrectGuess,
+  playIncorrectGuess,
+  playReveal,
+  hapticLight,
+  hapticMedium,
+  hapticSuccess,
+} from "@/lib/sounds";
+import { useSound } from "@/hooks/useSound";
+import { trackGameStart, trackGameEnd, trackShare, trackFeatureUse } from "@/lib/analytics";
+import {
   BrainIcon,
   ChartBarIcon,
   ClipboardTextIcon,
@@ -39,6 +51,8 @@ import {
   GearIcon,
   PlayIcon,
   SparkleIcon,
+  SpeakerHighIcon,
+  SpeakerSlashIcon,
   TreeStructureIcon,
   UsersIcon,
   WrenchIcon,
@@ -138,6 +152,7 @@ function App() {
     Set<CharacterCategory>
   >(new Set());
   const [challenge, setChallenge] = useState<SharePayload | null>(null);
+  const { muted, toggle: toggleMute } = useSound();
 
   const maxQuestions = DIFFICULTIES[difficulty].maxQuestions;
 
@@ -187,11 +202,13 @@ function App() {
       return;
     }
     dispatch({ type: "START_GAME", characters: activeCharacters });
+    trackGameStart(difficulty, activeCharacters.length);
   };
 
   // ========== GENERATE NEXT QUESTION ==========
   const generateNextQuestion = () => {
     dispatch({ type: "SET_THINKING", isThinking: true });
+    playThinking();
 
     setTimeout(() => {
       const allQuestions = questions || DEFAULT_QUESTIONS;
@@ -213,7 +230,10 @@ function App() {
 
       if (shouldMakeGuess(filtered, answers, answers.length, maxQuestions)) {
         const guess = getBestGuess(filtered, answers);
-        if (guess) dispatch({ type: "MAKE_GUESS", character: guess });
+        if (guess) {
+          dispatch({ type: "MAKE_GUESS", character: guess });
+          playReveal();
+        }
         return;
       }
 
@@ -228,7 +248,10 @@ function App() {
         });
       } else {
         const guess = getBestGuess(filtered, answers);
-        if (guess) dispatch({ type: "MAKE_GUESS", character: guess });
+        if (guess) {
+          dispatch({ type: "MAKE_GUESS", character: guess });
+          playReveal();
+        }
       }
 
       dispatch({ type: "SET_THINKING", isThinking: false });
@@ -249,6 +272,8 @@ function App() {
   // ========== ANSWER HANDLER ==========
   const handleAnswer = (value: AnswerValue) => {
     dispatch({ type: "ANSWER", value });
+    playAnswer();
+    hapticLight();
     toast.success(`Answer recorded: ${value}`);
   };
 
@@ -273,12 +298,18 @@ function App() {
   const handleCorrectGuess = () => {
     dispatch({ type: "CORRECT_GUESS" });
     recordGame(true);
+    trackGameEnd(true, difficulty, gameSteps.length);
+    playCorrectGuess();
+    hapticSuccess();
     toast.success("🎉 I got it right!");
   };
 
   const handleIncorrectGuess = () => {
     dispatch({ type: "INCORRECT_GUESS" });
     recordGame(false);
+    trackGameEnd(false, difficulty, gameSteps.length);
+    playIncorrectGuess();
+    hapticMedium();
     toast.error("I'll learn from this and do better next time!");
   };
 
@@ -303,11 +334,13 @@ function App() {
     if (navigator.share) {
       try {
         await navigator.share({ text: `${text}\n${url}` });
+        trackShare('native');
       } catch {
         // User cancelled — ignore
       }
     } else {
       await navigator.clipboard.writeText(`${text}\n${url}`);
+      trackShare('clipboard');
       toast.success('Copied to clipboard!');
     }
   };
@@ -317,6 +350,7 @@ function App() {
     if (!payload) return;
     const url = buildShareUrl(payload);
     await navigator.clipboard.writeText(url);
+    trackShare('link');
     toast.success('Challenge link copied!');
   };
 
@@ -561,7 +595,7 @@ function App() {
                   {gamePhase === "welcome" && (
                     <>
                       <Button
-                        onClick={() => navigate('stats')}
+                        onClick={() => { trackFeatureUse('stats'); navigate('stats'); }}
                         variant="outline"
                         size="sm"
                         className="flex items-center gap-2 bg-accent/10 hover:bg-accent/20 border-accent/30"
@@ -570,7 +604,7 @@ function App() {
                         <span className="hidden sm:inline">Statistics</span>
                       </Button>
                       <Button
-                        onClick={() => navigate('history')}
+                        onClick={() => { trackFeatureUse('history'); navigate('history'); }}
                         variant="outline"
                         size="sm"
                         className="flex items-center gap-2"
@@ -579,7 +613,7 @@ function App() {
                         <span className="hidden sm:inline">History</span>
                       </Button>
                       <Button
-                        onClick={() => navigate('compare')}
+                        onClick={() => { trackFeatureUse('compare'); navigate('compare'); }}
                         variant="outline"
                         size="sm"
                         className="flex items-center gap-2"
@@ -600,6 +634,15 @@ function App() {
                       )}
                     </>
                   )}
+                  <Button
+                    onClick={toggleMute}
+                    variant="ghost"
+                    size="sm"
+                    className="flex items-center gap-1 text-muted-foreground hover:text-foreground"
+                    title={muted ? 'Unmute sounds' : 'Mute sounds'}
+                  >
+                    {muted ? <SpeakerSlashIcon size={20} /> : <SpeakerHighIcon size={20} />}
+                  </Button>
                   {gamePhase !== "welcome" && (
                     <div className="text-sm text-muted-foreground">
                       Questions: {answers.length}
