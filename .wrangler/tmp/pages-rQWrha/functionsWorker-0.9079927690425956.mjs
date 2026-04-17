@@ -77,6 +77,16 @@ async function kvGetArray(kv, key) {
   }
 }
 __name(kvGetArray, "kvGetArray");
+async function kvGetObject(kv, key) {
+  const raw = await kv.get(key);
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
+__name(kvGetObject, "kvGetObject");
 async function kvPut(kv, key, value) {
   await kv.put(key, JSON.stringify(value));
 }
@@ -160,9 +170,67 @@ var onRequestPost = /* @__PURE__ */ __name(async (context) => {
   }
 }, "onRequestPost");
 
+// api/corrections.ts
+var AUTO_APPLY_THRESHOLD = 3;
+var onRequestGet2 = /* @__PURE__ */ __name(async (context) => {
+  const kv = context.env.GUESS_KV;
+  if (!kv) return errorResponse("KV not configured", 503);
+  const url = new URL(context.request.url);
+  const characterId = url.searchParams.get("characterId");
+  if (!characterId) return errorResponse("Missing characterId parameter", 400);
+  const corrections = await kvGetArray(kv, `corrections:${characterId}`);
+  return jsonResponse(corrections);
+}, "onRequestGet");
+var onRequestPost2 = /* @__PURE__ */ __name(async (context) => {
+  const kv = context.env.GUESS_KV;
+  if (!kv) return errorResponse("KV not configured", 503);
+  const body = await parseJsonBody(context.request);
+  if (!body) return errorResponse("Invalid JSON body", 400);
+  const { characterId, attribute, suggestedValue } = body;
+  if (!characterId || typeof characterId !== "string") return errorResponse("Missing characterId", 400);
+  if (!attribute || typeof attribute !== "string") return errorResponse("Missing attribute", 400);
+  if (typeof suggestedValue !== "boolean") return errorResponse("suggestedValue must be boolean", 400);
+  const userId = getUserId(context.request);
+  const { allowed } = await checkRateLimit(kv, userId, "corrections", 20);
+  if (!allowed) return errorResponse("Rate limit exceeded", 429);
+  const key = `corrections:${characterId}`;
+  const corrections = await kvGetArray(kv, key);
+  const alreadyVoted = corrections.some(
+    (c) => c.attribute === attribute && c.userId === userId
+  );
+  if (alreadyVoted) {
+    return errorResponse("You already submitted a correction for this attribute", 409);
+  }
+  const vote = {
+    attribute,
+    currentValue: body.currentValue ?? null,
+    suggestedValue,
+    userId,
+    createdAt: Date.now()
+  };
+  corrections.push(vote);
+  await kvPut(kv, key, corrections);
+  const votesForThisAttr = corrections.filter(
+    (c) => c.attribute === attribute && c.suggestedValue === suggestedValue
+  );
+  const uniqueVoters = new Set(votesForThisAttr.map((c) => c.userId));
+  if (uniqueVoters.size >= AUTO_APPLY_THRESHOLD) {
+    const characters = await kvGetArray(kv, "global:characters");
+    const char = characters.find((c) => c.id === characterId);
+    if (char) {
+      char.attributes[attribute] = suggestedValue;
+      await kvPut(kv, "global:characters", characters);
+    }
+    const remaining = corrections.filter((c) => c.attribute !== attribute);
+    await kvPut(kv, key, remaining);
+    return jsonResponse({ success: true, autoApplied: true });
+  }
+  return jsonResponse({ success: true, autoApplied: false });
+}, "onRequestPost");
+
 // api/llm.ts
 var MAX_PROMPT_LENGTH = 5e4;
-var onRequestPost2 = /* @__PURE__ */ __name(async (context) => {
+var onRequestPost3 = /* @__PURE__ */ __name(async (context) => {
   const apiKey = context.env.OPENAI_API_KEY;
   if (!apiKey) {
     return new Response("OPENAI_API_KEY not configured", { status: 500 });
@@ -222,6 +290,159 @@ var onRequestPost2 = /* @__PURE__ */ __name(async (context) => {
   }
 }, "onRequestPost");
 
+// api/questions.ts
+var KV_KEY2 = "global:questions";
+var MAX_PER_HOUR2 = 10;
+var onRequestGet3 = /* @__PURE__ */ __name(async (context) => {
+  const kv = context.env.GUESS_KV;
+  if (!kv) return errorResponse("KV not configured", 503);
+  const questions = await kvGetArray(kv, KV_KEY2);
+  return jsonResponse(questions);
+}, "onRequestGet");
+var onRequestPost4 = /* @__PURE__ */ __name(async (context) => {
+  const kv = context.env.GUESS_KV;
+  if (!kv) return errorResponse("KV not configured", 503);
+  const body = await parseJsonBody(context.request);
+  if (!body) return errorResponse("Invalid JSON body", 400);
+  try {
+    const text = validateString(body.text, "text", 10, 200);
+    const attribute = validateString(body.attribute, "attribute", 2, 50);
+    if (!/^[a-z][a-zA-Z]*$/.test(attribute)) {
+      return errorResponse("Attribute must be camelCase (letters only)", 400);
+    }
+    const userId = getUserId(context.request);
+    const { allowed } = await checkRateLimit(kv, userId, "questions", MAX_PER_HOUR2);
+    if (!allowed) return errorResponse("Rate limit exceeded", 429);
+    const existing = await kvGetArray(kv, KV_KEY2);
+    if (existing.some((q) => q.attribute === attribute)) {
+      return errorResponse(`Question for attribute "${attribute}" already exists`, 409);
+    }
+    const question = {
+      id: `q-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      text,
+      attribute,
+      createdBy: userId,
+      createdAt: Date.now()
+    };
+    existing.push(question);
+    await kvPut(kv, KV_KEY2, existing);
+    return jsonResponse(question, 201);
+  } catch (err) {
+    if (err instanceof ValidationError) return errorResponse(err.message, 400);
+    console.error("Questions API error:", err);
+    return errorResponse("Internal server error", 500);
+  }
+}, "onRequestPost");
+
+// api/stats.ts
+function emptyStats(characterId) {
+  return {
+    characterId,
+    timesPlayed: 0,
+    timesGuessed: 0,
+    totalQuestions: 0,
+    wins: 0,
+    losses: 0,
+    byDifficulty: {
+      easy: { played: 0, won: 0 },
+      medium: { played: 0, won: 0 },
+      hard: { played: 0, won: 0 }
+    }
+  };
+}
+__name(emptyStats, "emptyStats");
+var onRequestGet4 = /* @__PURE__ */ __name(async (context) => {
+  const kv = context.env.GUESS_KV;
+  if (!kv) return errorResponse("KV not configured", 503);
+  const url = new URL(context.request.url);
+  const characterId = url.searchParams.get("characterId");
+  if (characterId) {
+    const stats = await kvGetObject(kv, `stats:${characterId}`) || emptyStats(characterId);
+    return jsonResponse(stats);
+  }
+  const leaderboard = await kvGetArray(kv, "stats:leaderboard");
+  return jsonResponse(leaderboard);
+}, "onRequestGet");
+var onRequestPost5 = /* @__PURE__ */ __name(async (context) => {
+  const kv = context.env.GUESS_KV;
+  if (!kv) return errorResponse("KV not configured", 503);
+  const body = await parseJsonBody(context.request);
+  if (!body) return errorResponse("Invalid JSON body", 400);
+  const characterId = body.characterId;
+  if (!characterId || typeof characterId !== "string") {
+    return errorResponse("Missing characterId", 400);
+  }
+  if (typeof body.won !== "boolean") {
+    return errorResponse('Missing or invalid "won" field', 400);
+  }
+  if (typeof body.questionsAsked !== "number" || body.questionsAsked < 0) {
+    return errorResponse('Missing or invalid "questionsAsked"', 400);
+  }
+  const userId = getUserId(context.request);
+  const { allowed } = await checkRateLimit(kv, userId, "stats", 30);
+  if (!allowed) return errorResponse("Rate limit exceeded", 429);
+  const key = `stats:${characterId}`;
+  const stats = await kvGetObject(kv, key) || emptyStats(characterId);
+  stats.timesPlayed++;
+  stats.totalQuestions += body.questionsAsked;
+  if (body.won) {
+    stats.wins++;
+    stats.timesGuessed++;
+  } else {
+    stats.losses++;
+  }
+  const diff = body.difficulty || "medium";
+  if (!stats.byDifficulty[diff]) {
+    stats.byDifficulty[diff] = { played: 0, won: 0 };
+  }
+  stats.byDifficulty[diff].played++;
+  if (body.won) stats.byDifficulty[diff].won++;
+  await kvPut(kv, key, stats);
+  const leaderboard = await kvGetArray(kv, "stats:leaderboard");
+  const idx = leaderboard.findIndex((s) => s.characterId === characterId);
+  if (idx >= 0) leaderboard[idx] = stats;
+  else leaderboard.push(stats);
+  leaderboard.sort((a, b) => b.timesPlayed - a.timesPlayed);
+  await kvPut(kv, "stats:leaderboard", leaderboard.slice(0, 20));
+  return jsonResponse({ success: true });
+}, "onRequestPost");
+
+// api/sync.ts
+var onRequestGet5 = /* @__PURE__ */ __name(async (context) => {
+  const kv = context.env.GUESS_KV;
+  if (!kv) return errorResponse("KV not configured", 503);
+  const url = new URL(context.request.url);
+  const userId = url.searchParams.get("userId");
+  if (!userId) return errorResponse("Missing userId parameter", 400);
+  const data = await kvGetObject(kv, `user:${userId}`);
+  if (!data) return jsonResponse({ userId, settings: {}, gameStats: {}, lastSync: 0 });
+  return jsonResponse(data);
+}, "onRequestGet");
+var onRequestPost6 = /* @__PURE__ */ __name(async (context) => {
+  const kv = context.env.GUESS_KV;
+  if (!kv) return errorResponse("KV not configured", 503);
+  const body = await parseJsonBody(context.request);
+  if (!body) return errorResponse("Invalid JSON body", 400);
+  const userId = body.userId || getUserId(context.request);
+  if (!userId || userId === "anonymous") {
+    return errorResponse("Missing userId", 400);
+  }
+  const existing = await kvGetObject(kv, `user:${userId}`) || {
+    userId,
+    settings: {},
+    gameStats: {},
+    lastSync: 0
+  };
+  const updated = {
+    userId,
+    settings: { ...existing.settings, ...body.settings },
+    gameStats: { ...existing.gameStats, ...body.gameStats },
+    lastSync: Date.now()
+  };
+  await kvPut(kv, `user:${userId}`, updated);
+  return jsonResponse({ success: true, lastSync: updated.lastSync });
+}, "onRequestPost");
+
 // ../.wrangler/tmp/pages-rQWrha/functionsRoutes-0.22679177072037793.mjs
 var routes = [
   {
@@ -239,11 +460,67 @@ var routes = [
     modules: [onRequestPost]
   },
   {
-    routePath: "/api/llm",
+    routePath: "/api/corrections",
+    mountPath: "/api",
+    method: "GET",
+    middlewares: [],
+    modules: [onRequestGet2]
+  },
+  {
+    routePath: "/api/corrections",
     mountPath: "/api",
     method: "POST",
     middlewares: [],
     modules: [onRequestPost2]
+  },
+  {
+    routePath: "/api/llm",
+    mountPath: "/api",
+    method: "POST",
+    middlewares: [],
+    modules: [onRequestPost3]
+  },
+  {
+    routePath: "/api/questions",
+    mountPath: "/api",
+    method: "GET",
+    middlewares: [],
+    modules: [onRequestGet3]
+  },
+  {
+    routePath: "/api/questions",
+    mountPath: "/api",
+    method: "POST",
+    middlewares: [],
+    modules: [onRequestPost4]
+  },
+  {
+    routePath: "/api/stats",
+    mountPath: "/api",
+    method: "GET",
+    middlewares: [],
+    modules: [onRequestGet4]
+  },
+  {
+    routePath: "/api/stats",
+    mountPath: "/api",
+    method: "POST",
+    middlewares: [],
+    modules: [onRequestPost5]
+  },
+  {
+    routePath: "/api/sync",
+    mountPath: "/api",
+    method: "GET",
+    middlewares: [],
+    modules: [onRequestGet5]
+  },
+  {
+    routePath: "/api/sync",
+    mountPath: "/api",
+    method: "POST",
+    middlewares: [],
+    modules: [onRequestPost6]
   }
 ];
 
@@ -734,7 +1011,7 @@ var jsonError = /* @__PURE__ */ __name(async (request, env, _ctx, middlewareCtx)
 }, "jsonError");
 var middleware_miniflare3_json_error_default = jsonError;
 
-// ../.wrangler/tmp/bundle-12KdK0/middleware-insertion-facade.js
+// ../.wrangler/tmp/bundle-d3zUCW/middleware-insertion-facade.js
 var __INTERNAL_WRANGLER_MIDDLEWARE__ = [
   middleware_ensure_req_body_drained_default,
   middleware_miniflare3_json_error_default
@@ -766,7 +1043,7 @@ function __facade_invoke__(request, env, ctx, dispatch, finalMiddleware) {
 }
 __name(__facade_invoke__, "__facade_invoke__");
 
-// ../.wrangler/tmp/bundle-12KdK0/middleware-loader.entry.ts
+// ../.wrangler/tmp/bundle-d3zUCW/middleware-loader.entry.ts
 var __Facade_ScheduledController__ = class ___Facade_ScheduledController__ {
   constructor(scheduledTime, cron, noRetry) {
     this.scheduledTime = scheduledTime;
