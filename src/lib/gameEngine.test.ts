@@ -199,6 +199,105 @@ describe('shouldMakeGuess', () => {
   })
 })
 
+// --- unknown answer type ---
+
+describe('calculateProbabilities – unknown answer', () => {
+  it('does not eliminate a character with attribute=true when answer is unknown', () => {
+    const answers: Answer[] = [{ questionId: 'isHuman', value: 'unknown' }]
+    const probs = calculateProbabilities(CHARS, answers)
+
+    // Mario has isHuman=true — must NOT be eliminated
+    expect(probs.get('mario')!).toBeGreaterThan(0)
+    // All characters should retain equal probability
+    CHARS.forEach((c) => {
+      expect(probs.get(c.id)!).toBeCloseTo(0.25)
+    })
+  })
+})
+
+// --- tie-breaking in getBestGuess ---
+
+describe('getBestGuess – tie-breaking', () => {
+  it('deterministically selects via alphabetical id when probabilities are equal', () => {
+    // With no answers all 4 are equal; sorted by localeCompare → kirby first
+    const guess = getBestGuess(CHARS, [])
+    expect(guess).not.toBeNull()
+    expect(guess!.id).toBe('kirby')
+  })
+
+  it('returns the higher-probability character regardless of id order', () => {
+    // Narrow to Link: human + uses weapons
+    const answers: Answer[] = [
+      { questionId: 'isHuman', value: 'yes' },
+      { questionId: 'usesWeapons', value: 'yes' },
+    ]
+    const guess = getBestGuess(CHARS, answers)
+    expect(guess!.id).toBe('link')
+  })
+})
+
+// --- edge case: empty characters ---
+
+describe('getBestGuess – edge cases', () => {
+  it('returns null for empty characters array', () => {
+    expect(getBestGuess([], [])).toBeNull()
+  })
+})
+
+// --- edge case: all characters eliminated ---
+
+describe('shouldMakeGuess – all eliminated', () => {
+  it('does not auto-trigger when all characters are eliminated mid-game', () => {
+    // Contradictory: isHuman=yes keeps Mario & Link, canFly=yes keeps Kirby → 0 overlap
+    const answers: Answer[] = [
+      { questionId: 'isHuman', value: 'yes' },
+      { questionId: 'canFly', value: 'yes' },
+    ]
+    const probs = calculateProbabilities(CHARS, answers)
+    const remaining = Array.from(probs.values()).filter((p) => p > 0).length
+    expect(remaining).toBe(0)
+
+    // shouldMakeGuess only checks confidence/maxQuestions — all-zero probs don't exceed 0.8
+    expect(shouldMakeGuess(CHARS, answers, 2)).toBe(false)
+  })
+
+  it('triggers at maxQuestions even when all eliminated', () => {
+    const answers: Answer[] = [
+      { questionId: 'isHuman', value: 'yes' },
+      { questionId: 'canFly', value: 'yes' },
+    ]
+    expect(shouldMakeGuess(CHARS, answers, 15)).toBe(true)
+  })
+})
+
+// --- detectContradictions ---
+
+describe('detectContradictions', () => {
+  it('reports no contradiction with no answers', () => {
+    const result = detectContradictions(CHARS, [])
+    expect(result.hasContradiction).toBe(false)
+    expect(result.remainingCount).toBe(CHARS.length)
+  })
+
+  it('reports no contradiction with valid answers', () => {
+    const answers: Answer[] = [{ questionId: 'isHuman', value: 'yes' }]
+    const result = detectContradictions(CHARS, answers)
+    expect(result.hasContradiction).toBe(false)
+    expect(result.remainingCount).toBe(2)
+  })
+
+  it('detects contradiction when all characters are eliminated', () => {
+    // isHuman=yes keeps Mario & Link; canFly=yes keeps Kirby → intersection = 0
+    const answers: Answer[] = [
+      { questionId: 'isHuman', value: 'yes' },
+      { questionId: 'canFly', value: 'yes' },
+    ]
+    const result = detectContradictions(CHARS, answers)
+    expect(result.hasContradiction).toBe(true)
+    expect(result.remainingCount).toBe(0)
+  })
+})
+
 // --- getBestGuess ---
 
 describe('getBestGuess', () => {

@@ -55,7 +55,7 @@ export type GameAction =
   | { type: 'RESTORE_SESSION'; state: GameState }
 
 // ========== INITIAL STATE ==========
-const initialState: GameState = {
+export const initialState: GameState = {
   phase: 'welcome',
   answers: [],
   currentQuestion: null,
@@ -70,7 +70,7 @@ const initialState: GameState = {
 }
 
 // ========== REDUCER ==========
-function gameReducer(state: GameState, action: GameAction): GameState {
+export function gameReducer(state: GameState, action: GameAction): GameState {
   switch (action.type) {
     case 'START_GAME':
       return {

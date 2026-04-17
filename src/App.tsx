@@ -1,11 +1,28 @@
 import { GameOver, GuessReveal } from "@/components/GuessReveal";
 import { QuestionCard, ThinkingCard } from "@/components/QuestionCard";
 import { ReasoningPanel } from "@/components/ReasoningPanel";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useGameState } from "@/hooks/useGameState";
 import { useKV } from "@/hooks/useKV";
+import { useSound } from "@/hooks/useSound";
+import {
+  trackFeatureUse,
+  trackGameEnd,
+  trackGameStart,
+  trackShare,
+} from "@/lib/analytics";
 import { DEFAULT_CHARACTERS, DEFAULT_QUESTIONS } from "@/lib/database";
 import {
   detectContradictions,
@@ -14,6 +31,26 @@ import {
   selectBestQuestion,
   shouldMakeGuess,
 } from "@/lib/gameEngine";
+import { llm } from "@/lib/llm";
+import { dynamicQuestion_v1 } from "@/lib/prompts";
+import type { SharePayload } from "@/lib/sharing";
+import {
+  buildShareUrl,
+  generateShareText,
+  parseUrlChallenge,
+} from "@/lib/sharing";
+import {
+  hapticLight,
+  hapticMedium,
+  hapticSuccess,
+  playAnswer,
+  playCorrectGuess,
+  playIncorrectGuess,
+  playReveal,
+  playThinking,
+} from "@/lib/sounds";
+import type { SyncStatus } from "@/lib/sync";
+import { getSyncStatus, initialSync, onSyncStatusChange } from "@/lib/sync";
 import type {
   AnswerValue,
   Character,
@@ -23,26 +60,6 @@ import type {
   Question,
 } from "@/lib/types";
 import { CATEGORY_LABELS, DIFFICULTIES } from "@/lib/types";
-import {
-  buildShareUrl,
-  generateShareText,
-  parseUrlChallenge,
-} from "@/lib/sharing";
-import type { SharePayload } from "@/lib/sharing";
-import {
-  playAnswer,
-  playThinking,
-  playCorrectGuess,
-  playIncorrectGuess,
-  playReveal,
-  hapticLight,
-  hapticMedium,
-  hapticSuccess,
-} from "@/lib/sounds";
-import { useSound } from "@/hooks/useSound";
-import { trackGameStart, trackGameEnd, trackShare, trackFeatureUse } from "@/lib/analytics";
-import { dynamicQuestion_v1 } from '@/lib/prompts'
-import { llm } from '@/lib/llm'
 import {
   ArrowLeft,
   BrainIcon,
@@ -67,18 +84,6 @@ import {
 import { AnimatePresence } from "framer-motion";
 import { lazy, Suspense, useEffect, useState } from "react";
 import { toast, Toaster } from "sonner";
-import { getSyncStatus, onSyncStatusChange, initialSync } from '@/lib/sync'
-import type { SyncStatus } from '@/lib/sync'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog'
 
 const TeachingMode = lazy(() =>
   import("@/components/TeachingMode").then((m) => ({
@@ -131,12 +136,12 @@ const MultiCategoryEnhancer = lazy(() =>
   })),
 );
 const CostDashboard = lazy(() =>
-  import('@/components/CostDashboard').then((m) => ({
+  import("@/components/CostDashboard").then((m) => ({
     default: m.CostDashboard,
   })),
 );
 const DataHygiene = lazy(() =>
-  import('@/components/DataHygiene').then((m) => ({
+  import("@/components/DataHygiene").then((m) => ({
     default: m.DataHygiene,
   })),
 );
@@ -160,7 +165,14 @@ function App() {
   );
 
   // ========== GAME STATE (reducer) ==========
-  const { state: game, dispatch, navigate, hasSavedSession, resumeSession, clearSession } = useGameState();
+  const {
+    state: game,
+    dispatch,
+    navigate,
+    hasSavedSession,
+    resumeSession,
+    clearSession,
+  } = useGameState();
   const {
     phase: gamePhase,
     answers,
@@ -177,13 +189,15 @@ function App() {
 
   // ========== SETTINGS ==========
   const [difficulty, setDifficulty] = useKV<Difficulty>("difficulty", "medium");
-  const [selectedCategoryList, setSelectedCategoryList] = useKV<CharacterCategory[]>("selected-categories", []);
+  const [selectedCategoryList, setSelectedCategoryList] = useKV<
+    CharacterCategory[]
+  >("selected-categories", []);
   const [llmMode, setLlmMode] = useKV<boolean>("llm-mode", false);
   const selectedCategories = new Set(selectedCategoryList);
   const [challenge, setChallenge] = useState<SharePayload | null>(null);
   const { muted, toggle: toggleMute } = useSound();
   const [showQuitDialog, setShowQuitDialog] = useState(false);
-  const [syncStatus, setSyncStatus] = useState<SyncStatus>('synced');
+  const [syncStatus, setSyncStatus] = useState<SyncStatus>("synced");
 
   const maxQuestions = DIFFICULTIES[difficulty].maxQuestions;
 
@@ -195,21 +209,21 @@ function App() {
 
   // ========== SYNC STATUS ==========
   useEffect(() => {
-    setSyncStatus(getSyncStatus())
-    const unsubscribe = onSyncStatusChange(setSyncStatus)
+    setSyncStatus(getSyncStatus());
+    const unsubscribe = onSyncStatusChange(setSyncStatus);
     // Run initial sync (fire-and-forget)
-    initialSync().catch(() => {})
-    return unsubscribe
-  }, [])
+    initialSync().catch(() => {});
+    return unsubscribe;
+  }, []);
 
   // ========== PARSE URL CHALLENGE ON MOUNT ==========
   useEffect(() => {
     const payload = parseUrlChallenge();
     if (payload) {
       setChallenge(payload);
-      navigate('challenge');
+      navigate("challenge");
       // Clear hash so it doesn't persist on reload
-      window.history.replaceState(null, '', window.location.pathname);
+      window.history.replaceState(null, "", window.location.pathname);
     }
   }, [navigate]);
 
@@ -290,8 +304,10 @@ function App() {
         // LLM rephrasing (non-blocking, updates question text after)
         if (llmMode) {
           const answeredQs = answers.map((a) => {
-            const q = (questions || DEFAULT_QUESTIONS).find((q) => q.id === a.questionId);
-            return { question: q?.text || '', answer: a.value };
+            const q = (questions || DEFAULT_QUESTIONS).find(
+              (q) => q.id === a.questionId,
+            );
+            return { question: q?.text || "", answer: a.value };
           });
           const topNames = filtered.slice(0, 5).map((c) => c.name);
           const confidence = filtered.length > 0 ? 1 / filtered.length : 0;
@@ -300,10 +316,10 @@ function App() {
             nextQuestion.attribute,
             answeredQs,
             topNames,
-            confidence
+            confidence,
           );
 
-          llm(`${system}\n\n${user}`, 'gpt-4o-mini', true)
+          llm(`${system}\n\n${user}`, "gpt-4o-mini", true)
             .then((response) => {
               try {
                 const parsed = JSON.parse(response) as { text: string };
@@ -314,9 +330,13 @@ function App() {
                     reasoning: newReasoning,
                   });
                 }
-              } catch { /* Use original question */ }
+              } catch {
+                /* Use original question */
+              }
             })
-            .catch(() => { /* Fallback: keep deterministic question */ });
+            .catch(() => {
+              /* Fallback: keep deterministic question */
+            });
         }
       } else {
         const guess = getBestGuess(filtered, answers);
@@ -338,8 +358,8 @@ function App() {
     return chars.filter((char) => {
       for (const answer of currentAnswers) {
         const attr = char.attributes[answer.questionId];
-        if (answer.value === 'yes' && attr === false) return false;
-        if (answer.value === 'no' && attr === true) return false;
+        if (answer.value === "yes" && attr === false) return false;
+        if (answer.value === "no" && attr === true) return false;
         // 'maybe' and 'unknown' don't eliminate
       }
       return true;
@@ -411,14 +431,14 @@ function App() {
     if (navigator.share) {
       try {
         await navigator.share({ text: `${text}\n${url}` });
-        trackShare('native');
+        trackShare("native");
       } catch {
         // User cancelled — ignore
       }
     } else {
       await navigator.clipboard.writeText(`${text}\n${url}`);
-      trackShare('clipboard');
-      toast.success('Copied to clipboard!');
+      trackShare("clipboard");
+      toast.success("Copied to clipboard!");
     }
   };
 
@@ -427,8 +447,8 @@ function App() {
     if (!payload) return;
     const url = buildShareUrl(payload);
     await navigator.clipboard.writeText(url);
-    trackShare('link');
-    toast.success('Challenge link copied!');
+    trackShare("link");
+    toast.success("Challenge link copied!");
   };
 
   // ========== DATA HANDLERS ==========
@@ -456,7 +476,9 @@ function App() {
 
   const handleUpdateQuestion = (updatedQuestion: Question) => {
     setQuestions((prev) =>
-      (prev || []).map((q) => (q.id === updatedQuestion.id ? updatedQuestion : q)),
+      (prev || []).map((q) =>
+        q.id === updatedQuestion.id ? updatedQuestion : q,
+      ),
     );
   };
 
@@ -468,7 +490,7 @@ function App() {
             <MultiCategoryEnhancer
               characters={characters || DEFAULT_CHARACTERS}
               onUpdateCharacters={handleUpdateCharacters}
-              onBack={() => navigate('welcome')}
+              onBack={() => navigate("welcome")}
             />
           </Suspense>
         </div>
@@ -479,20 +501,20 @@ function App() {
   if (gamePhase === "demo") {
     return (
       <Suspense fallback={<Skeleton className="h-96 w-full" />}>
-        <QuestionGeneratorDemo onBack={() => navigate('welcome')} />
+        <QuestionGeneratorDemo onBack={() => navigate("welcome")} />
       </Suspense>
     );
   }
 
-  if (gamePhase === 'environmentTest' && selectedCharacter) {
+  if (gamePhase === "environmentTest" && selectedCharacter) {
     return (
       <div className="min-h-screen bg-background">
         <div className="container mx-auto px-4 py-8">
           <Suspense fallback={<Skeleton className="h-96 w-full" />}>
-          <EnvironmentTest
-            character={selectedCharacter}
-            onUpdateCharacter={handleUpdateCharacter}
-            onBack={() => navigate('welcome')}
+            <EnvironmentTest
+              character={selectedCharacter}
+              onUpdateCharacter={handleUpdateCharacter}
+              onBack={() => navigate("welcome")}
             />
           </Suspense>
         </div>
@@ -507,7 +529,7 @@ function App() {
           <Suspense fallback={<Skeleton className="h-96 w-full" />}>
             <AttributeCoverageReport
               characters={characters || DEFAULT_CHARACTERS}
-              onBack={() => navigate('welcome')}
+              onBack={() => navigate("welcome")}
             />
           </Suspense>
         </div>
@@ -515,15 +537,15 @@ function App() {
     );
   }
 
-  if (gamePhase === 'categoryRecommender' && selectedCharacter) {
+  if (gamePhase === "categoryRecommender" && selectedCharacter) {
     return (
       <div className="min-h-screen bg-background">
         <div className="container mx-auto px-4 py-8">
           <Suspense fallback={<Skeleton className="h-96 w-full" />}>
-          <CategoryRecommender
-            character={selectedCharacter}
-            onUpdateCharacter={handleUpdateCharacter}
-            onBack={() => navigate('welcome')}
+            <CategoryRecommender
+              character={selectedCharacter}
+              onUpdateCharacter={handleUpdateCharacter}
+              onBack={() => navigate("welcome")}
             />
           </Suspense>
         </div>
@@ -531,15 +553,15 @@ function App() {
     );
   }
 
-  if (gamePhase === 'recommender' && selectedCharacter) {
+  if (gamePhase === "recommender" && selectedCharacter) {
     return (
       <div className="min-h-screen bg-background">
         <div className="container mx-auto px-4 py-8">
           <Suspense fallback={<Skeleton className="h-96 w-full" />}>
-          <AttributeRecommender
-            character={selectedCharacter}
-            onUpdateCharacter={handleUpdateCharacter}
-            onBack={() => navigate('welcome')}
+            <AttributeRecommender
+              character={selectedCharacter}
+              onUpdateCharacter={handleUpdateCharacter}
+              onBack={() => navigate("welcome")}
             />
           </Suspense>
         </div>
@@ -547,13 +569,13 @@ function App() {
     );
   }
 
-  if (gamePhase === 'costDashboard') {
+  if (gamePhase === "costDashboard") {
     return (
       <div className="min-h-screen bg-background">
         <div className="container mx-auto px-4 py-8">
           <div className="max-w-4xl mx-auto">
             <Suspense fallback={<Skeleton className="h-96 w-full" />}>
-              <CostDashboard onBack={() => navigate('welcome')} />
+              <CostDashboard onBack={() => navigate("welcome")} />
             </Suspense>
           </div>
         </div>
@@ -561,7 +583,7 @@ function App() {
     );
   }
 
-  if (gamePhase === 'dataHygiene') {
+  if (gamePhase === "dataHygiene") {
     return (
       <div className="min-h-screen bg-background">
         <div className="container mx-auto px-4 py-8">
@@ -572,7 +594,7 @@ function App() {
                 questions={questions || DEFAULT_QUESTIONS}
                 onUpdateCharacter={handleUpdateCharacter}
                 onUpdateQuestion={handleUpdateQuestion}
-                onBack={() => navigate('welcome')}
+                onBack={() => navigate("welcome")}
               />
             </Suspense>
           </div>
@@ -583,23 +605,31 @@ function App() {
 
   // stats, history, compare phases are now rendered inside the main layout with persistent header
 
-  if (gamePhase === 'challenge' && challenge) {
+  if (gamePhase === "challenge" && challenge) {
     const answerBar = challenge.steps
       .map((s) => {
         switch (s.answer) {
-          case 'yes': return '🟢'
-          case 'no': return '🔴'
-          case 'maybe': return '🟡'
-          default: return '⚪'
+          case "yes":
+            return "🟢";
+          case "no":
+            return "🔴";
+          case "maybe":
+            return "🟡";
+          default:
+            return "⚪";
         }
       })
-      .join('')
+      .join("");
     return (
       <>
         <Toaster position="top-center" richColors />
         <div className="min-h-screen bg-background flex items-center justify-center p-4">
           <div className="max-w-md w-full space-y-6 text-center">
-            <SparkleIcon size={64} weight="fill" className="mx-auto text-accent animate-float" />
+            <SparkleIcon
+              size={64}
+              weight="fill"
+              className="mx-auto text-accent animate-float"
+            />
             <h1 className="text-3xl font-bold text-foreground">Challenge!</h1>
             <p className="text-muted-foreground text-lg">
               {challenge.won
@@ -609,17 +639,20 @@ function App() {
             <div className="text-2xl tracking-wider">{answerBar}</div>
             <div className="flex flex-wrap gap-2 justify-center">
               <span className="inline-flex items-center rounded-full bg-accent/20 px-3 py-1 text-sm font-medium text-accent">
-                {challenge.difficulty.charAt(0).toUpperCase() + challenge.difficulty.slice(1)}
+                {challenge.difficulty.charAt(0).toUpperCase() +
+                  challenge.difficulty.slice(1)}
               </span>
               <span className="inline-flex items-center rounded-full bg-muted px-3 py-1 text-sm font-medium text-muted-foreground">
                 {challenge.questionCount} questions
               </span>
             </div>
-            <p className="text-foreground font-semibold text-lg">Can you do better?</p>
+            <p className="text-foreground font-semibold text-lg">
+              Can you do better?
+            </p>
             <Button
               onClick={() => {
                 setChallenge(null);
-                navigate('welcome');
+                navigate("welcome");
               }}
               size="lg"
               className="h-14 px-8 text-lg bg-accent hover:bg-accent/90 text-accent-foreground shadow-lg shadow-accent/20 hover:scale-105 transition-transform"
@@ -649,15 +682,18 @@ function App() {
         />
 
         <div className="relative z-10">
-          <header aria-label="Game navigation" className="border-b border-border/50 backdrop-blur-sm bg-background/80">
+          <header
+            aria-label="Game navigation"
+            className="border-b border-border/50 backdrop-blur-sm bg-background/80"
+          >
             <div className="container mx-auto px-4 py-6">
               <div className="flex items-center justify-between">
                 <button
                   onClick={() => {
-                    if (gamePhase === 'playing') {
-                      setShowQuitDialog(true)
+                    if (gamePhase === "playing") {
+                      setShowQuitDialog(true);
                     } else {
-                      navigate('welcome')
+                      navigate("welcome");
                     }
                   }}
                   className="flex items-center gap-3 hover:opacity-80 transition-opacity"
@@ -676,7 +712,10 @@ function App() {
                   {gamePhase === "welcome" && (
                     <>
                       <Button
-                        onClick={() => { trackFeatureUse('stats'); navigate('stats'); }}
+                        onClick={() => {
+                          trackFeatureUse("stats");
+                          navigate("stats");
+                        }}
                         variant="outline"
                         size="sm"
                         className="flex items-center gap-2 bg-accent/10 hover:bg-accent/20 border-accent/30"
@@ -685,7 +724,10 @@ function App() {
                         <span className="hidden sm:inline">Statistics</span>
                       </Button>
                       <Button
-                        onClick={() => { trackFeatureUse('history'); navigate('history'); }}
+                        onClick={() => {
+                          trackFeatureUse("history");
+                          navigate("history");
+                        }}
                         variant="outline"
                         size="sm"
                         className="flex items-center gap-2"
@@ -694,7 +736,10 @@ function App() {
                         <span className="hidden sm:inline">History</span>
                       </Button>
                       <Button
-                        onClick={() => { trackFeatureUse('compare'); navigate('compare'); }}
+                        onClick={() => {
+                          trackFeatureUse("compare");
+                          navigate("compare");
+                        }}
                         variant="outline"
                         size="sm"
                         className="flex items-center gap-2"
@@ -704,7 +749,7 @@ function App() {
                       </Button>
                       {import.meta.env.DEV && (
                         <Button
-                        onClick={() => dispatch({ type: 'TOGGLE_DEV_TOOLS' })}
+                          onClick={() => dispatch({ type: "TOGGLE_DEV_TOOLS" })}
                           variant="outline"
                           size="sm"
                           className="flex items-center gap-2 border-dashed border-yellow-500/50 text-yellow-500"
@@ -720,7 +765,8 @@ function App() {
                   {gamePhase === "playing" && (
                     <>
                       <span className="inline-flex items-center rounded-full bg-accent/20 px-3 py-1 text-sm font-medium text-accent">
-                        Q{answers.length + (currentQuestion ? 1 : 0)}/{maxQuestions}
+                        Q{answers.length + (currentQuestion ? 1 : 0)}/
+                        {maxQuestions}
                       </span>
                       <button
                         onClick={() => setShowQuitDialog(true)}
@@ -733,9 +779,11 @@ function App() {
                   )}
 
                   {/* GameOver / Teaching phase: Home button */}
-                  {(gamePhase === "gameOver" || gamePhase === "teaching" || gamePhase === "guessing") && (
+                  {(gamePhase === "gameOver" ||
+                    gamePhase === "teaching" ||
+                    gamePhase === "guessing") && (
                     <Button
-                      onClick={() => navigate('welcome')}
+                      onClick={() => navigate("welcome")}
                       variant="outline"
                       size="sm"
                       className="flex items-center gap-2"
@@ -746,26 +794,42 @@ function App() {
                   )}
 
                   {/* Stats / History / Compare: cross-navigation tabs + Home */}
-                  {(gamePhase === "stats" || gamePhase === "history" || gamePhase === "compare") && (
+                  {(gamePhase === "stats" ||
+                    gamePhase === "history" ||
+                    gamePhase === "compare") && (
                     <>
-                      {([
-                        { phase: 'stats' as const, label: 'Stats', icon: ChartBarIcon },
-                        { phase: 'history' as const, label: 'History', icon: ClockCounterClockwiseIcon },
-                        { phase: 'compare' as const, label: 'Compare', icon: UsersIcon },
-                      ]).map((tab) => (
+                      {[
+                        {
+                          phase: "stats" as const,
+                          label: "Stats",
+                          icon: ChartBarIcon,
+                        },
+                        {
+                          phase: "history" as const,
+                          label: "History",
+                          icon: ClockCounterClockwiseIcon,
+                        },
+                        {
+                          phase: "compare" as const,
+                          label: "Compare",
+                          icon: UsersIcon,
+                        },
+                      ].map((tab) => (
                         <Button
                           key={tab.phase}
                           onClick={() => navigate(tab.phase)}
-                          variant={gamePhase === tab.phase ? "default" : "outline"}
+                          variant={
+                            gamePhase === tab.phase ? "default" : "outline"
+                          }
                           size="sm"
-                          className={`flex items-center gap-2 ${gamePhase === tab.phase ? 'bg-accent text-accent-foreground' : ''}`}
+                          className={`flex items-center gap-2 ${gamePhase === tab.phase ? "bg-accent text-accent-foreground" : ""}`}
                         >
                           <tab.icon size={18} />
                           <span className="hidden sm:inline">{tab.label}</span>
                         </Button>
                       ))}
                       <Button
-                        onClick={() => navigate('welcome')}
+                        onClick={() => navigate("welcome")}
                         variant="outline"
                         size="sm"
                         className="flex items-center gap-2"
@@ -781,31 +845,57 @@ function App() {
                     title={`Sync: ${syncStatus}`}
                     aria-label={`Sync status: ${syncStatus}`}
                   >
-                    {syncStatus === 'synced' && <CloudCheck size={18} className="text-green-400" />}
-                    {syncStatus === 'pending' && <CloudArrowUp size={18} className="text-yellow-400 animate-pulse" />}
-                    {syncStatus === 'error' && <CloudX size={18} className="text-red-400" />}
-                    {syncStatus === 'offline' && <CloudSlash size={18} className="text-muted-foreground" />}
+                    {syncStatus === "synced" && (
+                      <CloudCheck size={18} className="text-green-400" />
+                    )}
+                    {syncStatus === "pending" && (
+                      <CloudArrowUp
+                        size={18}
+                        className="text-yellow-400 animate-pulse"
+                      />
+                    )}
+                    {syncStatus === "error" && (
+                      <CloudX size={18} className="text-red-400" />
+                    )}
+                    {syncStatus === "offline" && (
+                      <CloudSlash size={18} className="text-muted-foreground" />
+                    )}
                   </span>
                   <Button
                     onClick={toggleMute}
                     variant="ghost"
                     size="sm"
                     className="flex items-center gap-1 text-muted-foreground hover:text-foreground"
-                    title={muted ? 'Unmute sounds' : 'Mute sounds'}
-                    aria-label={muted ? 'Unmute sounds' : 'Mute sounds'}
+                    title={muted ? "Unmute sounds" : "Mute sounds"}
+                    aria-label={muted ? "Unmute sounds" : "Mute sounds"}
                   >
-                    {muted ? <SpeakerSlashIcon size={20} /> : <SpeakerHighIcon size={20} />}
+                    {muted ? (
+                      <SpeakerSlashIcon size={20} />
+                    ) : (
+                      <SpeakerHighIcon size={20} />
+                    )}
                   </Button>
                 </div>
               </div>
             </div>
           </header>
 
-          <main role="main" aria-label="Game content" className="container mx-auto px-4 py-8 md:py-12">
+          <main
+            role="main"
+            aria-label="Game content"
+            className="container mx-auto px-4 py-8 md:py-12"
+          >
             <div className="sr-only" aria-live="polite" aria-atomic="true">
-              {gamePhase === 'playing' && currentQuestion && `Question ${answers.length + 1}: ${currentQuestion.text}`}
-              {gamePhase === 'guessing' && finalGuess && `I think it's ${finalGuess.name}. Was I correct?`}
-              {gamePhase === 'gameOver' && (gameWon ? 'Correct! I got it right!' : 'Wrong guess. You stumped me!')}
+              {gamePhase === "playing" &&
+                currentQuestion &&
+                `Question ${answers.length + 1}: ${currentQuestion.text}`}
+              {gamePhase === "guessing" &&
+                finalGuess &&
+                `I think it's ${finalGuess.name}. Was I correct?`}
+              {gamePhase === "gameOver" &&
+                (gameWon
+                  ? "Correct! I got it right!"
+                  : "Wrong guess. You stumped me!")}
             </div>
 
             {gamePhase === "welcome" && (
@@ -828,33 +918,68 @@ function App() {
                 {hasSavedSession && (
                   <div className="bg-primary/10 border border-primary/30 rounded-xl p-4 flex items-center justify-between">
                     <div>
-                      <p className="font-semibold text-foreground">Resume your game?</p>
-                      <p className="text-sm text-muted-foreground">You have an unfinished game in progress</p>
+                      <p className="font-semibold text-foreground">
+                        Resume your game?
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        You have an unfinished game in progress
+                      </p>
                     </div>
                     <div className="flex gap-2 ml-4 shrink-0">
-                      <Button onClick={resumeSession} size="sm" className="bg-accent hover:bg-accent/90">Resume</Button>
-                      <Button onClick={clearSession} variant="outline" size="sm">Dismiss</Button>
+                      <Button
+                        onClick={resumeSession}
+                        size="sm"
+                        className="bg-accent hover:bg-accent/90"
+                      >
+                        Resume
+                      </Button>
+                      <Button
+                        onClick={clearSession}
+                        variant="outline"
+                        size="sm"
+                      >
+                        Dismiss
+                      </Button>
                     </div>
                   </div>
                 )}
 
-                {gameHistory && gameHistory.length > 0 && (() => {
-                  const last = gameHistory[gameHistory.length - 1]
-                  return (
-                    <div className="bg-accent/10 border border-accent/30 rounded-xl p-4 flex items-center justify-between">
-                      <div className="text-sm">
-                        <span className="text-muted-foreground">Last game: </span>
-                        <span className={last.won ? 'text-accent font-semibold' : 'text-muted-foreground'}>
-                          {last.won ? 'Won' : 'Lost'}
-                        </span>
-                        <span className="text-muted-foreground"> in {last.steps.length} questions — {last.characterName}</span>
+                {gameHistory &&
+                  gameHistory.length > 0 &&
+                  (() => {
+                    const last = gameHistory[gameHistory.length - 1];
+                    return (
+                      <div className="bg-accent/10 border border-accent/30 rounded-xl p-4 flex items-center justify-between">
+                        <div className="text-sm">
+                          <span className="text-muted-foreground">
+                            Last game:{" "}
+                          </span>
+                          <span
+                            className={
+                              last.won
+                                ? "text-accent font-semibold"
+                                : "text-muted-foreground"
+                            }
+                          >
+                            {last.won ? "Won" : "Lost"}
+                          </span>
+                          <span className="text-muted-foreground">
+                            {" "}
+                            in {last.steps.length} questions —{" "}
+                            {last.characterName}
+                          </span>
+                        </div>
+                        <Button
+                          onClick={startGame}
+                          variant="outline"
+                          size="sm"
+                          className="ml-4 shrink-0"
+                        >
+                          Rematch
+                        </Button>
                       </div>
-                      <Button onClick={startGame} variant="outline" size="sm" className="ml-4 shrink-0">
-                        Rematch
-                      </Button>
-                    </div>
-                  )
-                })()}
+                    );
+                  })()}
 
                 <div className="bg-card/50 backdrop-blur-sm border-2 border-primary/20 rounded-xl p-8 space-y-6">
                   <h3 className="text-2xl font-semibold text-foreground">
@@ -908,23 +1033,42 @@ function App() {
                   </div>
                 </div>
 
-                {gameHistory && gameHistory.length > 0 && (() => {
-                  const last = gameHistory[gameHistory.length - 1]
-                  return (
-                    <div className="bg-accent/10 border border-accent/30 rounded-xl p-4 flex items-center justify-between">
-                      <div className="text-sm">
-                        <span className="text-muted-foreground">Last game: </span>
-                        <span className={last.won ? 'text-accent font-semibold' : 'text-muted-foreground'}>
-                          {last.won ? 'Won' : 'Lost'}
-                        </span>
-                        <span className="text-muted-foreground"> in {last.steps.length} questions — {last.characterName}</span>
+                {gameHistory &&
+                  gameHistory.length > 0 &&
+                  (() => {
+                    const last = gameHistory[gameHistory.length - 1];
+                    return (
+                      <div className="bg-accent/10 border border-accent/30 rounded-xl p-4 flex items-center justify-between">
+                        <div className="text-sm">
+                          <span className="text-muted-foreground">
+                            Last game:{" "}
+                          </span>
+                          <span
+                            className={
+                              last.won
+                                ? "text-accent font-semibold"
+                                : "text-muted-foreground"
+                            }
+                          >
+                            {last.won ? "Won" : "Lost"}
+                          </span>
+                          <span className="text-muted-foreground">
+                            {" "}
+                            in {last.steps.length} questions —{" "}
+                            {last.characterName}
+                          </span>
+                        </div>
+                        <Button
+                          onClick={startGame}
+                          variant="outline"
+                          size="sm"
+                          className="ml-4 shrink-0"
+                        >
+                          Rematch
+                        </Button>
                       </div>
-                      <Button onClick={startGame} variant="outline" size="sm" className="ml-4 shrink-0">
-                        Rematch
-                      </Button>
-                    </div>
-                  )
-                })()}
+                    );
+                  })()}
 
                 <div className="bg-card/50 backdrop-blur-sm border border-border/50 rounded-xl p-6 space-y-4">
                   <h3 className="text-lg font-semibold text-foreground">
@@ -1006,25 +1150,30 @@ function App() {
                         AI-Enhanced Mode
                       </h3>
                       <p className="text-sm text-muted-foreground mt-1">
-                        Dynamic questions, narrative explanations, and conversational answers
+                        Dynamic questions, narrative explanations, and
+                        conversational answers
                       </p>
                     </div>
                     <button
                       onClick={() => setLlmMode(!llmMode)}
                       className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors ${
-                        llmMode ? 'bg-accent' : 'bg-muted'
+                        llmMode ? "bg-accent" : "bg-muted"
                       }`}
                       role="switch"
                       aria-checked={llmMode ? "true" : "false"}
                       aria-label="Toggle AI-Enhanced Mode"
                     >
-                      <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-sm transition-transform ${
-                        llmMode ? 'translate-x-6' : 'translate-x-1'
-                      }`} />
+                      <span
+                        className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-sm transition-transform ${
+                          llmMode ? "translate-x-6" : "translate-x-1"
+                        }`}
+                      />
                     </button>
                   </div>
                   {llmMode && (
-                    <p className="text-xs text-accent mt-2">✨ Requires internet connection</p>
+                    <p className="text-xs text-accent mt-2">
+                      ✨ Requires internet connection
+                    </p>
                   )}
                 </div>
 
@@ -1051,7 +1200,7 @@ function App() {
                     </h3>
                     <div className="flex flex-wrap gap-3">
                       <Button
-                        onClick={() => navigate('coverage')}
+                        onClick={() => navigate("coverage")}
                         variant="outline"
                         size="sm"
                         className="flex items-center gap-2"
@@ -1060,7 +1209,7 @@ function App() {
                         Coverage Report
                       </Button>
                       <Button
-                        onClick={() => navigate('demo')}
+                        onClick={() => navigate("demo")}
                         variant="outline"
                         size="sm"
                         className="flex items-center gap-2"
@@ -1069,7 +1218,7 @@ function App() {
                         Test Generator
                       </Button>
                       <Button
-                        onClick={() => navigate('manage')}
+                        onClick={() => navigate("manage")}
                         variant="outline"
                         size="sm"
                         className="flex items-center gap-2"
@@ -1082,7 +1231,7 @@ function App() {
                           const spongebob = (
                             characters || DEFAULT_CHARACTERS
                           ).find((c) => c.id === "spongebob");
-                          if (spongebob) navigate('environmentTest', spongebob);
+                          if (spongebob) navigate("environmentTest", spongebob);
                         }}
                         variant="outline"
                         size="sm"
@@ -1092,7 +1241,7 @@ function App() {
                         Test Environment
                       </Button>
                       <Button
-                        onClick={() => navigate('bulkHabitat')}
+                        onClick={() => navigate("bulkHabitat")}
                         variant="outline"
                         size="sm"
                         className="flex items-center gap-2"
@@ -1101,7 +1250,7 @@ function App() {
                         AI Enrichment
                       </Button>
                       <Button
-                        onClick={() => navigate('costDashboard')}
+                        onClick={() => navigate("costDashboard")}
                         variant="outline"
                         size="sm"
                         className="flex items-center gap-2"
@@ -1110,7 +1259,7 @@ function App() {
                         Cost Dashboard
                       </Button>
                       <Button
-                        onClick={() => navigate('dataHygiene')}
+                        onClick={() => navigate("dataHygiene")}
                         variant="outline"
                         size="sm"
                         className="flex items-center gap-2"
@@ -1136,13 +1285,16 @@ function App() {
                 <div className="flex items-center justify-between text-sm text-muted-foreground mb-4 lg:mb-6">
                   <span>
                     {possibleCharacters.length} possibilities remaining
-                    {llmMode && <span className="ml-2 text-xs text-accent">✨ AI</span>}
+                    {llmMode && (
+                      <span className="ml-2 text-xs text-accent">✨ AI</span>
+                    )}
                   </span>
-                  {possibleCharacters.length > 0 && possibleCharacters.length <= 5 && (
-                    <span className="text-accent font-medium">
-                      Top: {possibleCharacters[0]?.name}
-                    </span>
-                  )}
+                  {possibleCharacters.length > 0 &&
+                    possibleCharacters.length <= 5 && (
+                      <span className="text-accent font-medium">
+                        Top: {possibleCharacters[0]?.name}
+                      </span>
+                    )}
                 </div>
 
                 <div className="grid lg:grid-cols-2 gap-4 lg:gap-6">
@@ -1190,16 +1342,20 @@ function App() {
                   questionsAsked={gameSteps.length}
                   remainingCharacters={possibleCharacters.length}
                   onPlayAgain={startGame}
-                  onNewGame={() => navigate('welcome')}
-                  onTeachMode={!gameWon ? () => navigate('teaching') : undefined}
-                  onViewHistory={() => navigate('history')}
-                  onViewStats={() => navigate('stats')}
+                  onNewGame={() => navigate("welcome")}
+                  onTeachMode={
+                    !gameWon ? () => navigate("teaching") : undefined
+                  }
+                  onViewHistory={() => navigate("history")}
+                  onViewStats={() => navigate("stats")}
                   onShare={handleShare}
                   onCopyLink={handleCopyLink}
                   llmMode={llmMode}
                   answeredQuestions={answers.map((a) => {
-                    const q = (questions || DEFAULT_QUESTIONS).find((q) => q.id === a.questionId);
-                    return { question: q?.text || '', answer: a.value };
+                    const q = (questions || DEFAULT_QUESTIONS).find(
+                      (q) => q.id === a.questionId,
+                    );
+                    return { question: q?.text || "", answer: a.value };
                   })}
                 />
               </div>
@@ -1214,7 +1370,7 @@ function App() {
                     onAddCharacter={handleAddCharacter}
                     onAddQuestions={handleAddQuestions}
                     onPlayAgain={startGame}
-                    onGoHome={() => navigate('welcome')}
+                    onGoHome={() => navigate("welcome")}
                   />
                 </Suspense>
               </div>
@@ -1231,7 +1387,7 @@ function App() {
                       Generate new questions from user-taught characters
                     </p>
                   </div>
-                  <Button onClick={() => navigate('welcome')} variant="outline">
+                  <Button onClick={() => navigate("welcome")} variant="outline">
                     Back to Game
                   </Button>
                 </div>
@@ -1287,7 +1443,7 @@ function App() {
                     characters={characters || DEFAULT_CHARACTERS}
                     questions={questions || DEFAULT_QUESTIONS}
                     gameHistory={gameHistory || []}
-                    onBack={() => navigate('welcome')}
+                    onBack={() => navigate("welcome")}
                   />
                 </Suspense>
               </div>
@@ -1299,7 +1455,7 @@ function App() {
                   <GameHistory
                     history={gameHistory || []}
                     onClearHistory={() => setGameHistory(() => [])}
-                    onBack={() => navigate('welcome')}
+                    onBack={() => navigate("welcome")}
                   />
                 </Suspense>
               </div>
@@ -1310,7 +1466,7 @@ function App() {
                 <Suspense fallback={<Skeleton className="h-96 w-full" />}>
                   <CharacterComparison
                     characters={characters || DEFAULT_CHARACTERS}
-                    onBack={() => navigate('welcome')}
+                    onBack={() => navigate("welcome")}
                   />
                 </Suspense>
               </div>
@@ -1329,7 +1485,7 @@ function App() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Keep Playing</AlertDialogCancel>
-            <AlertDialogAction onClick={() => navigate('welcome')}>
+            <AlertDialogAction onClick={() => navigate("welcome")}>
               Quit Game
             </AlertDialogAction>
           </AlertDialogFooter>

@@ -1,30 +1,30 @@
-import { useState } from 'react'
-import { Card } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { Progress } from '@/components/ui/progress'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { ArrowLeft } from '@phosphor-icons/react'
-import type { Character, Question } from '@/lib/types'
-import {
-  validateAllCharacters,
-  findDuplicates,
-  scoreQuestions,
-  categorizeAllCharacters,
-} from '@/lib/dataCleanup'
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type {
   AttributeIssue,
+  CategorySuggestion,
   DuplicateGroup,
   QuestionScore,
-  CategorySuggestion,
-} from '@/lib/dataCleanup'
+} from "@/lib/dataCleanup";
+import {
+  categorizeAllCharacters,
+  findDuplicates,
+  scoreQuestions,
+  validateAllCharacters,
+} from "@/lib/dataCleanup";
+import type { Character, Question } from "@/lib/types";
+import { ArrowLeft } from "@phosphor-icons/react";
+import { useState } from "react";
 
 interface DataHygieneProps {
-  characters: Character[]
-  questions: Question[]
-  onUpdateCharacter: (character: Character) => void
-  onUpdateQuestion: (question: Question) => void
-  onBack: () => void
+  characters: Character[];
+  questions: Question[];
+  onUpdateCharacter: (character: Character) => void;
+  onUpdateQuestion: (question: Question) => void;
+  onBack: () => void;
 }
 
 export function DataHygiene({
@@ -35,93 +35,110 @@ export function DataHygiene({
   onBack,
 }: DataHygieneProps) {
   // Attribute cleanup
-  const [attrIssues, setAttrIssues] = useState<AttributeIssue[]>([])
-  const [attrProgress, setAttrProgress] = useState<{ done: number; total: number } | null>(null)
-  const [attrRunning, setAttrRunning] = useState(false)
+  const [attrIssues, setAttrIssues] = useState<AttributeIssue[]>([]);
+  const [attrProgress, setAttrProgress] = useState<{
+    done: number;
+    total: number;
+  } | null>(null);
+  const [attrRunning, setAttrRunning] = useState(false);
 
   // Duplicates
-  const [dupeGroups, setDupeGroups] = useState<DuplicateGroup[]>([])
-  const [dupeProgress, setDupeProgress] = useState<{ done: number; total: number } | null>(null)
-  const [dupeRunning, setDupeRunning] = useState(false)
+  const [dupeGroups, setDupeGroups] = useState<DuplicateGroup[]>([]);
+  const [dupeProgress, setDupeProgress] = useState<{
+    done: number;
+    total: number;
+  } | null>(null);
+  const [dupeRunning, setDupeRunning] = useState(false);
 
   // Question quality
-  const [qScores, setQScores] = useState<QuestionScore[]>([])
-  const [qProgress, setQProgress] = useState<{ done: number; total: number } | null>(null)
-  const [qRunning, setQRunning] = useState(false)
+  const [qScores, setQScores] = useState<QuestionScore[]>([]);
+  const [qProgress, setQProgress] = useState<{
+    done: number;
+    total: number;
+  } | null>(null);
+  const [qRunning, setQRunning] = useState(false);
 
   // Categories
-  const [catSuggestions, setCatSuggestions] = useState<CategorySuggestion[]>([])
-  const [catProgress, setCatProgress] = useState<{ done: number; total: number } | null>(null)
-  const [catRunning, setCatRunning] = useState(false)
+  const [catSuggestions, setCatSuggestions] = useState<CategorySuggestion[]>(
+    [],
+  );
+  const [catProgress, setCatProgress] = useState<{
+    done: number;
+    total: number;
+  } | null>(null);
+  const [catRunning, setCatRunning] = useState(false);
 
   const runAttrCleanup = async () => {
-    setAttrRunning(true)
-    setAttrIssues([])
+    setAttrRunning(true);
+    setAttrIssues([]);
     const results = await validateAllCharacters(characters, (done, total) =>
-      setAttrProgress({ done, total })
-    )
-    setAttrIssues(results)
-    setAttrRunning(false)
-    setAttrProgress(null)
-  }
+      setAttrProgress({ done, total }),
+    );
+    setAttrIssues(results);
+    setAttrRunning(false);
+    setAttrProgress(null);
+  };
 
   const runDupeCheck = async () => {
-    setDupeRunning(true)
-    setDupeGroups([])
+    setDupeRunning(true);
+    setDupeGroups([]);
     const results = await findDuplicates(characters, (done, total) =>
-      setDupeProgress({ done, total })
-    )
-    setDupeGroups(results)
-    setDupeRunning(false)
-    setDupeProgress(null)
-  }
+      setDupeProgress({ done, total }),
+    );
+    setDupeGroups(results);
+    setDupeRunning(false);
+    setDupeProgress(null);
+  };
 
   const runQScoring = async () => {
-    setQRunning(true)
-    setQScores([])
+    setQRunning(true);
+    setQScores([]);
     const results = await scoreQuestions(questions, (done, total) =>
-      setQProgress({ done, total })
-    )
-    setQScores(results)
-    setQRunning(false)
-    setQProgress(null)
-  }
+      setQProgress({ done, total }),
+    );
+    setQScores(results);
+    setQRunning(false);
+    setQProgress(null);
+  };
 
   const runCategorization = async () => {
-    setCatRunning(true)
-    setCatSuggestions([])
+    setCatRunning(true);
+    setCatSuggestions([]);
     const results = await categorizeAllCharacters(characters, (done, total) =>
-      setCatProgress({ done, total })
-    )
-    setCatSuggestions(results)
-    setCatRunning(false)
-    setCatProgress(null)
-  }
+      setCatProgress({ done, total }),
+    );
+    setCatSuggestions(results);
+    setCatRunning(false);
+    setCatProgress(null);
+  };
 
   const applyAttrFix = (issue: AttributeIssue) => {
-    const char = characters.find((c) => c.id === issue.characterId)
-    if (!char) return
+    const char = characters.find((c) => c.id === issue.characterId);
+    if (!char) return;
     onUpdateCharacter({
       ...char,
-      attributes: { ...char.attributes, [issue.attribute]: issue.suggestedValue },
-    })
-    setAttrIssues((prev) => prev.filter((i) => i !== issue))
-  }
+      attributes: {
+        ...char.attributes,
+        [issue.attribute]: issue.suggestedValue,
+      },
+    });
+    setAttrIssues((prev) => prev.filter((i) => i !== issue));
+  };
 
   const applyQuestionRewrite = (score: QuestionScore) => {
-    if (!score.rewrite) return
-    const q = questions.find((q) => q.id === score.questionId)
-    if (!q) return
-    onUpdateQuestion({ ...q, text: score.rewrite })
-    setQScores((prev) => prev.filter((s) => s !== score))
-  }
+    if (!score.rewrite) return;
+    const q = questions.find((q) => q.id === score.questionId);
+    if (!q) return;
+    onUpdateQuestion({ ...q, text: score.rewrite });
+    setQScores((prev) => prev.filter((s) => s !== score));
+  };
 
   const applyCategorySuggestion = (suggestion: CategorySuggestion) => {
-    const char = characters.find((c) => c.id === suggestion.characterId)
-    if (!char) return
-    onUpdateCharacter({ ...char, category: suggestion.suggestedCategory })
-    setCatSuggestions((prev) => prev.filter((s) => s !== suggestion))
-  }
+    const char = characters.find((c) => c.id === suggestion.characterId);
+    if (!char) return;
+    onUpdateCharacter({ ...char, category: suggestion.suggestedCategory });
+    setCatSuggestions((prev) => prev.filter((s) => s !== suggestion));
+  };
 
   return (
     <div className="space-y-6">
@@ -141,40 +158,78 @@ export function DataHygiene({
       <Tabs defaultValue="attributes">
         <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="attributes">
-            Attributes {attrIssues.length > 0 && <Badge variant="destructive" className="ml-1">{attrIssues.length}</Badge>}
+            Attributes{" "}
+            {attrIssues.length > 0 && (
+              <Badge variant="destructive" className="ml-1">
+                {attrIssues.length}
+              </Badge>
+            )}
           </TabsTrigger>
           <TabsTrigger value="duplicates">
-            Duplicates {dupeGroups.length > 0 && <Badge variant="destructive" className="ml-1">{dupeGroups.length}</Badge>}
+            Duplicates{" "}
+            {dupeGroups.length > 0 && (
+              <Badge variant="destructive" className="ml-1">
+                {dupeGroups.length}
+              </Badge>
+            )}
           </TabsTrigger>
           <TabsTrigger value="questions">
-            Questions {qScores.filter((s) => s.rewrite).length > 0 && <Badge variant="destructive" className="ml-1">{qScores.filter((s) => s.rewrite).length}</Badge>}
+            Questions{" "}
+            {qScores.filter((s) => s.rewrite).length > 0 && (
+              <Badge variant="destructive" className="ml-1">
+                {qScores.filter((s) => s.rewrite).length}
+              </Badge>
+            )}
           </TabsTrigger>
           <TabsTrigger value="categories">
-            Categories {catSuggestions.length > 0 && <Badge variant="destructive" className="ml-1">{catSuggestions.length}</Badge>}
+            Categories{" "}
+            {catSuggestions.length > 0 && (
+              <Badge variant="destructive" className="ml-1">
+                {catSuggestions.length}
+              </Badge>
+            )}
           </TabsTrigger>
         </TabsList>
 
         <TabsContent value="attributes" className="space-y-4">
           <div className="flex items-center justify-between">
-            <p className="text-sm text-muted-foreground">{characters.length} characters to scan</p>
+            <p className="text-sm text-muted-foreground">
+              {characters.length} characters to scan
+            </p>
             <Button onClick={runAttrCleanup} disabled={attrRunning} size="sm">
-              {attrRunning ? 'Scanning...' : 'Run Analysis'}
+              {attrRunning ? "Scanning..." : "Run Analysis"}
             </Button>
           </div>
           {attrProgress && (
-            <Progress value={(attrProgress.done / attrProgress.total) * 100} className="h-2" />
+            <Progress
+              value={(attrProgress.done / attrProgress.total) * 100}
+              className="h-2"
+            />
           )}
           {attrIssues.map((issue, i) => (
-            <Card key={`${issue.characterId}-${issue.attribute}-${i}`} className="p-4">
+            <Card
+              key={`${issue.characterId}-${issue.attribute}-${i}`}
+              className="p-4"
+            >
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="font-medium text-foreground">{issue.characterName}</p>
-                  <p className="text-sm text-muted-foreground">
-                    <code className="text-xs">{issue.attribute}</code>: {String(issue.currentValue)} → {String(issue.suggestedValue)}
+                  <p className="font-medium text-foreground">
+                    {issue.characterName}
                   </p>
-                  <p className="text-xs text-muted-foreground mt-1">{issue.reason}</p>
+                  <p className="text-sm text-muted-foreground">
+                    <code className="text-xs">{issue.attribute}</code>:{" "}
+                    {String(issue.currentValue)} →{" "}
+                    {String(issue.suggestedValue)}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {issue.reason}
+                  </p>
                 </div>
-                <Button onClick={() => applyAttrFix(issue)} size="sm" variant="outline">
+                <Button
+                  onClick={() => applyAttrFix(issue)}
+                  size="sm"
+                  variant="outline"
+                >
                   Apply
                 </Button>
               </div>
@@ -184,13 +239,18 @@ export function DataHygiene({
 
         <TabsContent value="duplicates" className="space-y-4">
           <div className="flex items-center justify-between">
-            <p className="text-sm text-muted-foreground">{characters.length} characters to check</p>
+            <p className="text-sm text-muted-foreground">
+              {characters.length} characters to check
+            </p>
             <Button onClick={runDupeCheck} disabled={dupeRunning} size="sm">
-              {dupeRunning ? 'Checking...' : 'Run Analysis'}
+              {dupeRunning ? "Checking..." : "Run Analysis"}
             </Button>
           </div>
           {dupeProgress && (
-            <Progress value={(dupeProgress.done / dupeProgress.total) * 100} className="h-2" />
+            <Progress
+              value={(dupeProgress.done / dupeProgress.total) * 100}
+              className="h-2"
+            />
           )}
           {dupeGroups.map((group, i) => (
             <Card key={`dupe-${i}`} className="p-4">
@@ -198,47 +258,79 @@ export function DataHygiene({
                 Keep: {group.canonical.name}
               </p>
               <p className="text-sm text-muted-foreground">
-                Duplicates: {group.duplicates.map((d) => d.name).join(', ')}
+                Duplicates: {group.duplicates.map((d) => d.name).join(", ")}
               </p>
-              <Badge variant="secondary" className="mt-1">{Math.round(group.confidence * 100)}% confident</Badge>
+              <Badge variant="secondary" className="mt-1">
+                {Math.round(group.confidence * 100)}% confident
+              </Badge>
             </Card>
           ))}
         </TabsContent>
 
         <TabsContent value="questions" className="space-y-4">
           <div className="flex items-center justify-between">
-            <p className="text-sm text-muted-foreground">{questions.length} questions to score</p>
+            <p className="text-sm text-muted-foreground">
+              {questions.length} questions to score
+            </p>
             <Button onClick={runQScoring} disabled={qRunning} size="sm">
-              {qRunning ? 'Scoring...' : 'Run Analysis'}
+              {qRunning ? "Scoring..." : "Run Analysis"}
             </Button>
           </div>
           {qProgress && (
-            <Progress value={(qProgress.done / qProgress.total) * 100} className="h-2" />
+            <Progress
+              value={(qProgress.done / qProgress.total) * 100}
+              className="h-2"
+            />
           )}
           {qScores
-            .filter((s) => s.rewrite || Math.min(s.scores.clarity, s.scores.power, s.scores.grammar) < 3)
+            .filter(
+              (s) =>
+                s.rewrite ||
+                Math.min(s.scores.clarity, s.scores.power, s.scores.grammar) <
+                  3,
+            )
             .map((score) => (
               <Card key={score.questionId} className="p-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="font-medium text-foreground">{score.questionText}</p>
+                    <p className="font-medium text-foreground">
+                      {score.questionText}
+                    </p>
                     <div className="flex gap-2 mt-1">
-                      <Badge variant={score.scores.clarity < 3 ? 'destructive' : 'secondary'}>
+                      <Badge
+                        variant={
+                          score.scores.clarity < 3 ? "destructive" : "secondary"
+                        }
+                      >
                         Clarity: {score.scores.clarity}
                       </Badge>
-                      <Badge variant={score.scores.power < 3 ? 'destructive' : 'secondary'}>
+                      <Badge
+                        variant={
+                          score.scores.power < 3 ? "destructive" : "secondary"
+                        }
+                      >
                         Power: {score.scores.power}
                       </Badge>
-                      <Badge variant={score.scores.grammar < 3 ? 'destructive' : 'secondary'}>
+                      <Badge
+                        variant={
+                          score.scores.grammar < 3 ? "destructive" : "secondary"
+                        }
+                      >
                         Grammar: {score.scores.grammar}
                       </Badge>
                     </div>
                     {score.rewrite && (
-                      <p className="text-sm text-accent mt-1">Suggested: {score.rewrite}</p>
+                      <p className="text-sm text-accent mt-1">
+                        Suggested: {score.rewrite}
+                      </p>
                     )}
                   </div>
                   {score.rewrite && (
-                    <Button onClick={() => applyQuestionRewrite(score)} size="sm" variant="outline">
+                    <Button
+                      onClick={() => applyQuestionRewrite(score)}
+                      size="sm"
+                      variant="outline"
+                    >
                       Apply
                     </Button>
                   )}
@@ -249,25 +341,39 @@ export function DataHygiene({
 
         <TabsContent value="categories" className="space-y-4">
           <div className="flex items-center justify-between">
-            <p className="text-sm text-muted-foreground">{characters.length} characters to check</p>
+            <p className="text-sm text-muted-foreground">
+              {characters.length} characters to check
+            </p>
             <Button onClick={runCategorization} disabled={catRunning} size="sm">
-              {catRunning ? 'Categorizing...' : 'Run Analysis'}
+              {catRunning ? "Categorizing..." : "Run Analysis"}
             </Button>
           </div>
           {catProgress && (
-            <Progress value={(catProgress.done / catProgress.total) * 100} className="h-2" />
+            <Progress
+              value={(catProgress.done / catProgress.total) * 100}
+              className="h-2"
+            />
           )}
           {catSuggestions.map((suggestion) => (
             <Card key={suggestion.characterId} className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="font-medium text-foreground">{suggestion.characterName}</p>
-                  <p className="text-sm text-muted-foreground">
-                    {suggestion.currentCategory} → {suggestion.suggestedCategory}
+                  <p className="font-medium text-foreground">
+                    {suggestion.characterName}
                   </p>
-                  <p className="text-xs text-muted-foreground mt-1">{suggestion.reasoning}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {suggestion.currentCategory} →{" "}
+                    {suggestion.suggestedCategory}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {suggestion.reasoning}
+                  </p>
                 </div>
-                <Button onClick={() => applyCategorySuggestion(suggestion)} size="sm" variant="outline">
+                <Button
+                  onClick={() => applyCategorySuggestion(suggestion)}
+                  size="sm"
+                  variant="outline"
+                >
                   Apply
                 </Button>
               </div>
@@ -276,5 +382,5 @@ export function DataHygiene({
         </TabsContent>
       </Tabs>
     </div>
-  )
+  );
 }

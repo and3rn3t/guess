@@ -1,37 +1,60 @@
-import { motion } from 'framer-motion'
-import { useState, useEffect } from 'react'
-import { Sparkle, CheckCircle, XCircle, ArrowClockwise, ClockCounterClockwise, ShareNetwork, Link as LinkIcon, ChartBar, House } from '@phosphor-icons/react'
-import { Card } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import type { Character } from '@/lib/types'
-import { llmStream } from '@/lib/llm'
-import { narrativeExplanation_v1 } from '@/lib/prompts'
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { llmStream } from "@/lib/llm";
+import { narrativeExplanation_v1 } from "@/lib/prompts";
+import type { Character } from "@/lib/types";
+import {
+  ArrowClockwise,
+  ChartBar,
+  CheckCircle,
+  ClockCounterClockwise,
+  House,
+  Link as LinkIcon,
+  ShareNetwork,
+  Sparkle,
+  XCircle,
+} from "@phosphor-icons/react";
+import { motion } from "framer-motion";
+import { useEffect, useState } from "react";
 
 interface GuessRevealProps {
-  character: Character
-  onCorrect: () => void
-  onIncorrect: () => void
+  character: Character;
+  onCorrect: () => void;
+  onIncorrect: () => void;
 }
 
-export function GuessReveal({ character, onCorrect, onIncorrect }: GuessRevealProps) {
+export function GuessReveal({
+  character,
+  onCorrect,
+  onIncorrect,
+}: GuessRevealProps) {
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.8, rotateY: -15 }}
       animate={{ opacity: 1, scale: 1, rotateY: 0 }}
-      transition={{ duration: 0.5, type: 'spring' }}
+      transition={{ duration: 0.5, type: "spring" }}
     >
-      <Card className="p-8 bg-gradient-to-br from-primary/20 to-accent/10 backdrop-blur-sm border-2 border-accent shadow-2xl" aria-live="assertive">
+      <Card
+        className="p-8 bg-gradient-to-br from-primary/20 to-accent/10 backdrop-blur-sm border-2 border-accent shadow-2xl"
+        aria-live="assertive"
+      >
         <div className="space-y-8 text-center">
           <motion.div
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
-            transition={{ delay: 0.2, type: 'spring', stiffness: 200 }}
+            transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
           >
-            <Sparkle size={64} weight="fill" className="mx-auto text-accent animate-float" />
+            <Sparkle
+              size={64}
+              weight="fill"
+              className="mx-auto text-accent animate-float"
+            />
           </motion.div>
 
           <div className="space-y-3">
-            <h2 className="text-2xl font-semibold text-muted-foreground">I believe you're thinking of...</h2>
+            <h2 className="text-2xl font-semibold text-muted-foreground">
+              I believe you're thinking of...
+            </h2>
             <motion.h1
               className="text-5xl md:text-6xl font-bold text-foreground"
               initial={{ opacity: 0, y: 20 }}
@@ -72,23 +95,23 @@ export function GuessReveal({ character, onCorrect, onIncorrect }: GuessRevealPr
         </div>
       </Card>
     </motion.div>
-  )
+  );
 }
 
 interface GameOverProps {
-  won: boolean
-  character: Character | null
-  questionsAsked?: number
-  remainingCharacters?: number
-  onPlayAgain: () => void
-  onNewGame?: () => void
-  onTeachMode?: () => void
-  onViewHistory?: () => void
-  onViewStats?: () => void
-  onShare?: () => void
-  onCopyLink?: () => void
-  llmMode?: boolean
-  answeredQuestions?: Array<{ question: string; answer: string }>
+  won: boolean;
+  character: Character | null;
+  questionsAsked?: number;
+  remainingCharacters?: number;
+  onPlayAgain: () => void;
+  onNewGame?: () => void;
+  onTeachMode?: () => void;
+  onViewHistory?: () => void;
+  onViewStats?: () => void;
+  onShare?: () => void;
+  onCopyLink?: () => void;
+  llmMode?: boolean;
+  answeredQuestions?: Array<{ question: string; answer: string }>;
 }
 
 export function GameOver({
@@ -106,36 +129,39 @@ export function GameOver({
   llmMode,
   answeredQuestions,
 }: GameOverProps) {
-  const [narrative, setNarrative] = useState('')
-  const [isStreaming, setIsStreaming] = useState(false)
+  const [narrative, setNarrative] = useState("");
+  const [isStreaming, setIsStreaming] = useState(false);
 
   useEffect(() => {
-    if (!llmMode || !character) return
+    if (!llmMode || !character) return;
 
-    const qaList = answeredQuestions || []
+    const qaList = answeredQuestions || [];
     const { system, user } = narrativeExplanation_v1(
       character.name,
       won,
       qaList,
-      remainingCharacters || 0
-    )
+      remainingCharacters || 0,
+    );
 
-    setIsStreaming(true)
-    let text = ''
+    setIsStreaming(true);
+    let text = "";
     const run = async () => {
       try {
-        for await (const token of llmStream({ prompt: `${system}\n\n${user}`, model: 'gpt-4o-mini' })) {
-          text += token
-          setNarrative(text)
+        for await (const token of llmStream({
+          prompt: `${system}\n\n${user}`,
+          model: "gpt-4o-mini",
+        })) {
+          text += token;
+          setNarrative(text);
         }
       } catch {
         // Non-blocking — static explanation is enough
       } finally {
-        setIsStreaming(false)
+        setIsStreaming(false);
       }
-    }
-    run()
-  }, [llmMode, character, won, answeredQuestions, remainingCharacters])
+    };
+    run();
+  }, [llmMode, character, won, answeredQuestions, remainingCharacters]);
 
   return (
     <motion.div
@@ -147,21 +173,40 @@ export function GameOver({
         <div className="space-y-6 text-center">
           {won ? (
             <>
-              <Sparkle size={64} weight="fill" className="mx-auto text-accent" />
+              <Sparkle
+                size={64}
+                weight="fill"
+                className="mx-auto text-accent"
+              />
               <div>
-                <h2 className="text-4xl font-bold text-foreground mb-2">I Got It Right!</h2>
-                {character && <p className="text-xl text-muted-foreground">It was {character.name}!</p>}
+                <h2 className="text-4xl font-bold text-foreground mb-2">
+                  I Got It Right!
+                </h2>
+                {character && (
+                  <p className="text-xl text-muted-foreground">
+                    It was {character.name}!
+                  </p>
+                )}
               </div>
               <p className="text-foreground/80">
-                Thanks for playing! The more games we play, the smarter I become.
+                Thanks for playing! The more games we play, the smarter I
+                become.
               </p>
             </>
           ) : (
             <>
-              <XCircle size={64} weight="fill" className="mx-auto text-muted-foreground" />
+              <XCircle
+                size={64}
+                weight="fill"
+                className="mx-auto text-muted-foreground"
+              />
               <div>
-                <h2 className="text-4xl font-bold text-foreground mb-2">You Stumped Me!</h2>
-                <p className="text-xl text-muted-foreground">I couldn't figure it out this time.</p>
+                <h2 className="text-4xl font-bold text-foreground mb-2">
+                  You Stumped Me!
+                </h2>
+                <p className="text-xl text-muted-foreground">
+                  I couldn't figure it out this time.
+                </p>
               </div>
               <p className="text-foreground/80">
                 But I learn from every game! Play again to help me get better.
@@ -180,9 +225,19 @@ export function GameOver({
 
           {(questionsAsked != null || remainingCharacters != null) && (
             <p className="text-sm text-muted-foreground">
-              {questionsAsked != null && <>Guessed in {questionsAsked} question{questionsAsked === 1 ? '' : 's'}</>}
-              {questionsAsked != null && remainingCharacters != null && ' · '}
-              {remainingCharacters != null && <>{remainingCharacters} character{remainingCharacters === 1 ? '' : 's'} remaining</>}
+              {questionsAsked != null && (
+                <>
+                  Guessed in {questionsAsked} question
+                  {questionsAsked === 1 ? "" : "s"}
+                </>
+              )}
+              {questionsAsked != null && remainingCharacters != null && " · "}
+              {remainingCharacters != null && (
+                <>
+                  {remainingCharacters} character
+                  {remainingCharacters === 1 ? "" : "s"} remaining
+                </>
+              )}
             </p>
           )}
 
@@ -225,13 +280,25 @@ export function GameOver({
           {(onShare || onCopyLink) && (
             <div className="flex gap-3 justify-center">
               {onShare && (
-                <Button onClick={onShare} variant="outline" size="sm" className="gap-2" aria-label="Share result">
+                <Button
+                  onClick={onShare}
+                  variant="outline"
+                  size="sm"
+                  className="gap-2"
+                  aria-label="Share result"
+                >
                   <ShareNetwork size={18} />
                   Share Result
                 </Button>
               )}
               {onCopyLink && (
-                <Button onClick={onCopyLink} variant="outline" size="sm" className="gap-2" aria-label="Copy share link">
+                <Button
+                  onClick={onCopyLink}
+                  variant="outline"
+                  size="sm"
+                  className="gap-2"
+                  aria-label="Copy share link"
+                >
                   <LinkIcon size={18} />
                   Copy Link
                 </Button>
@@ -243,19 +310,37 @@ export function GameOver({
           {(onViewStats || onViewHistory || onNewGame) && (
             <div className="flex gap-3 justify-center">
               {onViewStats && (
-                <Button onClick={onViewStats} variant="ghost" size="sm" className="gap-2" aria-label="View stats">
+                <Button
+                  onClick={onViewStats}
+                  variant="ghost"
+                  size="sm"
+                  className="gap-2"
+                  aria-label="View stats"
+                >
                   <ChartBar size={18} />
                   Stats
                 </Button>
               )}
               {onViewHistory && (
-                <Button onClick={onViewHistory} variant="ghost" size="sm" className="gap-2" aria-label="View game history">
+                <Button
+                  onClick={onViewHistory}
+                  variant="ghost"
+                  size="sm"
+                  className="gap-2"
+                  aria-label="View game history"
+                >
                   <ClockCounterClockwise size={18} />
                   History
                 </Button>
               )}
               {onNewGame && (
-                <Button onClick={onNewGame} variant="ghost" size="sm" className="gap-2" aria-label="Start new game from welcome screen">
+                <Button
+                  onClick={onNewGame}
+                  variant="ghost"
+                  size="sm"
+                  className="gap-2"
+                  aria-label="Start new game from welcome screen"
+                >
                   <House size={18} />
                   New Game
                 </Button>
@@ -265,5 +350,5 @@ export function GameOver({
         </div>
       </Card>
     </motion.div>
-  )
+  );
 }
