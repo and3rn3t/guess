@@ -16,6 +16,7 @@ import {
   shouldMakeGuess,
   getBestGuess,
   calculateProbabilities,
+  detectContradictions,
 } from '@/lib/gameEngine'
 import type { Character, Question, Answer, AnswerValue, ReasoningExplanation } from '@/lib/types'
 
@@ -82,6 +83,14 @@ function App() {
       const allQuestions = questions || DEFAULT_QUESTIONS
       const filtered = filterPossibleCharacters(allCharacters, answers)
       setPossibleCharacters(filtered)
+
+      const { hasContradiction } = detectContradictions(allCharacters, answers)
+      if (hasContradiction) {
+        toast.warning('Your answers seem contradictory — no characters match! Undoing last answer.')
+        setAnswers((prev) => prev.slice(0, -1))
+        setIsThinking(false)
+        return
+      }
 
       if (shouldMakeGuess(filtered, answers, answers.length)) {
         const guess = getBestGuess(filtered, answers)

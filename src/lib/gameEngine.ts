@@ -67,8 +67,21 @@ export function selectBestQuestion(
 
   const probs = calculateProbabilities(characters, answers)
 
+  // Detect if top-2 candidates dominate — if so, boost differentiating questions
+  const sortedProbs = Array.from(probs.entries()).sort((a, b) => b[1] - a[1])
+  const top1 = sortedProbs[0]
+  const top2 = sortedProbs.length > 1 ? sortedProbs[1] : null
+  const top2Dominate = top2 !== null && top1[1] + top2[1] > 0.6
+
+  let top1Char: Character | undefined
+  let top2Char: Character | undefined
+  if (top2Dominate) {
+    top1Char = characters.find((c) => c.id === top1[0])
+    top2Char = characters.find((c) => c.id === top2[0])
+  }
+
   let bestQuestion: Question | null = null
-  let bestInfoGain = -1
+  let bestScore = -1
 
   const currentProbs = characters.map((c) => probs.get(c.id) || 0)
   const currentEntropy = entropy(currentProbs)
@@ -122,10 +135,19 @@ export function selectBestQuestion(
       expectedEntropy += noTotal * entropy(noGroupProbs)
     }
 
-    const infoGain = currentEntropy - expectedEntropy
+    let infoGain = currentEntropy - expectedEntropy
 
-    if (infoGain > bestInfoGain) {
-      bestInfoGain = infoGain
+    // Boost questions that differentiate the top-2 candidates
+    if (top2Dominate && top1Char && top2Char) {
+      const attr1 = top1Char.attributes[question.attribute]
+      const attr2 = top2Char.attributes[question.attribute]
+      if (attr1 !== null && attr2 !== null && attr1 !== attr2) {
+        infoGain *= 1.5
+      }
+    }
+
+    if (infoGain > bestScore) {
+      bestScore = infoGain
       bestQuestion = question
     }
   })
@@ -218,4 +240,19 @@ export function getBestGuess(characters: Character[], answers: Answer[]): Charac
 
   const bestId = sorted[0][0]
   return characters.find((c) => c.id === bestId) || characters[0]
+}
+
+export function detectContradictions(
+  allCharacters: Character[],
+  answers: Answer[]
+): { hasContradiction: boolean; remainingCount: number } {
+  if (answers.length === 0) return { hasContradiction: false, remainingCount: allCharacters.length }
+
+  const probabilities = calculateProbabilities(allCharacters, answers)
+  const remaining = Array.from(probabilities.values()).filter((p) => p > 0).length
+
+  return {
+    hasContradiction: remaining === 0,
+    remainingCount: remaining,
+  }
 }
