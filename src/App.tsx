@@ -1,4 +1,6 @@
 import { GameOver, GuessReveal } from "@/components/GuessReveal";
+import { PossibilitySpaceChart } from "@/components/PossibilitySpaceChart";
+import { ProbabilityLeaderboard } from "@/components/ProbabilityLeaderboard";
 import { QuestionCard, ThinkingCard } from "@/components/QuestionCard";
 import { ReasoningPanel } from "@/components/ReasoningPanel";
 import {
@@ -1314,10 +1316,19 @@ function App() {
                     </AnimatePresence>
                   </div>
 
-                  <div className="lg:sticky lg:top-8 lg:self-start">
+                  <div className="lg:sticky lg:top-8 lg:self-start space-y-4">
                     <ReasoningPanel
                       reasoning={reasoning}
                       isThinking={isThinking}
+                    />
+                    <ProbabilityLeaderboard
+                      characters={activeCharacters}
+                      answers={answers}
+                    />
+                    <PossibilitySpaceChart
+                      totalCharacters={activeCharacters.length}
+                      characters={activeCharacters}
+                      answers={answers}
                     />
                   </div>
                 </div>
