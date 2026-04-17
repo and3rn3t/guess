@@ -29,8 +29,8 @@ export function calculateProbabilities(
         } else {
           score *= 0.5
         }
-      } else if (answer.value === 'maybe') {
-        // maybe answers don't affect score
+      } else {
+        // maybe and unknown answers don't affect score
       }
     })
 
@@ -238,7 +238,10 @@ export function getBestGuess(characters: Character[], answers: Answer[]): Charac
   if (characters.length === 0) return null
 
   const probabilities = calculateProbabilities(characters, answers)
-  const sorted = Array.from(probabilities.entries()).sort((a, b) => b[1] - a[1])
+  const sorted = Array.from(probabilities.entries()).sort((a, b) => {
+    if (b[1] !== a[1]) return b[1] - a[1]
+    return a[0].localeCompare(b[0])
+  })
 
   const bestId = sorted[0][0]
   return characters.find((c) => c.id === bestId) || characters[0]

@@ -57,6 +57,16 @@ describe('encodeChallenge / decodeChallenge', () => {
     const decoded = decodeChallenge(encoded)
     expect(decoded!.won).toBe(false)
   })
+
+  it('preserves attribute names through encode/decode', () => {
+    const encoded = encodeChallenge(samplePayload)
+    const decoded = decodeChallenge(encoded)
+
+    expect(decoded).not.toBeNull()
+    expect(decoded!.steps[0].attribute).toBe('isHuman')
+    expect(decoded!.steps[1].attribute).toBe('isVideoGame')
+    expect(decoded!.steps[4].attribute).toBe('isVillain')
+  })
 })
 
 describe('generateShareText', () => {

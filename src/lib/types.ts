@@ -4,7 +4,8 @@ export type CharacterCategory =
   | "anime"
   | "comics"
   | "books"
-  | "cartoons";
+  | "cartoons"
+  | "tv-shows";
 
 export type Difficulty = "easy" | "medium" | "hard";
 
@@ -27,6 +28,7 @@ export const CATEGORY_LABELS: Record<CharacterCategory, string> = {
   comics: "Comics",
   books: "Books",
   cartoons: "Cartoons",
+  "tv-shows": "TV Shows",
 };
 
 export interface Character {
@@ -34,6 +36,9 @@ export interface Character {
   name: string;
   category: CharacterCategory;
   attributes: Record<string, boolean | null>;
+  isCustom?: boolean;
+  createdBy?: string;
+  createdAt?: number;
 }
 
 export interface Question {
@@ -78,6 +83,7 @@ export interface GameHistoryEntry {
 }
 
 export interface GameHistoryStep {
+  questionId?: string
   questionText: string
   attribute: string
   answer: AnswerValue

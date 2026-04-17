@@ -4,8 +4,176 @@ var __name = (target, value) => __defProp(target, "name", { value, configurable:
 // .wrangler/tmp/pages-rQWrha/functionsWorker-0.9079927690425956.mjs
 var __defProp2 = Object.defineProperty;
 var __name2 = /* @__PURE__ */ __name((target, value) => __defProp2(target, "name", { value, configurable: true }), "__name");
-var MAX_PROMPT_LENGTH = 5e4;
+function sanitizeString(input) {
+  return input.replace(/<[^>]*>/g, "").trim();
+}
+__name(sanitizeString, "sanitizeString");
+__name2(sanitizeString, "sanitizeString");
+function validateString(value, fieldName, minLength = 1, maxLength = 500) {
+  if (!value || typeof value !== "string") {
+    throw new ValidationError(`Missing or invalid "${fieldName}"`);
+  }
+  const sanitized = sanitizeString(value);
+  if (sanitized.length < minLength) {
+    throw new ValidationError(`"${fieldName}" must be at least ${minLength} characters`);
+  }
+  if (sanitized.length > maxLength) {
+    throw new ValidationError(`"${fieldName}" must be at most ${maxLength} characters`);
+  }
+  return sanitized;
+}
+__name(validateString, "validateString");
+__name2(validateString, "validateString");
+var ValidationError = class extends Error {
+  static {
+    __name(this, "ValidationError");
+  }
+  static {
+    __name2(this, "ValidationError");
+  }
+  constructor(message) {
+    super(message);
+    this.name = "ValidationError";
+  }
+};
+async function checkRateLimit(kv, userId, action, maxPerHour) {
+  const hour = Math.floor(Date.now() / 36e5);
+  const key = `ratelimit:${action}:${userId}:${hour}`;
+  const current = parseInt(await kv.get(key) || "0", 10);
+  if (current >= maxPerHour) {
+    return { allowed: false, remaining: 0 };
+  }
+  await kv.put(key, String(current + 1), { expirationTtl: 7200 });
+  return { allowed: true, remaining: maxPerHour - current - 1 };
+}
+__name(checkRateLimit, "checkRateLimit");
+__name2(checkRateLimit, "checkRateLimit");
+function getUserId(request) {
+  return request.headers.get("X-User-Id") || request.headers.get("CF-Connecting-IP") || "anonymous";
+}
+__name(getUserId, "getUserId");
+__name2(getUserId, "getUserId");
+async function parseJsonBody(request) {
+  try {
+    return await request.json();
+  } catch {
+    return null;
+  }
+}
+__name(parseJsonBody, "parseJsonBody");
+__name2(parseJsonBody, "parseJsonBody");
+function jsonResponse(data, status = 200) {
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: { "Content-Type": "application/json" }
+  });
+}
+__name(jsonResponse, "jsonResponse");
+__name2(jsonResponse, "jsonResponse");
+function errorResponse(message, status) {
+  return new Response(JSON.stringify({ error: message }), {
+    status,
+    headers: { "Content-Type": "application/json" }
+  });
+}
+__name(errorResponse, "errorResponse");
+__name2(errorResponse, "errorResponse");
+async function kvGetArray(kv, key) {
+  const raw = await kv.get(key);
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+__name(kvGetArray, "kvGetArray");
+__name2(kvGetArray, "kvGetArray");
+async function kvPut(kv, key, value) {
+  await kv.put(key, JSON.stringify(value));
+}
+__name(kvPut, "kvPut");
+__name2(kvPut, "kvPut");
+var VALID_CATEGORIES = /* @__PURE__ */ new Set([
+  "video-games",
+  "movies",
+  "anime",
+  "comics",
+  "books",
+  "cartoons"
+]);
+function isValidCategory(value) {
+  return typeof value === "string" && VALID_CATEGORIES.has(value);
+}
+__name(isValidCategory, "isValidCategory");
+__name2(isValidCategory, "isValidCategory");
+var KV_KEY = "global:characters";
+var MAX_PER_HOUR = 5;
+var onRequestGet = /* @__PURE__ */ __name2(async (context) => {
+  const kv = context.env.GUESS_KV;
+  if (!kv) {
+    return errorResponse("KV not configured", 503);
+  }
+  const characters = await kvGetArray(kv, KV_KEY);
+  return jsonResponse(characters);
+}, "onRequestGet");
 var onRequestPost = /* @__PURE__ */ __name2(async (context) => {
+  const kv = context.env.GUESS_KV;
+  if (!kv) {
+    return errorResponse("KV not configured", 503);
+  }
+  const body = await parseJsonBody(context.request);
+  if (!body) {
+    return errorResponse("Invalid JSON body", 400);
+  }
+  try {
+    const name = validateString(body.name, "name", 2, 50);
+    if (!body.category || !isValidCategory(body.category)) {
+      return errorResponse("Invalid category", 400);
+    }
+    const category = body.category;
+    const attributes = body.attributes;
+    if (!attributes || typeof attributes !== "object") {
+      return errorResponse('Missing or invalid "attributes"', 400);
+    }
+    const nonNullCount = Object.values(attributes).filter((v) => v !== null).length;
+    if (nonNullCount < 5) {
+      return errorResponse("Character must have at least 5 non-null attributes", 400);
+    }
+    const userId = getUserId(context.request);
+    const { allowed } = await checkRateLimit(kv, userId, "characters", MAX_PER_HOUR);
+    if (!allowed) {
+      return errorResponse("Rate limit exceeded. Try again later.", 429);
+    }
+    const existing = await kvGetArray(kv, KV_KEY);
+    const duplicate = existing.find(
+      (c) => c.name.toLowerCase() === name.toLowerCase()
+    );
+    if (duplicate) {
+      return errorResponse(`Character "${name}" already exists`, 409);
+    }
+    const character = {
+      id: `char-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      name,
+      category,
+      attributes,
+      createdBy: userId,
+      createdAt: Date.now()
+    };
+    existing.push(character);
+    await kvPut(kv, KV_KEY, existing);
+    return jsonResponse(character, 201);
+  } catch (err) {
+    if (err instanceof ValidationError) {
+      return errorResponse(err.message, 400);
+    }
+    console.error("Characters API error:", err);
+    return errorResponse("Internal server error", 500);
+  }
+}, "onRequestPost");
+var MAX_PROMPT_LENGTH = 5e4;
+var onRequestPost2 = /* @__PURE__ */ __name2(async (context) => {
   const apiKey = context.env.OPENAI_API_KEY;
   if (!apiKey) {
     return new Response("OPENAI_API_KEY not configured", { status: 500 });
@@ -66,11 +234,25 @@ var onRequestPost = /* @__PURE__ */ __name2(async (context) => {
 }, "onRequestPost");
 var routes = [
   {
-    routePath: "/api/llm",
+    routePath: "/api/characters",
+    mountPath: "/api",
+    method: "GET",
+    middlewares: [],
+    modules: [onRequestGet]
+  },
+  {
+    routePath: "/api/characters",
     mountPath: "/api",
     method: "POST",
     middlewares: [],
     modules: [onRequestPost]
+  },
+  {
+    routePath: "/api/llm",
+    mountPath: "/api",
+    method: "POST",
+    middlewares: [],
+    modules: [onRequestPost2]
   }
 ];
 function lexer(str) {
@@ -738,7 +920,7 @@ var jsonError2 = /* @__PURE__ */ __name(async (request, env, _ctx, middlewareCtx
 }, "jsonError");
 var middleware_miniflare3_json_error_default2 = jsonError2;
 
-// .wrangler/tmp/bundle-ttieHX/middleware-insertion-facade.js
+// .wrangler/tmp/bundle-dwkHa0/middleware-insertion-facade.js
 var __INTERNAL_WRANGLER_MIDDLEWARE__2 = [
   middleware_ensure_req_body_drained_default2,
   middleware_miniflare3_json_error_default2
@@ -770,7 +952,7 @@ function __facade_invoke__2(request, env, ctx, dispatch, finalMiddleware) {
 }
 __name(__facade_invoke__2, "__facade_invoke__");
 
-// .wrangler/tmp/bundle-ttieHX/middleware-loader.entry.ts
+// .wrangler/tmp/bundle-dwkHa0/middleware-loader.entry.ts
 var __Facade_ScheduledController__2 = class ___Facade_ScheduledController__2 {
   constructor(scheduledTime, cron, noRetry) {
     this.scheduledTime = scheduledTime;

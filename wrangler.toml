@@ -8,7 +8,9 @@ pages_build_output_dir = "./dist"
 # Build: pnpm build (outputs to dist/)
 # Deploy: pnpm run deploy
 
-# Uncomment below to add Cloudflare bindings when migrating from Spark KV:
-# [[kv_namespaces]]
-# binding = "GUESS_KV"
-# id = "<your-kv-namespace-id>"
+# Cloudflare KV for global character/question pool, stats, and caching.
+# Create the namespace: wrangler kv namespace create GUESS_KV
+# Then paste the generated id below.
+[[kv_namespaces]]
+binding = "GUESS_KV"
+id = "placeholder-create-with-wrangler-kv-namespace-create"

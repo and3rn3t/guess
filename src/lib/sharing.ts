@@ -20,7 +20,10 @@ export function encodeChallenge(payload: SharePayload): string {
     w: payload.won ? 1 : 0,
     d: payload.difficulty[0], // e/m/h
     q: payload.questionCount,
-    s: payload.steps.map((s) => `${s.answer[0]}`).join(''), // y/n/m/u sequence
+    s: payload.steps.map((s) => ({
+      a: s.attribute,
+      v: s.answer[0],
+    })),
   }
   const json = JSON.stringify(compact)
   return btoa(json).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
@@ -47,10 +50,10 @@ export function decodeChallenge(hash: string): SharePayload | null {
       m: 'maybe',
       u: 'unknown',
     }
-    const steps: GameHistoryStep[] = (compact.s as string || '').split('').map((ch: string, _i: number) => ({
+    const steps: GameHistoryStep[] = (Array.isArray(compact.s) ? compact.s : []).map((step: { a?: string; v?: string }) => ({
       questionText: '',
-      attribute: '',
-      answer: answerMap[ch] || 'unknown',
+      attribute: step.a || '',
+      answer: answerMap[step.v || ''] || 'unknown',
     }))
 
     return {

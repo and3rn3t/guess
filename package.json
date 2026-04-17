@@ -15,7 +15,8 @@
         "cf:login": "wrangler login",
         "cf:dev": "pnpm build && wrangler pages dev dist",
         "test": "vitest run",
-        "test:watch": "vitest"
+        "test:watch": "vitest",
+        "validate": "pnpm lint && pnpm test && tsc -b --noCheck && vite build"
     },
     "dependencies": {
         "@hookform/resolvers": "^4.1.3",

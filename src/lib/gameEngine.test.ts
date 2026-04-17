@@ -82,6 +82,12 @@ describe('calculateProbabilities', () => {
     probs.forEach((p) => expect(p).toBeCloseTo(0.25))
   })
 
+  it('treats "unknown" answers as neutral — same as "maybe"', () => {
+    const answers: Answer[] = [{ questionId: 'isHuman', value: 'unknown' }]
+    const probs = calculateProbabilities(CHARS, answers)
+    probs.forEach((p) => expect(p).toBeCloseTo(0.25))
+  })
+
   it('gives partial credit for null attributes', () => {
     // "Is this character male?" — pikachu and kirby have null for isMale
     const answers: Answer[] = [{ questionId: 'isMale', value: 'yes' }]
@@ -212,6 +218,14 @@ describe('getBestGuess', () => {
   it('returns a character even with no answers', () => {
     const guess = getBestGuess(CHARS, [])
     expect(guess).not.toBeNull()
+  })
+
+  it('breaks ties deterministically by character ID', () => {
+    // With no answers, all characters have equal probability
+    // Should pick alphabetically first by ID: kirby
+    const guess = getBestGuess(CHARS, [])
+    expect(guess).not.toBeNull()
+    expect(guess!.id).toBe('kirby')
   })
 })
 

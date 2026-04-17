@@ -1,1 +1,7 @@
-{}
+{
+  "name": "mystic-guesser",
+  "style": "new-york",
+  "cssVars": {
+    "theme": "purple"
+  }
+}
