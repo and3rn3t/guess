@@ -21,6 +21,8 @@ export type GamePhase =
   | 'bulkHabitat'
   | 'history'
   | 'challenge'
+  | 'costDashboard'
+  | 'dataHygiene'
 
 // ========== STATE ==========
 export interface GameState {

@@ -130,6 +130,16 @@ const MultiCategoryEnhancer = lazy(() =>
     default: m.MultiCategoryEnhancer,
   })),
 );
+const CostDashboard = lazy(() =>
+  import('@/components/CostDashboard').then((m) => ({
+    default: m.CostDashboard,
+  })),
+);
+const DataHygiene = lazy(() =>
+  import('@/components/DataHygiene').then((m) => ({
+    default: m.DataHygiene,
+  })),
+);
 const GameHistory = lazy(() =>
   import("@/components/GameHistory").then((m) => ({ default: m.GameHistory })),
 );
@@ -444,6 +454,12 @@ function App() {
     setCharacters(() => updatedCharacters);
   };
 
+  const handleUpdateQuestion = (updatedQuestion: Question) => {
+    setQuestions((prev) =>
+      (prev || []).map((q) => (q.id === updatedQuestion.id ? updatedQuestion : q)),
+    );
+  };
+
   if (gamePhase === "bulkHabitat") {
     return (
       <div className="min-h-screen bg-background">
@@ -526,6 +542,40 @@ function App() {
             onBack={() => navigate('welcome')}
             />
           </Suspense>
+        </div>
+      </div>
+    );
+  }
+
+  if (gamePhase === 'costDashboard') {
+    return (
+      <div className="min-h-screen bg-background">
+        <div className="container mx-auto px-4 py-8">
+          <div className="max-w-4xl mx-auto">
+            <Suspense fallback={<Skeleton className="h-96 w-full" />}>
+              <CostDashboard onBack={() => navigate('welcome')} />
+            </Suspense>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (gamePhase === 'dataHygiene') {
+    return (
+      <div className="min-h-screen bg-background">
+        <div className="container mx-auto px-4 py-8">
+          <div className="max-w-4xl mx-auto">
+            <Suspense fallback={<Skeleton className="h-96 w-full" />}>
+              <DataHygiene
+                characters={characters || DEFAULT_CHARACTERS}
+                questions={questions || DEFAULT_QUESTIONS}
+                onUpdateCharacter={handleUpdateCharacter}
+                onUpdateQuestion={handleUpdateQuestion}
+                onBack={() => navigate('welcome')}
+              />
+            </Suspense>
+          </div>
         </div>
       </div>
     );
@@ -1049,6 +1099,24 @@ function App() {
                       >
                         <BrainIcon size={18} weight="fill" />
                         AI Enrichment
+                      </Button>
+                      <Button
+                        onClick={() => navigate('costDashboard')}
+                        variant="outline"
+                        size="sm"
+                        className="flex items-center gap-2"
+                      >
+                        <ChartBarIcon size={18} />
+                        Cost Dashboard
+                      </Button>
+                      <Button
+                        onClick={() => navigate('dataHygiene')}
+                        variant="outline"
+                        size="sm"
+                        className="flex items-center gap-2"
+                      >
+                        <WrenchIcon size={18} />
+                        Data Hygiene
                       </Button>
                     </div>
                   </div>
