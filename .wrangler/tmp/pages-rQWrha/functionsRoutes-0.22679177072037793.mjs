@@ -3,6 +3,7 @@ import { onRequestPost as __api_characters_ts_onRequestPost } from "/Users/ander
 import { onRequestGet as __api_corrections_ts_onRequestGet } from "/Users/andernet/Documents/GitHub/guess/functions/api/corrections.ts"
 import { onRequestPost as __api_corrections_ts_onRequestPost } from "/Users/andernet/Documents/GitHub/guess/functions/api/corrections.ts"
 import { onRequestPost as __api_llm_ts_onRequestPost } from "/Users/andernet/Documents/GitHub/guess/functions/api/llm.ts"
+import { onRequestPost as __api_llm_stream_ts_onRequestPost } from "/Users/andernet/Documents/GitHub/guess/functions/api/llm-stream.ts"
 import { onRequestGet as __api_questions_ts_onRequestGet } from "/Users/andernet/Documents/GitHub/guess/functions/api/questions.ts"
 import { onRequestPost as __api_questions_ts_onRequestPost } from "/Users/andernet/Documents/GitHub/guess/functions/api/questions.ts"
 import { onRequestGet as __api_stats_ts_onRequestGet } from "/Users/andernet/Documents/GitHub/guess/functions/api/stats.ts"
@@ -45,6 +46,13 @@ export const routes = [
       method: "POST",
       middlewares: [],
       modules: [__api_llm_ts_onRequestPost],
+    },
+  {
+      routePath: "/api/llm-stream",
+      mountPath: "/api",
+      method: "POST",
+      middlewares: [],
+      modules: [__api_llm_stream_ts_onRequestPost],
     },
   {
       routePath: "/api/questions",
