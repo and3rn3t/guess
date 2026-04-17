@@ -1,7 +1,39 @@
+export type CharacterCategory =
+  | "video-games"
+  | "movies"
+  | "anime"
+  | "comics"
+  | "books"
+  | "cartoons";
+
+export type Difficulty = "easy" | "medium" | "hard";
+
+export interface DifficultyConfig {
+  maxQuestions: number;
+  label: string;
+  description: string;
+}
+
+export const DIFFICULTIES: Record<Difficulty, DifficultyConfig> = {
+  easy: { maxQuestions: 20, label: "Easy", description: "20 questions, relaxed" },
+  medium: { maxQuestions: 15, label: "Medium", description: "15 questions, balanced" },
+  hard: { maxQuestions: 10, label: "Hard", description: "10 questions, challenging" },
+};
+
+export const CATEGORY_LABELS: Record<CharacterCategory, string> = {
+  "video-games": "Video Games",
+  movies: "Movies",
+  anime: "Anime",
+  comics: "Comics",
+  books: "Books",
+  cartoons: "Cartoons",
+};
+
 export interface Character {
-  id: string
-  name: string
-  attributes: Record<string, boolean | null>
+  id: string;
+  name: string;
+  category: CharacterCategory;
+  attributes: Record<string, boolean | null>;
 }
 
 export interface Question {

@@ -17,6 +17,7 @@ type DemoStep = 'intro' | 'character' | 'generator' | 'success'
 const TEST_CHARACTER: Character = {
   id: 'demo-spiderman',
   name: 'Spider-Man',
+  category: 'comics',
   attributes: {
     isReal: false,
     isAnimal: false,

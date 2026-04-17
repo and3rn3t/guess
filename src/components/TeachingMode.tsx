@@ -65,6 +65,7 @@ export function TeachingMode({ answers, existingCharacters, onAddCharacter, onSk
     const newCharacter: Character = {
       id: `char-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       name: characterName.trim(),
+      category: "movies",
       attributes,
     }
 

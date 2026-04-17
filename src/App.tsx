@@ -18,7 +18,8 @@ import {
   calculateProbabilities,
   detectContradictions,
 } from '@/lib/gameEngine'
-import type { Character, Question, Answer, AnswerValue, ReasoningExplanation } from '@/lib/types'
+import type { Character, Question, Answer, AnswerValue, ReasoningExplanation, CharacterCategory, Difficulty } from '@/lib/types'
+import { DIFFICULTIES, CATEGORY_LABELS } from '@/lib/types'
 
 const TeachingMode = lazy(() => import('@/components/TeachingMode').then(m => ({ default: m.TeachingMode })))
 const QuestionManager = lazy(() => import('@/components/QuestionManager').then(m => ({ default: m.QuestionManager })))
@@ -56,6 +57,8 @@ function App() {
   const [askedQuestionIds, setAskedQuestionIds] = useState<string[]>([])
   const [selectedCharacterForRec, setSelectedCharacterForRec] = useState<Character | null>(null)
   const [showDevTools, setShowDevTools] = useState(false)
+  const [difficulty, setDifficulty] = useState<Difficulty>('medium')
+  const [selectedCategories, setSelectedCategories] = useState<Set<CharacterCategory>>(new Set())
 
   useEffect(() => {
     if (gamePhase === 'playing' && currentQuestion === null && possibleCharacters.length > 0) {
@@ -64,10 +67,31 @@ function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [gamePhase, currentQuestion, possibleCharacters])
 
+  const maxQuestions = DIFFICULTIES[difficulty].maxQuestions
+
+  const activeCharacters = (() => {
+    const all = characters || DEFAULT_CHARACTERS
+    if (selectedCategories.size === 0) return all
+    return all.filter((c) => selectedCategories.has(c.category))
+  })()
+
+  const toggleCategory = (cat: CharacterCategory) => {
+    setSelectedCategories((prev) => {
+      const next = new Set(prev)
+      if (next.has(cat)) next.delete(cat)
+      else next.add(cat)
+      return next
+    })
+  }
+
   const startGame = () => {
+    if (activeCharacters.length < 2) {
+      toast.error('Select categories with at least 2 characters')
+      return
+    }
     setGamePhase('playing')
     setAnswers([])
-    setPossibleCharacters(characters || DEFAULT_CHARACTERS)
+    setPossibleCharacters(activeCharacters)
     setCurrentQuestion(null)
     setReasoning(null)
     setFinalGuess(null)
@@ -79,12 +103,11 @@ function App() {
     setIsThinking(true)
 
     setTimeout(() => {
-      const allCharacters = characters || DEFAULT_CHARACTERS
       const allQuestions = questions || DEFAULT_QUESTIONS
-      const filtered = filterPossibleCharacters(allCharacters, answers)
+      const filtered = filterPossibleCharacters(possibleCharacters, answers)
       setPossibleCharacters(filtered)
 
-      const { hasContradiction } = detectContradictions(allCharacters, answers)
+      const { hasContradiction } = detectContradictions(possibleCharacters, answers)
       if (hasContradiction) {
         toast.warning('Your answers seem contradictory — no characters match! Undoing last answer.')
         setAnswers((prev) => prev.slice(0, -1))
@@ -92,7 +115,7 @@ function App() {
         return
       }
 
-      if (shouldMakeGuess(filtered, answers, answers.length)) {
+      if (shouldMakeGuess(filtered, answers, answers.length, maxQuestions)) {
         const guess = getBestGuess(filtered, answers)
         setFinalGuess(guess)
         setGamePhase('guessing')
@@ -512,6 +535,55 @@ function App() {
                   </div>
                 </div>
 
+                <div className="bg-card/50 backdrop-blur-sm border border-border/50 rounded-xl p-6 space-y-4">
+                  <h3 className="text-lg font-semibold text-foreground">Difficulty</h3>
+                  <div className="flex flex-wrap gap-3">
+                    {(Object.entries(DIFFICULTIES) as [Difficulty, typeof DIFFICULTIES[Difficulty]][]).map(([key, cfg]) => (
+                      <button
+                        key={key}
+                        onClick={() => setDifficulty(key)}
+                        className={`px-4 py-2 rounded-lg border text-sm font-medium transition-colors ${
+                          difficulty === key
+                            ? 'bg-accent text-accent-foreground border-accent'
+                            : 'bg-card border-border hover:bg-accent/10'
+                        }`}
+                      >
+                        {cfg.label}
+                        <span className="block text-xs opacity-70">{cfg.description}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="bg-card/50 backdrop-blur-sm border border-border/50 rounded-xl p-6 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-lg font-semibold text-foreground">Categories</h3>
+                    <span className="text-sm text-muted-foreground">
+                      {selectedCategories.size === 0 ? 'All' : selectedCategories.size} selected · {activeCharacters.length} characters
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap gap-3">
+                    {(Object.entries(CATEGORY_LABELS) as [CharacterCategory, string][]).map(([key, label]) => {
+                      const count = (characters || DEFAULT_CHARACTERS).filter((c) => c.category === key).length
+                      const isSelected = selectedCategories.has(key)
+                      return (
+                        <button
+                          key={key}
+                          onClick={() => toggleCategory(key)}
+                          className={`px-4 py-2 rounded-lg border text-sm font-medium transition-colors ${
+                            isSelected
+                              ? 'bg-accent text-accent-foreground border-accent'
+                              : 'bg-card border-border hover:bg-accent/10'
+                          }`}
+                        >
+                          {label}
+                          <span className="block text-xs opacity-70">{count} characters</span>
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+
                 <div className="text-center space-y-4">
                   <Button
                     onClick={startGame}
@@ -522,7 +594,7 @@ function App() {
                     Start Game
                   </Button>
                   <p className="text-sm text-muted-foreground">
-                    I know {(characters || DEFAULT_CHARACTERS).length} characters — can you stump me?
+                    {activeCharacters.length} characters · {maxQuestions} questions · {DIFFICULTIES[difficulty].label} mode
                   </p>
                 </div>
 
@@ -575,13 +647,13 @@ function App() {
                       <QuestionCard
                         question={currentQuestion}
                         questionNumber={answers.length + 1}
-                        totalQuestions={15}
+                        totalQuestions={maxQuestions}
                         onAnswer={handleAnswer}
                         isProcessing={isThinking}
                       />
                     )}
                   </AnimatePresence>
-                  <Progress value={(answers.length / 15) * 100} className="h-2" />
+                  <Progress value={(answers.length / maxQuestions) * 100} className="h-2" />
                 </div>
 
                 <div className="lg:sticky lg:top-8 lg:self-start">

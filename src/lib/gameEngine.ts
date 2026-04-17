@@ -210,7 +210,8 @@ function generateImpactExplanation(yesCount: number, noCount: number, total: num
 export function shouldMakeGuess(
   characters: Character[],
   answers: Answer[],
-  questionCount: number
+  questionCount: number,
+  maxQuestions = 15
 ): boolean {
   if (characters.length <= 1) return true
 
@@ -218,16 +219,17 @@ export function shouldMakeGuess(
   const sorted = Array.from(probabilities.values()).sort((a, b) => b - a)
   const topProbability = sorted[0]
 
-  // Hard limit: stop after 15 questions
-  if (questionCount >= 15) return true
+  // Hard limit: stop after maxQuestions
+  if (questionCount >= maxQuestions) return true
 
   // High confidence: guess when top candidate is >80%
   if (topProbability > 0.8) return true
 
   // Adaptive: if the gap between #1 and #2 is large enough and we've asked enough, go for it
+  const halfwayPoint = Math.floor(maxQuestions / 2)
   const secondProbability = sorted.length > 1 ? sorted[1] : 0
   const gap = topProbability - secondProbability
-  if (questionCount >= 8 && gap > 0.3 && topProbability > 0.5) return true
+  if (questionCount >= halfwayPoint && gap > 0.3 && topProbability > 0.5) return true
 
   return false
 }

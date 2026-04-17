@@ -4,6 +4,7 @@ export const DEFAULT_CHARACTERS: Character[] = [
   {
     id: "mario",
     name: "Mario",
+    category: "video-games",
     attributes: {
       isReal: false,
       isAnimal: false,
@@ -63,6 +64,7 @@ export const DEFAULT_CHARACTERS: Character[] = [
   {
     id: "pikachu",
     name: "Pikachu",
+    category: "video-games",
     attributes: {
       isReal: false,
       isAnimal: true,
@@ -122,6 +124,7 @@ export const DEFAULT_CHARACTERS: Character[] = [
   {
     id: "darth-vader",
     name: "Darth Vader",
+    category: "movies",
     attributes: {
       isReal: false,
       isAnimal: false,
@@ -171,6 +174,7 @@ export const DEFAULT_CHARACTERS: Character[] = [
   {
     id: "harry-potter",
     name: "Harry Potter",
+    category: "books",
     attributes: {
       isReal: false,
       isAnimal: false,
@@ -220,6 +224,7 @@ export const DEFAULT_CHARACTERS: Character[] = [
   {
     id: "sherlock-holmes",
     name: "Sherlock Holmes",
+    category: "books",
     attributes: {
       isReal: false,
       isAnimal: false,
@@ -269,6 +274,7 @@ export const DEFAULT_CHARACTERS: Character[] = [
   {
     id: "superman",
     name: "Superman",
+    category: "comics",
     attributes: {
       isReal: false,
       isAnimal: false,
@@ -318,6 +324,7 @@ export const DEFAULT_CHARACTERS: Character[] = [
   {
     id: "gandalf",
     name: "Gandalf",
+    category: "books",
     attributes: {
       isReal: false,
       isAnimal: false,
@@ -367,6 +374,7 @@ export const DEFAULT_CHARACTERS: Character[] = [
   {
     id: "spongebob",
     name: "SpongeBob SquarePants",
+    category: "cartoons",
     attributes: {
       isReal: false,
       isAnimal: true,
@@ -416,6 +424,7 @@ export const DEFAULT_CHARACTERS: Character[] = [
   {
     id: "batman",
     name: "Batman",
+    category: "comics",
     attributes: {
       isReal: false,
       isAnimal: false,
@@ -465,6 +474,7 @@ export const DEFAULT_CHARACTERS: Character[] = [
   {
     id: "sonic",
     name: "Sonic the Hedgehog",
+    category: "video-games",
     attributes: {
       isReal: false,
       isAnimal: true,
@@ -514,6 +524,7 @@ export const DEFAULT_CHARACTERS: Character[] = [
   {
     id: "yoda",
     name: "Yoda",
+    category: "movies",
     attributes: {
       isReal: false,
       isAnimal: false,
@@ -563,6 +574,7 @@ export const DEFAULT_CHARACTERS: Character[] = [
   {
     id: "joker",
     name: "The Joker",
+    category: "comics",
     attributes: {
       isReal: false,
       isAnimal: false,
@@ -612,6 +624,7 @@ export const DEFAULT_CHARACTERS: Character[] = [
   {
     id: "smaug",
     name: "Smaug",
+    category: "books",
     attributes: {
       isReal: false,
       isAnimal: true,
@@ -661,6 +674,7 @@ export const DEFAULT_CHARACTERS: Character[] = [
   {
     id: "wall-e",
     name: "WALL-E",
+    category: "movies",
     attributes: {
       isReal: false,
       isAnimal: false,
@@ -710,6 +724,7 @@ export const DEFAULT_CHARACTERS: Character[] = [
   {
     id: "hermione",
     name: "Hermione Granger",
+    category: "books",
     attributes: {
       isReal: false,
       isAnimal: false,
@@ -759,6 +774,7 @@ export const DEFAULT_CHARACTERS: Character[] = [
   {
     id: "godzilla",
     name: "Godzilla",
+    category: "movies",
     attributes: {
       isReal: false,
       isAnimal: true,
@@ -808,6 +824,7 @@ export const DEFAULT_CHARACTERS: Character[] = [
   {
     id: "elsa",
     name: "Elsa",
+    category: "movies",
     attributes: {
       isReal: false,
       isAnimal: false,
@@ -857,6 +874,7 @@ export const DEFAULT_CHARACTERS: Character[] = [
   {
     id: "link",
     name: "Link",
+    category: "video-games",
     attributes: {
       isReal: false,
       isAnimal: false,
@@ -906,6 +924,7 @@ export const DEFAULT_CHARACTERS: Character[] = [
   {
     id: "totoro",
     name: "Totoro",
+    category: "anime",
     attributes: {
       isReal: false,
       isAnimal: true,
@@ -955,6 +974,7 @@ export const DEFAULT_CHARACTERS: Character[] = [
   {
     id: "r2d2",
     name: "R2-D2",
+    category: "movies",
     attributes: {
       isReal: false,
       isAnimal: false,
@@ -1004,6 +1024,7 @@ export const DEFAULT_CHARACTERS: Character[] = [
   {
     id: "voldemort",
     name: "Voldemort",
+    category: "books",
     attributes: {
       isReal: false,
       isAnimal: false,
@@ -1053,6 +1074,7 @@ export const DEFAULT_CHARACTERS: Character[] = [
   {
     id: "lara-croft",
     name: "Lara Croft",
+    category: "video-games",
     attributes: {
       isReal: false,
       isAnimal: false,
@@ -1102,6 +1124,7 @@ export const DEFAULT_CHARACTERS: Character[] = [
   {
     id: "groot",
     name: "Groot",
+    category: "comics",
     attributes: {
       isReal: false,
       isAnimal: false,
@@ -1151,6 +1174,7 @@ export const DEFAULT_CHARACTERS: Character[] = [
   {
     id: "maleficent",
     name: "Maleficent",
+    category: "movies",
     attributes: {
       isReal: false,
       isAnimal: false,
@@ -1200,6 +1224,7 @@ export const DEFAULT_CHARACTERS: Character[] = [
   {
     id: "kratos",
     name: "Kratos",
+    category: "video-games",
     attributes: {
       isReal: false,
       isAnimal: false,
@@ -1249,6 +1274,7 @@ export const DEFAULT_CHARACTERS: Character[] = [
   {
     id: "stitch",
     name: "Stitch",
+    category: "movies",
     attributes: {
       isReal: false,
       isAnimal: true,
@@ -1298,6 +1324,7 @@ export const DEFAULT_CHARACTERS: Character[] = [
   {
     id: "bowser",
     name: "Bowser",
+    category: "video-games",
     attributes: {
       isReal: false,
       isAnimal: true,
@@ -1347,6 +1374,7 @@ export const DEFAULT_CHARACTERS: Character[] = [
   {
     id: "iron-man",
     name: "Iron Man",
+    category: "comics",
     attributes: {
       isReal: false,
       isAnimal: false,
@@ -1396,6 +1424,7 @@ export const DEFAULT_CHARACTERS: Character[] = [
   {
     id: "shrek",
     name: "Shrek",
+    category: "movies",
     attributes: {
       isReal: false,
       isAnimal: false,
@@ -1445,6 +1474,7 @@ export const DEFAULT_CHARACTERS: Character[] = [
   {
     id: "baymax",
     name: "Baymax",
+    category: "movies",
     attributes: {
       isReal: false,
       isAnimal: false,
@@ -1494,6 +1524,7 @@ export const DEFAULT_CHARACTERS: Character[] = [
   {
     id: "thanos",
     name: "Thanos",
+    category: "comics",
     attributes: {
       isReal: false,
       isAnimal: false,
@@ -1553,6 +1584,7 @@ export const DEFAULT_CHARACTERS: Character[] = [
   {
     id: "spider-man",
     name: "Spider-Man",
+    category: "comics",
     attributes: {
       isReal: false,
       isAnimal: false,
@@ -1612,6 +1644,7 @@ export const DEFAULT_CHARACTERS: Character[] = [
   {
     id: "wolverine",
     name: "Wolverine",
+    category: "comics",
     attributes: {
       isReal: false,
       isAnimal: false,
@@ -1671,6 +1704,7 @@ export const DEFAULT_CHARACTERS: Character[] = [
   {
     id: "doctor-octopus",
     name: "Doctor Octopus",
+    category: "comics",
     attributes: {
       isReal: false,
       isAnimal: false,
@@ -1730,6 +1764,7 @@ export const DEFAULT_CHARACTERS: Character[] = [
   {
     id: "cyclops",
     name: "Cyclops",
+    category: "comics",
     attributes: {
       isReal: false,
       isAnimal: false,
@@ -1789,6 +1824,7 @@ export const DEFAULT_CHARACTERS: Character[] = [
   {
     id: "storm",
     name: "Storm",
+    category: "comics",
     attributes: {
       isReal: false,
       isAnimal: false,
@@ -1848,6 +1884,7 @@ export const DEFAULT_CHARACTERS: Character[] = [
   {
     id: "hawkman",
     name: "Hawkman",
+    category: "comics",
     attributes: {
       isReal: false,
       isAnimal: false,
@@ -1907,6 +1944,7 @@ export const DEFAULT_CHARACTERS: Character[] = [
   {
     id: "buzz-lightyear",
     name: "Buzz Lightyear",
+    category: "movies",
     attributes: {
       isReal: false,
       isAnimal: false,
@@ -1966,6 +2004,7 @@ export const DEFAULT_CHARACTERS: Character[] = [
   {
     id: "woody",
     name: "Woody",
+    category: "movies",
     attributes: {
       isReal: false,
       isAnimal: false,
@@ -2025,6 +2064,7 @@ export const DEFAULT_CHARACTERS: Character[] = [
   {
     id: "simba",
     name: "Simba",
+    category: "movies",
     attributes: {
       isReal: false,
       isAnimal: true,
@@ -2084,6 +2124,7 @@ export const DEFAULT_CHARACTERS: Character[] = [
   {
     id: "nemo",
     name: "Nemo",
+    category: "movies",
     attributes: {
       isReal: false,
       isAnimal: true,
@@ -2143,6 +2184,7 @@ export const DEFAULT_CHARACTERS: Character[] = [
   {
     id: "rapunzel",
     name: "Rapunzel",
+    category: "movies",
     attributes: {
       isReal: false,
       isAnimal: false,
@@ -2202,6 +2244,7 @@ export const DEFAULT_CHARACTERS: Character[] = [
   {
     id: "moana",
     name: "Moana",
+    category: "movies",
     attributes: {
       isReal: false,
       isAnimal: false,
@@ -2261,6 +2304,7 @@ export const DEFAULT_CHARACTERS: Character[] = [
   {
     id: "goku",
     name: "Goku",
+    category: "anime",
     attributes: {
       isReal: false,
       isAnimal: false,
@@ -2320,6 +2364,7 @@ export const DEFAULT_CHARACTERS: Character[] = [
   {
     id: "naruto",
     name: "Naruto",
+    category: "anime",
     attributes: {
       isReal: false,
       isAnimal: false,
@@ -2379,6 +2424,7 @@ export const DEFAULT_CHARACTERS: Character[] = [
   {
     id: "sailor-moon",
     name: "Sailor Moon",
+    category: "anime",
     attributes: {
       isReal: false,
       isAnimal: false,
@@ -2438,6 +2484,7 @@ export const DEFAULT_CHARACTERS: Character[] = [
   {
     id: "master-chief",
     name: "Master Chief",
+    category: "video-games",
     attributes: {
       isReal: false,
       isAnimal: false,
@@ -2497,6 +2544,7 @@ export const DEFAULT_CHARACTERS: Character[] = [
   {
     id: "pac-man",
     name: "Pac-Man",
+    category: "video-games",
     attributes: {
       isReal: false,
       isAnimal: false,
@@ -2556,6 +2604,7 @@ export const DEFAULT_CHARACTERS: Character[] = [
   {
     id: "princess-peach",
     name: "Princess Peach",
+    category: "video-games",
     attributes: {
       isReal: false,
       isAnimal: false,
@@ -2615,6 +2664,7 @@ export const DEFAULT_CHARACTERS: Character[] = [
   {
     id: "donkey-kong",
     name: "Donkey Kong",
+    category: "video-games",
     attributes: {
       isReal: false,
       isAnimal: true,
@@ -2674,6 +2724,7 @@ export const DEFAULT_CHARACTERS: Character[] = [
   {
     id: "mega-man",
     name: "Mega Man",
+    category: "video-games",
     attributes: {
       isReal: false,
       isAnimal: false,
@@ -2733,6 +2784,7 @@ export const DEFAULT_CHARACTERS: Character[] = [
   {
     id: "wonder-woman",
     name: "Wonder Woman",
+    category: "comics",
     attributes: {
       isReal: false,
       isAnimal: false,
@@ -2792,6 +2844,7 @@ export const DEFAULT_CHARACTERS: Character[] = [
   {
     id: "the-flash",
     name: "The Flash",
+    category: "comics",
     attributes: {
       isReal: false,
       isAnimal: false,
@@ -2851,6 +2904,7 @@ export const DEFAULT_CHARACTERS: Character[] = [
   {
     id: "hulk",
     name: "Hulk",
+    category: "comics",
     attributes: {
       isReal: false,
       isAnimal: false,
@@ -2910,6 +2964,7 @@ export const DEFAULT_CHARACTERS: Character[] = [
   {
     id: "captain-america",
     name: "Captain America",
+    category: "comics",
     attributes: {
       isReal: false,
       isAnimal: false,
@@ -2969,6 +3024,7 @@ export const DEFAULT_CHARACTERS: Character[] = [
   {
     id: "thor",
     name: "Thor",
+    category: "comics",
     attributes: {
       isReal: false,
       isAnimal: false,
@@ -3028,6 +3084,7 @@ export const DEFAULT_CHARACTERS: Character[] = [
   {
     id: "mickey-mouse",
     name: "Mickey Mouse",
+    category: "cartoons",
     attributes: {
       isReal: false,
       isAnimal: true,
@@ -3087,6 +3144,7 @@ export const DEFAULT_CHARACTERS: Character[] = [
   {
     id: "bugs-bunny",
     name: "Bugs Bunny",
+    category: "cartoons",
     attributes: {
       isReal: false,
       isAnimal: true,
@@ -3146,6 +3204,7 @@ export const DEFAULT_CHARACTERS: Character[] = [
   {
     id: "scooby-doo",
     name: "Scooby-Doo",
+    category: "cartoons",
     attributes: {
       isReal: false,
       isAnimal: true,
@@ -3205,6 +3264,7 @@ export const DEFAULT_CHARACTERS: Character[] = [
   {
     id: "katniss",
     name: "Katniss Everdeen",
+    category: "books",
     attributes: {
       isReal: false,
       isAnimal: false,
@@ -3264,6 +3324,7 @@ export const DEFAULT_CHARACTERS: Character[] = [
   {
     id: "mulan",
     name: "Mulan",
+    category: "movies",
     attributes: {
       isReal: false,
       isAnimal: false,
@@ -3323,6 +3384,7 @@ export const DEFAULT_CHARACTERS: Character[] = [
   {
     id: "scar",
     name: "Scar",
+    category: "movies",
     attributes: {
       isReal: false,
       isAnimal: true,
