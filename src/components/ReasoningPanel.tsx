@@ -29,7 +29,7 @@ export function ReasoningPanel({ reasoning, isThinking = false }: ReasoningPanel
   }
 
   const statsBar = (
-    <div className="grid grid-cols-2 gap-4">
+    <div className="grid grid-cols-2 gap-4" aria-live="polite">
       <div className="text-center p-3 rounded-lg bg-secondary/20 border border-secondary">
         <div className="text-2xl font-bold text-accent">{reasoning.remaining}</div>
         <div className="text-xs text-muted-foreground mt-1">Possibilities</div>
@@ -61,7 +61,7 @@ export function ReasoningPanel({ reasoning, isThinking = false }: ReasoningPanel
             <Brain className="text-accent" size={24} weight="duotone" />
             <h3 className="text-xl font-semibold">AI Reasoning</h3>
             {isThinking && (
-              <Badge variant="outline" className="ml-auto border-accent text-accent lg:ml-auto">
+              <Badge variant="outline" className="ml-auto border-accent text-accent lg:ml-auto" role="status">
                 Processing...
               </Badge>
             )}

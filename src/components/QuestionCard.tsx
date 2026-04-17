@@ -2,6 +2,7 @@ import { motion } from 'framer-motion'
 import { CheckCircle, XCircle, Question as QuestionIcon } from '@phosphor-icons/react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { Skeleton } from '@/components/ui/skeleton'
 import type { Question, AnswerValue } from '@/lib/types'
 
 interface QuestionCardProps {
@@ -45,7 +46,7 @@ export function QuestionCard({
             </div>
           </div>
 
-          <div className="min-h-[80px] md:min-h-[120px] flex items-center">
+          <div className="min-h-[80px] md:min-h-[120px] flex items-center" aria-live="polite">
             <h2 className="text-2xl md:text-3xl lg:text-4xl font-semibold leading-tight text-foreground">
               {question.text}
             </h2>
@@ -58,6 +59,7 @@ export function QuestionCard({
                 onClick={() => onAnswer(value)}
                 disabled={isProcessing}
                 size="lg"
+                aria-label={`Answer ${label}`}
                 className={`h-16 text-lg font-medium transition-all duration-200 ${
                   value === 'yes'
                     ? 'bg-accent hover:bg-accent/90 text-accent-foreground shadow-lg shadow-accent/20'
@@ -74,5 +76,31 @@ export function QuestionCard({
         </div>
       </Card>
     </motion.div>
+  )
+}
+
+export function ThinkingCard() {
+  return (
+    <Card className="p-6 md:p-8 bg-gradient-to-br from-card/80 to-card/40 backdrop-blur-sm border-2 border-primary/30 shadow-xl">
+      <div className="space-y-4 md:space-y-6">
+        <div className="flex items-center justify-between">
+          <Skeleton className="h-5 w-32" />
+          <Skeleton className="h-6 w-24 rounded-full" />
+        </div>
+        <div className="min-h-[80px] md:min-h-[120px] flex items-center">
+          <div className="space-y-3 w-full">
+            <Skeleton className="h-8 w-3/4" />
+            <Skeleton className="h-8 w-1/2" />
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <Skeleton className="h-16 rounded-lg" />
+          <Skeleton className="h-16 rounded-lg" />
+          <Skeleton className="h-16 rounded-lg" />
+          <Skeleton className="h-16 rounded-lg" />
+        </div>
+        <p className="text-center text-sm text-muted-foreground animate-pulse">Analyzing possibilities...</p>
+      </div>
+    </Card>
   )
 }

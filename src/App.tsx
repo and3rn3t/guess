@@ -1,5 +1,5 @@
 import { GameOver, GuessReveal } from "@/components/GuessReveal";
-import { QuestionCard } from "@/components/QuestionCard";
+import { QuestionCard, ThinkingCard } from "@/components/QuestionCard";
 import { ReasoningPanel } from "@/components/ReasoningPanel";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -8,7 +8,6 @@ import { useGameState } from "@/hooks/useGameState";
 import { useKV } from "@/hooks/useKV";
 import { DEFAULT_CHARACTERS, DEFAULT_QUESTIONS } from "@/lib/database";
 import {
-  calculateProbabilities,
   detectContradictions,
   generateReasoning,
   getBestGuess,
@@ -43,12 +42,18 @@ import {
 import { useSound } from "@/hooks/useSound";
 import { trackGameStart, trackGameEnd, trackShare, trackFeatureUse } from "@/lib/analytics";
 import {
+  ArrowLeft,
   BrainIcon,
   ChartBarIcon,
   ClipboardTextIcon,
   ClockCounterClockwiseIcon,
+  CloudArrowUp,
+  CloudCheck,
+  CloudSlash,
+  CloudX,
   FlaskIcon,
   GearIcon,
+  House,
   PlayIcon,
   SparkleIcon,
   SpeakerHighIcon,
@@ -60,6 +65,18 @@ import {
 import { AnimatePresence } from "framer-motion";
 import { lazy, Suspense, useEffect, useState } from "react";
 import { toast, Toaster } from "sonner";
+import { getSyncStatus, onSyncStatusChange, initialSync } from '@/lib/sync'
+import type { SyncStatus } from '@/lib/sync'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 
 const TeachingMode = lazy(() =>
   import("@/components/TeachingMode").then((m) => ({
@@ -131,7 +148,7 @@ function App() {
   );
 
   // ========== GAME STATE (reducer) ==========
-  const { state: game, dispatch, navigate } = useGameState();
+  const { state: game, dispatch, navigate, hasSavedSession, resumeSession, clearSession } = useGameState();
   const {
     phase: gamePhase,
     answers,
@@ -147,12 +164,13 @@ function App() {
   } = game;
 
   // ========== SETTINGS ==========
-  const [difficulty, setDifficulty] = useState<Difficulty>("medium");
-  const [selectedCategories, setSelectedCategories] = useState<
-    Set<CharacterCategory>
-  >(new Set());
+  const [difficulty, setDifficulty] = useKV<Difficulty>("difficulty", "medium");
+  const [selectedCategoryList, setSelectedCategoryList] = useKV<CharacterCategory[]>("selected-categories", []);
+  const selectedCategories = new Set(selectedCategoryList);
   const [challenge, setChallenge] = useState<SharePayload | null>(null);
   const { muted, toggle: toggleMute } = useSound();
+  const [showQuitDialog, setShowQuitDialog] = useState(false);
+  const [syncStatus, setSyncStatus] = useState<SyncStatus>('synced');
 
   const maxQuestions = DIFFICULTIES[difficulty].maxQuestions;
 
@@ -161,6 +179,15 @@ function App() {
     if (selectedCategories.size === 0) return all;
     return all.filter((c) => selectedCategories.has(c.category));
   })();
+
+  // ========== SYNC STATUS ==========
+  useEffect(() => {
+    setSyncStatus(getSyncStatus())
+    const unsubscribe = onSyncStatusChange(setSyncStatus)
+    // Run initial sync (fire-and-forget)
+    initialSync().catch(() => {})
+    return unsubscribe
+  }, [])
 
   // ========== PARSE URL CHALLENGE ON MOUNT ==========
   useEffect(() => {
@@ -187,11 +214,11 @@ function App() {
 
   // ========== CATEGORY TOGGLE ==========
   const toggleCategory = (cat: CharacterCategory) => {
-    setSelectedCategories((prev) => {
-      const next = new Set(prev);
-      if (next.has(cat)) next.delete(cat);
-      else next.add(cat);
-      return next;
+    setSelectedCategoryList((prev) => {
+      const set = new Set(prev);
+      if (set.has(cat)) set.delete(cat);
+      else set.add(cat);
+      return [...set];
     });
   };
 
@@ -264,8 +291,13 @@ function App() {
     currentAnswers: { questionId: string; value: AnswerValue }[],
   ): Character[] => {
     return chars.filter((char) => {
-      const probabilities = calculateProbabilities([char], currentAnswers);
-      return probabilities.get(char.id)! > 0;
+      for (const answer of currentAnswers) {
+        const attr = char.attributes[answer.questionId];
+        if (answer.value === 'yes' && attr === false) return false;
+        if (answer.value === 'no' && attr === true) return false;
+        // 'maybe' and 'unknown' don't eliminate
+      }
+      return true;
     });
   };
 
@@ -464,53 +496,7 @@ function App() {
     );
   }
 
-  if (gamePhase === "compare") {
-    return (
-      <div className="min-h-screen bg-background">
-        <div className="container mx-auto px-4 py-8">
-          <Suspense fallback={<Skeleton className="h-96 w-full" />}>
-            <CharacterComparison
-              characters={characters || DEFAULT_CHARACTERS}
-              onBack={() => navigate('welcome')}
-            />
-          </Suspense>
-        </div>
-      </div>
-    );
-  }
-
-  if (gamePhase === "stats") {
-    return (
-      <div className="min-h-screen bg-background">
-        <div className="container mx-auto px-4 py-8">
-          <Suspense fallback={<Skeleton className="h-96 w-full" />}>
-            <StatsDashboard
-              characters={characters || DEFAULT_CHARACTERS}
-              questions={questions || DEFAULT_QUESTIONS}
-              gameHistory={gameHistory || []}
-              onBack={() => navigate('welcome')}
-            />
-          </Suspense>
-        </div>
-      </div>
-    );
-  }
-
-  if (gamePhase === "history") {
-    return (
-      <div className="min-h-screen bg-background">
-        <div className="container mx-auto px-4 py-8">
-          <Suspense fallback={<Skeleton className="h-96 w-full" />}>
-            <GameHistory
-              history={gameHistory || []}
-              onClearHistory={() => setGameHistory(() => [])}
-              onBack={() => navigate('welcome')}
-            />
-          </Suspense>
-        </div>
-      </div>
-    );
-  }
+  // stats, history, compare phases are now rendered inside the main layout with persistent header
 
   if (gamePhase === 'challenge' && challenge) {
     const answerBar = challenge.steps
@@ -578,10 +564,19 @@ function App() {
         />
 
         <div className="relative z-10">
-          <header className="border-b border-border/50 backdrop-blur-sm bg-background/80">
+          <header aria-label="Game navigation" className="border-b border-border/50 backdrop-blur-sm bg-background/80">
             <div className="container mx-auto px-4 py-6">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
+                <button
+                  onClick={() => {
+                    if (gamePhase === 'playing') {
+                      setShowQuitDialog(true)
+                    } else {
+                      navigate('welcome')
+                    }
+                  }}
+                  className="flex items-center gap-3 hover:opacity-80 transition-opacity"
+                >
                   <SparkleIcon
                     size={40}
                     weight="fill"
@@ -590,8 +585,9 @@ function App() {
                   <h1 className="text-3xl md:text-4xl font-bold text-foreground tracking-tight">
                     Mystic Guesser
                   </h1>
-                </div>
+                </button>
                 <div className="flex items-center gap-3">
+                  {/* Welcome phase: Stats, History, Compare, Dev Tools */}
                   {gamePhase === "welcome" && (
                     <>
                       <Button
@@ -634,26 +630,99 @@ function App() {
                       )}
                     </>
                   )}
+
+                  {/* Playing phase: question counter badge + quit button */}
+                  {gamePhase === "playing" && (
+                    <>
+                      <span className="inline-flex items-center rounded-full bg-accent/20 px-3 py-1 text-sm font-medium text-accent">
+                        Q{answers.length + (currentQuestion ? 1 : 0)}/{maxQuestions}
+                      </span>
+                      <button
+                        onClick={() => setShowQuitDialog(true)}
+                        className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                      >
+                        <ArrowLeft size={16} />
+                        Quit
+                      </button>
+                    </>
+                  )}
+
+                  {/* GameOver / Teaching phase: Home button */}
+                  {(gamePhase === "gameOver" || gamePhase === "teaching" || gamePhase === "guessing") && (
+                    <Button
+                      onClick={() => navigate('welcome')}
+                      variant="outline"
+                      size="sm"
+                      className="flex items-center gap-2"
+                    >
+                      <House size={20} />
+                      <span className="hidden sm:inline">Home</span>
+                    </Button>
+                  )}
+
+                  {/* Stats / History / Compare: cross-navigation tabs + Home */}
+                  {(gamePhase === "stats" || gamePhase === "history" || gamePhase === "compare") && (
+                    <>
+                      {([
+                        { phase: 'stats' as const, label: 'Stats', icon: ChartBarIcon },
+                        { phase: 'history' as const, label: 'History', icon: ClockCounterClockwiseIcon },
+                        { phase: 'compare' as const, label: 'Compare', icon: UsersIcon },
+                      ]).map((tab) => (
+                        <Button
+                          key={tab.phase}
+                          onClick={() => navigate(tab.phase)}
+                          variant={gamePhase === tab.phase ? "default" : "outline"}
+                          size="sm"
+                          className={`flex items-center gap-2 ${gamePhase === tab.phase ? 'bg-accent text-accent-foreground' : ''}`}
+                        >
+                          <tab.icon size={18} />
+                          <span className="hidden sm:inline">{tab.label}</span>
+                        </Button>
+                      ))}
+                      <Button
+                        onClick={() => navigate('welcome')}
+                        variant="outline"
+                        size="sm"
+                        className="flex items-center gap-2"
+                      >
+                        <House size={20} />
+                        <span className="hidden sm:inline">Home</span>
+                      </Button>
+                    </>
+                  )}
+
+                  <span
+                    className="text-muted-foreground"
+                    title={`Sync: ${syncStatus}`}
+                    aria-label={`Sync status: ${syncStatus}`}
+                  >
+                    {syncStatus === 'synced' && <CloudCheck size={18} className="text-green-400" />}
+                    {syncStatus === 'pending' && <CloudArrowUp size={18} className="text-yellow-400 animate-pulse" />}
+                    {syncStatus === 'error' && <CloudX size={18} className="text-red-400" />}
+                    {syncStatus === 'offline' && <CloudSlash size={18} className="text-muted-foreground" />}
+                  </span>
                   <Button
                     onClick={toggleMute}
                     variant="ghost"
                     size="sm"
                     className="flex items-center gap-1 text-muted-foreground hover:text-foreground"
                     title={muted ? 'Unmute sounds' : 'Mute sounds'}
+                    aria-label={muted ? 'Unmute sounds' : 'Mute sounds'}
                   >
                     {muted ? <SpeakerSlashIcon size={20} /> : <SpeakerHighIcon size={20} />}
                   </Button>
-                  {gamePhase !== "welcome" && (
-                    <div className="text-sm text-muted-foreground">
-                      Questions: {answers.length}
-                    </div>
-                  )}
                 </div>
               </div>
             </div>
           </header>
 
-          <main className="container mx-auto px-4 py-8 md:py-12">
+          <main role="main" aria-label="Game content" className="container mx-auto px-4 py-8 md:py-12">
+            <div className="sr-only" aria-live="polite" aria-atomic="true">
+              {gamePhase === 'playing' && currentQuestion && `Question ${answers.length + 1}: ${currentQuestion.text}`}
+              {gamePhase === 'guessing' && finalGuess && `I think it's ${finalGuess.name}. Was I correct?`}
+              {gamePhase === 'gameOver' && (gameWon ? 'Correct! I got it right!' : 'Wrong guess. You stumped me!')}
+            </div>
+
             {gamePhase === "welcome" && (
               <div className="max-w-4xl mx-auto space-y-8">
                 <div className="text-center space-y-4">
@@ -670,6 +739,37 @@ function App() {
                     I explain my reasoning in real-time!
                   </p>
                 </div>
+
+                {hasSavedSession && (
+                  <div className="bg-primary/10 border border-primary/30 rounded-xl p-4 flex items-center justify-between">
+                    <div>
+                      <p className="font-semibold text-foreground">Resume your game?</p>
+                      <p className="text-sm text-muted-foreground">You have an unfinished game in progress</p>
+                    </div>
+                    <div className="flex gap-2 ml-4 shrink-0">
+                      <Button onClick={resumeSession} size="sm" className="bg-accent hover:bg-accent/90">Resume</Button>
+                      <Button onClick={clearSession} variant="outline" size="sm">Dismiss</Button>
+                    </div>
+                  </div>
+                )}
+
+                {gameHistory && gameHistory.length > 0 && (() => {
+                  const last = gameHistory[gameHistory.length - 1]
+                  return (
+                    <div className="bg-accent/10 border border-accent/30 rounded-xl p-4 flex items-center justify-between">
+                      <div className="text-sm">
+                        <span className="text-muted-foreground">Last game: </span>
+                        <span className={last.won ? 'text-accent font-semibold' : 'text-muted-foreground'}>
+                          {last.won ? 'Won' : 'Lost'}
+                        </span>
+                        <span className="text-muted-foreground"> in {last.steps.length} questions — {last.characterName}</span>
+                      </div>
+                      <Button onClick={startGame} variant="outline" size="sm" className="ml-4 shrink-0">
+                        Rematch
+                      </Button>
+                    </div>
+                  )
+                })()}
 
                 <div className="bg-card/50 backdrop-blur-sm border-2 border-primary/20 rounded-xl p-8 space-y-6">
                   <h3 className="text-2xl font-semibold text-foreground">
@@ -722,6 +822,24 @@ function App() {
                     </div>
                   </div>
                 </div>
+
+                {gameHistory && gameHistory.length > 0 && (() => {
+                  const last = gameHistory[gameHistory.length - 1]
+                  return (
+                    <div className="bg-accent/10 border border-accent/30 rounded-xl p-4 flex items-center justify-between">
+                      <div className="text-sm">
+                        <span className="text-muted-foreground">Last game: </span>
+                        <span className={last.won ? 'text-accent font-semibold' : 'text-muted-foreground'}>
+                          {last.won ? 'Won' : 'Lost'}
+                        </span>
+                        <span className="text-muted-foreground"> in {last.steps.length} questions — {last.characterName}</span>
+                      </div>
+                      <Button onClick={startGame} variant="outline" size="sm" className="ml-4 shrink-0">
+                        Rematch
+                      </Button>
+                    </div>
+                  )
+                })()}
 
                 <div className="bg-card/50 backdrop-blur-sm border border-border/50 rounded-xl p-6 space-y-4">
                   <h3 className="text-lg font-semibold text-foreground">
@@ -882,10 +1000,19 @@ function App() {
                   />
                 </div>
 
+                <div className="flex items-center justify-between text-sm text-muted-foreground mb-4 lg:mb-6">
+                  <span>{possibleCharacters.length} possibilities remaining</span>
+                  {possibleCharacters.length > 0 && possibleCharacters.length <= 5 && (
+                    <span className="text-accent font-medium">
+                      Top: {possibleCharacters[0]?.name}
+                    </span>
+                  )}
+                </div>
+
                 <div className="grid lg:grid-cols-2 gap-4 lg:gap-6">
                   <div>
                     <AnimatePresence mode="wait">
-                      {currentQuestion && (
+                      {currentQuestion ? (
                         <QuestionCard
                           question={currentQuestion}
                           questionNumber={answers.length + 1}
@@ -893,7 +1020,9 @@ function App() {
                           onAnswer={handleAnswer}
                           isProcessing={isThinking}
                         />
-                      )}
+                      ) : isThinking ? (
+                        <ThinkingCard />
+                      ) : null}
                     </AnimatePresence>
                   </div>
 
@@ -922,9 +1051,13 @@ function App() {
                 <GameOver
                   won={gameWon}
                   character={finalGuess}
+                  questionsAsked={gameSteps.length}
+                  remainingCharacters={possibleCharacters.length}
                   onPlayAgain={startGame}
+                  onNewGame={() => navigate('welcome')}
                   onTeachMode={!gameWon ? () => navigate('teaching') : undefined}
                   onViewHistory={() => navigate('history')}
+                  onViewStats={() => navigate('stats')}
                   onShare={handleShare}
                   onCopyLink={handleCopyLink}
                 />
@@ -938,7 +1071,9 @@ function App() {
                     answers={answers}
                     existingCharacters={characters || DEFAULT_CHARACTERS}
                     onAddCharacter={handleAddCharacter}
-                    onSkip={() => navigate('gameOver')}
+                    onAddQuestions={handleAddQuestions}
+                    onPlayAgain={startGame}
+                    onGoHome={() => navigate('welcome')}
                   />
                 </Suspense>
               </div>
@@ -1003,9 +1138,62 @@ function App() {
                 </div>
               </div>
             )}
+
+            {gamePhase === "stats" && (
+              <div className="max-w-4xl mx-auto">
+                <Suspense fallback={<Skeleton className="h-96 w-full" />}>
+                  <StatsDashboard
+                    characters={characters || DEFAULT_CHARACTERS}
+                    questions={questions || DEFAULT_QUESTIONS}
+                    gameHistory={gameHistory || []}
+                    onBack={() => navigate('welcome')}
+                  />
+                </Suspense>
+              </div>
+            )}
+
+            {gamePhase === "history" && (
+              <div className="max-w-4xl mx-auto">
+                <Suspense fallback={<Skeleton className="h-96 w-full" />}>
+                  <GameHistory
+                    history={gameHistory || []}
+                    onClearHistory={() => setGameHistory(() => [])}
+                    onBack={() => navigate('welcome')}
+                  />
+                </Suspense>
+              </div>
+            )}
+
+            {gamePhase === "compare" && (
+              <div className="max-w-4xl mx-auto">
+                <Suspense fallback={<Skeleton className="h-96 w-full" />}>
+                  <CharacterComparison
+                    characters={characters || DEFAULT_CHARACTERS}
+                    onBack={() => navigate('welcome')}
+                  />
+                </Suspense>
+              </div>
+            )}
           </main>
         </div>
       </div>
+
+      <AlertDialog open={showQuitDialog} onOpenChange={setShowQuitDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Quit this game?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Your progress will be lost. You'll return to the home screen.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Keep Playing</AlertDialogCancel>
+            <AlertDialogAction onClick={() => navigate('welcome')}>
+              Quit Game
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }

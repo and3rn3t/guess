@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion'
-import { Sparkle, CheckCircle, XCircle, ArrowClockwise, ClockCounterClockwise, ShareNetwork, Link as LinkIcon } from '@phosphor-icons/react'
+import { Sparkle, CheckCircle, XCircle, ArrowClockwise, ClockCounterClockwise, ShareNetwork, Link as LinkIcon, ChartBar, House } from '@phosphor-icons/react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import type { Character } from '@/lib/types'
@@ -17,7 +17,7 @@ export function GuessReveal({ character, onCorrect, onIncorrect }: GuessRevealPr
       animate={{ opacity: 1, scale: 1, rotateY: 0 }}
       transition={{ duration: 0.5, type: 'spring' }}
     >
-      <Card className="p-8 bg-gradient-to-br from-primary/20 to-accent/10 backdrop-blur-sm border-2 border-accent shadow-2xl">
+      <Card className="p-8 bg-gradient-to-br from-primary/20 to-accent/10 backdrop-blur-sm border-2 border-accent shadow-2xl" aria-live="assertive">
         <div className="space-y-8 text-center">
           <motion.div
             initial={{ scale: 0 }}
@@ -75,14 +75,30 @@ export function GuessReveal({ character, onCorrect, onIncorrect }: GuessRevealPr
 interface GameOverProps {
   won: boolean
   character: Character | null
+  questionsAsked?: number
+  remainingCharacters?: number
   onPlayAgain: () => void
+  onNewGame?: () => void
   onTeachMode?: () => void
   onViewHistory?: () => void
+  onViewStats?: () => void
   onShare?: () => void
   onCopyLink?: () => void
 }
 
-export function GameOver({ won, character, onPlayAgain, onTeachMode, onViewHistory, onShare, onCopyLink }: GameOverProps) {
+export function GameOver({
+  won,
+  character,
+  questionsAsked,
+  remainingCharacters,
+  onPlayAgain,
+  onNewGame,
+  onTeachMode,
+  onViewHistory,
+  onViewStats,
+  onShare,
+  onCopyLink,
+}: GameOverProps) {
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.9 }}
@@ -115,51 +131,86 @@ export function GameOver({ won, character, onPlayAgain, onTeachMode, onViewHisto
             </>
           )}
 
-          <div className="flex flex-col sm:flex-row gap-3 justify-center mt-4">
-            <Button
-              onClick={onPlayAgain}
-              size="lg"
-              className="h-14 text-lg bg-accent hover:bg-accent/90 text-accent-foreground shadow-lg hover:scale-105 transition-transform"
-            >
-              <ArrowClockwise size={24} weight="bold" className="mr-2" />
-              Play Again
-            </Button>
-            {!won && onTeachMode && (
-              <Button
-                onClick={onTeachMode}
-                size="lg"
-                variant="outline"
-                className="h-14 text-lg hover:scale-105 transition-transform border-accent/50 hover:border-accent"
-              >
-                <Sparkle size={24} weight="fill" className="mr-2" />
-                Teach Me
-              </Button>
-            )}
-            {onViewHistory && (
-              <Button
-                onClick={onViewHistory}
-                size="lg"
-                variant="ghost"
-                className="h-14 text-lg"
-              >
-                <ClockCounterClockwise size={24} className="mr-2" />
-                History
-              </Button>
-            )}
-          </div>
+          {(questionsAsked != null || remainingCharacters != null) && (
+            <p className="text-sm text-muted-foreground">
+              {questionsAsked != null && <>Guessed in {questionsAsked} question{questionsAsked === 1 ? '' : 's'}</>}
+              {questionsAsked != null && remainingCharacters != null && ' · '}
+              {remainingCharacters != null && <>{remainingCharacters} character{remainingCharacters === 1 ? '' : 's'} remaining</>}
+            </p>
+          )}
 
+          {/* Primary actions */}
+          {won ? (
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              <Button
+                onClick={onPlayAgain}
+                size="lg"
+                className="h-14 text-lg bg-accent hover:bg-accent/90 text-accent-foreground shadow-lg hover:scale-105 transition-transform"
+              >
+                <ArrowClockwise size={24} weight="bold" className="mr-2" />
+                Play Again
+              </Button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-3">
+              <Button
+                onClick={onPlayAgain}
+                size="lg"
+                className="h-14 text-lg bg-accent hover:bg-accent/90 text-accent-foreground shadow-lg hover:scale-105 transition-transform"
+              >
+                <ArrowClockwise size={24} weight="bold" className="mr-2" />
+                Play Again
+              </Button>
+              {onTeachMode && (
+                <Button
+                  onClick={onTeachMode}
+                  size="lg"
+                  className="h-14 text-lg bg-accent hover:bg-accent/90 text-accent-foreground shadow-lg hover:scale-105 transition-transform"
+                >
+                  <Sparkle size={24} weight="fill" className="mr-2" />
+                  Teach Me
+                </Button>
+              )}
+            </div>
+          )}
+
+          {/* Share row */}
           {(onShare || onCopyLink) && (
-            <div className="flex gap-3 justify-center pt-2">
+            <div className="flex gap-3 justify-center">
               {onShare && (
-                <Button onClick={onShare} variant="outline" size="sm" className="gap-2">
+                <Button onClick={onShare} variant="outline" size="sm" className="gap-2" aria-label="Share result">
                   <ShareNetwork size={18} />
                   Share Result
                 </Button>
               )}
               {onCopyLink && (
-                <Button onClick={onCopyLink} variant="outline" size="sm" className="gap-2">
+                <Button onClick={onCopyLink} variant="outline" size="sm" className="gap-2" aria-label="Copy share link">
                   <LinkIcon size={18} />
                   Copy Link
+                </Button>
+              )}
+            </div>
+          )}
+
+          {/* Tertiary row */}
+          {(onViewStats || onViewHistory || onNewGame) && (
+            <div className="flex gap-3 justify-center">
+              {onViewStats && (
+                <Button onClick={onViewStats} variant="ghost" size="sm" className="gap-2" aria-label="View stats">
+                  <ChartBar size={18} />
+                  Stats
+                </Button>
+              )}
+              {onViewHistory && (
+                <Button onClick={onViewHistory} variant="ghost" size="sm" className="gap-2" aria-label="View game history">
+                  <ClockCounterClockwise size={18} />
+                  History
+                </Button>
+              )}
+              {onNewGame && (
+                <Button onClick={onNewGame} variant="ghost" size="sm" className="gap-2" aria-label="Start new game from welcome screen">
+                  <House size={18} />
+                  New Game
                 </Button>
               )}
             </div>
