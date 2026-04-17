@@ -41,6 +41,8 @@ import {
 } from "@/lib/sounds";
 import { useSound } from "@/hooks/useSound";
 import { trackGameStart, trackGameEnd, trackShare, trackFeatureUse } from "@/lib/analytics";
+import { dynamicQuestion_v1 } from '@/lib/prompts'
+import { llm } from '@/lib/llm'
 import {
   ArrowLeft,
   BrainIcon,
@@ -166,6 +168,7 @@ function App() {
   // ========== SETTINGS ==========
   const [difficulty, setDifficulty] = useKV<Difficulty>("difficulty", "medium");
   const [selectedCategoryList, setSelectedCategoryList] = useKV<CharacterCategory[]>("selected-categories", []);
+  const [llmMode, setLlmMode] = useKV<boolean>("llm-mode", false);
   const selectedCategories = new Set(selectedCategoryList);
   const [challenge, setChallenge] = useState<SharePayload | null>(null);
   const { muted, toggle: toggleMute } = useSound();
@@ -273,6 +276,38 @@ function App() {
           question: nextQuestion,
           reasoning: newReasoning,
         });
+
+        // LLM rephrasing (non-blocking, updates question text after)
+        if (llmMode) {
+          const answeredQs = answers.map((a) => {
+            const q = (questions || DEFAULT_QUESTIONS).find((q) => q.id === a.questionId);
+            return { question: q?.text || '', answer: a.value };
+          });
+          const topNames = filtered.slice(0, 5).map((c) => c.name);
+          const confidence = filtered.length > 0 ? 1 / filtered.length : 0;
+          const { system, user } = dynamicQuestion_v1(
+            nextQuestion.text,
+            nextQuestion.attribute,
+            answeredQs,
+            topNames,
+            confidence
+          );
+
+          llm(`${system}\n\n${user}`, 'gpt-4o-mini', true)
+            .then((response) => {
+              try {
+                const parsed = JSON.parse(response) as { text: string };
+                if (parsed.text && parsed.text.length < 150) {
+                  dispatch({
+                    type: "SET_QUESTION",
+                    question: { ...nextQuestion, text: parsed.text },
+                    reasoning: newReasoning,
+                  });
+                }
+              } catch { /* Use original question */ }
+            })
+            .catch(() => { /* Fallback: keep deterministic question */ });
+        }
       } else {
         const guess = getBestGuess(filtered, answers);
         if (guess) {
@@ -913,6 +948,36 @@ function App() {
                   </div>
                 </div>
 
+                <div className="bg-card/50 backdrop-blur-sm border border-border/50 rounded-xl p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
+                        <BrainIcon size={20} weight="fill" />
+                        AI-Enhanced Mode
+                      </h3>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Dynamic questions, narrative explanations, and conversational answers
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => setLlmMode(!llmMode)}
+                      className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors ${
+                        llmMode ? 'bg-accent' : 'bg-muted'
+                      }`}
+                      role="switch"
+                      aria-checked={llmMode ? "true" : "false"}
+                      aria-label="Toggle AI-Enhanced Mode"
+                    >
+                      <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-sm transition-transform ${
+                        llmMode ? 'translate-x-6' : 'translate-x-1'
+                      }`} />
+                    </button>
+                  </div>
+                  {llmMode && (
+                    <p className="text-xs text-accent mt-2">✨ Requires internet connection</p>
+                  )}
+                </div>
+
                 <div className="text-center space-y-4">
                   <Button
                     onClick={startGame}
@@ -1001,7 +1066,10 @@ function App() {
                 </div>
 
                 <div className="flex items-center justify-between text-sm text-muted-foreground mb-4 lg:mb-6">
-                  <span>{possibleCharacters.length} possibilities remaining</span>
+                  <span>
+                    {possibleCharacters.length} possibilities remaining
+                    {llmMode && <span className="ml-2 text-xs text-accent">✨ AI</span>}
+                  </span>
                   {possibleCharacters.length > 0 && possibleCharacters.length <= 5 && (
                     <span className="text-accent font-medium">
                       Top: {possibleCharacters[0]?.name}
@@ -1060,6 +1128,11 @@ function App() {
                   onViewStats={() => navigate('stats')}
                   onShare={handleShare}
                   onCopyLink={handleCopyLink}
+                  llmMode={llmMode}
+                  answeredQuestions={answers.map((a) => {
+                    const q = (questions || DEFAULT_QUESTIONS).find((q) => q.id === a.questionId);
+                    return { question: q?.text || '', answer: a.value };
+                  })}
                 />
               </div>
             )}

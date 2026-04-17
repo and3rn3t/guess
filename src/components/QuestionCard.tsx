@@ -1,9 +1,14 @@
+import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { CheckCircle, XCircle, Question as QuestionIcon } from '@phosphor-icons/react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import type { Question, AnswerValue } from '@/lib/types'
+import { llm } from '@/lib/llm'
+import { conversationalParse_v1 } from '@/lib/prompts'
+import { toast } from 'sonner'
 
 interface QuestionCardProps {
   question: Question
@@ -11,6 +16,7 @@ interface QuestionCardProps {
   totalQuestions: number
   onAnswer: (value: AnswerValue) => void
   isProcessing?: boolean
+  llmMode?: boolean
 }
 
 export function QuestionCard({
@@ -19,7 +25,29 @@ export function QuestionCard({
   totalQuestions,
   onAnswer,
   isProcessing = false,
+  llmMode,
 }: QuestionCardProps) {
+  const [freeText, setFreeText] = useState('')
+  const [isInterpreting, setIsInterpreting] = useState(false)
+
+  const handleFreeText = async () => {
+    if (!freeText.trim()) return
+    setIsInterpreting(true)
+    try {
+      const { system, user } = conversationalParse_v1(freeText, question.text, question.attribute)
+      const response = await llm(`${system}\n\n${user}`, 'gpt-4o-mini', true)
+      const parsed = JSON.parse(response) as { value: AnswerValue; confidence: number }
+      if (['yes', 'no', 'maybe', 'unknown'].includes(parsed.value)) {
+        onAnswer(parsed.value)
+        setFreeText('')
+      }
+    } catch {
+      toast('Could not interpret — please use the buttons', { description: 'AI interpretation failed' })
+    } finally {
+      setIsInterpreting(false)
+    }
+  }
+
   const answerButtons: Array<{ value: AnswerValue; label: string; icon: typeof CheckCircle }> = [
     { value: 'yes', label: 'Yes', icon: CheckCircle },
     { value: 'no', label: 'No', icon: XCircle },
@@ -73,6 +101,27 @@ export function QuestionCard({
               </Button>
             ))}
           </div>
+
+          {llmMode && (
+            <div className="flex gap-2">
+              <Input
+                value={freeText}
+                onChange={(e) => setFreeText(e.target.value)}
+                placeholder="Or type your answer..."
+                disabled={isProcessing || isInterpreting}
+                onKeyDown={(e) => e.key === 'Enter' && handleFreeText()}
+                className="flex-1"
+              />
+              <Button
+                onClick={handleFreeText}
+                disabled={!freeText.trim() || isProcessing || isInterpreting}
+                size="sm"
+                variant="secondary"
+              >
+                {isInterpreting ? '...' : 'Send'}
+              </Button>
+            </div>
+          )}
         </div>
       </Card>
     </motion.div>

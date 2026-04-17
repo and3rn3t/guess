@@ -1,8 +1,11 @@
 import { motion } from 'framer-motion'
+import { useState, useEffect } from 'react'
 import { Sparkle, CheckCircle, XCircle, ArrowClockwise, ClockCounterClockwise, ShareNetwork, Link as LinkIcon, ChartBar, House } from '@phosphor-icons/react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import type { Character } from '@/lib/types'
+import { llmStream } from '@/lib/llm'
+import { narrativeExplanation_v1 } from '@/lib/prompts'
 
 interface GuessRevealProps {
   character: Character
@@ -84,6 +87,8 @@ interface GameOverProps {
   onViewStats?: () => void
   onShare?: () => void
   onCopyLink?: () => void
+  llmMode?: boolean
+  answeredQuestions?: Array<{ question: string; answer: string }>
 }
 
 export function GameOver({
@@ -98,7 +103,40 @@ export function GameOver({
   onViewStats,
   onShare,
   onCopyLink,
+  llmMode,
+  answeredQuestions,
 }: GameOverProps) {
+  const [narrative, setNarrative] = useState('')
+  const [isStreaming, setIsStreaming] = useState(false)
+
+  useEffect(() => {
+    if (!llmMode || !character) return
+
+    const qaList = answeredQuestions || []
+    const { system, user } = narrativeExplanation_v1(
+      character.name,
+      won,
+      qaList,
+      remainingCharacters || 0
+    )
+
+    setIsStreaming(true)
+    let text = ''
+    const run = async () => {
+      try {
+        for await (const token of llmStream({ prompt: `${system}\n\n${user}`, model: 'gpt-4o-mini' })) {
+          text += token
+          setNarrative(text)
+        }
+      } catch {
+        // Non-blocking — static explanation is enough
+      } finally {
+        setIsStreaming(false)
+      }
+    }
+    run()
+  }, [llmMode, character, won, answeredQuestions, remainingCharacters])
+
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.9 }}
@@ -129,6 +167,15 @@ export function GameOver({
                 But I learn from every game! Play again to help me get better.
               </p>
             </>
+          )}
+
+          {(narrative || isStreaming) && (
+            <div className="text-left bg-accent/5 rounded-lg p-4 border border-accent/20">
+              <p className="text-sm text-foreground/80 italic">
+                {narrative}
+                {isStreaming && <span className="animate-pulse">▌</span>}
+              </p>
+            </div>
           )}
 
           {(questionsAsked != null || remainingCharacters != null) && (

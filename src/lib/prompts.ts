@@ -137,6 +137,37 @@ Return JSON: { "text": "polished question text" }`,
 }
 
 // ---------------------------------------------------------------------------
+// Dynamic Question Rephrasing (during gameplay)
+// ---------------------------------------------------------------------------
+
+export function dynamicQuestion_v1(
+  originalQuestion: string,
+  attribute: string,
+  answeredQuestions: Array<{ question: string; answer: string }>,
+  topCandidates: string[],
+  confidence: number
+): PromptPair {
+  const context = answeredQuestions
+    .slice(-5)
+    .map((q) => `Q: ${sanitizeForPrompt(q.question)} → ${q.answer}`)
+    .join('\n')
+
+  return {
+    system: `${SYSTEM_PREAMBLE}\n\nYou rephrase yes/no questions to feel more natural and conversational. The core question must still target the same attribute. Keep it under 120 characters. Return valid JSON only.`,
+    user: `Original question: "${sanitizeForPrompt(originalQuestion)}"
+Attribute: "${attribute}"
+Recent Q&A:
+${context}
+Top candidates: ${topCandidates.map(sanitizeForPrompt).join(', ')}
+Confidence: ${Math.round(confidence * 100)}%
+
+Rephrase this question to feel more natural. Reference previous answers if relevant (e.g., "Since they're human..."). Keep the same yes/no intent.
+
+Return JSON: { "text": "rephrased question" }`,
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Guess Narrative
 // ---------------------------------------------------------------------------
 
@@ -150,6 +181,32 @@ export function guessNarrative_v1(
   return {
     system: `${SYSTEM_PREAMBLE}\n\nYou write short, dramatic reveal messages for when the AI makes its guess. Keep it mystical and fun. 1-2 sentences max.`,
     user: `The AI ${won ? 'correctly guessed' : 'incorrectly guessed'} "${safeName}" after ${questionCount} questions. Write a short, dramatic ${won ? 'victory' : 'defeat'} message.`,
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Narrative Explanation (streaming, post-guess)
+// ---------------------------------------------------------------------------
+
+export function narrativeExplanation_v1(
+  characterName: string,
+  won: boolean,
+  questionsAndAnswers: Array<{ question: string; answer: string }>,
+  remainingCount: number
+): PromptPair {
+  const safeName = sanitizeForPrompt(characterName)
+  const qaText = questionsAndAnswers
+    .map((qa) => `Q: ${sanitizeForPrompt(qa.question)} → ${qa.answer}`)
+    .join('\n')
+
+  return {
+    system: `${SYSTEM_PREAMBLE}\n\nYou write fun, brief narrative explanations of how the AI deduced a character. Be playful and reference specific answers. 2-3 sentences max.`,
+    user: `I ${won ? 'correctly' : 'incorrectly'} guessed "${safeName}" with ${remainingCount} characters still possible.
+
+Q&A history:
+${qaText}
+
+Write a fun narrative about my reasoning process. Reference 2-3 key answers that led me to the guess.`,
   }
 }
 
