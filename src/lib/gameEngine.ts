@@ -1,4 +1,4 @@
-import type { Character, Question, Answer, AnswerValue, ReasoningExplanation } from './types'
+import type { Character, Question, Answer, ReasoningExplanation } from './types'
 
 export function calculateProbabilities(
   characters: Character[],
@@ -8,7 +8,6 @@ export function calculateProbabilities(
 
   characters.forEach((character) => {
     let score = 1.0
-    let totalWeight = 0
 
     answers.forEach((answer) => {
       const attribute = answer.questionId
@@ -22,7 +21,6 @@ export function calculateProbabilities(
         } else {
           score *= 0.5
         }
-        totalWeight += 1
       } else if (answer.value === 'no') {
         if (characterValue === false) {
           score *= 1.0
@@ -31,9 +29,8 @@ export function calculateProbabilities(
         } else {
           score *= 0.5
         }
-        totalWeight += 1
       } else if (answer.value === 'maybe') {
-        totalWeight += 0.3
+        // maybe answers don't affect score
       }
     })
 

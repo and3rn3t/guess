@@ -1,3 +1,5 @@
+import { llm } from './llm'
+
 export interface AttributeRecommendation {
   attribute: string
   label: string
@@ -358,7 +360,7 @@ Return your response as a JSON object with a single "recommendations" property c
 Provide exactly 15 recommendations. Be specific and accurate about ${characterName}.`
 
   try {
-    const response = await window.spark.llm(prompt, 'gpt-4o', true)
+    const response = await llm(prompt, 'gpt-4o', true)
     const parsed = JSON.parse(response)
     return parsed.recommendations || []
   } catch (error) {
@@ -465,7 +467,7 @@ Return as JSON:
 Provide exactly 8 recommendations focused on ${focusDescription || 'general traits'}.`
 
   try {
-    const response = await window.spark.llm(prompt, 'gpt-4o', true)
+    const response = await llm(prompt, 'gpt-4o', true)
     const parsed = JSON.parse(response)
     return parsed.recommendations || []
   } catch (error) {

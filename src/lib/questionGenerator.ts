@@ -1,4 +1,5 @@
 import type { Character, Question } from './types'
+import { llm } from './llm'
 
 export async function analyzeAndGenerateQuestions(
   characters: Character[],
@@ -67,14 +68,14 @@ Example format:
 }`
 
   try {
-    const response = await window.spark.llm(prompt, 'gpt-4o-mini', true)
+    const response = await llm(prompt, 'gpt-4o-mini', true)
     const parsed = JSON.parse(response)
 
     if (!parsed.questions || !Array.isArray(parsed.questions)) {
       throw new Error('Invalid response format')
     }
 
-    const newQuestions: Question[] = parsed.questions.map((q: any, index: number) => ({
+    const newQuestions: Question[] = parsed.questions.map((q: Record<string, string>, index: number) => ({
       id: `generated-${Date.now()}-${index}`,
       text: q.text,
       attribute: q.attribute,
@@ -99,13 +100,10 @@ function analyzeAttributeDistribution(
   return attributes.map((attr) => {
     let trueCount = 0
     let falseCount = 0
-    let nullCount = 0
-
     characters.forEach((char) => {
       const value = char.attributes[attr]
       if (value === true) trueCount++
       else if (value === false) falseCount++
-      else nullCount++
     })
 
     const total = characters.length

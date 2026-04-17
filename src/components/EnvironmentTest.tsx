@@ -4,7 +4,6 @@ import { ArrowLeft, TreeStructure, Sparkle, Check, X } from '@phosphor-icons/rea
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Progress } from '@/components/ui/progress'
 import { Skeleton } from '@/components/ui/skeleton'
 import { toast } from 'sonner'
 import type { Character } from '@/lib/types'
@@ -30,6 +29,7 @@ export function EnvironmentTest({
 
   useEffect(() => {
     loadRecommendations()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [character])
 
   const loadRecommendations = async () => {

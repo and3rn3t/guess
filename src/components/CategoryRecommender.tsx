@@ -26,7 +26,6 @@ import type { Character } from '@/lib/types'
 import {
   generateCategoryRecommendations,
   type AttributeRecommendation,
-  type AttributeCategory,
 } from '@/lib/categoryRecommender'
 
 interface CategoryRecommenderProps {

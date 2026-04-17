@@ -1,23 +1,14 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, lazy, Suspense } from 'react'
 import { useKV } from '@/hooks/useKV'
 import { AnimatePresence } from 'framer-motion'
-import { Sparkle, Play, Gear, Flask, ChartBar, Users, ClipboardText, Brain, TreeStructure } from '@phosphor-icons/react'
+import { SparkleIcon, PlayIcon, GearIcon, FlaskIcon, ChartBarIcon, UsersIcon, ClipboardTextIcon, BrainIcon, TreeStructureIcon } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
+import { Skeleton } from '@/components/ui/skeleton'
 import { Toaster, toast } from 'sonner'
 import { QuestionCard } from '@/components/QuestionCard'
 import { ReasoningPanel } from '@/components/ReasoningPanel'
 import { GuessReveal, GameOver } from '@/components/GuessReveal'
-import { TeachingMode } from '@/components/TeachingMode'
-import { QuestionManager } from '@/components/QuestionManager'
-import { QuestionGeneratorDemo } from '@/components/QuestionGeneratorDemo'
-import { StatsDashboard } from '@/components/StatsDashboard'
-import { CharacterComparison } from '@/components/CharacterComparison'
-import { AttributeCoverageReport } from '@/components/AttributeCoverageReport'
-import { AttributeRecommender } from '@/components/AttributeRecommender'
-import { CategoryRecommender } from '@/components/CategoryRecommender'
-import { EnvironmentTest } from '@/components/EnvironmentTest'
-import { MultiCategoryEnhancer } from '@/components/MultiCategoryEnhancer'
 import { DEFAULT_CHARACTERS, DEFAULT_QUESTIONS } from '@/lib/database'
 import {
   selectBestQuestion,
@@ -27,6 +18,17 @@ import {
   calculateProbabilities,
 } from '@/lib/gameEngine'
 import type { Character, Question, Answer, AnswerValue, ReasoningExplanation } from '@/lib/types'
+
+const TeachingMode = lazy(() => import('@/components/TeachingMode').then(m => ({ default: m.TeachingMode })))
+const QuestionManager = lazy(() => import('@/components/QuestionManager').then(m => ({ default: m.QuestionManager })))
+const QuestionGeneratorDemo = lazy(() => import('@/components/QuestionGeneratorDemo').then(m => ({ default: m.QuestionGeneratorDemo })))
+const StatsDashboard = lazy(() => import('@/components/StatsDashboard').then(m => ({ default: m.StatsDashboard })))
+const CharacterComparison = lazy(() => import('@/components/CharacterComparison').then(m => ({ default: m.CharacterComparison })))
+const AttributeCoverageReport = lazy(() => import('@/components/AttributeCoverageReport').then(m => ({ default: m.AttributeCoverageReport })))
+const AttributeRecommender = lazy(() => import('@/components/AttributeRecommender').then(m => ({ default: m.AttributeRecommender })))
+const CategoryRecommender = lazy(() => import('@/components/CategoryRecommender').then(m => ({ default: m.CategoryRecommender })))
+const EnvironmentTest = lazy(() => import('@/components/EnvironmentTest').then(m => ({ default: m.EnvironmentTest })))
+const MultiCategoryEnhancer = lazy(() => import('@/components/MultiCategoryEnhancer').then(m => ({ default: m.MultiCategoryEnhancer })))
 
 type GamePhase = 'welcome' | 'playing' | 'guessing' | 'gameOver' | 'teaching' | 'manage' | 'demo' | 'stats' | 'compare' | 'coverage' | 'recommender' | 'categoryRecommender' | 'environmentTest' | 'bulkHabitat'
 
@@ -57,6 +59,7 @@ function App() {
     if (gamePhase === 'playing' && currentQuestion === null && possibleCharacters.length > 0) {
       generateNextQuestion()
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [gamePhase, currentQuestion, possibleCharacters])
 
   const startGame = () => {
@@ -262,29 +265,33 @@ function App() {
     return (
       <div className="min-h-screen bg-background">
         <div className="container mx-auto px-4 py-8">
+          <Suspense fallback={<Skeleton className="h-96 w-full" />}>
           <MultiCategoryEnhancer
             characters={characters || DEFAULT_CHARACTERS}
             onUpdateCharacters={handleUpdateCharacters}
             onBack={handleExitBulkHabitat}
           />
+          </Suspense>
         </div>
       </div>
     )
   }
 
   if (gamePhase === 'demo') {
-    return <QuestionGeneratorDemo onBack={handleExitDemo} />
+    return <Suspense fallback={<Skeleton className="h-96 w-full" />}><QuestionGeneratorDemo onBack={handleExitDemo} /></Suspense>
   }
 
   if (gamePhase === 'environmentTest' && selectedCharacterForRec) {
     return (
       <div className="min-h-screen bg-background">
         <div className="container mx-auto px-4 py-8">
+          <Suspense fallback={<Skeleton className="h-96 w-full" />}>
           <EnvironmentTest
             character={selectedCharacterForRec}
             onUpdateCharacter={handleUpdateCharacter}
             onBack={handleExitEnvironmentTest}
           />
+          </Suspense>
         </div>
       </div>
     )
@@ -294,10 +301,12 @@ function App() {
     return (
       <div className="min-h-screen bg-background">
         <div className="container mx-auto px-4 py-8">
+          <Suspense fallback={<Skeleton className="h-96 w-full" />}>
           <AttributeCoverageReport
             characters={characters || DEFAULT_CHARACTERS}
             onBack={handleExitCoverage}
           />
+          </Suspense>
         </div>
       </div>
     )
@@ -307,11 +316,13 @@ function App() {
     return (
       <div className="min-h-screen bg-background">
         <div className="container mx-auto px-4 py-8">
+          <Suspense fallback={<Skeleton className="h-96 w-full" />}>
           <CategoryRecommender
             character={selectedCharacterForRec}
             onUpdateCharacter={handleUpdateCharacter}
             onBack={handleExitRecommender}
           />
+          </Suspense>
         </div>
       </div>
     )
@@ -321,11 +332,13 @@ function App() {
     return (
       <div className="min-h-screen bg-background">
         <div className="container mx-auto px-4 py-8">
+          <Suspense fallback={<Skeleton className="h-96 w-full" />}>
           <AttributeRecommender
             character={selectedCharacterForRec}
             onUpdateCharacter={handleUpdateCharacter}
             onBack={handleExitRecommender}
           />
+          </Suspense>
         </div>
       </div>
     )
@@ -335,11 +348,13 @@ function App() {
     return (
       <div className="min-h-screen bg-background">
         <div className="container mx-auto px-4 py-8">
+          <Suspense fallback={<Skeleton className="h-96 w-full" />}>
           <CharacterComparison
             characters={characters || DEFAULT_CHARACTERS}
             onBack={handleExitCompare}
             onOpenRecommender={handleOpenRecommender}
           />
+          </Suspense>
         </div>
       </div>
     )
@@ -349,12 +364,14 @@ function App() {
     return (
       <div className="min-h-screen bg-background">
         <div className="container mx-auto px-4 py-8">
+          <Suspense fallback={<Skeleton className="h-96 w-full" />}>
           <StatsDashboard
             characters={characters || DEFAULT_CHARACTERS}
             questions={questions || DEFAULT_QUESTIONS}
             gameHistory={gameHistory || []}
             onBack={handleExitStats}
           />
+          </Suspense>
         </div>
       </div>
     )
@@ -380,7 +397,7 @@ function App() {
             <div className="container mx-auto px-4 py-6">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <Sparkle size={40} weight="fill" className="text-accent" />
+                  <SparkleIcon size={40} weight="fill" className="text-accent" />
                   <h1 className="text-3xl md:text-4xl font-bold text-foreground tracking-tight">
                     Mystic Guesser
                   </h1>
@@ -394,7 +411,7 @@ function App() {
                         size="sm"
                         className="flex items-center gap-2 bg-accent/10 hover:bg-accent/20 border-accent/30"
                       >
-                        <ChartBar size={20} />
+                        <ChartBarIcon size={20} />
                         <span className="hidden sm:inline">Statistics</span>
                       </Button>
                       <Button
@@ -403,7 +420,7 @@ function App() {
                         size="sm"
                         className="flex items-center gap-2"
                       >
-                        <ClipboardText size={20} />
+                        <ClipboardTextIcon size={20} />
                         <span className="hidden sm:inline">Coverage</span>
                       </Button>
                       <Button
@@ -412,7 +429,7 @@ function App() {
                         size="sm"
                         className="flex items-center gap-2"
                       >
-                        <Users size={20} />
+                        <UsersIcon size={20} />
                         <span className="hidden sm:inline">Compare</span>
                       </Button>
                       <Button
@@ -421,7 +438,7 @@ function App() {
                         size="sm"
                         className="flex items-center gap-2"
                       >
-                        <Flask size={20} />
+                        <FlaskIcon size={20} />
                         <span className="hidden sm:inline">Test Generator</span>
                       </Button>
                       <Button
@@ -430,7 +447,7 @@ function App() {
                         size="sm"
                         className="flex items-center gap-2"
                       >
-                        <Gear size={20} />
+                        <GearIcon size={20} />
                         <span className="hidden sm:inline">Manage Questions</span>
                       </Button>
                       <Button
@@ -444,7 +461,7 @@ function App() {
                         size="sm"
                         className="flex items-center gap-2 bg-teal-500/10 hover:bg-teal-500/20 border-teal-500/30"
                       >
-                        <TreeStructure size={20} />
+                        <TreeStructureIcon size={20} />
                         <span className="hidden sm:inline">Test Environment</span>
                       </Button>
                       <Button
@@ -453,7 +470,7 @@ function App() {
                         size="sm"
                         className="flex items-center gap-2 bg-gradient-to-r from-pink-500/10 to-purple-500/10 hover:from-pink-500/20 hover:to-purple-500/20 border-pink-500/30"
                       >
-                        <Brain size={20} weight="fill" />
+                        <BrainIcon size={20} weight="fill" />
                         <span className="hidden sm:inline">AI Attribute Enrichment</span>
                       </Button>
                     </>
@@ -472,7 +489,7 @@ function App() {
             {gamePhase === 'welcome' && (
               <div className="max-w-4xl mx-auto space-y-8">
                 <div className="text-center space-y-4">
-                  <Sparkle size={80} weight="fill" className="mx-auto text-accent animate-float" />
+                  <SparkleIcon size={80} weight="fill" className="mx-auto text-accent animate-float" />
                   <h2 className="text-4xl md:text-5xl font-bold text-foreground">
                     Think of a Character
                   </h2>
@@ -530,7 +547,7 @@ function App() {
                     size="lg"
                     className="h-16 px-8 text-xl bg-accent hover:bg-accent/90 text-accent-foreground shadow-lg shadow-accent/20 hover:scale-105 transition-transform"
                   >
-                    <Play size={28} weight="fill" className="mr-3" />
+                    <PlayIcon size={28} weight="fill" className="mr-3" />
                     Start Game
                   </Button>
                 </div>
@@ -583,11 +600,13 @@ function App() {
 
             {gamePhase === 'teaching' && (
               <div className="max-w-2xl mx-auto">
+                <Suspense fallback={<Skeleton className="h-96 w-full" />}>
                 <TeachingMode
                   answers={answers}
                   onAddCharacter={handleAddCharacter}
                   onSkip={handleSkipTeaching}
                 />
+                </Suspense>
               </div>
             )}
 
@@ -604,11 +623,13 @@ function App() {
                     Back to Game
                   </Button>
                 </div>
+                <Suspense fallback={<Skeleton className="h-96 w-full" />}>
                 <QuestionManager
                   characters={characters || DEFAULT_CHARACTERS}
                   questions={questions || DEFAULT_QUESTIONS}
                   onAddQuestions={handleAddQuestions}
                 />
+                </Suspense>
                 <div className="bg-card/50 backdrop-blur-sm border border-border/50 rounded-lg p-6">
                   <h3 className="text-lg font-semibold text-foreground mb-3">
                     Current Statistics

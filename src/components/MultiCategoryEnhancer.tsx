@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ArrowLeft, TreeStructure, Sparkle, Check, X, Lightning, Users, Sword, Brain, Planet, User, Backpack, Heart, ChartLineUp } from '@phosphor-icons/react'
+import { ArrowLeft, TreeStructure, Sparkle, Check, X, Lightning, Users, Brain, Planet, User, Backpack, Heart, ChartLineUp } from '@phosphor-icons/react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -69,6 +69,7 @@ export function MultiCategoryEnhancer({
     if (currentCharacter && !enhancements.has(currentCharacter.id) && !showDashboard) {
       loadRecommendationsForCharacter(currentCharacter)
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentCharacter, selectedCategory, showDashboard])
 
   const loadRecommendationsForCharacter = async (character: Character) => {
@@ -235,16 +236,6 @@ export function MultiCategoryEnhancer({
     setShowDashboard(false)
   }
 
-  const handleFinish = () => {
-    const totalAccepted = Array.from(enhancements.values()).reduce(
-      (sum, e) => sum + e.acceptedCount,
-      0
-    )
-    const categoryInfo = getCategoryInfo(selectedCategory)
-    toast.success(`Enhanced ${enhancements.size} characters with ${totalAccepted} ${categoryInfo.description} attributes!`)
-    onBack()
-  }
-
   const getPriorityColor = (priority: 'high' | 'medium' | 'low') => {
     switch (priority) {
       case 'high':
@@ -287,15 +278,6 @@ export function MultiCategoryEnhancer({
 
   const categoryInfo = getCategoryInfo(selectedCategory)
   const CategoryIcon = CATEGORY_ICONS[selectedCategory]
-  const categoryColors = CATEGORY_COLORS[selectedCategory]
-
-  const handleCategoryChange = (category: AttributeCategory) => {
-    setSelectedCategory(category)
-    setEnhancements(new Map())
-    setCurrentCharacterIndex(0)
-    setShowDashboard(true)
-  }
-
   const getCategoryStats = (category: AttributeCategory) => {
     const categoryInfo = getCategoryInfo(category)
     let totalAvailable = 0

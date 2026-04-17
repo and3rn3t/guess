@@ -1,4 +1,5 @@
 import { ALL_KNOWN_ATTRIBUTES } from './attributeRecommender'
+import { llm } from './llm'
 
 export interface AttributeRecommendation {
   attribute: string
@@ -40,7 +41,7 @@ const CATEGORY_DEFINITIONS: Record<AttributeCategory, CategoryDefinition> = {
   abilities: {
     name: 'Powers & Abilities',
     description: 'special powers, skills, and capabilities',
-    attributeFilter: (key, label) =>
+    attributeFilter: (key, _label) =>
       key.startsWith('can') ||
       key.includes('Powers') ||
       key.includes('shoots') ||
@@ -239,7 +240,7 @@ Return exactly this JSON format with a "recommendations" array:
 Provide up to 10 recommendations focused specifically on ${categoryDef.description} for ${characterName}.`
 
   try {
-    const response = await window.spark.llm(prompt, 'gpt-4o', true)
+    const response = await llm(prompt, 'gpt-4o', true)
     const parsed = JSON.parse(response)
     return (parsed.recommendations || []).slice(0, 10)
   } catch (error) {
