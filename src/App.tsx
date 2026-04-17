@@ -1,7 +1,7 @@
 import { useState, useEffect, lazy, Suspense } from 'react'
 import { useKV } from '@/hooks/useKV'
 import { AnimatePresence } from 'framer-motion'
-import { SparkleIcon, PlayIcon, GearIcon, FlaskIcon, ChartBarIcon, UsersIcon, ClipboardTextIcon, BrainIcon, TreeStructureIcon } from '@phosphor-icons/react'
+import { SparkleIcon, PlayIcon, GearIcon, FlaskIcon, ChartBarIcon, UsersIcon, ClipboardTextIcon, BrainIcon, TreeStructureIcon, WrenchIcon } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -54,6 +54,7 @@ function App() {
   const [gameWon, setGameWon] = useState(false)
   const [askedQuestionIds, setAskedQuestionIds] = useState<string[]>([])
   const [selectedCharacterForRec, setSelectedCharacterForRec] = useState<Character | null>(null)
+  const [showDevTools, setShowDevTools] = useState(false)
 
   useEffect(() => {
     if (gamePhase === 'playing' && currentQuestion === null && possibleCharacters.length > 0) {
@@ -415,15 +416,6 @@ function App() {
                         <span className="hidden sm:inline">Statistics</span>
                       </Button>
                       <Button
-                        onClick={handleOpenCoverage}
-                        variant="outline"
-                        size="sm"
-                        className="flex items-center gap-2"
-                      >
-                        <ClipboardTextIcon size={20} />
-                        <span className="hidden sm:inline">Coverage</span>
-                      </Button>
-                      <Button
                         onClick={handleOpenCompare}
                         variant="outline"
                         size="sm"
@@ -432,47 +424,17 @@ function App() {
                         <UsersIcon size={20} />
                         <span className="hidden sm:inline">Compare</span>
                       </Button>
-                      <Button
-                        onClick={handleOpenDemo}
-                        variant="outline"
-                        size="sm"
-                        className="flex items-center gap-2"
-                      >
-                        <FlaskIcon size={20} />
-                        <span className="hidden sm:inline">Test Generator</span>
-                      </Button>
-                      <Button
-                        onClick={handleManageQuestions}
-                        variant="outline"
-                        size="sm"
-                        className="flex items-center gap-2"
-                      >
-                        <GearIcon size={20} />
-                        <span className="hidden sm:inline">Manage Questions</span>
-                      </Button>
-                      <Button
-                        onClick={() => {
-                          const spongebob = (characters || DEFAULT_CHARACTERS).find(c => c.id === 'spongebob')
-                          if (spongebob) {
-                            handleOpenEnvironmentTest(spongebob)
-                          }
-                        }}
-                        variant="outline"
-                        size="sm"
-                        className="flex items-center gap-2 bg-teal-500/10 hover:bg-teal-500/20 border-teal-500/30"
-                      >
-                        <TreeStructureIcon size={20} />
-                        <span className="hidden sm:inline">Test Environment</span>
-                      </Button>
-                      <Button
-                        onClick={handleOpenBulkHabitat}
-                        variant="outline"
-                        size="sm"
-                        className="flex items-center gap-2 bg-gradient-to-r from-pink-500/10 to-purple-500/10 hover:from-pink-500/20 hover:to-purple-500/20 border-pink-500/30"
-                      >
-                        <BrainIcon size={20} weight="fill" />
-                        <span className="hidden sm:inline">AI Attribute Enrichment</span>
-                      </Button>
+                      {import.meta.env.DEV && (
+                        <Button
+                          onClick={() => setShowDevTools(!showDevTools)}
+                          variant="outline"
+                          size="sm"
+                          className="flex items-center gap-2 border-dashed border-yellow-500/50 text-yellow-500"
+                        >
+                          <WrenchIcon size={20} />
+                          <span className="hidden sm:inline">Dev Tools</span>
+                        </Button>
+                      )}
                     </>
                   )}
                   {gamePhase !== 'welcome' && (
@@ -541,7 +503,7 @@ function App() {
                   </div>
                 </div>
 
-                <div className="text-center">
+                <div className="text-center space-y-4">
                   <Button
                     onClick={startGame}
                     size="lg"
@@ -550,7 +512,49 @@ function App() {
                     <PlayIcon size={28} weight="fill" className="mr-3" />
                     Start Game
                   </Button>
+                  <p className="text-sm text-muted-foreground">
+                    I know {(characters || DEFAULT_CHARACTERS).length} characters — can you stump me?
+                  </p>
                 </div>
+
+                {import.meta.env.DEV && showDevTools && (
+                  <div className="border-2 border-dashed border-yellow-500/30 rounded-xl p-6 space-y-4">
+                    <h3 className="text-lg font-semibold text-yellow-500 flex items-center gap-2">
+                      <WrenchIcon size={24} />
+                      Developer Tools
+                    </h3>
+                    <div className="flex flex-wrap gap-3">
+                      <Button onClick={handleOpenCoverage} variant="outline" size="sm" className="flex items-center gap-2">
+                        <ClipboardTextIcon size={18} />
+                        Coverage Report
+                      </Button>
+                      <Button onClick={handleOpenDemo} variant="outline" size="sm" className="flex items-center gap-2">
+                        <FlaskIcon size={18} />
+                        Test Generator
+                      </Button>
+                      <Button onClick={handleManageQuestions} variant="outline" size="sm" className="flex items-center gap-2">
+                        <GearIcon size={18} />
+                        Manage Questions
+                      </Button>
+                      <Button
+                        onClick={() => {
+                          const spongebob = (characters || DEFAULT_CHARACTERS).find(c => c.id === 'spongebob')
+                          if (spongebob) handleOpenEnvironmentTest(spongebob)
+                        }}
+                        variant="outline"
+                        size="sm"
+                        className="flex items-center gap-2"
+                      >
+                        <TreeStructureIcon size={18} />
+                        Test Environment
+                      </Button>
+                      <Button onClick={handleOpenBulkHabitat} variant="outline" size="sm" className="flex items-center gap-2">
+                        <BrainIcon size={18} weight="fill" />
+                        AI Enrichment
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
@@ -562,13 +566,13 @@ function App() {
                       <QuestionCard
                         question={currentQuestion}
                         questionNumber={answers.length + 1}
-                        totalQuestions={20}
+                        totalQuestions={15}
                         onAnswer={handleAnswer}
                         isProcessing={isThinking}
                       />
                     )}
                   </AnimatePresence>
-                  <Progress value={(answers.length / 20) * 100} className="h-2" />
+                  <Progress value={(answers.length / 15) * 100} className="h-2" />
                 </div>
 
                 <div className="lg:sticky lg:top-8 lg:self-start">
@@ -603,6 +607,7 @@ function App() {
                 <Suspense fallback={<Skeleton className="h-96 w-full" />}>
                 <TeachingMode
                   answers={answers}
+                  existingCharacters={characters || DEFAULT_CHARACTERS}
                   onAddCharacter={handleAddCharacter}
                   onSkip={handleSkipTeaching}
                 />

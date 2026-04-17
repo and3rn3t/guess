@@ -48,6 +48,13 @@ export function calculateProbabilities(
   return probabilities
 }
 
+function entropy(probabilities: number[]): number {
+  return probabilities.reduce((sum, p) => {
+    if (p <= 0) return sum
+    return sum - p * Math.log2(p)
+  }, 0)
+}
+
 export function selectBestQuestion(
   characters: Character[],
   answers: Answer[],
@@ -58,21 +65,67 @@ export function selectBestQuestion(
 
   if (availableQuestions.length === 0) return null
 
+  const probs = calculateProbabilities(characters, answers)
+
   let bestQuestion: Question | null = null
-  let bestScore = -1
+  let bestInfoGain = -1
+
+  const currentProbs = characters.map((c) => probs.get(c.id) || 0)
+  const currentEntropy = entropy(currentProbs)
 
   availableQuestions.forEach((question) => {
-    const yesCount = characters.filter((c) => c.attributes[question.attribute] === true).length
-    const noCount = characters.filter((c) => c.attributes[question.attribute] === false).length
-    const unknownCount = characters.length - yesCount - noCount
+    // Partition characters into yes/no/unknown buckets with their probabilities
+    let pYes = 0
+    let pNo = 0
+    let pUnknown = 0
+    const yesProbs: number[] = []
+    const noProbs: number[] = []
+    const unknownProbs: number[] = []
 
-    const balance = Math.min(yesCount, noCount) + unknownCount * 0.3
-    const coverage = (yesCount + noCount) / characters.length
+    characters.forEach((c) => {
+      const prob = probs.get(c.id) || 0
+      const attr = c.attributes[question.attribute]
+      if (attr === true) {
+        pYes += prob
+        yesProbs.push(prob)
+      } else if (attr === false) {
+        pNo += prob
+        noProbs.push(prob)
+      } else {
+        pUnknown += prob
+        unknownProbs.push(prob)
+      }
+    })
 
-    const score = balance * coverage
+    // Expected entropy after asking this question
+    // "yes" answer: keeps yes chars + unknown chars (with penalty)
+    // "no" answer: keeps no chars + unknown chars (with penalty)
+    let expectedEntropy = 0
 
-    if (score > bestScore) {
-      bestScore = score
+    // For "yes" answer: normalize probabilities within yes + unknown group
+    const yesTotal = pYes + pUnknown * 0.5
+    if (yesTotal > 0) {
+      const yesGroupProbs = [
+        ...yesProbs.map((p) => p / yesTotal),
+        ...unknownProbs.map((p) => (p * 0.5) / yesTotal),
+      ]
+      expectedEntropy += yesTotal * entropy(yesGroupProbs)
+    }
+
+    // For "no" answer: normalize probabilities within no + unknown group
+    const noTotal = pNo + pUnknown * 0.5
+    if (noTotal > 0) {
+      const noGroupProbs = [
+        ...noProbs.map((p) => p / noTotal),
+        ...unknownProbs.map((p) => (p * 0.5) / noTotal),
+      ]
+      expectedEntropy += noTotal * entropy(noGroupProbs)
+    }
+
+    const infoGain = currentEntropy - expectedEntropy
+
+    if (infoGain > bestInfoGain) {
+      bestInfoGain = infoGain
       bestQuestion = question
     }
   })
@@ -137,10 +190,24 @@ export function shouldMakeGuess(
   answers: Answer[],
   questionCount: number
 ): boolean {
-  const probabilities = calculateProbabilities(characters, answers)
-  const topProbability = Math.max(...Array.from(probabilities.values()))
+  if (characters.length <= 1) return true
 
-  return topProbability > 0.8 || questionCount >= 20 || characters.length === 1
+  const probabilities = calculateProbabilities(characters, answers)
+  const sorted = Array.from(probabilities.values()).sort((a, b) => b - a)
+  const topProbability = sorted[0]
+
+  // Hard limit: stop after 15 questions
+  if (questionCount >= 15) return true
+
+  // High confidence: guess when top candidate is >80%
+  if (topProbability > 0.8) return true
+
+  // Adaptive: if the gap between #1 and #2 is large enough and we've asked enough, go for it
+  const secondProbability = sorted.length > 1 ? sorted[1] : 0
+  const gap = topProbability - secondProbability
+  if (questionCount >= 8 && gap > 0.3 && topProbability > 0.5) return true
+
+  return false
 }
 
 export function getBestGuess(characters: Character[], answers: Answer[]): Character | null {

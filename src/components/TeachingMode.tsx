@@ -10,17 +10,44 @@ import type { Character, Answer } from '@/lib/types'
 
 interface TeachingModeProps {
   answers: Answer[]
+  existingCharacters: Character[]
   onAddCharacter: (character: Character) => void
   onSkip: () => void
 }
 
-export function TeachingMode({ answers, onAddCharacter, onSkip }: TeachingModeProps) {
+function slugify(name: string): string {
+  return name
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '')
+}
+
+export function TeachingMode({ answers, existingCharacters, onAddCharacter, onSkip }: TeachingModeProps) {
   const [characterName, setCharacterName] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [showSuccess, setShowSuccess] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const validateName = (name: string): string | null => {
+    const trimmed = name.trim()
+    if (!trimmed) return 'Please enter a character name.'
+    if (trimmed.length < 2) return 'Name must be at least 2 characters.'
+    const slug = slugify(trimmed)
+    const duplicate = existingCharacters.find(
+      (c) => slugify(c.name) === slug || c.name.toLowerCase() === trimmed.toLowerCase()
+    )
+    if (duplicate) return `I already know "${duplicate.name}"! Try a different character.`
+    return null
+  }
 
   const handleSubmit = async () => {
-    if (!characterName.trim()) return
+    const validationError = validateName(characterName)
+    if (validationError) {
+      setError(validationError)
+      return
+    }
+    setError(null)
 
     setIsSubmitting(true)
 
@@ -142,16 +169,22 @@ export function TeachingMode({ answers, onAddCharacter, onSkip }: TeachingModePr
                 id="character-name"
                 placeholder="Enter character name..."
                 value={characterName}
-                onChange={(e) => setCharacterName(e.target.value)}
+                onChange={(e) => {
+                  setCharacterName(e.target.value)
+                  setError(null)
+                }}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && characterName.trim()) {
                     handleSubmit()
                   }
                 }}
-                className="h-12 text-lg"
+                className={`h-12 text-lg ${error ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
                 disabled={isSubmitting}
                 autoFocus
               />
+              {error && (
+                <p className="text-sm text-red-500 mt-1">{error}</p>
+              )}
             </div>
 
             {answers.length > 0 && (
