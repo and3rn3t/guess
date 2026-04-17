@@ -1,413 +1,426 @@
-import { useState, useEffect, lazy, Suspense } from 'react'
-import { useKV } from '@/hooks/useKV'
-import { AnimatePresence } from 'framer-motion'
-import { SparkleIcon, PlayIcon, GearIcon, FlaskIcon, ChartBarIcon, UsersIcon, ClipboardTextIcon, BrainIcon, TreeStructureIcon, WrenchIcon } from '@phosphor-icons/react'
-import { Button } from '@/components/ui/button'
-import { Progress } from '@/components/ui/progress'
-import { Skeleton } from '@/components/ui/skeleton'
-import { Toaster, toast } from 'sonner'
-import { QuestionCard } from '@/components/QuestionCard'
-import { ReasoningPanel } from '@/components/ReasoningPanel'
-import { GuessReveal, GameOver } from '@/components/GuessReveal'
-import { DEFAULT_CHARACTERS, DEFAULT_QUESTIONS } from '@/lib/database'
+import { GameOver, GuessReveal } from "@/components/GuessReveal";
+import { QuestionCard } from "@/components/QuestionCard";
+import { ReasoningPanel } from "@/components/ReasoningPanel";
+import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useGameState } from "@/hooks/useGameState";
+import { useKV } from "@/hooks/useKV";
+import { DEFAULT_CHARACTERS, DEFAULT_QUESTIONS } from "@/lib/database";
 import {
-  selectBestQuestion,
-  generateReasoning,
-  shouldMakeGuess,
-  getBestGuess,
   calculateProbabilities,
   detectContradictions,
-} from '@/lib/gameEngine'
-import type { Character, Question, Answer, AnswerValue, ReasoningExplanation, CharacterCategory, Difficulty } from '@/lib/types'
-import { DIFFICULTIES, CATEGORY_LABELS } from '@/lib/types'
+  generateReasoning,
+  getBestGuess,
+  selectBestQuestion,
+  shouldMakeGuess,
+} from "@/lib/gameEngine";
+import type {
+  AnswerValue,
+  Character,
+  CharacterCategory,
+  Difficulty,
+  GameHistoryEntry,
+  Question,
+} from "@/lib/types";
+import { CATEGORY_LABELS, DIFFICULTIES } from "@/lib/types";
+import {
+  BrainIcon,
+  ChartBarIcon,
+  ClipboardTextIcon,
+  ClockCounterClockwiseIcon,
+  FlaskIcon,
+  GearIcon,
+  PlayIcon,
+  SparkleIcon,
+  TreeStructureIcon,
+  UsersIcon,
+  WrenchIcon,
+} from "@phosphor-icons/react";
+import { AnimatePresence } from "framer-motion";
+import { lazy, Suspense, useEffect, useState } from "react";
+import { toast, Toaster } from "sonner";
 
-const TeachingMode = lazy(() => import('@/components/TeachingMode').then(m => ({ default: m.TeachingMode })))
-const QuestionManager = lazy(() => import('@/components/QuestionManager').then(m => ({ default: m.QuestionManager })))
-const QuestionGeneratorDemo = lazy(() => import('@/components/QuestionGeneratorDemo').then(m => ({ default: m.QuestionGeneratorDemo })))
-const StatsDashboard = lazy(() => import('@/components/StatsDashboard').then(m => ({ default: m.StatsDashboard })))
-const CharacterComparison = lazy(() => import('@/components/CharacterComparison').then(m => ({ default: m.CharacterComparison })))
-const AttributeCoverageReport = lazy(() => import('@/components/AttributeCoverageReport').then(m => ({ default: m.AttributeCoverageReport })))
-const AttributeRecommender = lazy(() => import('@/components/AttributeRecommender').then(m => ({ default: m.AttributeRecommender })))
-const CategoryRecommender = lazy(() => import('@/components/CategoryRecommender').then(m => ({ default: m.CategoryRecommender })))
-const EnvironmentTest = lazy(() => import('@/components/EnvironmentTest').then(m => ({ default: m.EnvironmentTest })))
-const MultiCategoryEnhancer = lazy(() => import('@/components/MultiCategoryEnhancer').then(m => ({ default: m.MultiCategoryEnhancer })))
-
-type GamePhase = 'welcome' | 'playing' | 'guessing' | 'gameOver' | 'teaching' | 'manage' | 'demo' | 'stats' | 'compare' | 'coverage' | 'recommender' | 'categoryRecommender' | 'environmentTest' | 'bulkHabitat'
-
-interface GameHistoryEntry {
-  characterId: string
-  questionsAsked: string[]
-  won: boolean
-  timestamp: number
-}
+const TeachingMode = lazy(() =>
+  import("@/components/TeachingMode").then((m) => ({
+    default: m.TeachingMode,
+  })),
+);
+const QuestionManager = lazy(() =>
+  import("@/components/QuestionManager").then((m) => ({
+    default: m.QuestionManager,
+  })),
+);
+const QuestionGeneratorDemo = lazy(() =>
+  import("@/components/QuestionGeneratorDemo").then((m) => ({
+    default: m.QuestionGeneratorDemo,
+  })),
+);
+const StatsDashboard = lazy(() =>
+  import("@/components/StatsDashboard").then((m) => ({
+    default: m.StatsDashboard,
+  })),
+);
+const CharacterComparison = lazy(() =>
+  import("@/components/CharacterComparison").then((m) => ({
+    default: m.CharacterComparison,
+  })),
+);
+const AttributeCoverageReport = lazy(() =>
+  import("@/components/AttributeCoverageReport").then((m) => ({
+    default: m.AttributeCoverageReport,
+  })),
+);
+const AttributeRecommender = lazy(() =>
+  import("@/components/AttributeRecommender").then((m) => ({
+    default: m.AttributeRecommender,
+  })),
+);
+const CategoryRecommender = lazy(() =>
+  import("@/components/CategoryRecommender").then((m) => ({
+    default: m.CategoryRecommender,
+  })),
+);
+const EnvironmentTest = lazy(() =>
+  import("@/components/EnvironmentTest").then((m) => ({
+    default: m.EnvironmentTest,
+  })),
+);
+const MultiCategoryEnhancer = lazy(() =>
+  import("@/components/MultiCategoryEnhancer").then((m) => ({
+    default: m.MultiCategoryEnhancer,
+  })),
+);
+const GameHistory = lazy(() =>
+  import("@/components/GameHistory").then((m) => ({ default: m.GameHistory })),
+);
 
 function App() {
-  const [characters, setCharacters] = useKV<Character[]>('characters', DEFAULT_CHARACTERS)
-  const [questions, setQuestions] = useKV<Question[]>('questions', DEFAULT_QUESTIONS)
-  const [gameHistory, setGameHistory] = useKV<GameHistoryEntry[]>('game-history', [])
+  // ========== PERSISTENT STATE ==========
+  const [characters, setCharacters] = useKV<Character[]>(
+    "characters",
+    DEFAULT_CHARACTERS,
+  );
+  const [questions, setQuestions] = useKV<Question[]>(
+    "questions",
+    DEFAULT_QUESTIONS,
+  );
+  const [gameHistory, setGameHistory] = useKV<GameHistoryEntry[]>(
+    "game-history",
+    [],
+  );
 
-  const [gamePhase, setGamePhase] = useState<GamePhase>('welcome')
-  const [answers, setAnswers] = useState<Answer[]>([])
-  const [currentQuestion, setCurrentQuestion] = useState<Question | null>(null)
-  const [reasoning, setReasoning] = useState<ReasoningExplanation | null>(null)
-  const [possibleCharacters, setPossibleCharacters] = useState<Character[]>(DEFAULT_CHARACTERS)
-  const [finalGuess, setFinalGuess] = useState<Character | null>(null)
-  const [isThinking, setIsThinking] = useState(false)
-  const [gameWon, setGameWon] = useState(false)
-  const [askedQuestionIds, setAskedQuestionIds] = useState<string[]>([])
-  const [selectedCharacterForRec, setSelectedCharacterForRec] = useState<Character | null>(null)
-  const [showDevTools, setShowDevTools] = useState(false)
-  const [difficulty, setDifficulty] = useState<Difficulty>('medium')
-  const [selectedCategories, setSelectedCategories] = useState<Set<CharacterCategory>>(new Set())
+  // ========== GAME STATE (reducer) ==========
+  const { state: game, dispatch, navigate } = useGameState();
+  const {
+    phase: gamePhase,
+    answers,
+    currentQuestion,
+    reasoning,
+    possibleCharacters,
+    finalGuess,
+    isThinking,
+    gameWon,
+    gameSteps,
+    selectedCharacter,
+    showDevTools,
+  } = game;
 
-  useEffect(() => {
-    if (gamePhase === 'playing' && currentQuestion === null && possibleCharacters.length > 0) {
-      generateNextQuestion()
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [gamePhase, currentQuestion, possibleCharacters])
+  // ========== SETTINGS ==========
+  const [difficulty, setDifficulty] = useState<Difficulty>("medium");
+  const [selectedCategories, setSelectedCategories] = useState<
+    Set<CharacterCategory>
+  >(new Set());
 
-  const maxQuestions = DIFFICULTIES[difficulty].maxQuestions
+  const maxQuestions = DIFFICULTIES[difficulty].maxQuestions;
 
   const activeCharacters = (() => {
-    const all = characters || DEFAULT_CHARACTERS
-    if (selectedCategories.size === 0) return all
-    return all.filter((c) => selectedCategories.has(c.category))
-  })()
+    const all = characters || DEFAULT_CHARACTERS;
+    if (selectedCategories.size === 0) return all;
+    return all.filter((c) => selectedCategories.has(c.category));
+  })();
 
+  // ========== AUTO-GENERATE QUESTION ==========
+  useEffect(() => {
+    if (
+      gamePhase === "playing" &&
+      currentQuestion === null &&
+      possibleCharacters.length > 0
+    ) {
+      generateNextQuestion();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gamePhase, currentQuestion, possibleCharacters]);
+
+  // ========== CATEGORY TOGGLE ==========
   const toggleCategory = (cat: CharacterCategory) => {
     setSelectedCategories((prev) => {
-      const next = new Set(prev)
-      if (next.has(cat)) next.delete(cat)
-      else next.add(cat)
-      return next
-    })
-  }
+      const next = new Set(prev);
+      if (next.has(cat)) next.delete(cat);
+      else next.add(cat);
+      return next;
+    });
+  };
 
+  // ========== GAME START ==========
   const startGame = () => {
     if (activeCharacters.length < 2) {
-      toast.error('Select categories with at least 2 characters')
-      return
+      toast.error("Select categories with at least 2 characters");
+      return;
     }
-    setGamePhase('playing')
-    setAnswers([])
-    setPossibleCharacters(activeCharacters)
-    setCurrentQuestion(null)
-    setReasoning(null)
-    setFinalGuess(null)
-    setGameWon(false)
-    setAskedQuestionIds([])
-  }
+    dispatch({ type: "START_GAME", characters: activeCharacters });
+  };
 
+  // ========== GENERATE NEXT QUESTION ==========
   const generateNextQuestion = () => {
-    setIsThinking(true)
+    dispatch({ type: "SET_THINKING", isThinking: true });
 
     setTimeout(() => {
-      const allQuestions = questions || DEFAULT_QUESTIONS
-      const filtered = filterPossibleCharacters(possibleCharacters, answers)
-      setPossibleCharacters(filtered)
+      const allQuestions = questions || DEFAULT_QUESTIONS;
+      const filtered = filterPossibleCharacters(possibleCharacters, answers);
+      dispatch({ type: "SET_POSSIBLE_CHARACTERS", characters: filtered });
 
-      const { hasContradiction } = detectContradictions(possibleCharacters, answers)
+      const { hasContradiction } = detectContradictions(
+        possibleCharacters,
+        answers,
+      );
       if (hasContradiction) {
-        toast.warning('Your answers seem contradictory — no characters match! Undoing last answer.')
-        setAnswers((prev) => prev.slice(0, -1))
-        setIsThinking(false)
-        return
+        toast.warning(
+          "Your answers seem contradictory — no characters match! Undoing last answer.",
+        );
+        dispatch({ type: "UNDO_LAST_ANSWER" });
+        dispatch({ type: "SET_THINKING", isThinking: false });
+        return;
       }
 
       if (shouldMakeGuess(filtered, answers, answers.length, maxQuestions)) {
-        const guess = getBestGuess(filtered, answers)
-        setFinalGuess(guess)
-        setGamePhase('guessing')
-        setIsThinking(false)
-        return
+        const guess = getBestGuess(filtered, answers);
+        if (guess) dispatch({ type: "MAKE_GUESS", character: guess });
+        return;
       }
 
-      const nextQuestion = selectBestQuestion(filtered, answers, allQuestions)
+      const nextQuestion = selectBestQuestion(filtered, answers, allQuestions);
 
       if (nextQuestion) {
-        const newReasoning = generateReasoning(nextQuestion, filtered, answers)
-        setCurrentQuestion(nextQuestion)
-        setReasoning(newReasoning)
-        setAskedQuestionIds((prev) => [...prev, nextQuestion.id])
+        const newReasoning = generateReasoning(nextQuestion, filtered, answers);
+        dispatch({
+          type: "SET_QUESTION",
+          question: nextQuestion,
+          reasoning: newReasoning,
+        });
       } else {
-        const guess = getBestGuess(filtered, answers)
-        setFinalGuess(guess)
-        setGamePhase('guessing')
+        const guess = getBestGuess(filtered, answers);
+        if (guess) dispatch({ type: "MAKE_GUESS", character: guess });
       }
 
-      setIsThinking(false)
-    }, 800)
-  }
+      dispatch({ type: "SET_THINKING", isThinking: false });
+    }, 800);
+  };
 
-  const filterPossibleCharacters = (chars: Character[], currentAnswers: Answer[]): Character[] => {
+  // ========== FILTER POSSIBLE CHARACTERS ==========
+  const filterPossibleCharacters = (
+    chars: Character[],
+    currentAnswers: { questionId: string; value: AnswerValue }[],
+  ): Character[] => {
     return chars.filter((char) => {
-      const probabilities = calculateProbabilities([char], currentAnswers)
-      return probabilities.get(char.id)! > 0
-    })
-  }
+      const probabilities = calculateProbabilities([char], currentAnswers);
+      return probabilities.get(char.id)! > 0;
+    });
+  };
 
+  // ========== ANSWER HANDLER ==========
   const handleAnswer = (value: AnswerValue) => {
-    if (!currentQuestion) return
+    dispatch({ type: "ANSWER", value });
+    toast.success(`Answer recorded: ${value}`);
+  };
 
-    const newAnswer: Answer = {
-      questionId: currentQuestion.attribute,
-      value,
-    }
-
-    setAnswers((prev) => [...prev, newAnswer])
-    setCurrentQuestion(null)
-    toast.success(`Answer recorded: ${value}`)
-  }
+  // ========== GAME OUTCOME HANDLERS ==========
+  const recordGame = (won: boolean) => {
+    if (!finalGuess) return;
+    setGameHistory((prev) => [
+      ...(prev || []),
+      {
+        id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        characterId: finalGuess.id,
+        characterName: finalGuess.name,
+        won,
+        timestamp: Date.now(),
+        difficulty,
+        totalQuestions: maxQuestions,
+        steps: gameSteps,
+      },
+    ]);
+  };
 
   const handleCorrectGuess = () => {
-    setGameWon(true)
-    setGamePhase('gameOver')
-    toast.success('🎉 I got it right!')
-    
-    if (finalGuess) {
-      setGameHistory((currentHistory) => [
-        ...(currentHistory || []),
-        {
-          characterId: finalGuess.id,
-          questionsAsked: askedQuestionIds,
-          won: true,
-          timestamp: Date.now(),
-        },
-      ])
-    }
-  }
+    dispatch({ type: "CORRECT_GUESS" });
+    recordGame(true);
+    toast.success("🎉 I got it right!");
+  };
 
   const handleIncorrectGuess = () => {
-    setGameWon(false)
-    setGamePhase('gameOver')
-    toast.error("I'll learn from this and do better next time!")
-    
-    if (finalGuess) {
-      setGameHistory((currentHistory) => [
-        ...(currentHistory || []),
-        {
-          characterId: finalGuess.id,
-          questionsAsked: askedQuestionIds,
-          won: false,
-          timestamp: Date.now(),
-        },
-      ])
-    }
-  }
+    dispatch({ type: "INCORRECT_GUESS" });
+    recordGame(false);
+    toast.error("I'll learn from this and do better next time!");
+  };
 
-  const handleTeachMode = () => {
-    setGamePhase('teaching')
-  }
-
+  // ========== DATA HANDLERS ==========
   const handleAddCharacter = (character: Character) => {
-    setCharacters((currentCharacters) => [...(currentCharacters || []), character])
-    toast.success(`I've learned about ${character.name}!`)
-  }
-
-  const handleSkipTeaching = () => {
-    setGamePhase('gameOver')
-  }
-
-  const handleManageQuestions = () => {
-    setGamePhase('manage')
-  }
+    setCharacters((prev) => [...(prev || []), character]);
+    toast.success(`I've learned about ${character.name}!`);
+  };
 
   const handleAddQuestions = (newQuestions: Question[]) => {
-    setQuestions((currentQuestions) => [...(currentQuestions || []), ...newQuestions])
-  }
-
-  const handleBackToWelcome = () => {
-    setGamePhase('welcome')
-  }
-
-  const handleOpenDemo = () => {
-    setGamePhase('demo')
-  }
-
-  const handleExitDemo = () => {
-    setGamePhase('welcome')
-  }
-
-  const handleOpenStats = () => {
-    setGamePhase('stats')
-  }
-
-  const handleExitStats = () => {
-    setGamePhase('welcome')
-  }
-
-  const handleOpenCompare = () => {
-    setGamePhase('compare')
-  }
-
-  const handleExitCompare = () => {
-    setGamePhase('welcome')
-  }
-
-  const handleOpenCoverage = () => {
-    setGamePhase('coverage')
-  }
-
-  const handleExitCoverage = () => {
-    setGamePhase('welcome')
-  }
-
-  const handleOpenRecommender = (character: Character) => {
-    setSelectedCharacterForRec(character)
-    setGamePhase('categoryRecommender')
-  }
+    setQuestions((prev) => [...(prev || []), ...newQuestions]);
+  };
 
   const handleUpdateCharacter = (updatedCharacter: Character) => {
-    setCharacters((currentCharacters) =>
-      (currentCharacters || []).map((char) =>
-        char.id === updatedCharacter.id ? updatedCharacter : char
-      )
-    )
-    toast.success(`Updated ${updatedCharacter.name}'s attributes!`)
-  }
-
-  const handleExitRecommender = () => {
-    setSelectedCharacterForRec(null)
-    setGamePhase('welcome')
-  }
-
-  const handleOpenEnvironmentTest = (character: Character) => {
-    setSelectedCharacterForRec(character)
-    setGamePhase('environmentTest')
-  }
-
-  const handleExitEnvironmentTest = () => {
-    setSelectedCharacterForRec(null)
-    setGamePhase('welcome')
-  }
-
-  const handleOpenBulkHabitat = () => {
-    setGamePhase('bulkHabitat')
-  }
-
-  const handleExitBulkHabitat = () => {
-    setGamePhase('welcome')
-  }
+    setCharacters((prev) =>
+      (prev || []).map((char) =>
+        char.id === updatedCharacter.id ? updatedCharacter : char,
+      ),
+    );
+    toast.success(`Updated ${updatedCharacter.name}'s attributes!`);
+  };
 
   const handleUpdateCharacters = (updatedCharacters: Character[]) => {
-    setCharacters(() => updatedCharacters)
-  }
+    setCharacters(() => updatedCharacters);
+  };
 
-  if (gamePhase === 'bulkHabitat') {
+  if (gamePhase === "bulkHabitat") {
     return (
       <div className="min-h-screen bg-background">
         <div className="container mx-auto px-4 py-8">
           <Suspense fallback={<Skeleton className="h-96 w-full" />}>
-          <MultiCategoryEnhancer
-            characters={characters || DEFAULT_CHARACTERS}
-            onUpdateCharacters={handleUpdateCharacters}
-            onBack={handleExitBulkHabitat}
-          />
+            <MultiCategoryEnhancer
+              characters={characters || DEFAULT_CHARACTERS}
+              onUpdateCharacters={handleUpdateCharacters}
+              onBack={() => navigate('welcome')}
+            />
           </Suspense>
         </div>
       </div>
-    )
+    );
   }
 
-  if (gamePhase === 'demo') {
-    return <Suspense fallback={<Skeleton className="h-96 w-full" />}><QuestionGeneratorDemo onBack={handleExitDemo} /></Suspense>
+  if (gamePhase === "demo") {
+    return (
+      <Suspense fallback={<Skeleton className="h-96 w-full" />}>
+        <QuestionGeneratorDemo onBack={() => navigate('welcome')} />
+      </Suspense>
+    );
   }
 
-  if (gamePhase === 'environmentTest' && selectedCharacterForRec) {
+  if (gamePhase === 'environmentTest' && selectedCharacter) {
     return (
       <div className="min-h-screen bg-background">
         <div className="container mx-auto px-4 py-8">
           <Suspense fallback={<Skeleton className="h-96 w-full" />}>
           <EnvironmentTest
-            character={selectedCharacterForRec}
+            character={selectedCharacter}
             onUpdateCharacter={handleUpdateCharacter}
-            onBack={handleExitEnvironmentTest}
-          />
+            onBack={() => navigate('welcome')}
+            />
           </Suspense>
         </div>
       </div>
-    )
+    );
   }
 
-  if (gamePhase === 'coverage') {
+  if (gamePhase === "coverage") {
     return (
       <div className="min-h-screen bg-background">
         <div className="container mx-auto px-4 py-8">
           <Suspense fallback={<Skeleton className="h-96 w-full" />}>
-          <AttributeCoverageReport
-            characters={characters || DEFAULT_CHARACTERS}
-            onBack={handleExitCoverage}
-          />
+            <AttributeCoverageReport
+              characters={characters || DEFAULT_CHARACTERS}
+              onBack={() => navigate('welcome')}
+            />
           </Suspense>
         </div>
       </div>
-    )
+    );
   }
 
-  if (gamePhase === 'categoryRecommender' && selectedCharacterForRec) {
+  if (gamePhase === 'categoryRecommender' && selectedCharacter) {
     return (
       <div className="min-h-screen bg-background">
         <div className="container mx-auto px-4 py-8">
           <Suspense fallback={<Skeleton className="h-96 w-full" />}>
           <CategoryRecommender
-            character={selectedCharacterForRec}
+            character={selectedCharacter}
             onUpdateCharacter={handleUpdateCharacter}
-            onBack={handleExitRecommender}
-          />
+            onBack={() => navigate('welcome')}
+            />
           </Suspense>
         </div>
       </div>
-    )
+    );
   }
 
-  if (gamePhase === 'recommender' && selectedCharacterForRec) {
+  if (gamePhase === 'recommender' && selectedCharacter) {
     return (
       <div className="min-h-screen bg-background">
         <div className="container mx-auto px-4 py-8">
           <Suspense fallback={<Skeleton className="h-96 w-full" />}>
           <AttributeRecommender
-            character={selectedCharacterForRec}
+            character={selectedCharacter}
             onUpdateCharacter={handleUpdateCharacter}
-            onBack={handleExitRecommender}
-          />
+            onBack={() => navigate('welcome')}
+            />
           </Suspense>
         </div>
       </div>
-    )
+    );
   }
 
-  if (gamePhase === 'compare') {
+  if (gamePhase === "compare") {
     return (
       <div className="min-h-screen bg-background">
         <div className="container mx-auto px-4 py-8">
           <Suspense fallback={<Skeleton className="h-96 w-full" />}>
-          <CharacterComparison
-            characters={characters || DEFAULT_CHARACTERS}
-            onBack={handleExitCompare}
-            onOpenRecommender={handleOpenRecommender}
-          />
+            <CharacterComparison
+              characters={characters || DEFAULT_CHARACTERS}
+            onBack={() => navigate('welcome')}
+            onOpenRecommender={(c: Character) => navigate('categoryRecommender', c)}
+            />
           </Suspense>
         </div>
       </div>
-    )
+    );
   }
 
-  if (gamePhase === 'stats') {
+  if (gamePhase === "stats") {
     return (
       <div className="min-h-screen bg-background">
         <div className="container mx-auto px-4 py-8">
           <Suspense fallback={<Skeleton className="h-96 w-full" />}>
-          <StatsDashboard
-            characters={characters || DEFAULT_CHARACTERS}
-            questions={questions || DEFAULT_QUESTIONS}
-            gameHistory={gameHistory || []}
-            onBack={handleExitStats}
-          />
+            <StatsDashboard
+              characters={characters || DEFAULT_CHARACTERS}
+              questions={questions || DEFAULT_QUESTIONS}
+              gameHistory={gameHistory || []}
+              onBack={() => navigate('welcome')}
+            />
           </Suspense>
         </div>
       </div>
-    )
+    );
+  }
+
+  if (gamePhase === "history") {
+    return (
+      <div className="min-h-screen bg-background">
+        <div className="container mx-auto px-4 py-8">
+          <Suspense fallback={<Skeleton className="h-96 w-full" />}>
+            <GameHistory
+              history={gameHistory || []}
+              onClearHistory={() => setGameHistory(() => [])}
+              onBack={() => navigate('welcome')}
+            />
+          </Suspense>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -430,16 +443,20 @@ function App() {
             <div className="container mx-auto px-4 py-6">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <SparkleIcon size={40} weight="fill" className="text-accent" />
+                  <SparkleIcon
+                    size={40}
+                    weight="fill"
+                    className="text-accent"
+                  />
                   <h1 className="text-3xl md:text-4xl font-bold text-foreground tracking-tight">
                     Mystic Guesser
                   </h1>
                 </div>
                 <div className="flex items-center gap-3">
-                  {gamePhase === 'welcome' && (
+                  {gamePhase === "welcome" && (
                     <>
                       <Button
-                        onClick={handleOpenStats}
+                        onClick={() => navigate('stats')}
                         variant="outline"
                         size="sm"
                         className="flex items-center gap-2 bg-accent/10 hover:bg-accent/20 border-accent/30"
@@ -448,7 +465,16 @@ function App() {
                         <span className="hidden sm:inline">Statistics</span>
                       </Button>
                       <Button
-                        onClick={handleOpenCompare}
+                        onClick={() => navigate('history')}
+                        variant="outline"
+                        size="sm"
+                        className="flex items-center gap-2"
+                      >
+                        <ClockCounterClockwiseIcon size={20} />
+                        <span className="hidden sm:inline">History</span>
+                      </Button>
+                      <Button
+                        onClick={() => navigate('compare')}
                         variant="outline"
                         size="sm"
                         className="flex items-center gap-2"
@@ -458,7 +484,7 @@ function App() {
                       </Button>
                       {import.meta.env.DEV && (
                         <Button
-                          onClick={() => setShowDevTools(!showDevTools)}
+                        onClick={() => dispatch({ type: 'TOGGLE_DEV_TOOLS' })}
                           variant="outline"
                           size="sm"
                           className="flex items-center gap-2 border-dashed border-yellow-500/50 text-yellow-500"
@@ -469,7 +495,7 @@ function App() {
                       )}
                     </>
                   )}
-                  {gamePhase !== 'welcome' && (
+                  {gamePhase !== "welcome" && (
                     <div className="text-sm text-muted-foreground">
                       Questions: {answers.length}
                     </div>
@@ -480,31 +506,40 @@ function App() {
           </header>
 
           <main className="container mx-auto px-4 py-8 md:py-12">
-            {gamePhase === 'welcome' && (
+            {gamePhase === "welcome" && (
               <div className="max-w-4xl mx-auto space-y-8">
                 <div className="text-center space-y-4">
-                  <SparkleIcon size={80} weight="fill" className="mx-auto text-accent animate-float" />
+                  <SparkleIcon
+                    size={80}
+                    weight="fill"
+                    className="mx-auto text-accent animate-float"
+                  />
                   <h2 className="text-4xl md:text-5xl font-bold text-foreground">
                     Think of a Character
                   </h2>
                   <p className="text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-                    I'll read your mind by asking strategic questions. Watch as I explain my
-                    reasoning in real-time!
+                    I'll read your mind by asking strategic questions. Watch as
+                    I explain my reasoning in real-time!
                   </p>
                 </div>
 
                 <div className="bg-card/50 backdrop-blur-sm border-2 border-primary/20 rounded-xl p-8 space-y-6">
-                  <h3 className="text-2xl font-semibold text-foreground">How It Works</h3>
+                  <h3 className="text-2xl font-semibold text-foreground">
+                    How It Works
+                  </h3>
                   <div className="space-y-4 text-foreground/90">
                     <div className="flex gap-4">
                       <div className="flex-shrink-0 w-8 h-8 rounded-full bg-accent/20 text-accent flex items-center justify-center font-bold">
                         1
                       </div>
                       <div>
-                        <h4 className="font-semibold mb-1">Strategic Questioning</h4>
+                        <h4 className="font-semibold mb-1">
+                          Strategic Questioning
+                        </h4>
                         <p className="text-sm text-muted-foreground">
-                          I analyze all possibilities and ask questions that split them optimally,
-                          eliminating roughly half with each answer.
+                          I analyze all possibilities and ask questions that
+                          split them optimally, eliminating roughly half with
+                          each answer.
                         </p>
                       </div>
                     </div>
@@ -513,10 +548,13 @@ function App() {
                         2
                       </div>
                       <div>
-                        <h4 className="font-semibold mb-1">Real-Time Reasoning</h4>
+                        <h4 className="font-semibold mb-1">
+                          Real-Time Reasoning
+                        </h4>
                         <p className="text-sm text-muted-foreground">
-                          The explanation panel shows you exactly why I chose each question and how
-                          your answers narrow down the possibilities.
+                          The explanation panel shows you exactly why I chose
+                          each question and how your answers narrow down the
+                          possibilities.
                         </p>
                       </div>
                     </div>
@@ -525,10 +563,12 @@ function App() {
                         3
                       </div>
                       <div>
-                        <h4 className="font-semibold mb-1">Confidence Building</h4>
+                        <h4 className="font-semibold mb-1">
+                          Confidence Building
+                        </h4>
                         <p className="text-sm text-muted-foreground">
-                          Watch my confidence grow with each answer until I'm ready to make my final
-                          guess!
+                          Watch my confidence grow with each answer until I'm
+                          ready to make my final guess!
                         </p>
                       </div>
                     </div>
@@ -536,20 +576,29 @@ function App() {
                 </div>
 
                 <div className="bg-card/50 backdrop-blur-sm border border-border/50 rounded-xl p-6 space-y-4">
-                  <h3 className="text-lg font-semibold text-foreground">Difficulty</h3>
+                  <h3 className="text-lg font-semibold text-foreground">
+                    Difficulty
+                  </h3>
                   <div className="flex flex-wrap gap-3">
-                    {(Object.entries(DIFFICULTIES) as [Difficulty, typeof DIFFICULTIES[Difficulty]][]).map(([key, cfg]) => (
+                    {(
+                      Object.entries(DIFFICULTIES) as [
+                        Difficulty,
+                        (typeof DIFFICULTIES)[Difficulty],
+                      ][]
+                    ).map(([key, cfg]) => (
                       <button
                         key={key}
                         onClick={() => setDifficulty(key)}
                         className={`px-4 py-2 rounded-lg border text-sm font-medium transition-colors ${
                           difficulty === key
-                            ? 'bg-accent text-accent-foreground border-accent'
-                            : 'bg-card border-border hover:bg-accent/10'
+                            ? "bg-accent text-accent-foreground border-accent"
+                            : "bg-card border-border hover:bg-accent/10"
                         }`}
                       >
                         {cfg.label}
-                        <span className="block text-xs opacity-70">{cfg.description}</span>
+                        <span className="block text-xs opacity-70">
+                          {cfg.description}
+                        </span>
                       </button>
                     ))}
                   </div>
@@ -557,29 +606,43 @@ function App() {
 
                 <div className="bg-card/50 backdrop-blur-sm border border-border/50 rounded-xl p-6 space-y-4">
                   <div className="flex items-center justify-between">
-                    <h3 className="text-lg font-semibold text-foreground">Categories</h3>
+                    <h3 className="text-lg font-semibold text-foreground">
+                      Categories
+                    </h3>
                     <span className="text-sm text-muted-foreground">
-                      {selectedCategories.size === 0 ? 'All' : selectedCategories.size} selected · {activeCharacters.length} characters
+                      {selectedCategories.size === 0
+                        ? "All"
+                        : selectedCategories.size}{" "}
+                      selected · {activeCharacters.length} characters
                     </span>
                   </div>
                   <div className="flex flex-wrap gap-3">
-                    {(Object.entries(CATEGORY_LABELS) as [CharacterCategory, string][]).map(([key, label]) => {
-                      const count = (characters || DEFAULT_CHARACTERS).filter((c) => c.category === key).length
-                      const isSelected = selectedCategories.has(key)
+                    {(
+                      Object.entries(CATEGORY_LABELS) as [
+                        CharacterCategory,
+                        string,
+                      ][]
+                    ).map(([key, label]) => {
+                      const count = (characters || DEFAULT_CHARACTERS).filter(
+                        (c) => c.category === key,
+                      ).length;
+                      const isSelected = selectedCategories.has(key);
                       return (
                         <button
                           key={key}
                           onClick={() => toggleCategory(key)}
                           className={`px-4 py-2 rounded-lg border text-sm font-medium transition-colors ${
                             isSelected
-                              ? 'bg-accent text-accent-foreground border-accent'
-                              : 'bg-card border-border hover:bg-accent/10'
+                              ? "bg-accent text-accent-foreground border-accent"
+                              : "bg-card border-border hover:bg-accent/10"
                           }`}
                         >
                           {label}
-                          <span className="block text-xs opacity-70">{count} characters</span>
+                          <span className="block text-xs opacity-70">
+                            {count} characters
+                          </span>
                         </button>
-                      )
+                      );
                     })}
                   </div>
                 </div>
@@ -594,7 +657,8 @@ function App() {
                     Start Game
                   </Button>
                   <p className="text-sm text-muted-foreground">
-                    {activeCharacters.length} characters · {maxQuestions} questions · {DIFFICULTIES[difficulty].label} mode
+                    {activeCharacters.length} characters · {maxQuestions}{" "}
+                    questions · {DIFFICULTIES[difficulty].label} mode
                   </p>
                 </div>
 
@@ -605,22 +669,39 @@ function App() {
                       Developer Tools
                     </h3>
                     <div className="flex flex-wrap gap-3">
-                      <Button onClick={handleOpenCoverage} variant="outline" size="sm" className="flex items-center gap-2">
+                      <Button
+                        onClick={() => navigate('coverage')}
+                        variant="outline"
+                        size="sm"
+                        className="flex items-center gap-2"
+                      >
                         <ClipboardTextIcon size={18} />
                         Coverage Report
                       </Button>
-                      <Button onClick={handleOpenDemo} variant="outline" size="sm" className="flex items-center gap-2">
+                      <Button
+                        onClick={() => navigate('demo')}
+                        variant="outline"
+                        size="sm"
+                        className="flex items-center gap-2"
+                      >
                         <FlaskIcon size={18} />
                         Test Generator
                       </Button>
-                      <Button onClick={handleManageQuestions} variant="outline" size="sm" className="flex items-center gap-2">
+                      <Button
+                        onClick={() => navigate('manage')}
+                        variant="outline"
+                        size="sm"
+                        className="flex items-center gap-2"
+                      >
                         <GearIcon size={18} />
                         Manage Questions
                       </Button>
                       <Button
                         onClick={() => {
-                          const spongebob = (characters || DEFAULT_CHARACTERS).find(c => c.id === 'spongebob')
-                          if (spongebob) handleOpenEnvironmentTest(spongebob)
+                          const spongebob = (
+                            characters || DEFAULT_CHARACTERS
+                          ).find((c) => c.id === "spongebob");
+                          if (spongebob) navigate('environmentTest', spongebob);
                         }}
                         variant="outline"
                         size="sm"
@@ -629,7 +710,12 @@ function App() {
                         <TreeStructureIcon size={18} />
                         Test Environment
                       </Button>
-                      <Button onClick={handleOpenBulkHabitat} variant="outline" size="sm" className="flex items-center gap-2">
+                      <Button
+                        onClick={() => navigate('bulkHabitat')}
+                        variant="outline"
+                        size="sm"
+                        className="flex items-center gap-2"
+                      >
                         <BrainIcon size={18} weight="fill" />
                         AI Enrichment
                       </Button>
@@ -639,10 +725,13 @@ function App() {
               </div>
             )}
 
-            {gamePhase === 'playing' && (
+            {gamePhase === "playing" && (
               <div className="max-w-7xl mx-auto space-y-4 lg:space-y-0">
                 <div className="sticky top-0 z-20 bg-background/80 backdrop-blur-sm py-2 -mx-4 px-4 lg:static lg:bg-transparent lg:backdrop-blur-none lg:py-0 lg:mx-0 lg:px-0 lg:mb-6">
-                  <Progress value={(answers.length / maxQuestions) * 100} className="h-2" />
+                  <Progress
+                    value={(answers.length / maxQuestions) * 100}
+                    className="h-2"
+                  />
                 </div>
 
                 <div className="grid lg:grid-cols-2 gap-4 lg:gap-6">
@@ -661,13 +750,16 @@ function App() {
                   </div>
 
                   <div className="lg:sticky lg:top-8 lg:self-start">
-                    <ReasoningPanel reasoning={reasoning} isThinking={isThinking} />
+                    <ReasoningPanel
+                      reasoning={reasoning}
+                      isThinking={isThinking}
+                    />
                   </div>
                 </div>
               </div>
             )}
 
-            {gamePhase === 'guessing' && finalGuess && (
+            {gamePhase === "guessing" && finalGuess && (
               <div className="max-w-2xl mx-auto">
                 <GuessReveal
                   character={finalGuess}
@@ -677,49 +769,52 @@ function App() {
               </div>
             )}
 
-            {gamePhase === 'gameOver' && (
+            {gamePhase === "gameOver" && (
               <div className="max-w-2xl mx-auto">
                 <GameOver
                   won={gameWon}
                   character={finalGuess}
                   onPlayAgain={startGame}
-                  onTeachMode={!gameWon ? handleTeachMode : undefined}
+                  onTeachMode={!gameWon ? () => navigate('teaching') : undefined}
+                  onViewHistory={() => navigate('history')}
                 />
               </div>
             )}
 
-            {gamePhase === 'teaching' && (
+            {gamePhase === "teaching" && (
               <div className="max-w-2xl mx-auto">
                 <Suspense fallback={<Skeleton className="h-96 w-full" />}>
-                <TeachingMode
-                  answers={answers}
-                  existingCharacters={characters || DEFAULT_CHARACTERS}
-                  onAddCharacter={handleAddCharacter}
-                  onSkip={handleSkipTeaching}
-                />
+                  <TeachingMode
+                    answers={answers}
+                    existingCharacters={characters || DEFAULT_CHARACTERS}
+                    onAddCharacter={handleAddCharacter}
+                    onSkip={() => navigate('gameOver')}
+                  />
                 </Suspense>
               </div>
             )}
 
-            {gamePhase === 'manage' && (
+            {gamePhase === "manage" && (
               <div className="max-w-4xl mx-auto space-y-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h2 className="text-3xl font-bold text-foreground">Question Pool Manager</h2>
+                    <h2 className="text-3xl font-bold text-foreground">
+                      Question Pool Manager
+                    </h2>
                     <p className="text-muted-foreground mt-1">
                       Generate new questions from user-taught characters
                     </p>
                   </div>
-                  <Button onClick={handleBackToWelcome} variant="outline">
+                  <Button onClick={() => navigate('welcome')} variant="outline">
                     Back to Game
                   </Button>
                 </div>
                 <Suspense fallback={<Skeleton className="h-96 w-full" />}>
-                <QuestionManager
-                  characters={characters || DEFAULT_CHARACTERS}
-                  questions={questions || DEFAULT_QUESTIONS}
-                  onAddQuestions={handleAddQuestions}
-                />
+                  <QuestionManager
+                    characters={characters || DEFAULT_CHARACTERS}
+                    questions={questions || DEFAULT_QUESTIONS}
+                    onAddQuestions={handleAddQuestions}
+                  />
                 </Suspense>
                 <div className="bg-card/50 backdrop-blur-sm border border-border/50 rounded-lg p-6">
                   <h3 className="text-lg font-semibold text-foreground mb-3">
@@ -730,23 +825,29 @@ function App() {
                       <div className="text-2xl font-bold text-accent">
                         {(characters || DEFAULT_CHARACTERS).length}
                       </div>
-                      <div className="text-sm text-muted-foreground">Total Characters</div>
+                      <div className="text-sm text-muted-foreground">
+                        Total Characters
+                      </div>
                     </div>
                     <div className="bg-background/50 rounded-lg p-4">
                       <div className="text-2xl font-bold text-accent">
                         {(questions || DEFAULT_QUESTIONS).length}
                       </div>
-                      <div className="text-sm text-muted-foreground">Total Questions</div>
+                      <div className="text-sm text-muted-foreground">
+                        Total Questions
+                      </div>
                     </div>
                     <div className="bg-background/50 rounded-lg p-4">
                       <div className="text-2xl font-bold text-accent">
                         {
-                          (characters || DEFAULT_CHARACTERS).filter(
-                            (c) => c.id.startsWith('char-')
+                          (characters || DEFAULT_CHARACTERS).filter((c) =>
+                            c.id.startsWith("char-"),
                           ).length
                         }
                       </div>
-                      <div className="text-sm text-muted-foreground">User-Taught</div>
+                      <div className="text-sm text-muted-foreground">
+                        User-Taught
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -756,7 +857,7 @@ function App() {
         </div>
       </div>
     </>
-  )
+  );
 }
 
-export default App
+export default App;

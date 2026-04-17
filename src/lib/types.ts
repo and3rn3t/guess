@@ -65,3 +65,20 @@ export interface ReasoningExplanation {
   remaining: number
   confidence: number
 }
+
+export interface GameHistoryEntry {
+  id: string
+  characterId: string
+  characterName: string
+  won: boolean
+  timestamp: number
+  difficulty: Difficulty
+  totalQuestions: number
+  steps: GameHistoryStep[]
+}
+
+export interface GameHistoryStep {
+  questionText: string
+  attribute: string
+  answer: AnswerValue
+}

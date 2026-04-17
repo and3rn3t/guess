@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion'
-import { Sparkle, CheckCircle, XCircle, ArrowClockwise } from '@phosphor-icons/react'
+import { Sparkle, CheckCircle, XCircle, ArrowClockwise, ClockCounterClockwise } from '@phosphor-icons/react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import type { Character } from '@/lib/types'
@@ -77,9 +77,10 @@ interface GameOverProps {
   character: Character | null
   onPlayAgain: () => void
   onTeachMode?: () => void
+  onViewHistory?: () => void
 }
 
-export function GameOver({ won, character, onPlayAgain, onTeachMode }: GameOverProps) {
+export function GameOver({ won, character, onPlayAgain, onTeachMode, onViewHistory }: GameOverProps) {
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.9 }}
@@ -130,6 +131,17 @@ export function GameOver({ won, character, onPlayAgain, onTeachMode }: GameOverP
               >
                 <Sparkle size={24} weight="fill" className="mr-2" />
                 Teach Me
+              </Button>
+            )}
+            {onViewHistory && (
+              <Button
+                onClick={onViewHistory}
+                size="lg"
+                variant="ghost"
+                className="h-14 text-lg"
+              >
+                <ClockCounterClockwise size={24} className="mr-2" />
+                History
               </Button>
             )}
           </div>

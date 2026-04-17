@@ -15,20 +15,13 @@ import {
   Database,
   Lightning
 } from '@phosphor-icons/react'
-import type { Character, Question as QuestionType } from '@/lib/types'
+import type { Character, Question as QuestionType, GameHistoryEntry } from '@/lib/types'
 
 interface StatsDashboardProps {
   characters: Character[]
   questions: QuestionType[]
   gameHistory?: GameHistoryEntry[]
   onBack: () => void
-}
-
-interface GameHistoryEntry {
-  characterId: string
-  questionsAsked: string[]
-  won: boolean
-  timestamp: number
 }
 
 interface QuestionStats {
@@ -65,7 +58,8 @@ export function StatsDashboard({ characters, questions, gameHistory = [], onBack
     const statsMap = new Map<string, { timesAsked: number; positions: number[]; wins: number }>()
 
     gameHistory.forEach((game) => {
-      game.questionsAsked.forEach((qId, index) => {
+      game.steps.forEach((step, index) => {
+        const qId = step.attribute
         const existing = statsMap.get(qId) || { timesAsked: 0, positions: [], wins: 0 }
         existing.timesAsked++
         existing.positions.push(index + 1)
@@ -75,7 +69,7 @@ export function StatsDashboard({ characters, questions, gameHistory = [], onBack
     })
 
     return questions.map((q) => {
-      const stats = statsMap.get(q.id) || { timesAsked: 0, positions: [], wins: 0 }
+      const stats = statsMap.get(q.attribute) || { timesAsked: 0, positions: [], wins: 0 }
       const avgPosition = stats.positions.length > 0
         ? stats.positions.reduce((a, b) => a + b, 0) / stats.positions.length
         : 0
