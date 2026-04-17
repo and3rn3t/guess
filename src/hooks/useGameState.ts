@@ -18,6 +18,7 @@ export type GamePhase =
   | 'environmentTest'
   | 'bulkHabitat'
   | 'history'
+  | 'challenge'
 
 // ========== STATE ==========
 export interface GameState {

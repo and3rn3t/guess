@@ -253,10 +253,6 @@ export function getCategoryInfo(category: AttributeCategory): CategoryDefinition
   return CATEGORY_DEFINITIONS[category]
 }
 
-export function getAllCategories(): AttributeCategory[] {
-  return Object.keys(CATEGORY_DEFINITIONS) as AttributeCategory[]
-}
-
 export function getAvailableAttributesForCategory(
   category: AttributeCategory,
   existingAttributes: Record<string, boolean | null>

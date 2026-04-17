@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion'
-import { Sparkle, CheckCircle, XCircle, ArrowClockwise, ClockCounterClockwise } from '@phosphor-icons/react'
+import { Sparkle, CheckCircle, XCircle, ArrowClockwise, ClockCounterClockwise, ShareNetwork, Link as LinkIcon } from '@phosphor-icons/react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import type { Character } from '@/lib/types'
@@ -78,9 +78,11 @@ interface GameOverProps {
   onPlayAgain: () => void
   onTeachMode?: () => void
   onViewHistory?: () => void
+  onShare?: () => void
+  onCopyLink?: () => void
 }
 
-export function GameOver({ won, character, onPlayAgain, onTeachMode, onViewHistory }: GameOverProps) {
+export function GameOver({ won, character, onPlayAgain, onTeachMode, onViewHistory, onShare, onCopyLink }: GameOverProps) {
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.9 }}
@@ -145,6 +147,23 @@ export function GameOver({ won, character, onPlayAgain, onTeachMode, onViewHisto
               </Button>
             )}
           </div>
+
+          {(onShare || onCopyLink) && (
+            <div className="flex gap-3 justify-center pt-2">
+              {onShare && (
+                <Button onClick={onShare} variant="outline" size="sm" className="gap-2">
+                  <ShareNetwork size={18} />
+                  Share Result
+                </Button>
+              )}
+              {onCopyLink && (
+                <Button onClick={onCopyLink} variant="outline" size="sm" className="gap-2">
+                  <LinkIcon size={18} />
+                  Copy Link
+                </Button>
+              )}
+            </div>
+          )}
         </div>
       </Card>
     </motion.div>

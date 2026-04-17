@@ -25,6 +25,12 @@ import type {
 } from "@/lib/types";
 import { CATEGORY_LABELS, DIFFICULTIES } from "@/lib/types";
 import {
+  buildShareUrl,
+  generateShareText,
+  parseUrlChallenge,
+} from "@/lib/sharing";
+import type { SharePayload } from "@/lib/sharing";
+import {
   BrainIcon,
   ChartBarIcon,
   ClipboardTextIcon,
@@ -131,6 +137,7 @@ function App() {
   const [selectedCategories, setSelectedCategories] = useState<
     Set<CharacterCategory>
   >(new Set());
+  const [challenge, setChallenge] = useState<SharePayload | null>(null);
 
   const maxQuestions = DIFFICULTIES[difficulty].maxQuestions;
 
@@ -139,6 +146,17 @@ function App() {
     if (selectedCategories.size === 0) return all;
     return all.filter((c) => selectedCategories.has(c.category));
   })();
+
+  // ========== PARSE URL CHALLENGE ON MOUNT ==========
+  useEffect(() => {
+    const payload = parseUrlChallenge();
+    if (payload) {
+      setChallenge(payload);
+      navigate('challenge');
+      // Clear hash so it doesn't persist on reload
+      window.history.replaceState(null, '', window.location.pathname);
+    }
+  }, [navigate]);
 
   // ========== AUTO-GENERATE QUESTION ==========
   useEffect(() => {
@@ -264,6 +282,44 @@ function App() {
     toast.error("I'll learn from this and do better next time!");
   };
 
+  // ========== SHARE HANDLERS ==========
+  const getSharePayload = (): SharePayload | null => {
+    if (!finalGuess) return null;
+    return {
+      characterId: finalGuess.id,
+      characterName: finalGuess.name,
+      won: gameWon,
+      difficulty,
+      questionCount: gameSteps.length,
+      steps: gameSteps,
+    };
+  };
+
+  const handleShare = async () => {
+    const payload = getSharePayload();
+    if (!payload) return;
+    const text = generateShareText(payload);
+    const url = buildShareUrl(payload);
+    if (navigator.share) {
+      try {
+        await navigator.share({ text: `${text}\n${url}` });
+      } catch {
+        // User cancelled — ignore
+      }
+    } else {
+      await navigator.clipboard.writeText(`${text}\n${url}`);
+      toast.success('Copied to clipboard!');
+    }
+  };
+
+  const handleCopyLink = async () => {
+    const payload = getSharePayload();
+    if (!payload) return;
+    const url = buildShareUrl(payload);
+    await navigator.clipboard.writeText(url);
+    toast.success('Challenge link copied!');
+  };
+
   // ========== DATA HANDLERS ==========
   const handleAddCharacter = (character: Character) => {
     setCharacters((prev) => [...(prev || []), character]);
@@ -381,8 +437,7 @@ function App() {
           <Suspense fallback={<Skeleton className="h-96 w-full" />}>
             <CharacterComparison
               characters={characters || DEFAULT_CHARACTERS}
-            onBack={() => navigate('welcome')}
-            onOpenRecommender={(c: Character) => navigate('categoryRecommender', c)}
+              onBack={() => navigate('welcome')}
             />
           </Suspense>
         </div>
@@ -420,6 +475,56 @@ function App() {
           </Suspense>
         </div>
       </div>
+    );
+  }
+
+  if (gamePhase === 'challenge' && challenge) {
+    const answerBar = challenge.steps
+      .map((s) => {
+        switch (s.answer) {
+          case 'yes': return '🟢'
+          case 'no': return '🔴'
+          case 'maybe': return '🟡'
+          default: return '⚪'
+        }
+      })
+      .join('')
+    return (
+      <>
+        <Toaster position="top-center" richColors />
+        <div className="min-h-screen bg-background flex items-center justify-center p-4">
+          <div className="max-w-md w-full space-y-6 text-center">
+            <SparkleIcon size={64} weight="fill" className="mx-auto text-accent animate-float" />
+            <h1 className="text-3xl font-bold text-foreground">Challenge!</h1>
+            <p className="text-muted-foreground text-lg">
+              {challenge.won
+                ? `Mystic Guesser figured out ${challenge.characterName} in ${challenge.questionCount} questions!`
+                : `Someone stumped Mystic Guesser thinking of ${challenge.characterName}!`}
+            </p>
+            <div className="text-2xl tracking-wider">{answerBar}</div>
+            <div className="flex flex-wrap gap-2 justify-center">
+              <span className="inline-flex items-center rounded-full bg-accent/20 px-3 py-1 text-sm font-medium text-accent">
+                {challenge.difficulty.charAt(0).toUpperCase() + challenge.difficulty.slice(1)}
+              </span>
+              <span className="inline-flex items-center rounded-full bg-muted px-3 py-1 text-sm font-medium text-muted-foreground">
+                {challenge.questionCount} questions
+              </span>
+            </div>
+            <p className="text-foreground font-semibold text-lg">Can you do better?</p>
+            <Button
+              onClick={() => {
+                setChallenge(null);
+                navigate('welcome');
+              }}
+              size="lg"
+              className="h-14 px-8 text-lg bg-accent hover:bg-accent/90 text-accent-foreground shadow-lg shadow-accent/20 hover:scale-105 transition-transform"
+            >
+              <PlayIcon size={24} weight="fill" className="mr-2" />
+              Play Now
+            </Button>
+          </div>
+        </div>
+      </>
     );
   }
 
@@ -777,6 +882,8 @@ function App() {
                   onPlayAgain={startGame}
                   onTeachMode={!gameWon ? () => navigate('teaching') : undefined}
                   onViewHistory={() => navigate('history')}
+                  onShare={handleShare}
+                  onCopyLink={handleCopyLink}
                 />
               </div>
             )}
