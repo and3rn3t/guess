@@ -1,5 +1,7 @@
-import { useReducer, useCallback } from 'react'
+import { useReducer, useCallback, useRef, useEffect } from 'react'
 import type { Character, Question, Answer, AnswerValue, ReasoningExplanation, GameHistoryStep } from '@/lib/types'
+
+const SESSION_KEY = 'kv:game-session'
 
 // ========== GAME PHASE TYPE ==========
 export type GamePhase =
@@ -48,6 +50,7 @@ export type GameAction =
   | { type: 'SET_POSSIBLE_CHARACTERS'; characters: Character[] }
   | { type: 'NAVIGATE'; phase: GamePhase; character?: Character }
   | { type: 'TOGGLE_DEV_TOOLS' }
+  | { type: 'RESTORE_SESSION'; state: GameState }
 
 // ========== INITIAL STATE ==========
 const initialState: GameState = {
@@ -134,19 +137,85 @@ function gameReducer(state: GameState, action: GameAction): GameState {
     case 'TOGGLE_DEV_TOOLS':
       return { ...state, showDevTools: !state.showDevTools }
 
+    case 'RESTORE_SESSION':
+      return { ...action.state, isThinking: false }
+
     default:
       return state
   }
 }
 
+// ========== SESSION PERSISTENCE ==========
+const ACTIVE_PHASES: ReadonlySet<string> = new Set(['playing', 'guessing'])
+
+function saveSession(state: GameState): void {
+  try {
+    localStorage.setItem(SESSION_KEY, JSON.stringify(state))
+  } catch {
+    // Storage full — ignore
+  }
+}
+
+function loadSession(): GameState | null {
+  try {
+    const raw = localStorage.getItem(SESSION_KEY)
+    if (!raw) return null
+    const saved = JSON.parse(raw) as GameState
+    // Only restore active game sessions
+    if (ACTIVE_PHASES.has(saved.phase)) return saved
+    // Stale session — clean up
+    localStorage.removeItem(SESSION_KEY)
+  } catch {
+    localStorage.removeItem(SESSION_KEY)
+  }
+  return null
+}
+
+function clearSavedSession(): void {
+  localStorage.removeItem(SESSION_KEY)
+}
+
 // ========== HOOK ==========
 export function useGameState() {
+  const savedSession = useRef(loadSession())
   const [state, dispatch] = useReducer(gameReducer, initialState)
+
+  // Persist session for active games
+  useEffect(() => {
+    if (ACTIVE_PHASES.has(state.phase)) {
+      saveSession(state)
+    } else if (state.phase === 'gameOver' || state.phase === 'welcome') {
+      clearSavedSession()
+    }
+  }, [state])
 
   const navigate = useCallback(
     (phase: GamePhase, character?: Character) => dispatch({ type: 'NAVIGATE', phase, character }),
     [],
   )
 
-  return { state, dispatch, navigate }
+  const resumeSession = useCallback(() => {
+    const session = savedSession.current
+    if (!session) return
+    // Dispatch individual actions to rebuild state from saved session
+    dispatch({ type: 'START_GAME', characters: session.possibleCharacters })
+    // Restore answers by replaying — but since we saved full state, we need a restore action
+    // Add a RESTORE_SESSION action type for this
+    dispatch({ type: 'RESTORE_SESSION', state: session })
+    savedSession.current = null
+  }, [])
+
+  const clearSession = useCallback(() => {
+    clearSavedSession()
+    savedSession.current = null
+  }, [])
+
+  return {
+    state,
+    dispatch,
+    navigate,
+    hasSavedSession: savedSession.current !== null,
+    resumeSession,
+    clearSession,
+  }
 }
