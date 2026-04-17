@@ -1,0 +1,25 @@
+{
+  "name": "Mystic Guesser",
+  "short_name": "Guesser",
+  "description": "AI-powered character guessing game with real-time reasoning",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0c0a1a",
+  "theme_color": "#7c3aed",
+  "orientation": "portrait-primary",
+  "categories": ["games", "entertainment"],
+  "icons": [
+    {
+      "src": "/icon-192.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

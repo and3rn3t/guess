@@ -34,8 +34,8 @@ export function QuestionCard({
       exit={{ opacity: 0, x: 20 }}
       transition={{ duration: 0.3 }}
     >
-      <Card className="p-8 bg-gradient-to-br from-card/80 to-card/40 backdrop-blur-sm border-2 border-primary/30 shadow-xl">
-        <div className="space-y-6">
+      <Card className="p-6 md:p-8 bg-gradient-to-br from-card/80 to-card/40 backdrop-blur-sm border-2 border-primary/30 shadow-xl">
+        <div className="space-y-4 md:space-y-6">
           <div className="flex items-center justify-between">
             <div className="text-sm font-medium text-muted-foreground">
               Question {questionNumber} of {totalQuestions}
@@ -45,8 +45,8 @@ export function QuestionCard({
             </div>
           </div>
 
-          <div className="min-h-[120px] flex items-center">
-            <h2 className="text-3xl md:text-4xl font-semibold leading-tight text-foreground">
+          <div className="min-h-[80px] md:min-h-[120px] flex items-center">
+            <h2 className="text-2xl md:text-3xl lg:text-4xl font-semibold leading-tight text-foreground">
               {question.text}
             </h2>
           </div>

@@ -1,9 +1,14 @@
 import { Alert, AlertTitle, AlertDescription } from "./components/ui/alert";
 import { Button } from "./components/ui/button";
 
-import { AlertTriangleIcon, RefreshCwIcon } from "lucide-react";
+import { AlertTriangleIcon, RefreshCwIcon, HomeIcon } from "lucide-react";
 
-export const ErrorFallback = ({ error, resetErrorBoundary }) => {
+interface ErrorFallbackProps {
+  error: Error;
+  resetErrorBoundary: () => void;
+}
+
+export const ErrorFallback = ({ error, resetErrorBoundary }: ErrorFallbackProps) => {
   // When encountering an error in the development mode, rethrow it and don't display the boundary.
   // The parent UI will take care of showing a more helpful dialog.
   if (import.meta.env.DEV) throw error;
@@ -13,9 +18,9 @@ export const ErrorFallback = ({ error, resetErrorBoundary }) => {
       <div className="w-full max-w-md">
         <Alert variant="destructive" className="mb-6">
           <AlertTriangleIcon />
-          <AlertTitle>This spark has encountered a runtime error</AlertTitle>
+          <AlertTitle>Something went wrong</AlertTitle>
           <AlertDescription>
-            Something unexpected happened while running the application. The error details are shown below. Contact the spark author and let them know about this issue.
+            The game encountered an unexpected error. You can try again or return to the home screen.
           </AlertDescription>
         </Alert>
         
@@ -26,14 +31,24 @@ export const ErrorFallback = ({ error, resetErrorBoundary }) => {
           </pre>
         </div>
         
-        <Button 
-          onClick={resetErrorBoundary} 
-          className="w-full"
-          variant="outline"
-        >
-          <RefreshCwIcon />
-          Try Again
-        </Button>
+        <div className="flex gap-3">
+          <Button 
+            onClick={resetErrorBoundary} 
+            className="flex-1"
+            variant="outline"
+          >
+            <RefreshCwIcon />
+            Try Again
+          </Button>
+          <Button
+            onClick={() => window.location.replace('/')}
+            className="flex-1"
+            variant="default"
+          >
+            <HomeIcon />
+            Home
+          </Button>
+        </div>
       </div>
     </div>
   );

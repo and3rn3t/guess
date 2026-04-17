@@ -640,24 +640,29 @@ function App() {
             )}
 
             {gamePhase === 'playing' && (
-              <div className="grid lg:grid-cols-2 gap-6 max-w-7xl mx-auto">
-                <div className="space-y-6">
-                  <AnimatePresence mode="wait">
-                    {currentQuestion && (
-                      <QuestionCard
-                        question={currentQuestion}
-                        questionNumber={answers.length + 1}
-                        totalQuestions={maxQuestions}
-                        onAnswer={handleAnswer}
-                        isProcessing={isThinking}
-                      />
-                    )}
-                  </AnimatePresence>
+              <div className="max-w-7xl mx-auto space-y-4 lg:space-y-0">
+                <div className="sticky top-0 z-20 bg-background/80 backdrop-blur-sm py-2 -mx-4 px-4 lg:static lg:bg-transparent lg:backdrop-blur-none lg:py-0 lg:mx-0 lg:px-0 lg:mb-6">
                   <Progress value={(answers.length / maxQuestions) * 100} className="h-2" />
                 </div>
 
-                <div className="lg:sticky lg:top-8 lg:self-start">
-                  <ReasoningPanel reasoning={reasoning} isThinking={isThinking} />
+                <div className="grid lg:grid-cols-2 gap-4 lg:gap-6">
+                  <div>
+                    <AnimatePresence mode="wait">
+                      {currentQuestion && (
+                        <QuestionCard
+                          question={currentQuestion}
+                          questionNumber={answers.length + 1}
+                          totalQuestions={maxQuestions}
+                          onAnswer={handleAnswer}
+                          isProcessing={isThinking}
+                        />
+                      )}
+                    </AnimatePresence>
+                  </div>
+
+                  <div className="lg:sticky lg:top-8 lg:self-start">
+                    <ReasoningPanel reasoning={reasoning} isThinking={isThinking} />
+                  </div>
                 </div>
               </div>
             )}
