@@ -13,4 +13,4 @@ pages_build_output_dir = "./dist"
 # Then paste the generated id below.
 [[kv_namespaces]]
 binding = "GUESS_KV"
-id = "placeholder-create-with-wrangler-kv-namespace-create"
+id = "801438ecdbc44c05afd42bf4e764dd78"
