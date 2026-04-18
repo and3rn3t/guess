@@ -473,9 +473,13 @@ function App() {
         // User cancelled — ignore
       }
     } else {
-      await navigator.clipboard.writeText(`${text}\n${url}`);
-      analytics().then((m) => m.trackShare("clipboard"));
-      toast.success("Copied to clipboard!");
+      try {
+        await navigator.clipboard.writeText(`${text}\n${url}`);
+        analytics().then((m) => m.trackShare("clipboard"));
+        toast.success("Copied to clipboard!");
+      } catch {
+        toast.error("Could not copy to clipboard");
+      }
     }
   };
 
@@ -483,9 +487,13 @@ function App() {
     const payload = getSharePayload();
     if (!payload) return;
     const url = buildShareUrl(payload);
-    await navigator.clipboard.writeText(url);
-    analytics().then((m) => m.trackShare("link"));
-    toast.success("Challenge link copied!");
+    try {
+      await navigator.clipboard.writeText(url);
+      analytics().then((m) => m.trackShare("link"));
+      toast.success("Challenge link copied!");
+    } catch {
+      toast.error("Could not copy to clipboard");
+    }
   };
 
   // ========== DATA HANDLERS ==========

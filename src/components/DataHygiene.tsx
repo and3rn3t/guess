@@ -18,6 +18,7 @@ import {
 import type { Character, Question } from "@/lib/types";
 import { ArrowLeft } from "@phosphor-icons/react";
 import { useState } from "react";
+import { toast } from "sonner";
 
 interface DataHygieneProps {
   characters: Character[];
@@ -71,45 +72,65 @@ export function DataHygiene({
   const runAttrCleanup = async () => {
     setAttrRunning(true);
     setAttrIssues([]);
-    const results = await validateAllCharacters(characters, (done, total) =>
-      setAttrProgress({ done, total }),
-    );
-    setAttrIssues(results);
-    setAttrRunning(false);
-    setAttrProgress(null);
+    try {
+      const results = await validateAllCharacters(characters, (done, total) =>
+        setAttrProgress({ done, total }),
+      );
+      setAttrIssues(results);
+    } catch {
+      toast.error('Attribute scan failed');
+    } finally {
+      setAttrRunning(false);
+      setAttrProgress(null);
+    }
   };
 
   const runDupeCheck = async () => {
     setDupeRunning(true);
     setDupeGroups([]);
-    const results = await findDuplicates(characters, (done, total) =>
-      setDupeProgress({ done, total }),
-    );
-    setDupeGroups(results);
-    setDupeRunning(false);
-    setDupeProgress(null);
+    try {
+      const results = await findDuplicates(characters, (done, total) =>
+        setDupeProgress({ done, total }),
+      );
+      setDupeGroups(results);
+    } catch {
+      toast.error('Duplicate check failed');
+    } finally {
+      setDupeRunning(false);
+      setDupeProgress(null);
+    }
   };
 
   const runQScoring = async () => {
     setQRunning(true);
     setQScores([]);
-    const results = await scoreQuestions(questions, (done, total) =>
-      setQProgress({ done, total }),
-    );
-    setQScores(results);
-    setQRunning(false);
-    setQProgress(null);
+    try {
+      const results = await scoreQuestions(questions, (done, total) =>
+        setQProgress({ done, total }),
+      );
+      setQScores(results);
+    } catch {
+      toast.error('Question scoring failed');
+    } finally {
+      setQRunning(false);
+      setQProgress(null);
+    }
   };
 
   const runCategorization = async () => {
     setCatRunning(true);
     setCatSuggestions([]);
-    const results = await categorizeAllCharacters(characters, (done, total) =>
-      setCatProgress({ done, total }),
-    );
-    setCatSuggestions(results);
-    setCatRunning(false);
-    setCatProgress(null);
+    try {
+      const results = await categorizeAllCharacters(characters, (done, total) =>
+        setCatProgress({ done, total }),
+      );
+      setCatSuggestions(results);
+    } catch {
+      toast.error('Categorization failed');
+    } finally {
+      setCatRunning(false);
+      setCatProgress(null);
+    }
   };
 
   const applyAttrFix = (issue: AttributeIssue) => {

@@ -18,7 +18,11 @@ function loadEvents(): AnalyticsEvent[] {
 function saveEvents(events: AnalyticsEvent[]) {
   // Keep only the most recent events to avoid unbounded growth
   const trimmed = events.slice(-MAX_EVENTS)
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(trimmed))
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(trimmed))
+  } catch {
+    // Storage full or unavailable — silently drop
+  }
 }
 
 export function trackEvent(event: string, data?: Record<string, string | number | boolean>) {

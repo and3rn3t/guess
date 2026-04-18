@@ -1,12 +1,16 @@
 const USER_ID_KEY = 'kv:user-id'
 
 function getUserId(): string {
-  let id = localStorage.getItem(USER_ID_KEY)
-  if (!id) {
-    id = crypto.randomUUID()
-    localStorage.setItem(USER_ID_KEY, id)
+  try {
+    let id = localStorage.getItem(USER_ID_KEY)
+    if (!id) {
+      id = crypto.randomUUID()
+      localStorage.setItem(USER_ID_KEY, id)
+    }
+    return id
+  } catch {
+    return 'anonymous'
   }
-  return id
 }
 
 function commonHeaders(): Record<string, string> {
@@ -161,7 +165,10 @@ export async function* llmStream(options: Omit<LlmOptions, 'jsonMode'>): AsyncGe
     throw await parseErrorResponse(response)
   }
 
-  const reader = response.body!.getReader()
+  if (!response.body) {
+    throw new LlmError('Empty response stream', 'EMPTY_STREAM', 0, false)
+  }
+  const reader = response.body.getReader()
   const decoder = new TextDecoder()
   let buffer = ''
 

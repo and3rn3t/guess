@@ -180,8 +180,13 @@ var onRequestGet2 = /* @__PURE__ */ __name(async (context) => {
   const url = new URL(context.request.url);
   const characterId = url.searchParams.get("characterId");
   if (!characterId) return errorResponse("Missing characterId parameter", 400);
-  const corrections = await kvGetArray(kv, `corrections:${characterId}`);
-  return jsonResponse(corrections);
+  try {
+    const corrections = await kvGetArray(kv, `corrections:${characterId}`);
+    return jsonResponse(corrections);
+  } catch (e) {
+    console.error("corrections GET error:", e);
+    return errorResponse("Internal server error", 500);
+  }
 }, "onRequestGet");
 var onRequestPost2 = /* @__PURE__ */ __name(async (context) => {
   const kv = context.env.GUESS_KV;
@@ -210,24 +215,29 @@ var onRequestPost2 = /* @__PURE__ */ __name(async (context) => {
     userId,
     createdAt: Date.now()
   };
-  corrections.push(vote);
-  await kvPut(kv, key, corrections);
-  const votesForThisAttr = corrections.filter(
-    (c) => c.attribute === attribute && c.suggestedValue === suggestedValue
-  );
-  const uniqueVoters = new Set(votesForThisAttr.map((c) => c.userId));
-  if (uniqueVoters.size >= AUTO_APPLY_THRESHOLD) {
-    const characters = await kvGetArray(kv, "global:characters");
-    const char = characters.find((c) => c.id === characterId);
-    if (char) {
-      char.attributes[attribute] = suggestedValue;
-      await kvPut(kv, "global:characters", characters);
+  try {
+    corrections.push(vote);
+    await kvPut(kv, key, corrections);
+    const votesForThisAttr = corrections.filter(
+      (c) => c.attribute === attribute && c.suggestedValue === suggestedValue
+    );
+    const uniqueVoters = new Set(votesForThisAttr.map((c) => c.userId));
+    if (uniqueVoters.size >= AUTO_APPLY_THRESHOLD) {
+      const characters = await kvGetArray(kv, "global:characters");
+      const char = characters.find((c) => c.id === characterId);
+      if (char) {
+        char.attributes[attribute] = suggestedValue;
+        await kvPut(kv, "global:characters", characters);
+      }
+      const remaining = corrections.filter((c) => c.attribute !== attribute);
+      await kvPut(kv, key, remaining);
+      return jsonResponse({ success: true, autoApplied: true });
     }
-    const remaining = corrections.filter((c) => c.attribute !== attribute);
-    await kvPut(kv, key, remaining);
-    return jsonResponse({ success: true, autoApplied: true });
+    return jsonResponse({ success: true, autoApplied: false });
+  } catch (e) {
+    console.error("corrections POST error:", e);
+    return errorResponse("Internal server error", 500);
   }
-  return jsonResponse({ success: true, autoApplied: false });
 }, "onRequestPost");
 
 // api/llm.ts
@@ -637,14 +647,19 @@ __name(emptyStats, "emptyStats");
 var onRequestGet4 = /* @__PURE__ */ __name(async (context) => {
   const kv = context.env.GUESS_KV;
   if (!kv) return errorResponse("KV not configured", 503);
-  const url = new URL(context.request.url);
-  const characterId = url.searchParams.get("characterId");
-  if (characterId) {
-    const stats = await kvGetObject(kv, `stats:${characterId}`) || emptyStats(characterId);
-    return jsonResponse(stats);
+  try {
+    const url = new URL(context.request.url);
+    const characterId = url.searchParams.get("characterId");
+    if (characterId) {
+      const stats = await kvGetObject(kv, `stats:${characterId}`) || emptyStats(characterId);
+      return jsonResponse(stats);
+    }
+    const leaderboard = await kvGetArray(kv, "stats:leaderboard");
+    return jsonResponse(leaderboard);
+  } catch (e) {
+    console.error("stats GET error:", e);
+    return errorResponse("Internal server error", 500);
   }
-  const leaderboard = await kvGetArray(kv, "stats:leaderboard");
-  return jsonResponse(leaderboard);
 }, "onRequestGet");
 var onRequestPost6 = /* @__PURE__ */ __name(async (context) => {
   const kv = context.env.GUESS_KV;
@@ -664,42 +679,52 @@ var onRequestPost6 = /* @__PURE__ */ __name(async (context) => {
   const userId = getUserId(context.request);
   const { allowed } = await checkRateLimit(kv, userId, "stats", 30);
   if (!allowed) return errorResponse("Rate limit exceeded", 429);
-  const key = `stats:${characterId}`;
-  const stats = await kvGetObject(kv, key) || emptyStats(characterId);
-  stats.timesPlayed++;
-  stats.totalQuestions += body.questionsAsked;
-  if (body.won) {
-    stats.wins++;
-    stats.timesGuessed++;
-  } else {
-    stats.losses++;
+  try {
+    const key = `stats:${characterId}`;
+    const stats = await kvGetObject(kv, key) || emptyStats(characterId);
+    stats.timesPlayed++;
+    stats.totalQuestions += body.questionsAsked;
+    if (body.won) {
+      stats.wins++;
+      stats.timesGuessed++;
+    } else {
+      stats.losses++;
+    }
+    const diff = body.difficulty || "medium";
+    if (!stats.byDifficulty[diff]) {
+      stats.byDifficulty[diff] = { played: 0, won: 0 };
+    }
+    stats.byDifficulty[diff].played++;
+    if (body.won) stats.byDifficulty[diff].won++;
+    await kvPut(kv, key, stats);
+    const leaderboard = await kvGetArray(kv, "stats:leaderboard");
+    const idx = leaderboard.findIndex((s) => s.characterId === characterId);
+    if (idx >= 0) leaderboard[idx] = stats;
+    else leaderboard.push(stats);
+    leaderboard.sort((a, b) => b.timesPlayed - a.timesPlayed);
+    await kvPut(kv, "stats:leaderboard", leaderboard.slice(0, 20));
+    return jsonResponse({ success: true });
+  } catch (e) {
+    console.error("stats POST error:", e);
+    return errorResponse("Internal server error", 500);
   }
-  const diff = body.difficulty || "medium";
-  if (!stats.byDifficulty[diff]) {
-    stats.byDifficulty[diff] = { played: 0, won: 0 };
-  }
-  stats.byDifficulty[diff].played++;
-  if (body.won) stats.byDifficulty[diff].won++;
-  await kvPut(kv, key, stats);
-  const leaderboard = await kvGetArray(kv, "stats:leaderboard");
-  const idx = leaderboard.findIndex((s) => s.characterId === characterId);
-  if (idx >= 0) leaderboard[idx] = stats;
-  else leaderboard.push(stats);
-  leaderboard.sort((a, b) => b.timesPlayed - a.timesPlayed);
-  await kvPut(kv, "stats:leaderboard", leaderboard.slice(0, 20));
-  return jsonResponse({ success: true });
 }, "onRequestPost");
 
 // api/sync.ts
 var onRequestGet5 = /* @__PURE__ */ __name(async (context) => {
   const kv = context.env.GUESS_KV;
   if (!kv) return errorResponse("KV not configured", 503);
-  const url = new URL(context.request.url);
-  const userId = url.searchParams.get("userId");
-  if (!userId) return errorResponse("Missing userId parameter", 400);
-  const data = await kvGetObject(kv, `user:${userId}`);
-  if (!data) return jsonResponse({ userId, settings: {}, gameStats: {}, lastSync: 0 });
-  return jsonResponse(data);
+  try {
+    const url = new URL(context.request.url);
+    const userId = url.searchParams.get("userId");
+    if (!userId) return errorResponse("Missing userId parameter", 400);
+    const data = await kvGetObject(kv, `user:${userId}`);
+    if (!data) return jsonResponse({ userId, settings: {}, gameStats: {}, lastSync: 0 });
+    return jsonResponse(data);
+  } catch (e) {
+    console.error("sync GET error:", e);
+    return errorResponse("Internal server error", 500);
+  }
 }, "onRequestGet");
 var onRequestPost7 = /* @__PURE__ */ __name(async (context) => {
   const kv = context.env.GUESS_KV;
@@ -710,20 +735,25 @@ var onRequestPost7 = /* @__PURE__ */ __name(async (context) => {
   if (!userId || userId === "anonymous") {
     return errorResponse("Missing userId", 400);
   }
-  const existing = await kvGetObject(kv, `user:${userId}`) || {
-    userId,
-    settings: {},
-    gameStats: {},
-    lastSync: 0
-  };
-  const updated = {
-    userId,
-    settings: { ...existing.settings, ...body.settings },
-    gameStats: { ...existing.gameStats, ...body.gameStats },
-    lastSync: Date.now()
-  };
-  await kvPut(kv, `user:${userId}`, updated);
-  return jsonResponse({ success: true, lastSync: updated.lastSync });
+  try {
+    const existing = await kvGetObject(kv, `user:${userId}`) || {
+      userId,
+      settings: {},
+      gameStats: {},
+      lastSync: 0
+    };
+    const updated = {
+      userId,
+      settings: { ...existing.settings, ...body.settings },
+      gameStats: { ...existing.gameStats, ...body.gameStats },
+      lastSync: Date.now()
+    };
+    await kvPut(kv, `user:${userId}`, updated);
+    return jsonResponse({ success: true, lastSync: updated.lastSync });
+  } catch (e) {
+    console.error("sync POST error:", e);
+    return errorResponse("Internal server error", 500);
+  }
 }, "onRequestPost");
 
 // ../.wrangler/tmp/pages-rQWrha/functionsRoutes-0.22679177072037793.mjs
@@ -1301,7 +1331,7 @@ var jsonError = /* @__PURE__ */ __name(async (request, env, _ctx, middlewareCtx)
 }, "jsonError");
 var middleware_miniflare3_json_error_default = jsonError;
 
-// ../.wrangler/tmp/bundle-BayA4m/middleware-insertion-facade.js
+// ../.wrangler/tmp/bundle-32AFOk/middleware-insertion-facade.js
 var __INTERNAL_WRANGLER_MIDDLEWARE__ = [
   middleware_ensure_req_body_drained_default,
   middleware_miniflare3_json_error_default
@@ -1333,7 +1363,7 @@ function __facade_invoke__(request, env, ctx, dispatch, finalMiddleware) {
 }
 __name(__facade_invoke__, "__facade_invoke__");
 
-// ../.wrangler/tmp/bundle-BayA4m/middleware-loader.entry.ts
+// ../.wrangler/tmp/bundle-32AFOk/middleware-loader.entry.ts
 var __Facade_ScheduledController__ = class ___Facade_ScheduledController__ {
   constructor(scheduledTime, cron, noRetry) {
     this.scheduledTime = scheduledTime;

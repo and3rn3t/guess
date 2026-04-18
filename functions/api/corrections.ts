@@ -36,8 +36,13 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
   const characterId = url.searchParams.get('characterId')
   if (!characterId) return errorResponse('Missing characterId parameter', 400)
 
-  const corrections = await kvGetArray<CorrectionVote>(kv, `corrections:${characterId}`)
-  return jsonResponse(corrections)
+  try {
+    const corrections = await kvGetArray<CorrectionVote>(kv, `corrections:${characterId}`)
+    return jsonResponse(corrections)
+  } catch (e) {
+    console.error('corrections GET error:', e)
+    return errorResponse('Internal server error', 500)
+  }
 }
 
 export const onRequestPost: PagesFunction<Env> = async (context) => {
@@ -80,30 +85,35 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     createdAt: Date.now(),
   }
 
-  corrections.push(vote)
-  await kvPut(kv, key, corrections)
+  try {
+    corrections.push(vote)
+    await kvPut(kv, key, corrections)
 
-  // Check auto-apply threshold
-  const votesForThisAttr = corrections.filter(
-    (c) => c.attribute === attribute && c.suggestedValue === suggestedValue
-  )
-  const uniqueVoters = new Set(votesForThisAttr.map((c) => c.userId))
+    // Check auto-apply threshold
+    const votesForThisAttr = corrections.filter(
+      (c) => c.attribute === attribute && c.suggestedValue === suggestedValue
+    )
+    const uniqueVoters = new Set(votesForThisAttr.map((c) => c.userId))
 
-  if (uniqueVoters.size >= AUTO_APPLY_THRESHOLD) {
-    // Auto-apply the correction to the character
-    const characters = await kvGetArray<StoredCharacter>(kv, 'global:characters')
-    const char = characters.find((c) => c.id === characterId)
-    if (char) {
-      char.attributes[attribute] = suggestedValue
-      await kvPut(kv, 'global:characters', characters)
+    if (uniqueVoters.size >= AUTO_APPLY_THRESHOLD) {
+      // Auto-apply the correction to the character
+      const characters = await kvGetArray<StoredCharacter>(kv, 'global:characters')
+      const char = characters.find((c) => c.id === characterId)
+      if (char) {
+        char.attributes[attribute] = suggestedValue
+        await kvPut(kv, 'global:characters', characters)
+      }
+
+      // Clear corrections for this attribute
+      const remaining = corrections.filter((c) => c.attribute !== attribute)
+      await kvPut(kv, key, remaining)
+
+      return jsonResponse({ success: true, autoApplied: true })
     }
 
-    // Clear corrections for this attribute
-    const remaining = corrections.filter((c) => c.attribute !== attribute)
-    await kvPut(kv, key, remaining)
-
-    return jsonResponse({ success: true, autoApplied: true })
+    return jsonResponse({ success: true, autoApplied: false })
+  } catch (e) {
+    console.error('corrections POST error:', e)
+    return errorResponse('Internal server error', 500)
   }
-
-  return jsonResponse({ success: true, autoApplied: false })
 }
