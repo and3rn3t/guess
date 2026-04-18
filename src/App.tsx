@@ -1,4 +1,6 @@
 import { GameOver, GuessReveal } from "@/components/GuessReveal";
+import { CoachMark } from "@/components/CoachMark";
+import { OnboardingOverlay } from "@/components/OnboardingOverlay";
 import { PossibilitySpaceChart } from "@/components/PossibilitySpaceChart";
 import { ProbabilityLeaderboard } from "@/components/ProbabilityLeaderboard";
 import { QuestionCard, ThinkingCard } from "@/components/QuestionCard";
@@ -225,6 +227,15 @@ function App() {
   );
   const [eliminatedCount, setEliminatedCount] = useState<number | null>(null);
   const prevPossibleCount = useRef<number>(0);
+  const [onboardingDone] = useKV("onboarding-complete", false);
+  const [showOnboarding, setShowOnboarding] = useState(false);
+
+  // Show onboarding when first game starts
+  useEffect(() => {
+    if (gamePhase === "playing" && !onboardingDone && gameHistory?.length === 0) {
+      setShowOnboarding(true);
+    }
+  }, [gamePhase, onboardingDone, gameHistory]);
 
   const toggleTheme = useCallback(() => {
     setTheme(theme === "dark" ? "light" : "dark");
@@ -1203,6 +1214,16 @@ function App() {
                       </button>
                     ))}
                   </div>
+                  {activeCharacters.length > 0 && (
+                    <p className="text-xs text-muted-foreground">
+                      e.g.{" "}
+                      {activeCharacters
+                        .slice(0, 5)
+                        .map((c) => c.name)
+                        .join(", ")}
+                      {activeCharacters.length > 5 && ` + ${activeCharacters.length - 5} more`}
+                    </p>
+                  )}
                 </div>
 
                 <div className="bg-card/50 backdrop-blur-sm border border-border/50 rounded-xl p-6 space-y-4">
@@ -1399,6 +1420,11 @@ function App() {
                 transition={{ duration: 0.25 }}
               >
               <div className="max-w-7xl mx-auto space-y-4 lg:space-y-0">
+                <AnimatePresence>
+                  {showOnboarding && (
+                    <OnboardingOverlay onComplete={() => setShowOnboarding(false)} />
+                  )}
+                </AnimatePresence>
                 <div className="sticky top-0 z-20 bg-background/80 backdrop-blur-sm py-2 -mx-4 px-4 lg:static lg:bg-transparent lg:backdrop-blur-none lg:py-0 lg:mx-0 lg:px-0 lg:mb-6 space-y-2">
                   <div className="flex items-center gap-3">
                     <Progress
@@ -1483,7 +1509,26 @@ function App() {
                 )}
 
                 <div className="grid lg:grid-cols-2 gap-4 lg:gap-6">
-                  <div>
+                  <div className="space-y-3">
+                    {/* Coach marks based on game count */}
+                    <CoachMark
+                      id="reasoning"
+                      message="💡 Check the Reasoning panel to see how I'm thinking!"
+                      showAfterGames={1}
+                      gamesPlayed={gameHistory?.length ?? 0}
+                    />
+                    <CoachMark
+                      id="stats"
+                      message="📊 After this game, visit Stats to see your win rate and trends."
+                      showAfterGames={3}
+                      gamesPlayed={gameHistory?.length ?? 0}
+                    />
+                    <CoachMark
+                      id="teaching"
+                      message="🎓 Stumped me? Use Teaching Mode to add your character to my brain!"
+                      showAfterGames={5}
+                      gamesPlayed={gameHistory?.length ?? 0}
+                    />
                     <AnimatePresence mode="wait">
                       {currentQuestion ? (
                         <QuestionCard
@@ -1552,6 +1597,7 @@ function App() {
                   character={finalGuess}
                   questionsAsked={gameSteps.length}
                   remainingCharacters={possibleCharacters.length}
+                  gameHistory={gameHistory || []}
                   onPlayAgain={startGame}
                   onNewGame={() => navigate("welcome")}
                   onTeachMode={

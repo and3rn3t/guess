@@ -169,6 +169,7 @@ interface GameOverProps {
   character: Character | null;
   questionsAsked?: number;
   remainingCharacters?: number;
+  gameHistory?: Array<{ won: boolean }>;
   onPlayAgain: () => void;
   onNewGame?: () => void;
   onTeachMode?: () => void;
@@ -185,6 +186,7 @@ export function GameOver({
   character,
   questionsAsked,
   remainingCharacters,
+  gameHistory,
   onPlayAgain,
   onNewGame,
   onTeachMode,
@@ -197,6 +199,17 @@ export function GameOver({
 }: GameOverProps) {
   const [narrative, setNarrative] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
+
+  // Calculate best win streak for loss encouragement
+  const bestStreak = (() => {
+    if (!gameHistory || gameHistory.length === 0) return 0;
+    let max = 0;
+    let cur = 0;
+    for (const g of gameHistory) {
+      if (g.won) { cur++; max = Math.max(max, cur); } else { cur = 0; }
+    }
+    return max;
+  })();
 
   useEffect(() => {
     if (!llmMode || !character) return;
@@ -238,15 +251,50 @@ export function GameOver({
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.3 }}
     >
-      <Card className="p-8 bg-gradient-to-br from-card/80 to-card/40 backdrop-blur-sm border-2 border-primary/30">
+      <Card className="p-8 bg-gradient-to-br from-card/80 to-card/40 backdrop-blur-sm border-2 border-primary/30 relative overflow-hidden">
+        {/* CSS confetti burst on win */}
+        {won && (
+          <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
+            {Array.from({ length: 24 }).map((_, i) => (
+              <motion.div
+                key={i}
+                className="absolute w-2 h-2 rounded-full"
+                style={{
+                  left: "50%",
+                  top: "30%",
+                  backgroundColor: ["#a78bfa", "#34d399", "#fbbf24", "#f472b6", "#60a5fa"][i % 5],
+                }}
+                initial={{ x: 0, y: 0, opacity: 1, scale: 1 }}
+                animate={{
+                  x: (Math.random() - 0.5) * 400,
+                  y: Math.random() * 300 + 50,
+                  opacity: 0,
+                  scale: Math.random() * 1.5 + 0.5,
+                  rotate: Math.random() * 720 - 360,
+                }}
+                transition={{
+                  duration: 1.5 + Math.random() * 0.8,
+                  ease: "easeOut",
+                  delay: Math.random() * 0.3,
+                }}
+              />
+            ))}
+          </div>
+        )}
+
         <div className="space-y-6 text-center">
           {won ? (
             <>
-              <Sparkle
-                size={64}
-                weight="fill"
-                className="mx-auto text-accent"
-              />
+              <motion.div
+                animate={{ rotate: [0, -8, 8, -4, 4, 0] }}
+                transition={{ duration: 0.5, delay: 0.2 }}
+              >
+                <Sparkle
+                  size={64}
+                  weight="fill"
+                  className="mx-auto text-accent"
+                />
+              </motion.div>
               <div>
                 <h2 className="text-4xl font-bold text-foreground mb-2">
                   I Got It Right!
@@ -264,11 +312,16 @@ export function GameOver({
             </>
           ) : (
             <>
-              <XCircle
-                size={64}
-                weight="fill"
-                className="mx-auto text-muted-foreground"
-              />
+              <motion.div
+                animate={{ x: [0, -6, 6, -4, 4, -2, 2, 0] }}
+                transition={{ duration: 0.5, delay: 0.15 }}
+              >
+                <XCircle
+                  size={64}
+                  weight="fill"
+                  className="mx-auto text-muted-foreground"
+                />
+              </motion.div>
               <div>
                 <h2 className="text-4xl font-bold text-foreground mb-2">
                   You Stumped Me!
@@ -280,6 +333,11 @@ export function GameOver({
               <p className="text-foreground/80">
                 But I learn from every game! Play again to help me get better.
               </p>
+              {bestStreak >= 2 && (
+                <p className="text-sm text-accent font-medium">
+                  Your best win streak: {bestStreak} in a row — can you beat it?
+                </p>
+              )}
             </>
           )}
 
