@@ -4,11 +4,10 @@
       "type": "stdio",
       "command": "npx",
       "args": [
-        "@cloudflare/mcp-server-cloudflare"
-      ],
-      "env": {
-        "CLOUDFLARE_ACCOUNT_ID": "${input:cloudflare-account-id}"
-      }
+        "@cloudflare/mcp-server-cloudflare",
+        "run",
+        "${input:cloudflare-account-id}"
+      ]
     }
   },
   "inputs": [
