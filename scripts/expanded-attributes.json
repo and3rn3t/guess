@@ -1,0 +1,1241 @@
+[
+  {
+    "key": "isProtagonist",
+    "displayText": "Protagonist",
+    "questionText": "Is this character the protagonist?",
+    "categories": null,
+    "group": "role"
+  },
+  {
+    "key": "isAntagonist",
+    "displayText": "Antagonist",
+    "questionText": "Is this character the antagonist?",
+    "categories": null,
+    "group": "role"
+  },
+  {
+    "key": "hasRedHair",
+    "displayText": "Red Hair",
+    "questionText": "Does this character have red hair?",
+    "categories": null,
+    "group": "appearance"
+  },
+  {
+    "key": "isFromJapan",
+    "displayText": "From Japan",
+    "questionText": "Is this character from Japan?",
+    "categories": null,
+    "group": "origin"
+  },
+  {
+    "key": "hasGreenEyes",
+    "displayText": "Green Eyes",
+    "questionText": "Does this character have green eyes?",
+    "categories": null,
+    "group": "appearance"
+  },
+  {
+    "key": "isTeenager",
+    "displayText": "Teenager",
+    "questionText": "Is this character a teenager?",
+    "categories": null,
+    "group": "identity"
+  },
+  {
+    "key": "isMentor",
+    "displayText": "Mentor",
+    "questionText": "Is this character a mentor?",
+    "categories": null,
+    "group": "role"
+  },
+  {
+    "key": "isSidekick",
+    "displayText": "Sidekick",
+    "questionText": "Is this character a sidekick?",
+    "categories": null,
+    "group": "role"
+  },
+  {
+    "key": "hasScar",
+    "displayText": "Scar",
+    "questionText": "Does this character have a scar?",
+    "categories": null,
+    "group": "appearance"
+  },
+  {
+    "key": "hasTattoos",
+    "displayText": "Tattoos",
+    "questionText": "Does this character have tattoos?",
+    "categories": null,
+    "group": "appearance"
+  },
+  {
+    "key": "isPirate",
+    "displayText": "Pirate",
+    "questionText": "Is this character a pirate?",
+    "categories": null,
+    "group": "role"
+  },
+  {
+    "key": "isNinja",
+    "displayText": "Ninja",
+    "questionText": "Is this character a ninja?",
+    "categories": null,
+    "group": "role"
+  },
+  {
+    "key": "isSamurai",
+    "displayText": "Samurai",
+    "questionText": "Is this character a samurai?",
+    "categories": null,
+    "group": "role"
+  },
+  {
+    "key": "isDetective",
+    "displayText": "Detective",
+    "questionText": "Is this character a detective?",
+    "categories": null,
+    "group": "role"
+  },
+  {
+    "key": "livesInSpace",
+    "displayText": "Lives in Space",
+    "questionText": "Does this character live in space?",
+    "categories": null,
+    "group": "setting"
+  },
+  {
+    "key": "hasSuperSpeed",
+    "displayText": "Super Speed",
+    "questionText": "Does this character have super speed?",
+    "categories": null,
+    "group": "abilities"
+  },
+  {
+    "key": "canReadMinds",
+    "displayText": "Mind Reading",
+    "questionText": "Can this character read minds?",
+    "categories": null,
+    "group": "abilities"
+  },
+  {
+    "key": "canBecomeGiant",
+    "displayText": "Can Become Giant",
+    "questionText": "Can this character become giant?",
+    "categories": null,
+    "group": "abilities"
+  },
+  {
+    "key": "isAlien",
+    "displayText": "Alien",
+    "questionText": "Is this character an alien?",
+    "categories": null,
+    "group": "identity"
+  },
+  {
+    "key": "hasGlasses",
+    "displayText": "Glasses",
+    "questionText": "Does this character wear glasses?",
+    "categories": null,
+    "group": "appearance"
+  },
+  {
+    "key": "isCyborg",
+    "displayText": "Cyborg",
+    "questionText": "Is this character a cyborg?",
+    "categories": null,
+    "group": "identity"
+  },
+  {
+    "key": "isKnight",
+    "displayText": "Knight",
+    "questionText": "Is this character a knight?",
+    "categories": null,
+    "group": "role"
+  },
+  {
+    "key": "isScientist",
+    "displayText": "Scientist",
+    "questionText": "Is this character a scientist?",
+    "categories": null,
+    "group": "role"
+  },
+  {
+    "key": "isWizard",
+    "displayText": "Wizard",
+    "questionText": "Is this character a wizard?",
+    "categories": null,
+    "group": "role"
+  },
+  {
+    "key": "isAssassin",
+    "displayText": "Assassin",
+    "questionText": "Is this character an assassin?",
+    "categories": null,
+    "group": "role"
+  },
+  {
+    "key": "isEngineer",
+    "displayText": "Engineer",
+    "questionText": "Is this character an engineer?",
+    "categories": null,
+    "group": "role"
+  },
+  {
+    "key": "isFromFantasyWorld",
+    "displayText": "From Fantasy World",
+    "questionText": "Is this character from a fantasy world?",
+    "categories": null,
+    "group": "origin"
+  },
+  {
+    "key": "isFromEarth",
+    "displayText": "From Earth",
+    "questionText": "Is this character from Earth?",
+    "categories": null,
+    "group": "origin"
+  },
+  {
+    "key": "hasBlondeHair",
+    "displayText": "Blonde Hair",
+    "questionText": "Does this character have blonde hair?",
+    "categories": null,
+    "group": "appearance"
+  },
+  {
+    "key": "hasBlueEyes",
+    "displayText": "Blue Eyes",
+    "questionText": "Does this character have blue eyes?",
+    "categories": null,
+    "group": "appearance"
+  },
+  {
+    "key": "hasFreckles",
+    "displayText": "Freckles",
+    "questionText": "Does this character have freckles?",
+    "categories": null,
+    "group": "appearance"
+  },
+  {
+    "key": "hasBeard",
+    "displayText": "Beard",
+    "questionText": "Does this character have a beard?",
+    "categories": null,
+    "group": "appearance"
+  },
+  {
+    "key": "isVampire",
+    "displayText": "Vampire",
+    "questionText": "Is this character a vampire?",
+    "categories": null,
+    "group": "identity"
+  },
+  {
+    "key": "isZombie",
+    "displayText": "Zombie",
+    "questionText": "Is this character a zombie?",
+    "categories": null,
+    "group": "identity"
+  },
+  {
+    "key": "isGhost",
+    "displayText": "Ghost",
+    "questionText": "Is this character a ghost?",
+    "categories": null,
+    "group": "identity"
+  },
+  {
+    "key": "isGod",
+    "displayText": "God",
+    "questionText": "Is this character a god or deity?",
+    "categories": null,
+    "group": "identity"
+  },
+  {
+    "key": "isDemon",
+    "displayText": "Demon",
+    "questionText": "Is this character a demon?",
+    "categories": null,
+    "group": "identity"
+  },
+  {
+    "key": "isElf",
+    "displayText": "Elf",
+    "questionText": "Is this character an elf?",
+    "categories": null,
+    "group": "identity"
+  },
+  {
+    "key": "isDwarf",
+    "displayText": "Dwarf",
+    "questionText": "Is this character a dwarf?",
+    "categories": null,
+    "group": "identity"
+  },
+  {
+    "key": "isGiant",
+    "displayText": "Giant",
+    "questionText": "Is this character a giant?",
+    "categories": null,
+    "group": "identity"
+  },
+  {
+    "key": "isOrc",
+    "displayText": "Orc",
+    "questionText": "Is this character an orc?",
+    "categories": null,
+    "group": "identity"
+  },
+  {
+    "key": "isGreedy",
+    "displayText": "Greedy",
+    "questionText": "Is this character greedy?",
+    "categories": null,
+    "group": "personality"
+  },
+  {
+    "key": "isBrave",
+    "displayText": "Brave",
+    "questionText": "Is this character brave?",
+    "categories": null,
+    "group": "personality"
+  },
+  {
+    "key": "isCowardly",
+    "displayText": "Cowardly",
+    "questionText": "Is this character cowardly?",
+    "categories": null,
+    "group": "personality"
+  },
+  {
+    "key": "isKind",
+    "displayText": "Kind",
+    "questionText": "Is this character kind?",
+    "categories": null,
+    "group": "personality"
+  },
+  {
+    "key": "isCruel",
+    "displayText": "Cruel",
+    "questionText": "Is this character cruel?",
+    "categories": null,
+    "group": "personality"
+  },
+  {
+    "key": "isIntelligent",
+    "displayText": "Intelligent",
+    "questionText": "Is this character intelligent?",
+    "categories": null,
+    "group": "personality"
+  },
+  {
+    "key": "isFoolish",
+    "displayText": "Foolish",
+    "questionText": "Is this character foolish?",
+    "categories": null,
+    "group": "personality"
+  },
+  {
+    "key": "isRebellious",
+    "displayText": "Rebellious",
+    "questionText": "Is this character rebellious?",
+    "categories": null,
+    "group": "personality"
+  },
+  {
+    "key": "isLoyal",
+    "displayText": "Loyal",
+    "questionText": "Is this character loyal?",
+    "categories": null,
+    "group": "personality"
+  },
+  {
+    "key": "isTraitor",
+    "displayText": "Traitor",
+    "questionText": "Is this character a traitor?",
+    "categories": null,
+    "group": "personality"
+  },
+  {
+    "key": "isCharming",
+    "displayText": "Charming",
+    "questionText": "Is this character charming?",
+    "categories": null,
+    "group": "personality"
+  },
+  {
+    "key": "isClumsy",
+    "displayText": "Clumsy",
+    "questionText": "Is this character clumsy?",
+    "categories": null,
+    "group": "personality"
+  },
+  {
+    "key": "isSarcastic",
+    "displayText": "Sarcastic",
+    "questionText": "Is this character sarcastic?",
+    "categories": null,
+    "group": "personality"
+  },
+  {
+    "key": "isNaive",
+    "displayText": "Naive",
+    "questionText": "Is this character naive?",
+    "categories": null,
+    "group": "personality"
+  },
+  {
+    "key": "isWise",
+    "displayText": "Wise",
+    "questionText": "Is this character wise?",
+    "categories": null,
+    "group": "personality"
+  },
+  {
+    "key": "isSkeptical",
+    "displayText": "Skeptical",
+    "questionText": "Is this character skeptical?",
+    "categories": null,
+    "group": "personality"
+  },
+  {
+    "key": "isOptimistic",
+    "displayText": "Optimistic",
+    "questionText": "Is this character optimistic?",
+    "categories": null,
+    "group": "personality"
+  },
+  {
+    "key": "isPessimistic",
+    "displayText": "Pessimistic",
+    "questionText": "Is this character pessimistic?",
+    "categories": null,
+    "group": "personality"
+  },
+  {
+    "key": "isCurious",
+    "displayText": "Curious",
+    "questionText": "Is this character curious?",
+    "categories": null,
+    "group": "personality"
+  },
+  {
+    "key": "isCunning",
+    "displayText": "Cunning",
+    "questionText": "Is this character cunning?",
+    "categories": null,
+    "group": "personality"
+  },
+  {
+    "key": "isHonest",
+    "displayText": "Honest",
+    "questionText": "Is this character honest?",
+    "categories": null,
+    "group": "personality"
+  },
+  {
+    "key": "isDevious",
+    "displayText": "Devious",
+    "questionText": "Is this character devious?",
+    "categories": null,
+    "group": "personality"
+  },
+  {
+    "key": "isHumorous",
+    "displayText": "Humorous",
+    "questionText": "Is this character humorous?",
+    "categories": null,
+    "group": "personality"
+  },
+  {
+    "key": "isSerious",
+    "displayText": "Serious",
+    "questionText": "Is this character serious?",
+    "categories": null,
+    "group": "personality"
+  },
+  {
+    "key": "isAdventurous",
+    "displayText": "Adventurous",
+    "questionText": "Is this character adventurous?",
+    "categories": null,
+    "group": "personality"
+  },
+  {
+    "key": "isCreative",
+    "displayText": "Creative",
+    "questionText": "Is this character creative?",
+    "categories": null,
+    "group": "personality"
+  },
+  {
+    "key": "isLazy",
+    "displayText": "Lazy",
+    "questionText": "Is this character lazy?",
+    "categories": null,
+    "group": "personality"
+  },
+  {
+    "key": "isEnergetic",
+    "displayText": "Energetic",
+    "questionText": "Is this character energetic?",
+    "categories": null,
+    "group": "personality"
+  },
+  {
+    "key": "isPatient",
+    "displayText": "Patient",
+    "questionText": "Is this character patient?",
+    "categories": null,
+    "group": "personality"
+  },
+  {
+    "key": "isImpatient",
+    "displayText": "Impatient",
+    "questionText": "Is this character impatient?",
+    "categories": null,
+    "group": "personality"
+  },
+  {
+    "key": "isRich",
+    "displayText": "Rich",
+    "questionText": "Is this character rich?",
+    "categories": null,
+    "group": "identity"
+  },
+  {
+    "key": "isPoor",
+    "displayText": "Poor",
+    "questionText": "Is this character poor?",
+    "categories": null,
+    "group": "identity"
+  },
+  {
+    "key": "hasSuperStrength",
+    "displayText": "Super Strength",
+    "questionText": "Does this character have super strength?",
+    "categories": null,
+    "group": "abilities"
+  },
+  {
+    "key": "canTurnInvisible",
+    "displayText": "Invisibility",
+    "questionText": "Can this character turn invisible?",
+    "categories": null,
+    "group": "abilities"
+  },
+  {
+    "key": "canControlTime",
+    "displayText": "Time Control",
+    "questionText": "Can this character control time?",
+    "categories": null,
+    "group": "abilities"
+  },
+  {
+    "key": "canCreateIllusions",
+    "displayText": "Illusion Creation",
+    "questionText": "Can this character create illusions?",
+    "categories": null,
+    "group": "abilities"
+  },
+  {
+    "key": "canTalkToAnimals",
+    "displayText": "Animal Communication",
+    "questionText": "Can this character talk to animals?",
+    "categories": null,
+    "group": "abilities"
+  },
+  {
+    "key": "canGenerateElectricity",
+    "displayText": "Electricity Generation",
+    "questionText": "Can this character generate electricity?",
+    "categories": null,
+    "group": "abilities"
+  },
+  {
+    "key": "canWalkThroughWalls",
+    "displayText": "Wall Phasing",
+    "questionText": "Can this character walk through walls?",
+    "categories": null,
+    "group": "abilities"
+  },
+  {
+    "key": "hasLongHair",
+    "displayText": "Long Hair",
+    "questionText": "Does this character have long hair?",
+    "categories": null,
+    "group": "appearance"
+  },
+  {
+    "key": "hasShortHair",
+    "displayText": "Short Hair",
+    "questionText": "Does this character have short hair?",
+    "categories": null,
+    "group": "appearance"
+  },
+  {
+    "key": "isBald",
+    "displayText": "Bald",
+    "questionText": "Is this character bald?",
+    "categories": null,
+    "group": "appearance"
+  },
+  {
+    "key": "hasRobotCompanion",
+    "displayText": "Robot Companion",
+    "questionText": "Does this character have a robot companion?",
+    "categories": null,
+    "group": "relationships"
+  },
+  {
+    "key": "hasAnimalCompanion",
+    "displayText": "Animal Companion",
+    "questionText": "Does this character have an animal companion?",
+    "categories": null,
+    "group": "relationships"
+  },
+  {
+    "key": "hasSibling",
+    "displayText": "Sibling",
+    "questionText": "Does this character have a sibling?",
+    "categories": null,
+    "group": "relationships"
+  },
+  {
+    "key": "isMarried",
+    "displayText": "Married",
+    "questionText": "Is this character married?",
+    "categories": null,
+    "group": "relationships"
+  },
+  {
+    "key": "isSingle",
+    "displayText": "Single",
+    "questionText": "Is this character single?",
+    "categories": null,
+    "group": "relationships"
+  },
+  {
+    "key": "hasChildren",
+    "displayText": "Children",
+    "questionText": "Does this character have children?",
+    "categories": null,
+    "group": "relationships"
+  },
+  {
+    "key": "isFromModernEra",
+    "displayText": "From Modern Era",
+    "questionText": "Is this character from the modern era?",
+    "categories": null,
+    "group": "origin"
+  },
+  {
+    "key": "isFromMedievalTimes",
+    "displayText": "From Medieval Times",
+    "questionText": "Is this character from medieval times?",
+    "categories": null,
+    "group": "origin"
+  },
+  {
+    "key": "isFromFuture",
+    "displayText": "From Future",
+    "questionText": "Is this character from the future?",
+    "categories": null,
+    "group": "origin"
+  },
+  {
+    "key": "appearsInSequel",
+    "displayText": "Appears in Sequel",
+    "questionText": "Does this character appear in a sequel?",
+    "categories": null,
+    "group": "media"
+  },
+  {
+    "key": "appearsInPrequel",
+    "displayText": "Appears in Prequel",
+    "questionText": "Does this character appear in a prequel?",
+    "categories": null,
+    "group": "media"
+  },
+  {
+    "key": "isIconic",
+    "displayText": "Iconic",
+    "questionText": "Is this character considered iconic?",
+    "categories": null,
+    "group": "pop-culture"
+  },
+  {
+    "key": "hasThemeSong",
+    "displayText": "Theme Song",
+    "questionText": "Does this character have a theme song?",
+    "categories": null,
+    "group": "pop-culture"
+  },
+  {
+    "key": "isPartOfFranchise",
+    "displayText": "Part of Franchise",
+    "questionText": "Is this character part of a franchise?",
+    "categories": null,
+    "group": "media"
+  },
+  {
+    "key": "isFromIndieSource",
+    "displayText": "From Indie Source",
+    "questionText": "Is this character from an indie source?",
+    "categories": null,
+    "group": "media"
+  },
+  {
+    "key": "isBasedOnRealPerson",
+    "displayText": "Based on Real Person",
+    "questionText": "Is this character based on a real person?",
+    "categories": null,
+    "group": "media"
+  },
+  {
+    "key": "isFromHistoricalFiction",
+    "displayText": "From Historical Fiction",
+    "questionText": "Is this character from historical fiction?",
+    "categories": null,
+    "group": "media"
+  },
+  {
+    "key": "hasCatchphrase",
+    "displayText": "Catchphrase",
+    "questionText": "Does this character have a catchphrase?",
+    "categories": null,
+    "group": "pop-culture"
+  },
+  {
+    "key": "isPartOfEnsembleCast",
+    "displayText": "Part of Ensemble Cast",
+    "questionText": "Is this character part of an ensemble cast?",
+    "categories": null,
+    "group": "media"
+  },
+  {
+    "key": "isFromAnimatedSeries",
+    "displayText": "From Animated Series",
+    "questionText": "Is this character from an animated series?",
+    "categories": null,
+    "group": "media"
+  },
+  {
+    "key": "isFromLiveAction",
+    "displayText": "From Live Action",
+    "questionText": "Is this character from a live-action production?",
+    "categories": null,
+    "group": "media"
+  },
+  {
+    "key": "isFromSuperheroGenre",
+    "displayText": "From Superhero Genre",
+    "questionText": "Is this character from the superhero genre?",
+    "categories": null,
+    "group": "media"
+  },
+  {
+    "key": "isFromHorrorGenre",
+    "displayText": "From Horror Genre",
+    "questionText": "Is this character from the horror genre?",
+    "categories": null,
+    "group": "media"
+  },
+  {
+    "key": "isFromComedyGenre",
+    "displayText": "From Comedy Genre",
+    "questionText": "Is this character from the comedy genre?",
+    "categories": null,
+    "group": "media"
+  },
+  {
+    "key": "isFromDramaGenre",
+    "displayText": "From Drama Genre",
+    "questionText": "Is this character from the drama genre?",
+    "categories": null,
+    "group": "media"
+  },
+  {
+    "key": "isFromRomanceGenre",
+    "displayText": "From Romance Genre",
+    "questionText": "Is this character from the romance genre?",
+    "categories": null,
+    "group": "media"
+  },
+  {
+    "key": "isFromSciFiGenre",
+    "displayText": "From Sci-Fi Genre",
+    "questionText": "Is this character from the science fiction genre?",
+    "categories": null,
+    "group": "media"
+  },
+  {
+    "key": "isFromFantasyGenre",
+    "displayText": "From Fantasy Genre",
+    "questionText": "Is this character from the fantasy genre?",
+    "categories": null,
+    "group": "media"
+  },
+  {
+    "key": "isFromMysteryGenre",
+    "displayText": "From Mystery Genre",
+    "questionText": "Is this character from the mystery genre?",
+    "categories": null,
+    "group": "media"
+  },
+  {
+    "key": "isFromActionGenre",
+    "displayText": "From Action Genre",
+    "questionText": "Is this character from the action genre?",
+    "categories": null,
+    "group": "media"
+  },
+  {
+    "key": "isFromThrillerGenre",
+    "displayText": "From Thriller Genre",
+    "questionText": "Is this character from the thriller genre?",
+    "categories": null,
+    "group": "media"
+  },
+  {
+    "key": "isFromWesternGenre",
+    "displayText": "From Western Genre",
+    "questionText": "Is this character from the western genre?",
+    "categories": null,
+    "group": "media"
+  },
+  {
+    "key": "isFromMusicalGenre",
+    "displayText": "From Musical Genre",
+    "questionText": "Is this character from the musical genre?",
+    "categories": null,
+    "group": "media"
+  },
+  {
+    "key": "isFromDocumentary",
+    "displayText": "From Documentary",
+    "questionText": "Is this character from a documentary?",
+    "categories": null,
+    "group": "media"
+  },
+  {
+    "key": "isFromAdventureGenre",
+    "displayText": "From Adventure Genre",
+    "questionText": "Is this character from the adventure genre?",
+    "categories": null,
+    "group": "media"
+  },
+  {
+    "key": "isFromGameShow",
+    "displayText": "From Game Show",
+    "questionText": "Is this character from a game show?",
+    "categories": [
+      "tv-shows"
+    ],
+    "group": "media"
+  },
+  {
+    "key": "isVideoGameCharacter",
+    "displayText": "Video Game Character",
+    "questionText": "Is this character from a video game?",
+    "categories": [
+      "video-games"
+    ],
+    "group": "media"
+  },
+  {
+    "key": "isFromComicBook",
+    "displayText": "From Comic Book",
+    "questionText": "Is this character from a comic book?",
+    "categories": [
+      "comics"
+    ],
+    "group": "media"
+  },
+  {
+    "key": "isFromAnime",
+    "displayText": "From Anime",
+    "questionText": "Is this character from an anime?",
+    "categories": [
+      "anime"
+    ],
+    "group": "media"
+  },
+  {
+    "key": "isFromCartoon",
+    "displayText": "From Cartoon",
+    "questionText": "Is this character from a cartoon?",
+    "categories": [
+      "cartoons"
+    ],
+    "group": "media"
+  },
+  {
+    "key": "isFromTVShow",
+    "displayText": "From TV Show",
+    "questionText": "Is this character from a TV show?",
+    "categories": [
+      "tv-shows"
+    ],
+    "group": "media"
+  },
+  {
+    "key": "isFromMovie",
+    "displayText": "From Movie",
+    "questionText": "Is this character from a movie?",
+    "categories": [
+      "movies"
+    ],
+    "group": "media"
+  },
+  {
+    "key": "isFromBook",
+    "displayText": "From Book",
+    "questionText": "Is this character from a book?",
+    "categories": [
+      "books"
+    ],
+    "group": "media"
+  },
+  {
+    "key": "isFromPopCulture",
+    "displayText": "From Pop Culture",
+    "questionText": "Is this character from pop culture?",
+    "categories": [
+      "pop-culture"
+    ],
+    "group": "media"
+  },
+  {
+    "key": "isFromSitcom",
+    "displayText": "From Sitcom",
+    "questionText": "Is this character from a sitcom?",
+    "categories": [
+      "tv-shows"
+    ],
+    "group": "media"
+  },
+  {
+    "key": "isFromRealityShow",
+    "displayText": "From Reality Show",
+    "questionText": "Is this character from a reality show?",
+    "categories": [
+      "tv-shows"
+    ],
+    "group": "media"
+  },
+  {
+    "key": "isFromFantasyNovel",
+    "displayText": "From Fantasy Novel",
+    "questionText": "Is this character from a fantasy novel?",
+    "categories": [
+      "books"
+    ],
+    "group": "media"
+  },
+  {
+    "key": "isFromSciFiNovel",
+    "displayText": "From Sci-Fi Novel",
+    "questionText": "Is this character from a sci-fi novel?",
+    "categories": [
+      "books"
+    ],
+    "group": "media"
+  },
+  {
+    "key": "isFromMysteryNovel",
+    "displayText": "From Mystery Novel",
+    "questionText": "Is this character from a mystery novel?",
+    "categories": [
+      "books"
+    ],
+    "group": "media"
+  },
+  {
+    "key": "isFromThrillerNovel",
+    "displayText": "From Thriller Novel",
+    "questionText": "Is this character from a thriller novel?",
+    "categories": [
+      "books"
+    ],
+    "group": "media"
+  },
+  {
+    "key": "isFromRomanceNovel",
+    "displayText": "From Romance Novel",
+    "questionText": "Is this character from a romance novel?",
+    "categories": [
+      "books"
+    ],
+    "group": "media"
+  },
+  {
+    "key": "isFromHorrorNovel",
+    "displayText": "From Horror Novel",
+    "questionText": "Is this character from a horror novel?",
+    "categories": [
+      "books"
+    ],
+    "group": "media"
+  },
+  {
+    "key": "isFromHistoricalNovel",
+    "displayText": "From Historical Novel",
+    "questionText": "Is this character from a historical novel?",
+    "categories": [
+      "books"
+    ],
+    "group": "media"
+  },
+  {
+    "key": "isFromAdventureNovel",
+    "displayText": "From Adventure Novel",
+    "questionText": "Is this character from an adventure novel?",
+    "categories": [
+      "books"
+    ],
+    "group": "media"
+  },
+  {
+    "key": "isFromActionNovel",
+    "displayText": "From Action Novel",
+    "questionText": "Is this character from an action novel?",
+    "categories": [
+      "books"
+    ],
+    "group": "media"
+  },
+  {
+    "key": "isFromWesternNovel",
+    "displayText": "From Western Novel",
+    "questionText": "Is this character from a western novel?",
+    "categories": [
+      "books"
+    ],
+    "group": "media"
+  },
+  {
+    "key": "isFemale",
+    "displayText": "Female",
+    "questionText": "Is this character female?",
+    "categories": null,
+    "group": "identity"
+  },
+  {
+    "key": "isNonBinary",
+    "displayText": "Non-Binary",
+    "questionText": "Is this character non-binary?",
+    "categories": null,
+    "group": "identity"
+  },
+  {
+    "key": "isGenderFluid",
+    "displayText": "Gender Fluid",
+    "questionText": "Is this character gender fluid?",
+    "categories": null,
+    "group": "identity"
+  },
+  {
+    "key": "isTransgender",
+    "displayText": "Transgender",
+    "questionText": "Is this character transgender?",
+    "categories": null,
+    "group": "identity"
+  },
+  {
+    "key": "isFromRoyalFamily",
+    "displayText": "From Royal Family",
+    "questionText": "Is this character from a royal family?",
+    "categories": null,
+    "group": "identity"
+  },
+  {
+    "key": "isFromMilitary",
+    "displayText": "From Military",
+    "questionText": "Is this character from the military?",
+    "categories": null,
+    "group": "identity"
+  },
+  {
+    "key": "isFromNobleFamily",
+    "displayText": "From Noble Family",
+    "questionText": "Is this character from a noble family?",
+    "categories": null,
+    "group": "identity"
+  },
+  {
+    "key": "isFromWealthyFamily",
+    "displayText": "From Wealthy Family",
+    "questionText": "Is this character from a wealthy family?",
+    "categories": null,
+    "group": "identity"
+  },
+  {
+    "key": "isFromPoorFamily",
+    "displayText": "From Poor Family",
+    "questionText": "Is this character from a poor family?",
+    "categories": null,
+    "group": "identity"
+  },
+  {
+    "key": "isFromMiddleClass",
+    "displayText": "From Middle Class",
+    "questionText": "Is this character from the middle class?",
+    "categories": null,
+    "group": "identity"
+  },
+  {
+    "key": "isFromCountryside",
+    "displayText": "From Countryside",
+    "questionText": "Is this character from the countryside?",
+    "categories": null,
+    "group": "origin"
+  },
+  {
+    "key": "isFromCity",
+    "displayText": "From City",
+    "questionText": "Is this character from the city?",
+    "categories": null,
+    "group": "origin"
+  },
+  {
+    "key": "isFromSmallTown",
+    "displayText": "From Small Town",
+    "questionText": "Is this character from a small town?",
+    "categories": null,
+    "group": "origin"
+  },
+  {
+    "key": "isFromIsland",
+    "displayText": "From Island",
+    "questionText": "Is this character from an island?",
+    "categories": null,
+    "group": "origin"
+  },
+  {
+    "key": "isFromJungle",
+    "displayText": "From Jungle",
+    "questionText": "Is this character from the jungle?",
+    "categories": null,
+    "group": "origin"
+  },
+  {
+    "key": "isFromDesert",
+    "displayText": "From Desert",
+    "questionText": "Is this character from the desert?",
+    "categories": null,
+    "group": "origin"
+  },
+  {
+    "key": "isFromMountains",
+    "displayText": "From Mountains",
+    "questionText": "Is this character from the mountains?",
+    "categories": null,
+    "group": "origin"
+  },
+  {
+    "key": "isFromUnderground",
+    "displayText": "From Underground",
+    "questionText": "Is this character from an underground setting?",
+    "categories": null,
+    "group": "origin"
+  },
+  {
+    "key": "isFromOcean",
+    "displayText": "From Ocean",
+    "questionText": "Is this character from the ocean?",
+    "categories": null,
+    "group": "origin"
+  },
+  {
+    "key": "isFromForest",
+    "displayText": "From Forest",
+    "questionText": "Is this character from the forest?",
+    "categories": null,
+    "group": "origin"
+  },
+  {
+    "key": "isFromSwamp",
+    "displayText": "From Swamp",
+    "questionText": "Is this character from the swamp?",
+    "categories": null,
+    "group": "origin"
+  },
+  {
+    "key": "isFromCastle",
+    "displayText": "From Castle",
+    "questionText": "Is this character from a castle?",
+    "categories": null,
+    "group": "origin"
+  },
+  {
+    "key": "isFromVillage",
+    "displayText": "From Village",
+    "questionText": "Is this character from a village?",
+    "categories": null,
+    "group": "origin"
+  },
+  {
+    "key": "isFromUtopia",
+    "displayText": "From Utopia",
+    "questionText": "Is this character from a utopia?",
+    "categories": null,
+    "group": "origin"
+  },
+  {
+    "key": "isFromDystopia",
+    "displayText": "From Dystopia",
+    "questionText": "Is this character from a dystopia?",
+    "categories": null,
+    "group": "origin"
+  },
+  {
+    "key": "hasAccent",
+    "displayText": "Accent",
+    "questionText": "Does this character have an accent?",
+    "categories": null,
+    "group": "identity"
+  },
+  {
+    "key": "isMute",
+    "displayText": "Mute",
+    "questionText": "Is this character mute?",
+    "categories": null,
+    "group": "identity"
+  },
+  {
+    "key": "isDeaf",
+    "displayText": "Deaf",
+    "questionText": "Is this character deaf?",
+    "categories": null,
+    "group": "identity"
+  },
+  {
+    "key": "isBlind",
+    "displayText": "Blind",
+    "questionText": "Is this character blind?",
+    "categories": null,
+    "group": "identity"
+  },
+  {
+    "key": "isDisabled",
+    "displayText": "Disabled",
+    "questionText": "Is this character disabled?",
+    "categories": null,
+    "group": "identity"
+  },
+  {
+    "key": "isSupernatural",
+    "displayText": "Supernatural",
+    "questionText": "Is this character supernatural?",
+    "categories": null,
+    "group": "identity"
+  },
+  {
+    "key": "isMythical",
+    "displayText": "Mythical",
+    "questionText": "Is this character mythical?",
+    "categories": null,
+    "group": "identity"
+  }
+]
