@@ -17,6 +17,11 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useGameState } from "@/hooks/useGameState";
@@ -1018,22 +1023,24 @@ function App() {
                 exit={{ opacity: 0, y: -12 }}
                 transition={{ duration: 0.25 }}
               >
-              <div className="max-w-4xl mx-auto space-y-8">
-                <div className="text-center space-y-4">
+              <div className="max-w-2xl mx-auto space-y-6">
+                {/* Hero */}
+                <div className="text-center space-y-3">
                   <SparkleIcon
-                    size={80}
+                    size={64}
                     weight="fill"
                     className="mx-auto text-accent animate-float"
                   />
-                  <h2 className="text-4xl md:text-5xl font-bold text-foreground">
+                  <h2 className="text-3xl md:text-4xl font-bold text-foreground">
                     Think of a Character
                   </h2>
-                  <p className="text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-                    I'll read your mind by asking strategic questions. Watch as
-                    I explain my reasoning in real-time!
+                  <p className="text-base text-muted-foreground max-w-md mx-auto">
+                    I'll ask strategic questions and try to guess who you're
+                    thinking of.
                   </p>
                 </div>
 
+                {/* Resume saved session */}
                 {hasSavedSession && (
                   <div className="bg-primary/10 border border-primary/30 rounded-xl p-4 flex items-center justify-between">
                     <div>
@@ -1063,245 +1070,172 @@ function App() {
                   </div>
                 )}
 
+                {/* Last game + Quick Play for returning players */}
                 {gameHistory &&
                   gameHistory.length > 0 &&
+                  !hasSavedSession &&
                   (() => {
                     const last = gameHistory[gameHistory.length - 1];
                     return (
-                      <div className="bg-accent/10 border border-accent/30 rounded-xl p-4 flex items-center justify-between">
-                        <div className="text-sm">
-                          <span className="text-muted-foreground">
-                            Last game:{" "}
-                          </span>
-                          <span
-                            className={
-                              last.won
-                                ? "text-accent font-semibold"
-                                : "text-muted-foreground"
-                            }
-                          >
-                            {last.won ? "Won" : "Lost"}
-                          </span>
-                          <span className="text-muted-foreground">
-                            {" "}
-                            in {last.steps.length} questions —{" "}
-                            {last.characterName}
-                          </span>
-                        </div>
+                      <div className="space-y-3">
                         <Button
                           onClick={startGame}
-                          variant="outline"
-                          size="sm"
-                          className="ml-4 shrink-0"
+                          size="lg"
+                          className="w-full h-14 text-lg gap-3 bg-accent hover:bg-accent/90 text-accent-foreground shadow-lg shadow-accent/20 hover:scale-[1.02] transition-transform"
                         >
-                          Rematch
+                          <LightningIcon size={22} weight="fill" />
+                          Quick Play
                         </Button>
+                        <p className="text-center text-xs text-muted-foreground">
+                          Last: {last.won ? "Won" : "Lost"} in{" "}
+                          {last.steps.length} Qs — {last.characterName}
+                          {" · "}
+                          {DIFFICULTIES[difficulty].label} · {activeCharacters.length} characters
+                        </p>
                       </div>
                     );
                   })()}
 
-                {/* Quick Play — prominent shortcut for returning players */}
-                {gameHistory && gameHistory.length > 0 && !hasSavedSession && (
-                  <Button
-                    onClick={startGame}
-                    size="lg"
-                    className="w-full h-14 text-lg gap-3 bg-accent/10 hover:bg-accent/20 text-accent border border-accent/30 hover:scale-[1.02] transition-transform"
-                    variant="outline"
-                  >
-                    <LightningIcon size={22} weight="fill" />
-                    Quick Play
-                    <span className="text-xs font-normal text-muted-foreground ml-1">
-                      {DIFFICULTIES[difficulty].label} · {activeCharacters.length} characters
-                    </span>
-                  </Button>
+                {/* Primary CTA for new players */}
+                {(!gameHistory || gameHistory.length === 0) && !hasSavedSession && (
+                  <div className="text-center">
+                    <Button
+                      onClick={startGame}
+                      size="lg"
+                      className="h-14 px-8 text-xl bg-accent hover:bg-accent/90 text-accent-foreground shadow-lg shadow-accent/20 hover:scale-105 transition-transform"
+                    >
+                      <PlayIcon size={28} weight="fill" className="mr-3" />
+                      Start Game
+                    </Button>
+                  </div>
                 )}
 
-                <div className="bg-card/50 backdrop-blur-sm border-2 border-primary/20 rounded-xl p-8 space-y-6">
-                  <h3 className="text-2xl font-semibold text-foreground">
-                    How It Works
-                  </h3>
-                  <div className="space-y-4 text-foreground/90">
-                    <div className="flex gap-4">
-                      <div className="flex-shrink-0 w-8 h-8 rounded-full bg-accent/20 text-accent flex items-center justify-center font-bold">
-                        1
-                      </div>
-                      <div>
-                        <h4 className="font-semibold mb-1">
-                          Strategic Questioning
-                        </h4>
-                        <p className="text-sm text-muted-foreground">
-                          I analyze all possibilities and ask questions that
-                          split them optimally, eliminating roughly half with
-                          each answer.
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex gap-4">
-                      <div className="flex-shrink-0 w-8 h-8 rounded-full bg-accent/20 text-accent flex items-center justify-center font-bold">
-                        2
-                      </div>
-                      <div>
-                        <h4 className="font-semibold mb-1">
-                          Real-Time Reasoning
-                        </h4>
-                        <p className="text-sm text-muted-foreground">
-                          The explanation panel shows you exactly why I chose
-                          each question and how your answers narrow down the
-                          possibilities.
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex gap-4">
-                      <div className="flex-shrink-0 w-8 h-8 rounded-full bg-accent/20 text-accent flex items-center justify-center font-bold">
-                        3
-                      </div>
-                      <div>
-                        <h4 className="font-semibold mb-1">
-                          Confidence Building
-                        </h4>
-                        <p className="text-sm text-muted-foreground">
-                          Watch my confidence grow with each answer until I'm
-                          ready to make my final guess!
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {gameHistory &&
-                  gameHistory.length > 0 &&
-                  (() => {
-                    const last = gameHistory[gameHistory.length - 1];
-                    return (
-                      <div className="bg-accent/10 border border-accent/30 rounded-xl p-4 flex items-center justify-between">
-                        <div className="text-sm">
-                          <span className="text-muted-foreground">
-                            Last game:{" "}
-                          </span>
-                          <span
-                            className={
-                              last.won
-                                ? "text-accent font-semibold"
-                                : "text-muted-foreground"
-                            }
-                          >
-                            {last.won ? "Won" : "Lost"}
-                          </span>
-                          <span className="text-muted-foreground">
-                            {" "}
-                            in {last.steps.length} questions —{" "}
-                            {last.characterName}
-                          </span>
+                {/* How It Works — expanded for new users, collapsed for returning */}
+                <Collapsible defaultOpen={!gameHistory || gameHistory.length === 0}>
+                  <div className="bg-card/50 backdrop-blur-sm border border-border/50 rounded-xl p-5">
+                    <CollapsibleTrigger className="flex items-center justify-between w-full text-left">
+                      <h3 className="text-base font-semibold text-foreground">
+                        How It Works
+                      </h3>
+                      <span className="text-xs text-muted-foreground">
+                        {gameHistory && gameHistory.length > 0
+                          ? "Tap to expand"
+                          : ""}
+                      </span>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent className="mt-4 space-y-3 text-foreground/90">
+                      {[
+                        ["1", "Strategic Questioning", "I ask questions that split possibilities optimally."],
+                        ["2", "Real-Time Reasoning", "See exactly why I chose each question."],
+                        ["3", "Confidence Building", "Watch my confidence grow until the final guess!"],
+                      ].map(([num, title, desc]) => (
+                        <div key={num} className="flex gap-3 items-start">
+                          <div className="flex-shrink-0 w-6 h-6 rounded-full bg-accent/20 text-accent flex items-center justify-center text-xs font-bold">
+                            {num}
+                          </div>
+                          <div>
+                            <span className="font-medium text-sm">{title}</span>
+                            <span className="text-sm text-muted-foreground ml-1">— {desc}</span>
+                          </div>
                         </div>
-                        <Button
-                          onClick={startGame}
-                          variant="outline"
-                          size="sm"
-                          className="ml-4 shrink-0"
-                        >
-                          Rematch
-                        </Button>
-                      </div>
-                    );
-                  })()}
-
-                <div className="bg-card/50 backdrop-blur-sm border border-border/50 rounded-xl p-6 space-y-4">
-                  <h3 className="text-lg font-semibold text-foreground">
-                    Difficulty
-                  </h3>
-                  <div className="flex flex-wrap gap-3">
-                    {(
-                      Object.entries(DIFFICULTIES) as [
-                        Difficulty,
-                        (typeof DIFFICULTIES)[Difficulty],
-                      ][]
-                    ).map(([key, cfg]) => (
-                      <button
-                        key={key}
-                        onClick={() => setDifficulty(key)}
-                        className={`px-4 py-2 rounded-lg border text-sm font-medium transition-colors ${
-                          difficulty === key
-                            ? "bg-accent text-accent-foreground border-accent"
-                            : "bg-card border-border hover:bg-accent/10"
-                        }`}
-                      >
-                        {cfg.label}
-                        <span className="block text-xs opacity-70">
-                          {cfg.description}
-                        </span>
-                      </button>
-                    ))}
+                      ))}
+                    </CollapsibleContent>
                   </div>
-                  {activeCharacters.length > 0 && (
-                    <p className="text-xs text-muted-foreground">
-                      e.g.{" "}
-                      {activeCharacters
-                        .slice(0, 5)
-                        .map((c) => c.name)
-                        .join(", ")}
-                      {activeCharacters.length > 5 && ` + ${activeCharacters.length - 5} more`}
-                    </p>
-                  )}
-                </div>
+                </Collapsible>
 
-                <div className="bg-card/50 backdrop-blur-sm border border-border/50 rounded-xl p-6 space-y-4">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-lg font-semibold text-foreground">
-                      Categories
-                    </h3>
-                    <span className="text-sm text-muted-foreground">
-                      {selectedCategories.size === 0
-                        ? "All"
-                        : selectedCategories.size}{" "}
-                      selected · {activeCharacters.length} characters
-                    </span>
-                  </div>
-                  <div className="flex flex-wrap gap-3">
-                    {(
-                      Object.entries(CATEGORY_LABELS) as [
-                        CharacterCategory,
-                        string,
-                      ][]
-                    ).map(([key, label]) => {
-                      const count = (characters || DEFAULT_CHARACTERS).filter(
-                        (c) => c.category === key,
-                      ).length;
-                      const isSelected = selectedCategories.has(key);
-                      return (
+                {/* Game Settings — consolidated single card */}
+                <div className="bg-card/50 backdrop-blur-sm border border-border/50 rounded-xl p-5 space-y-5">
+                  {/* Difficulty */}
+                  <div className="space-y-2">
+                    <h4 className="text-sm font-semibold text-foreground">Difficulty</h4>
+                    <div className="flex gap-2">
+                      {(
+                        Object.entries(DIFFICULTIES) as [
+                          Difficulty,
+                          (typeof DIFFICULTIES)[Difficulty],
+                        ][]
+                      ).map(([key, cfg]) => (
                         <button
                           key={key}
-                          onClick={() => toggleCategory(key)}
-                          className={`px-4 py-2 rounded-lg border text-sm font-medium transition-colors ${
-                            isSelected
+                          onClick={() => setDifficulty(key)}
+                          className={`flex-1 px-3 py-2 rounded-lg border text-sm font-medium transition-colors ${
+                            difficulty === key
                               ? "bg-accent text-accent-foreground border-accent"
                               : "bg-card border-border hover:bg-accent/10"
                           }`}
                         >
-                          {label}
-                          <span className="block text-xs opacity-70">
-                            {count} characters
+                          {cfg.label}
+                          <span className="block text-[11px] opacity-70">
+                            {cfg.maxQuestions} Qs
                           </span>
                         </button>
-                      );
-                    })}
+                      ))}
+                    </div>
                   </div>
-                </div>
 
-                <div className="bg-card/50 backdrop-blur-sm border border-border/50 rounded-xl p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
-                        <BrainIcon size={20} weight="fill" />
-                        AI-Enhanced Mode
-                      </h3>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        Dynamic questions, narrative explanations, and
-                        conversational answers
+                  <div className="border-t border-border/50" />
+
+                  {/* Categories */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <h4 className="text-sm font-semibold text-foreground">Categories</h4>
+                      <span className="text-xs text-muted-foreground">
+                        {selectedCategories.size === 0
+                          ? "All"
+                          : selectedCategories.size}{" "}
+                        selected · {activeCharacters.length} characters
+                      </span>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {(
+                        Object.entries(CATEGORY_LABELS) as [
+                          CharacterCategory,
+                          string,
+                        ][]
+                      ).map(([key, label]) => {
+                        const count = (characters || DEFAULT_CHARACTERS).filter(
+                          (c) => c.category === key,
+                        ).length;
+                        const isSelected = selectedCategories.has(key);
+                        return (
+                          <button
+                            key={key}
+                            onClick={() => toggleCategory(key)}
+                            className={`px-3 py-1.5 rounded-lg border text-xs font-medium transition-colors ${
+                              isSelected
+                                ? "bg-accent text-accent-foreground border-accent"
+                                : "bg-card border-border hover:bg-accent/10"
+                            }`}
+                          >
+                            {label}
+                            <span className="ml-1 opacity-60">{count}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                    {activeCharacters.length > 0 && (
+                      <p className="text-[11px] text-muted-foreground">
+                        e.g.{" "}
+                        {activeCharacters
+                          .slice(0, 4)
+                          .map((c) => c.name)
+                          .join(", ")}
+                        {activeCharacters.length > 4 && ` + ${activeCharacters.length - 4} more`}
                       </p>
+                    )}
+                  </div>
+
+                  <div className="border-t border-border/50" />
+
+                  {/* AI Mode */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <BrainIcon size={18} weight="fill" className="text-accent" />
+                      <span className="text-sm font-medium text-foreground">AI-Enhanced Mode</span>
                     </div>
                     <button
                       onClick={() => setLlmMode(!llmMode)}
-                      className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors ${
+                      className={`relative inline-flex h-6 w-10 items-center rounded-full transition-colors ${
                         llmMode ? "bg-accent" : "bg-muted"
                       }`}
                       role="switch"
@@ -1309,41 +1243,41 @@ function App() {
                       aria-label="Toggle AI-Enhanced Mode"
                     >
                       <span
-                        className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-sm transition-transform ${
-                          llmMode ? "translate-x-6" : "translate-x-1"
+                        className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform ${
+                          llmMode ? "translate-x-5" : "translate-x-1"
                         }`}
                       />
                     </button>
                   </div>
                   {llmMode && (
                     <p
-                      className={`text-xs mt-2 ${online ? "text-accent" : "text-destructive"}`}
+                      className={`text-xs -mt-3 ${online ? "text-accent" : "text-destructive"}`}
                     >
                       {online ? (
-                        "✨ Requires internet connection"
+                        "✨ Dynamic questions & narrative explanations"
                       ) : (
                         <span className="flex items-center gap-1">
                           <WifiSlashIcon size={14} weight="bold" />
-                          You're offline — AI features won't work until you
-                          reconnect
+                          Offline — AI features unavailable
                         </span>
                       )}
                     </p>
                   )}
                 </div>
 
-                <div className="text-center space-y-4">
+                {/* Bottom CTA */}
+                <div className="text-center space-y-2">
                   <Button
                     onClick={startGame}
                     size="lg"
-                    className="h-16 px-8 text-xl bg-accent hover:bg-accent/90 text-accent-foreground shadow-lg shadow-accent/20 hover:scale-105 transition-transform"
+                    className="h-12 px-8 text-lg bg-accent hover:bg-accent/90 text-accent-foreground shadow-lg shadow-accent/20 hover:scale-105 transition-transform"
                   >
-                    <PlayIcon size={28} weight="fill" className="mr-3" />
+                    <PlayIcon size={24} weight="fill" className="mr-2" />
                     Start Game
                   </Button>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-xs text-muted-foreground">
                     {activeCharacters.length} characters · {maxQuestions}{" "}
-                    questions · {DIFFICULTIES[difficulty].label} mode
+                    questions · {DIFFICULTIES[difficulty].label}
                   </p>
                 </div>
 
