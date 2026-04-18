@@ -1,3 +1,8 @@
+import { onRequestGet as __api_v2_attributes_ts_onRequestGet } from "/Users/andernet/Documents/GitHub/guess/functions/api/v2/attributes.ts"
+import { onRequestGet as __api_v2_characters_ts_onRequestGet } from "/Users/andernet/Documents/GitHub/guess/functions/api/v2/characters.ts"
+import { onRequestPost as __api_v2_characters_ts_onRequestPost } from "/Users/andernet/Documents/GitHub/guess/functions/api/v2/characters.ts"
+import { onRequestGet as __api_v2_questions_ts_onRequestGet } from "/Users/andernet/Documents/GitHub/guess/functions/api/v2/questions.ts"
+import { onRequestGet as __api_v2_stats_ts_onRequestGet } from "/Users/andernet/Documents/GitHub/guess/functions/api/v2/stats.ts"
 import { onRequestGet as __api_characters_ts_onRequestGet } from "/Users/andernet/Documents/GitHub/guess/functions/api/characters.ts"
 import { onRequestPost as __api_characters_ts_onRequestPost } from "/Users/andernet/Documents/GitHub/guess/functions/api/characters.ts"
 import { onRequestGet as __api_corrections_ts_onRequestGet } from "/Users/andernet/Documents/GitHub/guess/functions/api/corrections.ts"
@@ -13,6 +18,41 @@ import { onRequestPost as __api_sync_ts_onRequestPost } from "/Users/andernet/Do
 
 export const routes = [
     {
+      routePath: "/api/v2/attributes",
+      mountPath: "/api/v2",
+      method: "GET",
+      middlewares: [],
+      modules: [__api_v2_attributes_ts_onRequestGet],
+    },
+  {
+      routePath: "/api/v2/characters",
+      mountPath: "/api/v2",
+      method: "GET",
+      middlewares: [],
+      modules: [__api_v2_characters_ts_onRequestGet],
+    },
+  {
+      routePath: "/api/v2/characters",
+      mountPath: "/api/v2",
+      method: "POST",
+      middlewares: [],
+      modules: [__api_v2_characters_ts_onRequestPost],
+    },
+  {
+      routePath: "/api/v2/questions",
+      mountPath: "/api/v2",
+      method: "GET",
+      middlewares: [],
+      modules: [__api_v2_questions_ts_onRequestGet],
+    },
+  {
+      routePath: "/api/v2/stats",
+      mountPath: "/api/v2",
+      method: "GET",
+      middlewares: [],
+      modules: [__api_v2_stats_ts_onRequestGet],
+    },
+  {
       routePath: "/api/characters",
       mountPath: "/api",
       method: "GET",

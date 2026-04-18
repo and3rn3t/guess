@@ -20,6 +20,12 @@ CLOUDFLARE_AI_GATEWAY = "https://gateway.ai.cloudflare.com/v1/362c458c58efc6b65b
 binding = "GUESS_KV"
 id = "801438ecdbc44c05afd42bf4e764dd78"
 
+[[env.production.d1_databases]]
+binding = "GUESS_DB"
+database_name = "guess-db"
+database_id = "1ec6e6bd-56be-4ab6-9d90-09a15243154f"
+migrations_dir = "migrations"
+
 # ── Preview / Development ─────────────────────────────────────
 # Isolated KV so preview experiments never touch production data.
 [env.preview]
@@ -31,3 +37,9 @@ CLOUDFLARE_AI_GATEWAY = "https://gateway.ai.cloudflare.com/v1/362c458c58efc6b65b
 [[env.preview.kv_namespaces]]
 binding = "GUESS_KV"
 id = "96c1143288174dd5891e344a46e565c6"
+
+[[env.preview.d1_databases]]
+binding = "GUESS_DB"
+database_name = "guess-db-preview"
+database_id = "a02a0492-36d2-4513-8270-82a3467914de"
+migrations_dir = "migrations"

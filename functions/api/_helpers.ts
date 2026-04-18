@@ -3,6 +3,7 @@
 export interface Env {
   OPENAI_API_KEY: string
   GUESS_KV: KVNamespace
+  GUESS_DB: D1Database
   CLOUDFLARE_AI_GATEWAY?: string
   AI_GATEWAY_TOKEN?: string
 }
@@ -146,4 +147,45 @@ const VALID_CATEGORIES = new Set([
 
 export function isValidCategory(value: unknown): boolean {
   return typeof value === 'string' && VALID_CATEGORIES.has(value)
+}
+
+// ── D1 helpers ────────────────────────────────────────────────
+
+/** Run a D1 read query and return typed rows */
+export async function d1Query<T = Record<string, unknown>>(
+  db: D1Database,
+  sql: string,
+  params: unknown[] = []
+): Promise<T[]> {
+  const result = await db.prepare(sql).bind(...params).all<T>()
+  return result.results
+}
+
+/** Run a D1 write statement, return metadata */
+export async function d1Run(
+  db: D1Database,
+  sql: string,
+  params: unknown[] = []
+): Promise<D1Result> {
+  return db.prepare(sql).bind(...params).run()
+}
+
+/** Run a D1 query expecting a single row */
+export async function d1First<T = Record<string, unknown>>(
+  db: D1Database,
+  sql: string,
+  params: unknown[] = []
+): Promise<T | null> {
+  return db.prepare(sql).bind(...params).first<T>()
+}
+
+/** Execute multiple D1 statements in a batch (transactional) */
+export async function d1Batch(
+  db: D1Database,
+  statements: { sql: string; params?: unknown[] }[]
+): Promise<D1Result[]> {
+  const prepared = statements.map((s) =>
+    s.params ? db.prepare(s.sql).bind(...s.params) : db.prepare(s.sql)
+  )
+  return db.batch(prepared)
 }

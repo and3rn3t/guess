@@ -139,9 +139,235 @@ function isValidCategory(value) {
 }
 __name(isValidCategory, "isValidCategory");
 __name2(isValidCategory, "isValidCategory");
+async function d1Query(db, sql, params = []) {
+  const result = await db.prepare(sql).bind(...params).all();
+  return result.results;
+}
+__name(d1Query, "d1Query");
+__name2(d1Query, "d1Query");
+async function d1Run(db, sql, params = []) {
+  return db.prepare(sql).bind(...params).run();
+}
+__name(d1Run, "d1Run");
+__name2(d1Run, "d1Run");
+async function d1First(db, sql, params = []) {
+  return db.prepare(sql).bind(...params).first();
+}
+__name(d1First, "d1First");
+__name2(d1First, "d1First");
+async function d1Batch(db, statements) {
+  const prepared = statements.map(
+    (s) => s.params ? db.prepare(s.sql).bind(...s.params) : db.prepare(s.sql)
+  );
+  return db.batch(prepared);
+}
+__name(d1Batch, "d1Batch");
+__name2(d1Batch, "d1Batch");
+var onRequestGet = /* @__PURE__ */ __name2(async (context) => {
+  const db = context.env.GUESS_DB;
+  if (!db) return errorResponse("D1 not configured", 503);
+  const url = new URL(context.request.url);
+  const withCoverage = url.searchParams.get("coverage") === "true";
+  if (withCoverage) {
+    const attrs2 = await d1Query(
+      db,
+      `SELECT
+        ad.key,
+        ad.display_text,
+        (SELECT COUNT(*) FROM characters) as total_characters,
+        (SELECT COUNT(*) FROM character_attributes ca
+         WHERE ca.attribute_key = ad.key AND ca.value IS NOT NULL) as filled_count,
+        (SELECT COUNT(*) FROM character_attributes ca
+         WHERE ca.attribute_key = ad.key AND ca.value = 1) as true_count,
+        (SELECT COUNT(*) FROM character_attributes ca
+         WHERE ca.attribute_key = ad.key AND ca.value = 0) as false_count,
+        (SELECT COUNT(*) FROM character_attributes ca
+         WHERE ca.attribute_key = ad.key AND ca.value IS NULL) as null_count,
+        ROUND(
+          CAST((SELECT COUNT(*) FROM character_attributes ca
+                WHERE ca.attribute_key = ad.key AND ca.value IS NOT NULL) AS REAL)
+          / MAX((SELECT COUNT(*) FROM characters), 1) * 100, 1
+        ) as coverage_pct
+       FROM attribute_definitions ad
+       ORDER BY ad.key ASC`
+    );
+    return jsonResponse(attrs2);
+  }
+  const attrs = await d1Query(
+    db,
+    "SELECT key, display_text, question_text, categories, created_at FROM attribute_definitions ORDER BY key ASC"
+  );
+  return jsonResponse(attrs);
+}, "onRequestGet");
+var onRequestGet2 = /* @__PURE__ */ __name2(async (context) => {
+  const db = context.env.GUESS_DB;
+  if (!db) return errorResponse("D1 not configured", 503);
+  const url = new URL(context.request.url);
+  const category = url.searchParams.get("category");
+  const search = url.searchParams.get("search");
+  const id = url.searchParams.get("id");
+  const limit = Math.min(parseInt(url.searchParams.get("limit") || "50", 10), 200);
+  const offset = Math.max(parseInt(url.searchParams.get("offset") || "0", 10), 0);
+  if (id) {
+    const char = await d1First(db, "SELECT * FROM characters WHERE id = ?", [id]);
+    if (!char) return errorResponse("Character not found", 404);
+    const attrs = await d1Query(
+      db,
+      "SELECT attribute_key, value, confidence FROM character_attributes WHERE character_id = ?",
+      [id]
+    );
+    const attributes = {};
+    for (const a of attrs) {
+      attributes[a.attribute_key] = a.value === 1 ? true : a.value === 0 ? false : null;
+    }
+    return jsonResponse({ ...char, attributes });
+  }
+  const conditions = [];
+  const params = [];
+  if (category && isValidCategory(category)) {
+    conditions.push("category = ?");
+    params.push(category);
+  }
+  if (search && search.length >= 2) {
+    conditions.push("name LIKE ?");
+    params.push(`%${search}%`);
+  }
+  const where = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
+  const countRow = await d1First(
+    db,
+    `SELECT COUNT(*) as total FROM characters ${where}`,
+    params
+  );
+  const total = countRow?.total ?? 0;
+  const characters = await d1Query(
+    db,
+    `SELECT * FROM characters ${where} ORDER BY popularity DESC, name ASC LIMIT ? OFFSET ?`,
+    [...params, limit, offset]
+  );
+  return jsonResponse({ characters, total, limit, offset });
+}, "onRequestGet");
+var onRequestPost = /* @__PURE__ */ __name2(async (context) => {
+  const db = context.env.GUESS_DB;
+  const kv = context.env.GUESS_KV;
+  if (!db) return errorResponse("D1 not configured", 503);
+  if (!kv) return errorResponse("KV not configured", 503);
+  const body = await parseJsonBody(context.request);
+  if (!body) return errorResponse("Invalid JSON body", 400);
+  try {
+    const name = validateString(body.name, "name", 2, 50);
+    if (!body.category || !isValidCategory(body.category)) {
+      return errorResponse("Invalid category", 400);
+    }
+    const category = body.category;
+    const attributes = body.attributes;
+    if (!attributes || typeof attributes !== "object") {
+      return errorResponse('Missing or invalid "attributes"', 400);
+    }
+    const nonNullCount = Object.values(attributes).filter((v) => v !== null).length;
+    if (nonNullCount < 5) {
+      return errorResponse("Character must have at least 5 non-null attributes", 400);
+    }
+    const userId = getUserId(context.request);
+    const { allowed } = await checkRateLimit(kv, userId, "characters-v2", 5);
+    if (!allowed) return errorResponse("Rate limit exceeded. Try again later.", 429);
+    const existing = await d1First(
+      db,
+      "SELECT id FROM characters WHERE LOWER(name) = LOWER(?)",
+      [name]
+    );
+    if (existing) return errorResponse(`Character "${name}" already exists`, 409);
+    const id = `char-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const description = body.description ? validateString(body.description, "description", 0, 2e3) : null;
+    await d1Run(
+      db,
+      `INSERT INTO characters (id, name, category, source, is_custom, created_by, description)
+       VALUES (?, ?, ?, 'user', 1, ?, ?)`,
+      [id, name, category, userId, description]
+    );
+    const attrStatements = Object.entries(attributes).map(([key, value]) => ({
+      sql: "INSERT INTO character_attributes (character_id, attribute_key, value, confidence) VALUES (?, ?, ?, 1.0)",
+      params: [id, key, value === true ? 1 : value === false ? 0 : null]
+    }));
+    if (attrStatements.length > 0) {
+      await d1Batch(db, attrStatements);
+    }
+    return jsonResponse({ id, name, category, description }, 201);
+  } catch (err) {
+    if (err instanceof ValidationError) {
+      return errorResponse(err.message, 400);
+    }
+    console.error("POST /api/v2/characters error:", err);
+    return errorResponse("Internal error", 500);
+  }
+}, "onRequestPost");
+var onRequestGet3 = /* @__PURE__ */ __name2(async (context) => {
+  const db = context.env.GUESS_DB;
+  if (!db) return errorResponse("D1 not configured", 503);
+  const url = new URL(context.request.url);
+  const withCoverage = url.searchParams.get("coverage") === "true";
+  if (withCoverage) {
+    const questions2 = await d1Query(
+      db,
+      `SELECT
+        q.id, q.text, q.attribute_key, q.priority,
+        (SELECT COUNT(*) FROM characters) as total_characters,
+        (SELECT COUNT(*) FROM character_attributes ca
+         WHERE ca.attribute_key = q.attribute_key AND ca.value IS NOT NULL) as filled_count,
+        ROUND(
+          CAST((SELECT COUNT(*) FROM character_attributes ca
+                WHERE ca.attribute_key = q.attribute_key AND ca.value IS NOT NULL) AS REAL)
+          / MAX((SELECT COUNT(*) FROM characters), 1) * 100, 1
+        ) as coverage_pct
+       FROM questions q
+       ORDER BY q.priority DESC, q.id ASC`
+    );
+    return jsonResponse(questions2);
+  }
+  const questions = await d1Query(
+    db,
+    "SELECT id, text, attribute_key, priority FROM questions ORDER BY priority DESC, id ASC"
+  );
+  return jsonResponse(questions);
+}, "onRequestGet");
+var onRequestGet4 = /* @__PURE__ */ __name2(async (context) => {
+  const db = context.env.GUESS_DB;
+  if (!db) return errorResponse("D1 not configured", 503);
+  const [characters, attributes, questions, byCategory, bySource] = await Promise.all([
+    d1First(db, "SELECT COUNT(*) as count FROM characters"),
+    d1First(db, "SELECT COUNT(*) as count FROM attribute_definitions"),
+    d1First(db, "SELECT COUNT(*) as count FROM questions"),
+    d1Query(
+      db,
+      "SELECT category, COUNT(*) as count FROM characters GROUP BY category ORDER BY count DESC"
+    ),
+    d1Query(
+      db,
+      "SELECT source, COUNT(*) as count FROM characters GROUP BY source ORDER BY count DESC"
+    )
+  ]);
+  const totalAttrs = await d1First(
+    db,
+    `SELECT
+       COUNT(*) as total,
+       COUNT(CASE WHEN value IS NOT NULL THEN 1 END) as filled
+     FROM character_attributes`
+  );
+  return jsonResponse({
+    characters: characters?.count ?? 0,
+    attributes: attributes?.count ?? 0,
+    questions: questions?.count ?? 0,
+    characterAttributes: {
+      total: totalAttrs?.total ?? 0,
+      filled: totalAttrs?.filled ?? 0,
+      fillRate: totalAttrs?.total ? Math.round((totalAttrs.filled ?? 0) / totalAttrs.total * 1e3) / 10 : 0
+    },
+    byCategory,
+    bySource
+  });
+}, "onRequestGet");
 var KV_KEY = "global:characters";
 var MAX_PER_HOUR = 5;
-var onRequestGet = /* @__PURE__ */ __name2(async (context) => {
+var onRequestGet5 = /* @__PURE__ */ __name2(async (context) => {
   const kv = context.env.GUESS_KV;
   if (!kv) {
     return errorResponse("KV not configured", 503);
@@ -149,7 +375,7 @@ var onRequestGet = /* @__PURE__ */ __name2(async (context) => {
   const characters = await kvGetArray(kv, KV_KEY);
   return jsonResponse(characters);
 }, "onRequestGet");
-var onRequestPost = /* @__PURE__ */ __name2(async (context) => {
+var onRequestPost2 = /* @__PURE__ */ __name2(async (context) => {
   const kv = context.env.GUESS_KV;
   if (!kv) {
     return errorResponse("KV not configured", 503);
@@ -204,7 +430,7 @@ var onRequestPost = /* @__PURE__ */ __name2(async (context) => {
   }
 }, "onRequestPost");
 var AUTO_APPLY_THRESHOLD = 3;
-var onRequestGet2 = /* @__PURE__ */ __name2(async (context) => {
+var onRequestGet6 = /* @__PURE__ */ __name2(async (context) => {
   const kv = context.env.GUESS_KV;
   if (!kv) return errorResponse("KV not configured", 503);
   const url = new URL(context.request.url);
@@ -218,7 +444,7 @@ var onRequestGet2 = /* @__PURE__ */ __name2(async (context) => {
     return errorResponse("Internal server error", 500);
   }
 }, "onRequestGet");
-var onRequestPost2 = /* @__PURE__ */ __name2(async (context) => {
+var onRequestPost3 = /* @__PURE__ */ __name2(async (context) => {
   const kv = context.env.GUESS_KV;
   if (!kv) return errorResponse("KV not configured", 503);
   const body = await parseJsonBody(context.request);
@@ -436,7 +662,7 @@ async function processSuccess(data, kv, cacheKey, request) {
 }
 __name(processSuccess, "processSuccess");
 __name2(processSuccess, "processSuccess");
-var onRequestPost3 = /* @__PURE__ */ __name2(async (context) => {
+var onRequestPost4 = /* @__PURE__ */ __name2(async (context) => {
   const apiKey = context.env.OPENAI_API_KEY;
   if (!apiKey) {
     return Response.json(
@@ -518,7 +744,7 @@ function parseSSELine(line) {
 }
 __name(parseSSELine, "parseSSELine");
 __name2(parseSSELine, "parseSSELine");
-var onRequestPost4 = /* @__PURE__ */ __name2(async (context) => {
+var onRequestPost5 = /* @__PURE__ */ __name2(async (context) => {
   const apiKey = context.env.OPENAI_API_KEY;
   if (!apiKey) {
     return Response.json({ error: "LLM not configured", code: "NO_API_KEY" }, { status: 500 });
@@ -626,13 +852,13 @@ var onRequestPost4 = /* @__PURE__ */ __name2(async (context) => {
 }, "onRequestPost");
 var KV_KEY2 = "global:questions";
 var MAX_PER_HOUR2 = 10;
-var onRequestGet3 = /* @__PURE__ */ __name2(async (context) => {
+var onRequestGet7 = /* @__PURE__ */ __name2(async (context) => {
   const kv = context.env.GUESS_KV;
   if (!kv) return errorResponse("KV not configured", 503);
   const questions = await kvGetArray(kv, KV_KEY2);
   return jsonResponse(questions);
 }, "onRequestGet");
-var onRequestPost5 = /* @__PURE__ */ __name2(async (context) => {
+var onRequestPost6 = /* @__PURE__ */ __name2(async (context) => {
   const kv = context.env.GUESS_KV;
   if (!kv) return errorResponse("KV not configured", 503);
   const body = await parseJsonBody(context.request);
@@ -683,7 +909,7 @@ function emptyStats(characterId) {
 }
 __name(emptyStats, "emptyStats");
 __name2(emptyStats, "emptyStats");
-var onRequestGet4 = /* @__PURE__ */ __name2(async (context) => {
+var onRequestGet8 = /* @__PURE__ */ __name2(async (context) => {
   const kv = context.env.GUESS_KV;
   if (!kv) return errorResponse("KV not configured", 503);
   try {
@@ -700,7 +926,7 @@ var onRequestGet4 = /* @__PURE__ */ __name2(async (context) => {
     return errorResponse("Internal server error", 500);
   }
 }, "onRequestGet");
-var onRequestPost6 = /* @__PURE__ */ __name2(async (context) => {
+var onRequestPost7 = /* @__PURE__ */ __name2(async (context) => {
   const kv = context.env.GUESS_KV;
   if (!kv) return errorResponse("KV not configured", 503);
   const body = await parseJsonBody(context.request);
@@ -748,7 +974,7 @@ var onRequestPost6 = /* @__PURE__ */ __name2(async (context) => {
     return errorResponse("Internal server error", 500);
   }
 }, "onRequestPost");
-var onRequestGet5 = /* @__PURE__ */ __name2(async (context) => {
+var onRequestGet9 = /* @__PURE__ */ __name2(async (context) => {
   const kv = context.env.GUESS_KV;
   if (!kv) return errorResponse("KV not configured", 503);
   try {
@@ -763,7 +989,7 @@ var onRequestGet5 = /* @__PURE__ */ __name2(async (context) => {
     return errorResponse("Internal server error", 500);
   }
 }, "onRequestGet");
-var onRequestPost7 = /* @__PURE__ */ __name2(async (context) => {
+var onRequestPost8 = /* @__PURE__ */ __name2(async (context) => {
   const kv = context.env.GUESS_KV;
   if (!kv) return errorResponse("KV not configured", 503);
   const body = await parseJsonBody(context.request);
@@ -794,88 +1020,123 @@ var onRequestPost7 = /* @__PURE__ */ __name2(async (context) => {
 }, "onRequestPost");
 var routes = [
   {
-    routePath: "/api/characters",
-    mountPath: "/api",
+    routePath: "/api/v2/attributes",
+    mountPath: "/api/v2",
     method: "GET",
     middlewares: [],
     modules: [onRequestGet]
   },
   {
-    routePath: "/api/characters",
-    mountPath: "/api",
-    method: "POST",
-    middlewares: [],
-    modules: [onRequestPost]
-  },
-  {
-    routePath: "/api/corrections",
-    mountPath: "/api",
+    routePath: "/api/v2/characters",
+    mountPath: "/api/v2",
     method: "GET",
     middlewares: [],
     modules: [onRequestGet2]
   },
   {
-    routePath: "/api/corrections",
-    mountPath: "/api",
+    routePath: "/api/v2/characters",
+    mountPath: "/api/v2",
     method: "POST",
     middlewares: [],
-    modules: [onRequestPost2]
+    modules: [onRequestPost]
   },
   {
-    routePath: "/api/llm",
-    mountPath: "/api",
-    method: "POST",
-    middlewares: [],
-    modules: [onRequestPost3]
-  },
-  {
-    routePath: "/api/llm-stream",
-    mountPath: "/api",
-    method: "POST",
-    middlewares: [],
-    modules: [onRequestPost4]
-  },
-  {
-    routePath: "/api/questions",
-    mountPath: "/api",
+    routePath: "/api/v2/questions",
+    mountPath: "/api/v2",
     method: "GET",
     middlewares: [],
     modules: [onRequestGet3]
   },
   {
-    routePath: "/api/questions",
-    mountPath: "/api",
-    method: "POST",
-    middlewares: [],
-    modules: [onRequestPost5]
-  },
-  {
-    routePath: "/api/stats",
-    mountPath: "/api",
+    routePath: "/api/v2/stats",
+    mountPath: "/api/v2",
     method: "GET",
     middlewares: [],
     modules: [onRequestGet4]
   },
   {
-    routePath: "/api/stats",
-    mountPath: "/api",
-    method: "POST",
-    middlewares: [],
-    modules: [onRequestPost6]
-  },
-  {
-    routePath: "/api/sync",
+    routePath: "/api/characters",
     mountPath: "/api",
     method: "GET",
     middlewares: [],
     modules: [onRequestGet5]
   },
   {
-    routePath: "/api/sync",
+    routePath: "/api/characters",
+    mountPath: "/api",
+    method: "POST",
+    middlewares: [],
+    modules: [onRequestPost2]
+  },
+  {
+    routePath: "/api/corrections",
+    mountPath: "/api",
+    method: "GET",
+    middlewares: [],
+    modules: [onRequestGet6]
+  },
+  {
+    routePath: "/api/corrections",
+    mountPath: "/api",
+    method: "POST",
+    middlewares: [],
+    modules: [onRequestPost3]
+  },
+  {
+    routePath: "/api/llm",
+    mountPath: "/api",
+    method: "POST",
+    middlewares: [],
+    modules: [onRequestPost4]
+  },
+  {
+    routePath: "/api/llm-stream",
+    mountPath: "/api",
+    method: "POST",
+    middlewares: [],
+    modules: [onRequestPost5]
+  },
+  {
+    routePath: "/api/questions",
+    mountPath: "/api",
+    method: "GET",
+    middlewares: [],
+    modules: [onRequestGet7]
+  },
+  {
+    routePath: "/api/questions",
+    mountPath: "/api",
+    method: "POST",
+    middlewares: [],
+    modules: [onRequestPost6]
+  },
+  {
+    routePath: "/api/stats",
+    mountPath: "/api",
+    method: "GET",
+    middlewares: [],
+    modules: [onRequestGet8]
+  },
+  {
+    routePath: "/api/stats",
     mountPath: "/api",
     method: "POST",
     middlewares: [],
     modules: [onRequestPost7]
+  },
+  {
+    routePath: "/api/sync",
+    mountPath: "/api",
+    method: "GET",
+    middlewares: [],
+    modules: [onRequestGet9]
+  },
+  {
+    routePath: "/api/sync",
+    mountPath: "/api",
+    method: "POST",
+    middlewares: [],
+    modules: [onRequestPost8]
   }
 ];
 function lexer(str) {
@@ -1543,7 +1804,7 @@ var jsonError2 = /* @__PURE__ */ __name(async (request, env, _ctx, middlewareCtx
 }, "jsonError");
 var middleware_miniflare3_json_error_default2 = jsonError2;
 
-// .wrangler/tmp/bundle-u3AjnP/middleware-insertion-facade.js
+// .wrangler/tmp/bundle-0FH53c/middleware-insertion-facade.js
 var __INTERNAL_WRANGLER_MIDDLEWARE__2 = [
   middleware_ensure_req_body_drained_default2,
   middleware_miniflare3_json_error_default2
@@ -1575,7 +1836,7 @@ function __facade_invoke__2(request, env, ctx, dispatch, finalMiddleware) {
 }
 __name(__facade_invoke__2, "__facade_invoke__");
 
-// .wrangler/tmp/bundle-u3AjnP/middleware-loader.entry.ts
+// .wrangler/tmp/bundle-0FH53c/middleware-loader.entry.ts
 var __Facade_ScheduledController__2 = class ___Facade_ScheduledController__2 {
   constructor(scheduledTime, cron, noRetry) {
     this.scheduledTime = scheduledTime;
