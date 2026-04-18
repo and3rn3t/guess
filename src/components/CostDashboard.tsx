@@ -23,15 +23,6 @@ function getUsageHistory(): TokenUsage[] {
   }
 }
 
-/** Call this from llm.ts after each request to record usage */
-export function recordTokenUsage(usage: TokenUsage): void {
-  const history = getUsageHistory();
-  history.push(usage);
-  // Keep last 1000 entries
-  if (history.length > 1000) history.splice(0, history.length - 1000);
-  localStorage.setItem(USAGE_KEY, JSON.stringify(history));
-}
-
 const COST_PER_1K: Record<string, { prompt: number; completion: number }> = {
   "gpt-4o-mini": { prompt: 0.00015, completion: 0.0006 },
   "gpt-4o": { prompt: 0.005, completion: 0.015 },

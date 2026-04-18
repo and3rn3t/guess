@@ -1,12 +1,7 @@
-import { ALL_KNOWN_ATTRIBUTES } from './attributeRecommender'
+import { ALL_KNOWN_ATTRIBUTES, type AttributeRecommendation } from './attributeRecommender'
 import { llm } from './llm'
 
-export interface AttributeRecommendation {
-  attribute: string
-  label: string
-  reason: string
-  priority: 'high' | 'medium' | 'low'
-}
+export type { AttributeRecommendation }
 
 export type AttributeCategory = 'physical' | 'abilities' | 'personality' | 'origins' | 'relationships' | 'environment' | 'equipment'
 

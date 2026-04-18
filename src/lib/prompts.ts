@@ -120,23 +120,6 @@ Return JSON: { "attributes": { "attrName": true/false/null, ... } }`,
 }
 
 // ---------------------------------------------------------------------------
-// Question Polish
-// ---------------------------------------------------------------------------
-
-export function questionPolish_v1(rawQuestion: string, attribute: string): PromptPair {
-  return {
-    system: `${SYSTEM_PREAMBLE}\n\nYou polish question text for the guessing game. Questions should be clear, concise yes/no questions. Return valid JSON only.`,
-    user: `Polish this question for the game:
-Raw: "${sanitizeForPrompt(rawQuestion)}"
-Attribute: "${attribute}"
-
-Make it clear, grammatically correct, and answerable with yes/no. Keep it under 100 characters.
-
-Return JSON: { "text": "polished question text" }`,
-  }
-}
-
-// ---------------------------------------------------------------------------
 // Dynamic Question Rephrasing (during gameplay)
 // ---------------------------------------------------------------------------
 
@@ -164,23 +147,6 @@ Confidence: ${Math.round(confidence * 100)}%
 Rephrase this question to feel more natural. Reference previous answers if relevant (e.g., "Since they're human..."). Keep the same yes/no intent.
 
 Return JSON: { "text": "rephrased question" }`,
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Guess Narrative
-// ---------------------------------------------------------------------------
-
-export function guessNarrative_v1(
-  characterName: string,
-  won: boolean,
-  questionCount: number
-): PromptPair {
-  const safeName = sanitizeForPrompt(characterName)
-
-  return {
-    system: `${SYSTEM_PREAMBLE}\n\nYou write short, dramatic reveal messages for when the AI makes its guess. Keep it mystical and fun. 1-2 sentences max.`,
-    user: `The AI ${won ? 'correctly guessed' : 'incorrectly guessed'} "${safeName}" after ${questionCount} questions. Write a short, dramatic ${won ? 'victory' : 'defeat'} message.`,
   }
 }
 

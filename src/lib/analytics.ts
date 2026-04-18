@@ -1,10 +1,7 @@
 import type { Difficulty } from '@/lib/types'
+import type { AnalyticsEvent } from '@/lib/db'
 
-export interface AnalyticsEvent {
-  event: string
-  timestamp: number
-  data?: Record<string, string | number | boolean>
-}
+export type { AnalyticsEvent }
 
 const STORAGE_KEY = 'kv:analytics'
 const MAX_EVENTS = 500

@@ -128,36 +128,7 @@ export async function recordGameResult(
   }
 }
 
-export async function fetchCharacterStats(characterId: string): Promise<{
-  timesPlayed: number
-  wins: number
-  losses: number
-  totalQuestions: number
-} | null> {
-  try {
-    const res = await fetch(`/api/stats?characterId=${encodeURIComponent(characterId)}`, {
-      headers: headers(),
-    })
-    if (!res.ok) return null
-    return (await res.json()) as { timesPlayed: number; wins: number; losses: number; totalQuestions: number }
-  } catch {
-    return null
-  }
-}
 
-export async function fetchLeaderboard(): Promise<Array<{
-  characterId: string
-  timesPlayed: number
-  wins: number
-}>> {
-  try {
-    const res = await fetch('/api/stats?leaderboard=true', { headers: headers() })
-    if (!res.ok) return []
-    return (await res.json()) as Array<{ characterId: string; timesPlayed: number; wins: number }>
-  } catch {
-    return []
-  }
-}
 
 // ===== Corrections =====
 
@@ -183,53 +154,7 @@ export async function submitCorrection(
   }
 }
 
-export async function fetchCorrections(characterId: string): Promise<Array<{
-  attribute: string
-  suggestedValue: boolean
-  userId: string
-}>> {
-  try {
-    const res = await fetch(`/api/corrections?characterId=${encodeURIComponent(characterId)}`, {
-      headers: headers(),
-    })
-    if (!res.ok) return []
-    return (await res.json()) as Array<{ attribute: string; suggestedValue: boolean; userId: string }>
-  } catch {
-    return []
-  }
-}
 
-// ===== User Data Sync =====
-
-export async function pushUserData(
-  settings: Record<string, unknown>,
-  gameStats: Record<string, unknown>
-): Promise<void> {
-  try {
-    await fetch('/api/sync', {
-      method: 'POST',
-      headers: headers(),
-      body: JSON.stringify({ userId: getUserId(), settings, gameStats }),
-    })
-  } catch {
-    // Fire-and-forget
-  }
-}
-
-export async function pullUserData(): Promise<{
-  settings: Record<string, unknown>
-  gameStats: Record<string, unknown>
-} | null> {
-  try {
-    const res = await fetch(`/api/sync?userId=${encodeURIComponent(getUserId())}`, {
-      headers: headers(),
-    })
-    if (!res.ok) return null
-    return (await res.json()) as { settings: Record<string, unknown>; gameStats: Record<string, unknown> }
-  } catch {
-    return null
-  }
-}
 
 // ===== Sync Status =====
 
