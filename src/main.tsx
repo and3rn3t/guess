@@ -1,5 +1,6 @@
 import { createRoot } from 'react-dom/client'
 import { ErrorBoundary } from "react-error-boundary";
+import { ThemeProvider } from "next-themes";
 
 import App from './App.tsx'
 import { ErrorFallback } from './ErrorFallback.tsx'
@@ -10,6 +11,8 @@ import "./index.css"
 
 createRoot(document.getElementById('root')!).render(
   <ErrorBoundary FallbackComponent={ErrorFallback}>
-    <App />
+    <ThemeProvider attribute="class" defaultTheme="dark" themes={["dark", "light"]}>
+      <App />
+    </ThemeProvider>
    </ErrorBoundary>
 )

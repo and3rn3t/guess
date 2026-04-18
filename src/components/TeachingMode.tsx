@@ -307,7 +307,7 @@ export function TeachingMode({ answers, existingCharacters, onAddCharacter, onAd
               </div>
 
               {!llmFilled && (
-                <div className="flex items-start gap-3 rounded-lg border border-yellow-500/30 bg-yellow-500/10 p-3 text-sm text-yellow-200">
+                <div className="flex items-start gap-3 rounded-lg border border-yellow-500/30 bg-yellow-500/10 p-3 text-sm text-yellow-800 dark:text-yellow-200">
                   <WarningCircle size={20} className="mt-0.5 shrink-0 text-yellow-400" weight="fill" />
                   <span>AI auto-fill wasn't available — all attributes need to be set manually. Tap each one to cycle through <strong>Yes / No / Unknown</strong>.</span>
                 </div>

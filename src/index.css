@@ -43,6 +43,36 @@
   --radius: 0.75rem;
 }
 
+.light {
+  --background: oklch(0.97 0.01 270);
+  --foreground: oklch(0.15 0.03 280);
+  
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.15 0.03 280);
+  
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.15 0.03 280);
+  
+  --primary: oklch(0.45 0.18 300);
+  --primary-foreground: oklch(1 0 0);
+  
+  --secondary: oklch(0.92 0.03 280);
+  --secondary-foreground: oklch(0.20 0.05 280);
+  
+  --muted: oklch(0.93 0.01 270);
+  --muted-foreground: oklch(0.45 0.03 280);
+  
+  --accent: oklch(0.55 0.18 260);
+  --accent-foreground: oklch(1 0 0);
+  
+  --destructive: oklch(0.55 0.22 25);
+  --destructive-foreground: oklch(1 0 0);
+  
+  --border: oklch(0.88 0.02 270);
+  --input: oklch(0.88 0.02 270);
+  --ring: oklch(0.55 0.18 260);
+}
+
 @theme {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -112,7 +142,7 @@
 
 /* Accessibility: visible focus indicators for keyboard navigation */
 :focus-visible {
-  outline: 2px solid hsl(var(--accent));
+  outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
 

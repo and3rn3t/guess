@@ -75,16 +75,20 @@ import {
   FlaskIcon,
   GearIcon,
   House,
+  MoonIcon,
   PlayIcon,
   SparkleIcon,
   SpeakerHighIcon,
   SpeakerSlashIcon,
+  SunIcon,
   TreeStructureIcon,
   UsersIcon,
+  WifiSlashIcon,
   WrenchIcon,
 } from "@phosphor-icons/react";
 import { AnimatePresence } from "framer-motion";
-import { lazy, Suspense, useEffect, useState } from "react";
+import { useTheme } from "next-themes";
+import { lazy, Suspense, useCallback, useEffect, useState } from "react";
 import { toast, Toaster } from "sonner";
 
 const TeachingMode = lazy(() =>
@@ -206,6 +210,31 @@ function App() {
   const { muted, toggle: toggleMute } = useSound();
   const [showQuitDialog, setShowQuitDialog] = useState(false);
   const [syncStatus, setSyncStatus] = useState<SyncStatus>("synced");
+  const { theme, setTheme } = useTheme();
+  const [online, setOnline] = useState(
+    typeof navigator !== "undefined" ? navigator.onLine : true,
+  );
+
+  const toggleTheme = useCallback(() => {
+    setTheme(theme === "dark" ? "light" : "dark");
+  }, [theme, setTheme]);
+
+  // ========== ONLINE STATUS ==========
+  useEffect(() => {
+    const goOnline = () => setOnline(true);
+    const goOffline = () => {
+      setOnline(false);
+      if (llmMode) {
+        toast.warning("You're offline — AI-Enhanced features won't work until you reconnect.");
+      }
+    };
+    window.addEventListener("online", goOnline);
+    window.addEventListener("offline", goOffline);
+    return () => {
+      window.removeEventListener("online", goOnline);
+      window.removeEventListener("offline", goOffline);
+    };
+  }, [llmMode]);
 
   const maxQuestions = DIFFICULTIES[difficulty].maxQuestions;
 
@@ -679,12 +708,12 @@ function App() {
       <Toaster position="top-center" richColors />
       <div className="min-h-screen bg-background relative overflow-hidden">
         <div
-          className="absolute inset-0 opacity-30"
+          className="absolute inset-0 opacity-20"
           style={{
             backgroundImage: `
-              radial-gradient(circle at 20% 50%, oklch(0.35 0.15 300 / 0.3) 0%, transparent 50%),
-              radial-gradient(circle at 80% 80%, oklch(0.70 0.15 220 / 0.2) 0%, transparent 50%),
-              radial-gradient(circle at 40% 20%, oklch(0.28 0.12 280 / 0.2) 0%, transparent 50%)
+              radial-gradient(circle at 20% 50%, var(--color-primary) 0%, transparent 50%),
+              radial-gradient(circle at 80% 80%, var(--color-accent) 0%, transparent 50%),
+              radial-gradient(circle at 40% 20%, var(--color-secondary) 0%, transparent 50%)
             `,
           }}
         />
@@ -694,7 +723,7 @@ function App() {
             aria-label="Game navigation"
             className="border-b border-border/50 backdrop-blur-sm bg-background/80"
           >
-            <div className="container mx-auto px-4 py-6">
+            <div className="container mx-auto px-4 py-4 md:py-6">
               <div className="flex items-center justify-between">
                 <button
                   onClick={() => {
@@ -704,18 +733,18 @@ function App() {
                       navigate("welcome");
                     }
                   }}
-                  className="flex items-center gap-3 hover:opacity-80 transition-opacity"
+                  className="flex items-center gap-2 md:gap-3 hover:opacity-80 transition-opacity"
                 >
                   <SparkleIcon
-                    size={40}
+                    size={32}
                     weight="fill"
-                    className="text-accent"
+                    className="text-accent md:w-10 md:h-10"
                   />
-                  <h1 className="text-3xl md:text-4xl font-bold text-foreground tracking-tight">
+                  <h1 className="text-2xl md:text-4xl font-bold text-foreground tracking-tight">
                     Mystic Guesser
                   </h1>
                 </button>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-1.5 md:gap-3">
                   {/* Welcome phase: Stats, History, Compare, Dev Tools */}
                   {gamePhase === "welcome" && (
                     <>
@@ -865,6 +894,20 @@ function App() {
                       <SpeakerSlashIcon size={20} />
                     ) : (
                       <SpeakerHighIcon size={20} />
+                    )}
+                  </Button>
+                  <Button
+                    onClick={toggleTheme}
+                    variant="ghost"
+                    size="sm"
+                    className="flex items-center gap-1 text-muted-foreground hover:text-foreground"
+                    title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+                    aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+                  >
+                    {theme === "dark" ? (
+                      <SunIcon size={20} />
+                    ) : (
+                      <MoonIcon size={20} />
                     )}
                   </Button>
                 </div>
@@ -1163,8 +1206,15 @@ function App() {
                     </button>
                   </div>
                   {llmMode && (
-                    <p className="text-xs text-accent mt-2">
-                      ✨ Requires internet connection
+                    <p className={`text-xs mt-2 ${online ? "text-accent" : "text-destructive"}`}>
+                      {online ? (
+                        "✨ Requires internet connection"
+                      ) : (
+                        <span className="flex items-center gap-1">
+                          <WifiSlashIcon size={14} weight="bold" />
+                          You're offline — AI features won't work until you reconnect
+                        </span>
+                      )}
                     </p>
                   )}
                 </div>
