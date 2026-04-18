@@ -21,6 +21,7 @@ import { useKV } from "@/hooks/useKV";
 import { useSound } from "@/hooks/useSound";
 import { DEFAULT_CHARACTERS, DEFAULT_QUESTIONS } from "@/lib/database";
 import {
+  calculateProbabilities,
   detectContradictions,
   generateReasoning,
   getBestGuess,
@@ -40,7 +41,7 @@ import {
   playAnswer,
   playCorrectGuess,
   playIncorrectGuess,
-  playReveal,
+  playSuspense,
   playThinking,
 } from "@/lib/sounds";
 import type { SyncStatus } from "@/lib/sync";
@@ -78,9 +79,16 @@ import {
   WifiSlashIcon,
   WrenchIcon,
 } from "@phosphor-icons/react";
-import { AnimatePresence } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import { useTheme } from "next-themes";
-import { lazy, Suspense, useCallback, useEffect, useState } from "react";
+import {
+  lazy,
+  Suspense,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { toast, Toaster } from "sonner";
 
 const TeachingMode = lazy(() =>
@@ -135,7 +143,11 @@ const MultiCategoryEnhancer = lazy(() =>
 );
 const INSIGHT_TABS = [
   { phase: "stats" as const, label: "Stats", icon: ChartBarIcon },
-  { phase: "history" as const, label: "History", icon: ClockCounterClockwiseIcon },
+  {
+    phase: "history" as const,
+    label: "History",
+    icon: ClockCounterClockwiseIcon,
+  },
   { phase: "compare" as const, label: "Compare", icon: UsersIcon },
 ] as const;
 
@@ -211,6 +223,8 @@ function App() {
   const [online, setOnline] = useState(
     typeof navigator === "undefined" ? true : navigator.onLine,
   );
+  const [eliminatedCount, setEliminatedCount] = useState<number | null>(null);
+  const prevPossibleCount = useRef<number>(0);
 
   const toggleTheme = useCallback(() => {
     setTheme(theme === "dark" ? "light" : "dark");
@@ -222,7 +236,9 @@ function App() {
     const goOffline = () => {
       setOnline(false);
       if (llmMode) {
-        toast.warning("You're offline — AI-Enhanced features won't work until you reconnect.");
+        toast.warning(
+          "You're offline — AI-Enhanced features won't work until you reconnect.",
+        );
       }
     };
     globalThis.addEventListener("online", goOnline);
@@ -239,6 +255,15 @@ function App() {
     const all = characters || DEFAULT_CHARACTERS;
     if (selectedCategories.size === 0) return all;
     return all.filter((c) => selectedCategories.has(c.category));
+  })();
+
+  // ========== CONFIDENCE ==========
+  const confidence = (() => {
+    if (possibleCharacters.length === 0 || answers.length === 0) return 0;
+    const probs = calculateProbabilities(possibleCharacters, answers);
+    let max = 0;
+    for (const p of probs.values()) if (p > max) max = p;
+    return Math.round(max * 100);
   })();
 
   // ========== SYNC STATUS ==========
@@ -290,7 +315,9 @@ function App() {
       return;
     }
     dispatch({ type: "START_GAME", characters: activeCharacters });
-    analytics().then((m) => m.trackGameStart(difficulty, activeCharacters.length));
+    analytics().then((m) =>
+      m.trackGameStart(difficulty, activeCharacters.length),
+    );
   };
 
   // ========== GENERATE NEXT QUESTION ==========
@@ -302,6 +329,15 @@ function App() {
       const allQuestions = questions || DEFAULT_QUESTIONS;
       const filtered = filterPossibleCharacters(possibleCharacters, answers);
       dispatch({ type: "SET_POSSIBLE_CHARACTERS", characters: filtered });
+
+      // Show elimination feedback
+      if (prevPossibleCount.current > 0) {
+        const eliminated = prevPossibleCount.current - filtered.length;
+        if (eliminated > 0) {
+          setEliminatedCount(eliminated);
+          setTimeout(() => setEliminatedCount(null), 2000);
+        }
+      }
 
       const { hasContradiction } = detectContradictions(
         possibleCharacters,
@@ -320,7 +356,7 @@ function App() {
         const guess = getBestGuess(filtered, answers);
         if (guess) {
           dispatch({ type: "MAKE_GUESS", character: guess });
-          playReveal();
+          playSuspense();
         }
         return;
       }
@@ -355,7 +391,12 @@ function App() {
                 topNames,
                 confidence,
               );
-              return llmWithMeta({ prompt: user, model: "gpt-4o-mini", jsonMode: true, systemPrompt: system });
+              return llmWithMeta({
+                prompt: user,
+                model: "gpt-4o-mini",
+                jsonMode: true,
+                systemPrompt: system,
+              });
             })
             .then((result) => {
               try {
@@ -379,7 +420,7 @@ function App() {
         const guess = getBestGuess(filtered, answers);
         if (guess) {
           dispatch({ type: "MAKE_GUESS", character: guess });
-          playReveal();
+          playSuspense();
         }
       }
 
@@ -405,6 +446,7 @@ function App() {
 
   // ========== ANSWER HANDLER ==========
   const handleAnswer = (value: AnswerValue) => {
+    prevPossibleCount.current = possibleCharacters.length;
     dispatch({ type: "ANSWER", value });
     playAnswer();
     hapticLight();
@@ -441,7 +483,9 @@ function App() {
   const handleIncorrectGuess = () => {
     dispatch({ type: "INCORRECT_GUESS" });
     recordGame(false);
-    analytics().then((m) => m.trackGameEnd(false, difficulty, gameSteps.length));
+    analytics().then((m) =>
+      m.trackGameEnd(false, difficulty, gameSteps.length),
+    );
     playIncorrectGuess();
     hapticMedium();
     toast.error("I'll learn from this and do better next time!");
@@ -887,7 +931,10 @@ function App() {
                       <CloudXIcon size={18} className="text-red-400" />
                     )}
                     {syncStatus === "offline" && (
-                      <CloudSlashIcon size={18} className="text-muted-foreground" />
+                      <CloudSlashIcon
+                        size={18}
+                        className="text-muted-foreground"
+                      />
                     )}
                   </span>
                   <Button
@@ -909,8 +956,16 @@ function App() {
                     variant="ghost"
                     size="sm"
                     className="flex items-center gap-1 text-muted-foreground hover:text-foreground"
-                    title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
-                    aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+                    title={
+                      theme === "dark"
+                        ? "Switch to light mode"
+                        : "Switch to dark mode"
+                    }
+                    aria-label={
+                      theme === "dark"
+                        ? "Switch to light mode"
+                        : "Switch to dark mode"
+                    }
                   >
                     {theme === "dark" ? (
                       <SunIcon size={20} />
@@ -941,7 +996,15 @@ function App() {
                   : "Wrong guess. You stumped me!")}
             </div>
 
+            <AnimatePresence mode="wait">
             {gamePhase === "welcome" && (
+              <motion.div
+                key="welcome"
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -12 }}
+                transition={{ duration: 0.25 }}
+              >
               <div className="max-w-4xl mx-auto space-y-8">
                 <div className="text-center space-y-4">
                   <SparkleIcon
@@ -1214,13 +1277,16 @@ function App() {
                     </button>
                   </div>
                   {llmMode && (
-                    <p className={`text-xs mt-2 ${online ? "text-accent" : "text-destructive"}`}>
+                    <p
+                      className={`text-xs mt-2 ${online ? "text-accent" : "text-destructive"}`}
+                    >
                       {online ? (
                         "✨ Requires internet connection"
                       ) : (
                         <span className="flex items-center gap-1">
                           <WifiSlashIcon size={14} weight="bold" />
-                          You're offline — AI features won't work until you reconnect
+                          You're offline — AI features won't work until you
+                          reconnect
                         </span>
                       )}
                     </p>
@@ -1321,31 +1387,100 @@ function App() {
                   </div>
                 )}
               </div>
+              </motion.div>
             )}
 
             {gamePhase === "playing" && (
+              <motion.div
+                key="playing"
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -12 }}
+                transition={{ duration: 0.25 }}
+              >
               <div className="max-w-7xl mx-auto space-y-4 lg:space-y-0">
-                <div className="sticky top-0 z-20 bg-background/80 backdrop-blur-sm py-2 -mx-4 px-4 lg:static lg:bg-transparent lg:backdrop-blur-none lg:py-0 lg:mx-0 lg:px-0 lg:mb-6">
-                  <Progress
-                    value={(answers.length / maxQuestions) * 100}
-                    className="h-2"
-                  />
+                <div className="sticky top-0 z-20 bg-background/80 backdrop-blur-sm py-2 -mx-4 px-4 lg:static lg:bg-transparent lg:backdrop-blur-none lg:py-0 lg:mx-0 lg:px-0 lg:mb-6 space-y-2">
+                  <div className="flex items-center gap-3">
+                    <Progress
+                      value={(answers.length / maxQuestions) * 100}
+                      className="h-2 flex-1"
+                    />
+                    <span className="text-xs font-semibold text-accent whitespace-nowrap tabular-nums">
+                      {confidence}% confident
+                    </span>
+                  </div>
                 </div>
 
                 <div className="flex items-center justify-between text-sm text-muted-foreground mb-4 lg:mb-6">
-                  <span>
-                    {possibleCharacters.length} possibilities remaining
-                    {llmMode && (
-                      <span className="ml-2 text-xs text-accent">✨ AI</span>
+                  <div className="flex items-center gap-3">
+                    <span>
+                      {possibleCharacters.length} possibilities remaining
+                      {llmMode && (
+                        <span className="ml-2 text-xs text-accent">✨ AI</span>
+                      )}
+                    </span>
+                    <AnimatePresence>
+                      {eliminatedCount !== null && (
+                        <motion.span
+                          initial={{ opacity: 0, y: 8, scale: 0.9 }}
+                          animate={{ opacity: 1, y: 0, scale: 1 }}
+                          exit={{ opacity: 0, y: -8 }}
+                          transition={{ duration: 0.3 }}
+                          className="inline-flex items-center rounded-full bg-destructive/15 px-2.5 py-0.5 text-xs font-medium text-destructive"
+                        >
+                          −{eliminatedCount} eliminated
+                        </motion.span>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {answers.length > 0 && (
+                      <button
+                        onClick={() => dispatch({ type: "UNDO_LAST_ANSWER" })}
+                        className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                        aria-label="Undo last answer"
+                      >
+                        <ClockCounterClockwiseIcon size={14} />
+                        Undo
+                      </button>
                     )}
-                  </span>
-                  {possibleCharacters.length > 0 &&
-                    possibleCharacters.length <= 5 && (
-                      <span className="text-accent font-medium">
-                        Top: {possibleCharacters[0]?.name}
-                      </span>
-                    )}
+                    {possibleCharacters.length > 0 &&
+                      possibleCharacters.length <= 5 && (
+                        <span className="text-accent font-medium">
+                          Top: {possibleCharacters[0]?.name}
+                        </span>
+                      )}
+                  </div>
                 </div>
+
+                {/* Answer history timeline */}
+                {gameSteps.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 mb-4 lg:mb-6" aria-label="Answer history">
+                    {gameSteps.map((step, i) => (
+                      <span
+                        key={i}
+                        title={`Q${i + 1}: ${step.questionText} → ${step.answer}`}
+                        className={`inline-flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold cursor-default transition-transform hover:scale-110 ${
+                          step.answer === "yes"
+                            ? "bg-accent/20 text-accent"
+                            : step.answer === "no"
+                              ? "bg-destructive/20 text-destructive"
+                              : step.answer === "maybe"
+                                ? "bg-yellow-500/20 text-yellow-500"
+                                : "bg-muted text-muted-foreground"
+                        }`}
+                      >
+                        {step.answer === "yes"
+                          ? "Y"
+                          : step.answer === "no"
+                            ? "N"
+                            : step.answer === "maybe"
+                              ? "M"
+                              : "?"}
+                      </span>
+                    ))}
+                  </div>
+                )}
 
                 <div className="grid lg:grid-cols-2 gap-4 lg:gap-6">
                   <div>
@@ -1381,19 +1516,36 @@ function App() {
                   </div>
                 </div>
               </div>
+              </motion.div>
             )}
 
             {gamePhase === "guessing" && finalGuess && (
+              <motion.div
+                key="guessing"
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -12 }}
+                transition={{ duration: 0.25 }}
+              >
               <div className="max-w-2xl mx-auto">
                 <GuessReveal
                   character={finalGuess}
+                  confidence={confidence}
                   onCorrect={handleCorrectGuess}
                   onIncorrect={handleIncorrectGuess}
                 />
               </div>
+              </motion.div>
             )}
 
             {gamePhase === "gameOver" && (
+              <motion.div
+                key="gameOver"
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -12 }}
+                transition={{ duration: 0.25 }}
+              >
               <div className="max-w-2xl mx-auto">
                 <GameOver
                   won={gameWon}
@@ -1418,7 +1570,9 @@ function App() {
                   })}
                 />
               </div>
+              </motion.div>
             )}
+            </AnimatePresence>
 
             {gamePhase === "teaching" && (
               <div className="max-w-2xl mx-auto">

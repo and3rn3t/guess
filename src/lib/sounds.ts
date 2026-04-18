@@ -81,6 +81,14 @@ export function playReveal() {
   setTimeout(() => playTone(659, 0.4, 'sine', 0.1), 200)
 }
 
+/** Suspenseful ascending tones leading to the guess reveal */
+export function playSuspense() {
+  const notes = [330, 370, 415, 466, 523] // E4 ascending
+  notes.forEach((freq, i) => {
+    setTimeout(() => playTone(freq, 0.2, 'sine', 0.06 + i * 0.02), i * 250)
+  })
+}
+
 // ========== HAPTICS ==========
 
 /** Trigger a short haptic vibration if supported */
