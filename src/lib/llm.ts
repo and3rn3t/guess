@@ -29,6 +29,39 @@ export interface LlmResult {
   cached?: boolean
 }
 
+export class LlmError extends Error {
+  code: string
+  status: number
+  retryable: boolean
+
+  constructor(message: string, code: string, status: number, retryable: boolean) {
+    super(message)
+    this.name = 'LlmError'
+    this.code = code
+    this.status = status
+    this.retryable = retryable
+  }
+}
+
+const NON_RETRYABLE_CODES = new Set(['QUOTA_EXCEEDED', 'NO_API_KEY'])
+
+async function parseErrorResponse(response: Response): Promise<LlmError> {
+  let errorMsg = `LLM request failed (${response.status})`
+  let code = 'UNKNOWN'
+
+  try {
+    const body = await response.json() as { error?: string; code?: string }
+    if (body.error) errorMsg = body.error
+    if (body.code) code = body.code
+  } catch {
+    const text = await response.text().catch(() => '')
+    if (text) errorMsg = text
+  }
+
+  const retryable = RETRYABLE_STATUSES.has(response.status) && !NON_RETRYABLE_CODES.has(code)
+  return new LlmError(errorMsg, code, response.status, retryable)
+}
+
 /** Send a prompt to the LLM API and return the response text. */
 export async function llm(prompt: string, model: string, jsonMode?: boolean): Promise<string> {
   const result = await llmWithMeta({ prompt, model, jsonMode })
@@ -61,22 +94,17 @@ export async function llmWithMeta(options: LlmOptions): Promise<LlmResult> {
         }),
       })
     } catch {
-      lastError = new Error('Network error — check your internet connection and try again.')
+      lastError = new LlmError('Network error — check your internet connection and try again.', 'NETWORK', 0, true)
       continue
     }
 
     if (!response.ok) {
-      if (RETRYABLE_STATUSES.has(response.status) && attempt < MAX_RETRIES) {
+      const err = await parseErrorResponse(response)
+      if (err.retryable && attempt < MAX_RETRIES) {
+        lastError = err
         continue
       }
-      if (response.status === 502 || response.status === 503) {
-        throw new Error('The AI service is temporarily unavailable. Please try again in a moment.')
-      }
-      if (response.status === 429) {
-        throw new Error('Too many requests — please wait a moment and try again.')
-      }
-      const errorText = await response.text().catch(() => 'Unknown error')
-      throw new Error(`LLM request failed (${response.status}): ${errorText}`)
+      throw err
     }
 
     const content = await response.text()
@@ -97,7 +125,7 @@ export async function llmWithMeta(options: LlmOptions): Promise<LlmResult> {
     return { content, usage, cached }
   }
 
-  throw lastError ?? new Error('LLM request failed after retries')
+  throw lastError ?? new LlmError('LLM request failed after retries', 'MAX_RETRIES', 0, false)
 }
 
 const SSE_DONE = Symbol('done')
@@ -130,7 +158,7 @@ export async function* llmStream(options: Omit<LlmOptions, 'jsonMode'>): AsyncGe
   })
 
   if (!response.ok) {
-    throw new Error(`Stream request failed (${response.status})`)
+    throw await parseErrorResponse(response)
   }
 
   const reader = response.body!.getReader()

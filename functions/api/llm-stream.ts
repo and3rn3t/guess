@@ -31,7 +31,7 @@ function parseSSELine(line: string): string | null {
 export const onRequestPost: PagesFunction<Env> = async (context) => {
   const apiKey = context.env.OPENAI_API_KEY
   if (!apiKey) {
-    return Response.json({ error: 'LLM not configured' }, { status: 500 })
+    return Response.json({ error: 'LLM not configured', code: 'NO_API_KEY' }, { status: 500 })
   }
 
   const kv = context.env.GUESS_KV
@@ -63,7 +63,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const userId = getUserId(context.request)
     const { allowed } = await checkRateLimit(kv, userId, 'llm', 60)
     if (!allowed) {
-      return Response.json({ error: 'Rate limit exceeded' }, { status: 429 })
+    return Response.json({ error: 'Rate limit exceeded', code: 'RATE_LIMITED' }, { status: 429 })
     }
   }
 
@@ -91,7 +91,24 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     if (!openaiResponse.ok) {
       const errorText = await openaiResponse.text().catch(() => 'Unknown error')
       console.error('OpenAI stream error:', openaiResponse.status, errorText)
-      return Response.json({ error: 'LLM provider error' }, { status: 502 })
+
+      if (openaiResponse.status === 429) {
+        const isQuota = errorText.includes('insufficient_quota')
+        return Response.json(
+          {
+            error: isQuota
+              ? 'API quota exceeded — please check billing'
+              : 'Rate limited by LLM provider',
+            code: isQuota ? 'QUOTA_EXCEEDED' : 'RATE_LIMITED',
+          },
+          { status: 429 },
+        )
+      }
+
+      return Response.json(
+        { error: 'LLM provider error', code: 'PROVIDER_ERROR' },
+        { status: 502 },
+      )
     }
 
     // Pipe OpenAI SSE stream to client as our own SSE stream

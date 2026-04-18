@@ -374,7 +374,7 @@ async function processSuccess(data, kv, cacheKey, request) {
   const content = data.choices?.[0]?.message?.content;
   if (!content) {
     return Response.json(
-      { error: "Empty response from LLM" },
+      { error: "Empty response from LLM", code: "EMPTY_RESPONSE" },
       { status: 502 }
     );
   }
@@ -437,13 +437,29 @@ var onRequestPost3 = /* @__PURE__ */ __name2(async (context) => {
     if (!openaiResponse.ok) {
       const errorText = await openaiResponse.text().catch(() => "Unknown error");
       console.error("OpenAI API error:", openaiResponse.status, errorText);
-      return Response.json({ error: "LLM provider error" }, { status: 502 });
+      if (openaiResponse.status === 429) {
+        const isQuota = errorText.includes("insufficient_quota");
+        return Response.json(
+          {
+            error: isQuota ? "API quota exceeded \u2014 please check billing" : "Rate limited by LLM provider",
+            code: isQuota ? "QUOTA_EXCEEDED" : "RATE_LIMITED"
+          },
+          { status: 429 }
+        );
+      }
+      return Response.json(
+        { error: "LLM provider error", code: "PROVIDER_ERROR" },
+        { status: 502 }
+      );
     }
     const data = await openaiResponse.json();
     return processSuccess(data, kv, cacheKey, context.request);
   } catch (error) {
     console.error("LLM proxy error:", error);
-    return Response.json({ error: "Internal server error" }, { status: 500 });
+    return Response.json(
+      { error: "Internal server error", code: "INTERNAL" },
+      { status: 500 }
+    );
   }
 }, "onRequestPost");
 var MAX_PROMPT_LENGTH2 = 5e4;
@@ -468,7 +484,7 @@ __name2(parseSSELine, "parseSSELine");
 var onRequestPost4 = /* @__PURE__ */ __name2(async (context) => {
   const apiKey = context.env.OPENAI_API_KEY;
   if (!apiKey) {
-    return Response.json({ error: "LLM not configured" }, { status: 500 });
+    return Response.json({ error: "LLM not configured", code: "NO_API_KEY" }, { status: 500 });
   }
   const kv = context.env.GUESS_KV;
   let body;
@@ -494,7 +510,7 @@ var onRequestPost4 = /* @__PURE__ */ __name2(async (context) => {
     const userId = getUserId(context.request);
     const { allowed } = await checkRateLimit(kv, userId, "llm", 60);
     if (!allowed) {
-      return Response.json({ error: "Rate limit exceeded" }, { status: 429 });
+      return Response.json({ error: "Rate limit exceeded", code: "RATE_LIMITED" }, { status: 429 });
     }
   }
   const messages = [];
@@ -518,7 +534,20 @@ var onRequestPost4 = /* @__PURE__ */ __name2(async (context) => {
     if (!openaiResponse.ok) {
       const errorText = await openaiResponse.text().catch(() => "Unknown error");
       console.error("OpenAI stream error:", openaiResponse.status, errorText);
-      return Response.json({ error: "LLM provider error" }, { status: 502 });
+      if (openaiResponse.status === 429) {
+        const isQuota = errorText.includes("insufficient_quota");
+        return Response.json(
+          {
+            error: isQuota ? "API quota exceeded \u2014 please check billing" : "Rate limited by LLM provider",
+            code: isQuota ? "QUOTA_EXCEEDED" : "RATE_LIMITED"
+          },
+          { status: 429 }
+        );
+      }
+      return Response.json(
+        { error: "LLM provider error", code: "PROVIDER_ERROR" },
+        { status: 502 }
+      );
     }
     const { readable, writable } = new TransformStream();
     const writer = writable.getWriter();

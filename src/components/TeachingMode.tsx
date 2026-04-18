@@ -9,9 +9,10 @@ import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import type { Character, Answer, CharacterCategory, Question } from '@/lib/types'
 import { CATEGORY_LABELS } from '@/lib/types'
-import { llmWithMeta } from '@/lib/llm'
+import { llmWithMeta, LlmError } from '@/lib/llm'
 import { attributeAutoFill_v1 } from '@/lib/prompts'
 import { submitCharacter } from '@/lib/sync'
+import { toast } from 'sonner'
 
 interface TeachingModeProps {
   answers: Answer[]
@@ -131,6 +132,8 @@ export function TeachingMode({ answers, existingCharacters, onAddCharacter, onAd
       console.warn('LLM auto-fill failed:', e)
       setAttributes({ ...gameplayAttributes })
       setLlmFilled(false)
+      const msg = e instanceof LlmError ? e.message : 'AI auto-fill unavailable'
+      toast(msg, { description: 'You can set attributes manually below' })
     }
 
     setStep('review')

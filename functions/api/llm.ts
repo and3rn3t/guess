@@ -197,7 +197,7 @@ async function processSuccess(
   const content = data.choices?.[0]?.message?.content;
   if (!content) {
     return Response.json(
-      { error: "Empty response from LLM" },
+      { error: "Empty response from LLM", code: "EMPTY_RESPONSE" },
       { status: 502 },
     );
   }
@@ -286,7 +286,25 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         .text()
         .catch(() => "Unknown error");
       console.error("OpenAI API error:", openaiResponse.status, errorText);
-      return Response.json({ error: "LLM provider error" }, { status: 502 });
+
+      // Surface specific error codes to the client
+      if (openaiResponse.status === 429) {
+        const isQuota = errorText.includes("insufficient_quota");
+        return Response.json(
+          {
+            error: isQuota
+              ? "API quota exceeded — please check billing"
+              : "Rate limited by LLM provider",
+            code: isQuota ? "QUOTA_EXCEEDED" : "RATE_LIMITED",
+          },
+          { status: 429 },
+        );
+      }
+
+      return Response.json(
+        { error: "LLM provider error", code: "PROVIDER_ERROR" },
+        { status: 502 },
+      );
     }
 
     const data: {
@@ -301,6 +319,9 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     return processSuccess(data, kv, cacheKey, context.request);
   } catch (error) {
     console.error("LLM proxy error:", error);
-    return Response.json({ error: "Internal server error" }, { status: 500 });
+    return Response.json(
+      { error: "Internal server error", code: "INTERNAL" },
+      { status: 500 },
+    );
   }
 };

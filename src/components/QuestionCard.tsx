@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import type { Question, AnswerValue } from '@/lib/types'
-import { llmWithMeta } from '@/lib/llm'
+import { llmWithMeta, LlmError } from '@/lib/llm'
 import { conversationalParse_v1 } from '@/lib/prompts'
 import { toast } from 'sonner'
 
@@ -41,8 +41,9 @@ export function QuestionCard({
         onAnswer(parsed.value)
         setFreeText('')
       }
-    } catch {
-      toast('Could not interpret — please use the buttons', { description: 'AI interpretation failed' })
+    } catch (e) {
+      const msg = e instanceof LlmError ? e.message : 'Could not interpret your answer'
+      toast(msg, { description: 'Please use the buttons instead' })
     } finally {
       setIsInterpreting(false)
     }

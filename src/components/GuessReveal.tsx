@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { llmStream } from "@/lib/llm";
+import { llmStream, LlmError } from "@/lib/llm";
 import { narrativeExplanation_v1 } from "@/lib/prompts";
 import type { Character } from "@/lib/types";
 import {
@@ -155,8 +155,10 @@ export function GameOver({
           text += token;
           setNarrative(text);
         }
-      } catch {
-        // Non-blocking — static explanation is enough
+      } catch (e) {
+        if (e instanceof LlmError) {
+          console.warn('Narrative generation failed:', e.code, e.message)
+        }
       } finally {
         setIsStreaming(false);
       }
