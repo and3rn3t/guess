@@ -1417,6 +1417,7 @@ function App() {
                 <Suspense fallback={<Skeleton className="h-96 w-full" />}>
                   <TeachingMode
                     answers={answers}
+                    questions={questions ?? DEFAULT_QUESTIONS}
                     existingCharacters={characters || DEFAULT_CHARACTERS}
                     onAddCharacter={handleAddCharacter}
                     onAddQuestions={handleAddQuestions}

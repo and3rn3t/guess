@@ -15,6 +15,7 @@ import { submitCharacter } from '@/lib/sync'
 
 interface TeachingModeProps {
   answers: Answer[]
+  questions: Question[]
   existingCharacters: Character[]
   onAddCharacter: (character: Character) => void
   onAddQuestions?: (questions: Question[]) => void
@@ -65,7 +66,7 @@ function getAttributeSymbol(value: boolean | null | undefined): string {
   return '·'
 }
 
-export function TeachingMode({ answers, existingCharacters, onAddCharacter, onAddQuestions: _onAddQuestions, onPlayAgain, onGoHome }: Readonly<TeachingModeProps>) {
+export function TeachingMode({ answers, questions, existingCharacters, onAddCharacter, onAddQuestions: _onAddQuestions, onPlayAgain, onGoHome }: Readonly<TeachingModeProps>) {
   const [step, setStep] = useState<TeachStep>('name')
   const [characterName, setCharacterName] = useState('')
   const [category, setCategory] = useState<CharacterCategory>('movies')
@@ -74,16 +75,20 @@ export function TeachingMode({ answers, existingCharacters, onAddCharacter, onAd
   const [llmFilled, setLlmFilled] = useState(false)
 
   // Build initial attributes from gameplay answers
+  // Map question IDs → attribute names so they match ATTRIBUTE_GROUPS
   const gameplayAttributes = useMemo(() => {
+    const questionMap = new Map(questions.map(q => [q.id, q.attribute]))
     const attrs: Record<string, boolean | null> = {}
     for (const answer of answers) {
-      if (answer.value === 'yes') attrs[answer.questionId] = true
-      else if (answer.value === 'no') attrs[answer.questionId] = false
-      else if (answer.value === 'maybe') attrs[answer.questionId] = null
+      const attribute = questionMap.get(answer.questionId)
+      if (!attribute) continue
+      if (answer.value === 'yes') attrs[attribute] = true
+      else if (answer.value === 'no') attrs[attribute] = false
+      else if (answer.value === 'maybe') attrs[attribute] = null
       // 'unknown' → omitted (let LLM fill later)
     }
     return attrs
-  }, [answers])
+  }, [answers, questions])
 
   const validateName = (name: string): string | null => {
     const trimmed = name.trim()
