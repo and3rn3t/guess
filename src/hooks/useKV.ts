@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 
 type OnErrorCallback = (error: unknown) => void
 
+/** Generic hook for localStorage-backed state with JSON serialization and cross-tab sync via `storage` events. */
 export function useKV<T>(
   key: string,
   defaultValue: T,

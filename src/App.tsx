@@ -19,12 +19,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useGameState } from "@/hooks/useGameState";
 import { useKV } from "@/hooks/useKV";
 import { useSound } from "@/hooks/useSound";
-import {
-  trackFeatureUse,
-  trackGameEnd,
-  trackGameStart,
-  trackShare,
-} from "@/lib/analytics";
 import { DEFAULT_CHARACTERS, DEFAULT_QUESTIONS } from "@/lib/database";
 import {
   detectContradictions,
@@ -33,8 +27,6 @@ import {
   selectBestQuestion,
   shouldMakeGuess,
 } from "@/lib/gameEngine";
-import { llm } from "@/lib/llm";
-import { dynamicQuestion_v1 } from "@/lib/prompts";
 import type { SharePayload } from "@/lib/sharing";
 import {
   buildShareUrl,
@@ -160,6 +152,11 @@ const DataHygiene = lazy(() =>
 const GameHistory = lazy(() =>
   import("@/components/GameHistory").then((m) => ({ default: m.GameHistory })),
 );
+
+// Lazy-loaded modules — fire-and-forget or async-only usage
+const analytics = () => import("@/lib/analytics");
+const loadLlm = () => import("@/lib/llm");
+const loadPrompts = () => import("@/lib/prompts");
 
 function App() {
   // ========== PERSISTENT STATE ==========
@@ -293,7 +290,7 @@ function App() {
       return;
     }
     dispatch({ type: "START_GAME", characters: activeCharacters });
-    trackGameStart(difficulty, activeCharacters.length);
+    analytics().then((m) => m.trackGameStart(difficulty, activeCharacters.length));
   };
 
   // ========== GENERATE NEXT QUESTION ==========
@@ -348,15 +345,18 @@ function App() {
           });
           const topNames = filtered.slice(0, 5).map((c) => c.name);
           const confidence = filtered.length > 0 ? 1 / filtered.length : 0;
-          const { system, user } = dynamicQuestion_v1(
-            nextQuestion.text,
-            nextQuestion.attribute,
-            answeredQs,
-            topNames,
-            confidence,
-          );
 
-          llm(`${system}\n\n${user}`, "gpt-4o-mini", true)
+          Promise.all([loadPrompts(), loadLlm()])
+            .then(([{ dynamicQuestion_v1 }, { llm }]) => {
+              const { system, user } = dynamicQuestion_v1(
+                nextQuestion.text,
+                nextQuestion.attribute,
+                answeredQs,
+                topNames,
+                confidence,
+              );
+              return llm(`${system}\n\n${user}`, "gpt-4o-mini", true);
+            })
             .then((response) => {
               try {
                 const parsed = JSON.parse(response) as { text: string };
@@ -432,7 +432,7 @@ function App() {
   const handleCorrectGuess = () => {
     dispatch({ type: "CORRECT_GUESS" });
     recordGame(true);
-    trackGameEnd(true, difficulty, gameSteps.length);
+    analytics().then((m) => m.trackGameEnd(true, difficulty, gameSteps.length));
     playCorrectGuess();
     hapticSuccess();
     toast.success("🎉 I got it right!");
@@ -441,7 +441,7 @@ function App() {
   const handleIncorrectGuess = () => {
     dispatch({ type: "INCORRECT_GUESS" });
     recordGame(false);
-    trackGameEnd(false, difficulty, gameSteps.length);
+    analytics().then((m) => m.trackGameEnd(false, difficulty, gameSteps.length));
     playIncorrectGuess();
     hapticMedium();
     toast.error("I'll learn from this and do better next time!");
@@ -468,13 +468,13 @@ function App() {
     if (navigator.share) {
       try {
         await navigator.share({ text: `${text}\n${url}` });
-        trackShare("native");
+        analytics().then((m) => m.trackShare("native"));
       } catch {
         // User cancelled — ignore
       }
     } else {
       await navigator.clipboard.writeText(`${text}\n${url}`);
-      trackShare("clipboard");
+      analytics().then((m) => m.trackShare("clipboard"));
       toast.success("Copied to clipboard!");
     }
   };
@@ -484,7 +484,7 @@ function App() {
     if (!payload) return;
     const url = buildShareUrl(payload);
     await navigator.clipboard.writeText(url);
-    trackShare("link");
+    analytics().then((m) => m.trackShare("link"));
     toast.success("Challenge link copied!");
   };
 
@@ -750,7 +750,7 @@ function App() {
                     <>
                       <Button
                         onClick={() => {
-                          trackFeatureUse("stats");
+                          analytics().then((m) => m.trackFeatureUse("stats"));
                           navigate("stats");
                         }}
                         variant="outline"
@@ -762,7 +762,7 @@ function App() {
                       </Button>
                       <Button
                         onClick={() => {
-                          trackFeatureUse("history");
+                          analytics().then((m) => m.trackFeatureUse("history"));
                           navigate("history");
                         }}
                         variant="outline"
@@ -774,7 +774,7 @@ function App() {
                       </Button>
                       <Button
                         onClick={() => {
-                          trackFeatureUse("compare");
+                          analytics().then((m) => m.trackFeatureUse("compare"));
                           navigate("compare");
                         }}
                         variant="outline"

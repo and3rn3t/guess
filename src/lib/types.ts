@@ -16,12 +16,14 @@ export interface DifficultyConfig {
   description: string;
 }
 
+/** Difficulty presets mapping difficulty keys to question limits and display metadata. */
 export const DIFFICULTIES: Record<Difficulty, DifficultyConfig> = {
   easy: { maxQuestions: 20, label: "Easy", description: "20 questions, relaxed" },
   medium: { maxQuestions: 15, label: "Medium", description: "15 questions, balanced" },
   hard: { maxQuestions: 10, label: "Hard", description: "10 questions, challenging" },
 };
 
+/** Human-readable labels for each character category. */
 export const CATEGORY_LABELS: Record<CharacterCategory, string> = {
   "video-games": "Video Games",
   movies: "Movies",

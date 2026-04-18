@@ -1,5 +1,6 @@
 import type { Character, Question, Answer, ReasoningExplanation } from './types'
 
+/** Compute a Bayesian-style probability for each character given the answers so far. */
 export function calculateProbabilities(
   characters: Character[],
   answers: Answer[]
@@ -55,6 +56,7 @@ function entropy(probabilities: number[]): number {
   }, 0)
 }
 
+/** Pick the question with the highest expected information gain from the remaining pool. */
 export function selectBestQuestion(
   characters: Character[],
   answers: Answer[],
@@ -155,6 +157,7 @@ export function selectBestQuestion(
   return bestQuestion
 }
 
+/** Build a human-readable explanation of why a question was chosen and its expected impact. */
 export function generateReasoning(
   question: Question,
   characters: Character[],
@@ -207,6 +210,7 @@ function generateImpactExplanation(yesCount: number, noCount: number, total: num
   return `Answering "yes" would eliminate ${eliminateYes} possibilities (${Math.round((eliminateYes / total) * 100)}%), while "no" would eliminate ${eliminateNo} (${Math.round((eliminateNo / total) * 100)}%). Either way, we make significant progress.`
 }
 
+/** Decide whether confidence is high enough (or the question limit reached) to guess. */
 export function shouldMakeGuess(
   characters: Character[],
   answers: Answer[],
@@ -234,6 +238,7 @@ export function shouldMakeGuess(
   return false
 }
 
+/** Return the character with the highest probability given the current answers. */
 export function getBestGuess(characters: Character[], answers: Answer[]): Character | null {
   if (characters.length === 0) return null
 
@@ -247,6 +252,7 @@ export function getBestGuess(characters: Character[], answers: Answer[]): Charac
   return characters.find((c) => c.id === bestId) || characters[0]
 }
 
+/** Check whether the current answers have eliminated all characters (contradiction). */
 export function detectContradictions(
   allCharacters: Character[],
   answers: Answer[]

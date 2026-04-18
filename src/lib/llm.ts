@@ -29,6 +29,7 @@ export interface LlmResult {
   cached?: boolean
 }
 
+/** Send a prompt to the LLM API and return the response text. */
 export async function llm(prompt: string, model: string, jsonMode?: boolean): Promise<string> {
   const result = await llmWithMeta({ prompt, model, jsonMode })
   return result.content
@@ -38,6 +39,7 @@ const MAX_RETRIES = 2
 const RETRY_BASE_MS = 1000
 const RETRYABLE_STATUSES = new Set([429, 502, 503])
 
+/** Send a prompt to the LLM API with automatic retry (up to 2×) on transient failures. Returns content, token usage, and cache status. */
 export async function llmWithMeta(options: LlmOptions): Promise<LlmResult> {
   let lastError: Error | undefined
 

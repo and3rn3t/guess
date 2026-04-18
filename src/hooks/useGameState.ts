@@ -55,6 +55,7 @@ export type GameAction =
   | { type: 'RESTORE_SESSION'; state: GameState }
 
 // ========== INITIAL STATE ==========
+/** Default game state — welcome phase with empty collections. */
 export const initialState: GameState = {
   phase: 'welcome',
   answers: [],
@@ -70,6 +71,7 @@ export const initialState: GameState = {
 }
 
 // ========== REDUCER ==========
+/** Pure reducer handling all game state transitions (start, answer, guess, navigate, etc.). */
 export function gameReducer(state: GameState, action: GameAction): GameState {
   switch (action.type) {
     case 'START_GAME':
@@ -178,6 +180,7 @@ function clearSavedSession(): void {
 }
 
 // ========== HOOK ==========
+/** Main game state hook — wraps useReducer with session persistence, navigation helper, and resume/clear callbacks. */
 export function useGameState() {
   const savedSession = useRef(loadSession())
   const [state, dispatch] = useReducer(gameReducer, initialState)

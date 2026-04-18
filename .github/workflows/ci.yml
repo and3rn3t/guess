@@ -34,3 +34,13 @@ jobs:
 
       - name: Build
         run: pnpm build
+
+      - name: Check bundle size
+        run: |
+          MAX_KB=700
+          LARGEST=$(find dist/assets -name '*.js' -exec du -k {} + | sort -rn | head -1 | awk '{print $1}')
+          echo "Largest JS chunk: ${LARGEST}KB (limit: ${MAX_KB}KB)"
+          if [ "$LARGEST" -gt "$MAX_KB" ]; then
+            echo "::error::Bundle size ${LARGEST}KB exceeds ${MAX_KB}KB limit"
+            exit 1
+          fi
