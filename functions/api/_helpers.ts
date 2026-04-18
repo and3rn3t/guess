@@ -120,7 +120,7 @@ export async function kvPut(kv: KVNamespace, key: string, value: unknown): Promi
 
 /** Validate that a value is a valid CharacterCategory */
 const VALID_CATEGORIES = new Set([
-  'video-games', 'movies', 'anime', 'comics', 'books', 'cartoons',
+  'video-games', 'movies', 'anime', 'comics', 'books', 'cartoons', 'tv-shows', 'pop-culture',
 ])
 
 export function isValidCategory(value: unknown): boolean {

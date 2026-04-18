@@ -112,7 +112,9 @@ var VALID_CATEGORIES = /* @__PURE__ */ new Set([
   "anime",
   "comics",
   "books",
-  "cartoons"
+  "cartoons",
+  "tv-shows",
+  "pop-culture"
 ]);
 function isValidCategory(value) {
   return typeof value === "string" && VALID_CATEGORIES.has(value);

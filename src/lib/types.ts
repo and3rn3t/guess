@@ -5,7 +5,8 @@ export type CharacterCategory =
   | "comics"
   | "books"
   | "cartoons"
-  | "tv-shows";
+  | "tv-shows"
+  | "pop-culture";
 
 export type Difficulty = "easy" | "medium" | "hard";
 
@@ -29,6 +30,7 @@ export const CATEGORY_LABELS: Record<CharacterCategory, string> = {
   books: "Books",
   cartoons: "Cartoons",
   "tv-shows": "TV Shows",
+  "pop-culture": "Pop Culture",
 };
 
 export interface Character {
