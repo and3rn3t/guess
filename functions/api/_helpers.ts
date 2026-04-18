@@ -3,6 +3,27 @@
 export interface Env {
   OPENAI_API_KEY: string
   GUESS_KV: KVNamespace
+  CLOUDFLARE_AI_GATEWAY?: string
+  AI_GATEWAY_TOKEN?: string
+}
+
+const OPENAI_COMPLETIONS = 'https://api.openai.com/v1/chat/completions'
+
+/** Get the chat completions endpoint — AI Gateway if configured, else direct OpenAI */
+export function getCompletionsEndpoint(env: Env): string {
+  return env.CLOUDFLARE_AI_GATEWAY || OPENAI_COMPLETIONS
+}
+
+/** Build auth headers for the LLM endpoint — includes AI Gateway token when routed through gateway */
+export function getLlmHeaders(env: Env): Record<string, string> {
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    Authorization: `Bearer ${env.OPENAI_API_KEY}`,
+  }
+  if (env.CLOUDFLARE_AI_GATEWAY && env.AI_GATEWAY_TOKEN) {
+    headers['cf-aig-authorization'] = `Bearer ${env.AI_GATEWAY_TOKEN}`
+  }
+  return headers
 }
 
 /** Sanitize user input string — strip HTML tags and trim */

@@ -1,6 +1,8 @@
 import {
   checkRateLimit,
   type Env,
+  getCompletionsEndpoint,
+  getLlmHeaders,
   getUserId,
   kvGetObject,
   kvPut,
@@ -11,12 +13,7 @@ const MAX_PROMPT_LENGTH = 50_000;
 const ALLOWED_MODELS = ["gpt-4o", "gpt-4o-mini"];
 const MAX_RETRIES = 2;
 const RETRY_DELAYS = [1000, 3000];
-const CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours
-
-interface CachedResponse {
-  content: string;
-  cachedAt: number;
-}
+const CACHE_MAX_AGE = 86400; // 24 hours (seconds)
 
 interface CostRecord {
   promptTokens: number;
@@ -42,18 +39,16 @@ function sleep(ms: number): Promise<void> {
 
 /** Call OpenAI with retries on transient errors */
 async function callOpenAIWithRetry(
-  apiKey: string,
+  endpoint: string,
+  headers: Record<string, string>,
   openaiBody: Record<string, unknown>,
 ): Promise<Response> {
   let lastResponse: Response | null = null;
 
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+    const response = await fetch(endpoint, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey}`,
-      },
+      headers,
       body: JSON.stringify(openaiBody),
     });
 
@@ -146,18 +141,36 @@ async function enforceRateLimit(
   return null;
 }
 
-/** Check KV cache, returning cached Response or null */
-async function checkCache(
-  kv: KVNamespace,
+/** Check Cloudflare edge cache, returning cached Response or null */
+async function checkEdgeCache(
   cacheKey: string,
+  requestUrl: string,
 ): Promise<Response | null> {
-  const cached = await kvGetObject<CachedResponse>(kv, cacheKey);
-  if (cached && Date.now() - cached.cachedAt < CACHE_TTL) {
-    return new Response(cached.content, {
-      headers: { "Content-Type": "text/plain", "X-Cache": "HIT" },
-    });
-  }
-  return null;
+  const cache = caches.default;
+  const cacheUrl = new URL(`/cache/${cacheKey}`, requestUrl).toString();
+  const cached = await cache.match(new Request(cacheUrl));
+  if (!cached) return null;
+  const body = await cached.text();
+  return new Response(body, {
+    headers: { "Content-Type": "text/plain", "X-Cache": "HIT" },
+  });
+}
+
+/** Write response to Cloudflare edge cache */
+async function putEdgeCache(
+  cacheKey: string,
+  requestUrl: string,
+  content: string,
+): Promise<void> {
+  const cache = caches.default;
+  const cacheUrl = new URL(`/cache/${cacheKey}`, requestUrl).toString();
+  const response = new Response(content, {
+    headers: {
+      "Content-Type": "text/plain",
+      "Cache-Control": `public, max-age=${CACHE_MAX_AGE}`,
+    },
+  });
+  await cache.put(new Request(cacheUrl), response);
 }
 
 /** Build the OpenAI request payload */
@@ -202,12 +215,8 @@ async function processSuccess(
     );
   }
 
-  if (kv) {
-    await kvPut(kv, cacheKey, {
-      content,
-      cachedAt: Date.now(),
-    } satisfies CachedResponse).catch(() => {});
-  }
+  // Cache at the edge (non-blocking)
+  putEdgeCache(cacheKey, request.url, content).catch(() => {});
 
   const responseHeaders: Record<string, string> = {
     "Content-Type": "text/plain",
@@ -266,20 +275,23 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     if (rateLimited) return rateLimited;
   }
 
-  // Check cache
+  // Check edge cache
   const cacheKey = simpleHash(
     `${model}:${systemPrompt || ""}:${prompt}:${jsonMode}`,
   );
-  if (kv) {
-    const cacheHit = await checkCache(kv, cacheKey);
-    if (cacheHit) return cacheHit;
-  }
+  const cacheHit = await checkEdgeCache(
+    cacheKey,
+    context.request.url,
+  ).catch(() => null);
+  if (cacheHit) return cacheHit;
 
-  // Build request & call OpenAI
+  // Build request & call OpenAI (via AI Gateway if configured)
+  const endpoint = getCompletionsEndpoint(context.env);
+  const headers = getLlmHeaders(context.env);
   const openaiBody = buildOpenAIPayload(model, prompt, systemPrompt, jsonMode);
 
   try {
-    const openaiResponse = await callOpenAIWithRetry(apiKey, openaiBody);
+    const openaiResponse = await callOpenAIWithRetry(endpoint, headers, openaiBody);
 
     if (!openaiResponse.ok) {
       const errorText = await openaiResponse

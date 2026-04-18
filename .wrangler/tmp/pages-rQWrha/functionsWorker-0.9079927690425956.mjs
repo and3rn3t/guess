@@ -2,6 +2,22 @@ var __defProp = Object.defineProperty;
 var __name = (target, value) => __defProp(target, "name", { value, configurable: true });
 
 // api/_helpers.ts
+var OPENAI_COMPLETIONS = "https://api.openai.com/v1/chat/completions";
+function getCompletionsEndpoint(env) {
+  return env.CLOUDFLARE_AI_GATEWAY || OPENAI_COMPLETIONS;
+}
+__name(getCompletionsEndpoint, "getCompletionsEndpoint");
+function getLlmHeaders(env) {
+  const headers = {
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${env.OPENAI_API_KEY}`
+  };
+  if (env.CLOUDFLARE_AI_GATEWAY && env.AI_GATEWAY_TOKEN) {
+    headers["cf-aig-authorization"] = `Bearer ${env.AI_GATEWAY_TOKEN}`;
+  }
+  return headers;
+}
+__name(getLlmHeaders, "getLlmHeaders");
 function sanitizeString(input) {
   return input.replace(/<[^>]*>/g, "").trim();
 }
@@ -245,7 +261,7 @@ var MAX_PROMPT_LENGTH = 5e4;
 var ALLOWED_MODELS = ["gpt-4o", "gpt-4o-mini"];
 var MAX_RETRIES = 2;
 var RETRY_DELAYS = [1e3, 3e3];
-var CACHE_TTL = 24 * 60 * 60 * 1e3;
+var CACHE_MAX_AGE = 86400;
 function simpleHash(str) {
   let hash = 0;
   for (let i = 0; i < str.length; i++) {
@@ -260,15 +276,12 @@ function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 __name(sleep, "sleep");
-async function callOpenAIWithRetry(apiKey, openaiBody) {
+async function callOpenAIWithRetry(endpoint, headers, openaiBody) {
   let lastResponse = null;
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+    const response = await fetch(endpoint, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey}`
-      },
+      headers,
       body: JSON.stringify(openaiBody)
     });
     if (response.ok) return response;
@@ -339,16 +352,29 @@ async function enforceRateLimit(kv, request) {
   return null;
 }
 __name(enforceRateLimit, "enforceRateLimit");
-async function checkCache(kv, cacheKey) {
-  const cached = await kvGetObject(kv, cacheKey);
-  if (cached && Date.now() - cached.cachedAt < CACHE_TTL) {
-    return new Response(cached.content, {
-      headers: { "Content-Type": "text/plain", "X-Cache": "HIT" }
-    });
-  }
-  return null;
+async function checkEdgeCache(cacheKey, requestUrl) {
+  const cache = caches.default;
+  const cacheUrl = new URL(`/cache/${cacheKey}`, requestUrl).toString();
+  const cached = await cache.match(new Request(cacheUrl));
+  if (!cached) return null;
+  const body = await cached.text();
+  return new Response(body, {
+    headers: { "Content-Type": "text/plain", "X-Cache": "HIT" }
+  });
 }
-__name(checkCache, "checkCache");
+__name(checkEdgeCache, "checkEdgeCache");
+async function putEdgeCache(cacheKey, requestUrl, content) {
+  const cache = caches.default;
+  const cacheUrl = new URL(`/cache/${cacheKey}`, requestUrl).toString();
+  const response = new Response(content, {
+    headers: {
+      "Content-Type": "text/plain",
+      "Cache-Control": `public, max-age=${CACHE_MAX_AGE}`
+    }
+  });
+  await cache.put(new Request(cacheUrl), response);
+}
+__name(putEdgeCache, "putEdgeCache");
 function buildOpenAIPayload(model, prompt, systemPrompt, jsonMode) {
   const messages = [];
   if (systemPrompt) {
@@ -370,13 +396,8 @@ async function processSuccess(data, kv, cacheKey, request) {
       { status: 502 }
     );
   }
-  if (kv) {
-    await kvPut(kv, cacheKey, {
-      content,
-      cachedAt: Date.now()
-    }).catch(() => {
-    });
-  }
+  putEdgeCache(cacheKey, request.url, content).catch(() => {
+  });
   const responseHeaders = {
     "Content-Type": "text/plain",
     "X-Cache": "MISS"
@@ -418,13 +439,16 @@ var onRequestPost3 = /* @__PURE__ */ __name(async (context) => {
   const cacheKey = simpleHash(
     `${model}:${systemPrompt || ""}:${prompt}:${jsonMode}`
   );
-  if (kv) {
-    const cacheHit = await checkCache(kv, cacheKey);
-    if (cacheHit) return cacheHit;
-  }
+  const cacheHit = await checkEdgeCache(
+    cacheKey,
+    context.request.url
+  ).catch(() => null);
+  if (cacheHit) return cacheHit;
+  const endpoint = getCompletionsEndpoint(context.env);
+  const headers = getLlmHeaders(context.env);
   const openaiBody = buildOpenAIPayload(model, prompt, systemPrompt, jsonMode);
   try {
-    const openaiResponse = await callOpenAIWithRetry(apiKey, openaiBody);
+    const openaiResponse = await callOpenAIWithRetry(endpoint, headers, openaiBody);
     if (!openaiResponse.ok) {
       const errorText = await openaiResponse.text().catch(() => "Unknown error");
       console.error("OpenAI API error:", openaiResponse.status, errorText);
@@ -511,12 +535,9 @@ var onRequestPost4 = /* @__PURE__ */ __name(async (context) => {
   }
   messages.push({ role: "user", content: prompt });
   try {
-    const openaiResponse = await fetch("https://api.openai.com/v1/chat/completions", {
+    const openaiResponse = await fetch(getCompletionsEndpoint(context.env), {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey}`
-      },
+      headers: getLlmHeaders(context.env),
       body: JSON.stringify({
         model,
         messages,
@@ -1331,7 +1352,7 @@ var jsonError = /* @__PURE__ */ __name(async (request, env, _ctx, middlewareCtx)
 }, "jsonError");
 var middleware_miniflare3_json_error_default = jsonError;
 
-// ../.wrangler/tmp/bundle-32AFOk/middleware-insertion-facade.js
+// ../.wrangler/tmp/bundle-5n4j2i/middleware-insertion-facade.js
 var __INTERNAL_WRANGLER_MIDDLEWARE__ = [
   middleware_ensure_req_body_drained_default,
   middleware_miniflare3_json_error_default
@@ -1363,7 +1384,7 @@ function __facade_invoke__(request, env, ctx, dispatch, finalMiddleware) {
 }
 __name(__facade_invoke__, "__facade_invoke__");
 
-// ../.wrangler/tmp/bundle-32AFOk/middleware-loader.entry.ts
+// ../.wrangler/tmp/bundle-5n4j2i/middleware-loader.entry.ts
 var __Facade_ScheduledController__ = class ___Facade_ScheduledController__ {
   constructor(scheduledTime, cron, noRetry) {
     this.scheduledTime = scheduledTime;

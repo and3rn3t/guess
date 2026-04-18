@@ -1,5 +1,7 @@
 import {
   type Env,
+  getCompletionsEndpoint,
+  getLlmHeaders,
   getUserId,
   checkRateLimit,
   sanitizeString,
@@ -75,12 +77,9 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   messages.push({ role: 'user', content: prompt })
 
   try {
-    const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+    const openaiResponse = await fetch(getCompletionsEndpoint(context.env), {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${apiKey}`,
-      },
+      headers: getLlmHeaders(context.env),
       body: JSON.stringify({
         model,
         messages,
