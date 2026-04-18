@@ -1,7 +1,7 @@
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react-swc";
 import { defineConfig } from "vite";
-import { resolve } from 'path'
+import { resolve } from 'node:path'
 
 const projectRoot = process.env.PROJECT_ROOT || import.meta.dirname
 

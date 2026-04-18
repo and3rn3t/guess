@@ -1,5 +1,4 @@
-const SCHEMA_KEY = 'kv:schema-version'
-const CURRENT_VERSION = 2
+import { CURRENT_SCHEMA_VERSION, KV_SCHEMA_VERSION } from './constants'
 
 type MigrationFn = () => Promise<void>
 
@@ -8,22 +7,22 @@ const migrations: Record<string, MigrationFn> = {
 }
 
 export async function runMigrations(): Promise<void> {
-  const currentStr = localStorage.getItem(SCHEMA_KEY)
+  const currentStr = localStorage.getItem(KV_SCHEMA_VERSION)
   const current = currentStr ? Number.parseInt(currentStr, 10) : 1
 
-  if (current >= CURRENT_VERSION) return
+  if (current >= CURRENT_SCHEMA_VERSION) return
 
-  for (let v = current; v < CURRENT_VERSION; v++) {
+  for (let v = current; v < CURRENT_SCHEMA_VERSION; v++) {
     const key = `${v}to${v + 1}`
     const fn = migrations[key]
     if (fn) {
       console.log(`Running migration ${key}...`)
       await fn()
     }
-    localStorage.setItem(SCHEMA_KEY, String(v + 1))
+    localStorage.setItem(KV_SCHEMA_VERSION, String(v + 1))
   }
 
-  console.log(`Migrations complete. Schema version: ${CURRENT_VERSION}`)
+  console.log(`Migrations complete. Schema version: ${CURRENT_SCHEMA_VERSION}`)
 }
 
 /** Migrate a localStorage JSON array to IndexedDB via an insert function */

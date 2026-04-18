@@ -1,11 +1,5 @@
+import { SCORE_MATCH, SCORE_MAYBE, SCORE_MAYBE_MISS, SCORE_MISMATCH, SCORE_UNKNOWN } from './constants'
 import type { Character, Question, Answer, ReasoningExplanation } from './types'
-
-// Scoring constants for Bayesian probability updates
-const SCORE_MATCH = 1.0      // attribute matches answer
-const SCORE_MISMATCH = 0.0   // attribute contradicts answer
-const SCORE_UNKNOWN = 0.5    // attribute is null/undefined (partial credit)
-const SCORE_MAYBE = 0.7      // "maybe" answer with matching attribute (soft positive)
-const SCORE_MAYBE_MISS = 0.3 // "maybe" answer with contradicting attribute (soft negative)
 
 /** Compute a Bayesian-style probability for each character given the answers so far.
  *  "maybe" answers now provide soft evidence rather than being ignored. */

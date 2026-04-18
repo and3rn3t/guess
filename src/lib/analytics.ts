@@ -1,14 +1,12 @@
+import { KV_ANALYTICS, MAX_ANALYTICS_EVENTS } from '@/lib/constants'
 import type { Difficulty } from '@/lib/types'
 import type { AnalyticsEvent } from '@/lib/db'
 
 export type { AnalyticsEvent }
 
-const STORAGE_KEY = 'kv:analytics'
-const MAX_EVENTS = 500
-
 function loadEvents(): AnalyticsEvent[] {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY)
+    const raw = localStorage.getItem(KV_ANALYTICS)
     return raw ? JSON.parse(raw) : []
   } catch {
     return []
@@ -17,9 +15,9 @@ function loadEvents(): AnalyticsEvent[] {
 
 function saveEvents(events: AnalyticsEvent[]) {
   // Keep only the most recent events to avoid unbounded growth
-  const trimmed = events.slice(-MAX_EVENTS)
+  const trimmed = events.slice(-MAX_ANALYTICS_EVENTS)
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(trimmed))
+    localStorage.setItem(KV_ANALYTICS, JSON.stringify(trimmed))
   } catch {
     // Storage full or unavailable — silently drop
   }
@@ -69,5 +67,5 @@ export function getEventCounts(): Record<string, number> {
 }
 
 export function clearAnalytics() {
-  localStorage.removeItem(STORAGE_KEY)
+  localStorage.removeItem(KV_ANALYTICS)
 }

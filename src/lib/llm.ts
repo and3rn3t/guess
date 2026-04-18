@@ -1,11 +1,11 @@
-const USER_ID_KEY = 'kv:user-id'
+import { KV_USER_ID, LLM_MAX_RETRIES, LLM_NON_RETRYABLE_CODES, LLM_RETRYABLE_STATUSES, LLM_RETRY_BASE_MS } from './constants'
 
 function getUserId(): string {
   try {
-    let id = localStorage.getItem(USER_ID_KEY)
+    let id = localStorage.getItem(KV_USER_ID)
     if (!id) {
       id = crypto.randomUUID()
-      localStorage.setItem(USER_ID_KEY, id)
+      localStorage.setItem(KV_USER_ID, id)
     }
     return id
   } catch {
@@ -47,8 +47,6 @@ export class LlmError extends Error {
   }
 }
 
-const NON_RETRYABLE_CODES = new Set(['QUOTA_EXCEEDED', 'NO_API_KEY'])
-
 async function parseErrorResponse(response: Response): Promise<LlmError> {
   let errorMsg = `LLM request failed (${response.status})`
   let code = 'UNKNOWN'
@@ -62,7 +60,7 @@ async function parseErrorResponse(response: Response): Promise<LlmError> {
     if (text) errorMsg = text
   }
 
-  const retryable = RETRYABLE_STATUSES.has(response.status) && !NON_RETRYABLE_CODES.has(code)
+  const retryable = LLM_RETRYABLE_STATUSES.has(response.status) && !LLM_NON_RETRYABLE_CODES.has(code)
   return new LlmError(errorMsg, code, response.status, retryable)
 }
 
@@ -72,17 +70,13 @@ export async function llm(prompt: string, model: string, jsonMode?: boolean): Pr
   return result.content
 }
 
-const MAX_RETRIES = 2
-const RETRY_BASE_MS = 1000
-const RETRYABLE_STATUSES = new Set([429, 502, 503])
-
 /** Send a prompt to the LLM API with automatic retry (up to 2×) on transient failures. Returns content, token usage, and cache status. */
 export async function llmWithMeta(options: LlmOptions): Promise<LlmResult> {
   let lastError: Error | undefined
 
-  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+  for (let attempt = 0; attempt <= LLM_MAX_RETRIES; attempt++) {
     if (attempt > 0) {
-      await new Promise(r => setTimeout(r, RETRY_BASE_MS * 2 ** (attempt - 1)))
+      await new Promise(r => setTimeout(r, LLM_RETRY_BASE_MS * 2 ** (attempt - 1)))
     }
 
     let response: Response
@@ -104,7 +98,7 @@ export async function llmWithMeta(options: LlmOptions): Promise<LlmResult> {
 
     if (!response.ok) {
       const err = await parseErrorResponse(response)
-      if (err.retryable && attempt < MAX_RETRIES) {
+      if (err.retryable && attempt < LLM_MAX_RETRIES) {
         lastError = err
         continue
       }

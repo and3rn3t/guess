@@ -1,20 +1,16 @@
+import { KV_CHARACTERS_CACHE, KV_QUESTIONS_CACHE, KV_USER_ID, SYNC_CACHE_TTL } from './constants'
 import type { Character, Question, Difficulty } from './types'
 
 export type SyncStatus = 'synced' | 'pending' | 'error' | 'offline'
-
-const CACHE_TTL = 10 * 60 * 1000 // 10 minutes
-const CHARACTERS_CACHE_KEY = 'kv:characters-cache'
-const QUESTIONS_CACHE_KEY = 'kv:questions-cache'
-const USER_ID_KEY = 'kv:user-id'
 
 // ===== User ID =====
 
 export function getUserId(): string {
   try {
-    let id = localStorage.getItem(USER_ID_KEY)
+    let id = localStorage.getItem(KV_USER_ID)
     if (!id) {
       id = crypto.randomUUID()
-      localStorage.setItem(USER_ID_KEY, id)
+      localStorage.setItem(KV_USER_ID, id)
     }
     return id
   } catch {
@@ -32,18 +28,18 @@ function headers(): Record<string, string> {
 // ===== Characters =====
 
 export async function fetchGlobalCharacters(): Promise<Character[]> {
-  const cached = getCached<Character[]>(CHARACTERS_CACHE_KEY)
+  const cached = getCached<Character[]>(KV_CHARACTERS_CACHE)
   if (cached) return cached
 
   try {
     const res = await fetch('/api/characters', { headers: headers() })
     if (!res.ok) throw new Error(`HTTP ${res.status}`)
     const characters = (await res.json()) as Character[]
-    setCache(CHARACTERS_CACHE_KEY, characters)
+    setCache(KV_CHARACTERS_CACHE, characters)
     return characters
   } catch {
     // Offline fallback: use cache even if stale
-    return getStaleCache<Character[]>(CHARACTERS_CACHE_KEY) || []
+    return getStaleCache<Character[]>(KV_CHARACTERS_CACHE) || []
   }
 }
 
@@ -73,7 +69,7 @@ export async function submitCharacter(
     }
 
     // Invalidate cache
-    invalidateCache(CHARACTERS_CACHE_KEY)
+    invalidateCache(KV_CHARACTERS_CACHE)
     return { success: true }
   } catch {
     return { success: false, error: 'Network error — character saved locally only' }
@@ -83,17 +79,17 @@ export async function submitCharacter(
 // ===== Questions =====
 
 export async function fetchGlobalQuestions(): Promise<Question[]> {
-  const cached = getCached<Question[]>(QUESTIONS_CACHE_KEY)
+  const cached = getCached<Question[]>(KV_QUESTIONS_CACHE)
   if (cached) return cached
 
   try {
     const res = await fetch('/api/questions', { headers: headers() })
     if (!res.ok) throw new Error(`HTTP ${res.status}`)
     const questions = (await res.json()) as Question[]
-    setCache(QUESTIONS_CACHE_KEY, questions)
+    setCache(KV_QUESTIONS_CACHE, questions)
     return questions
   } catch {
-    return getStaleCache<Question[]>(QUESTIONS_CACHE_KEY) || []
+    return getStaleCache<Question[]>(KV_QUESTIONS_CACHE) || []
   }
 }
 
@@ -188,7 +184,7 @@ function getCached<T>(key: string): T | null {
     const tsRaw = localStorage.getItem(`${key}:ts`)
     if (!tsRaw) return null
     const ts = Number.parseInt(tsRaw, 10)
-    if (Date.now() - ts > CACHE_TTL) return null // stale
+    if (Date.now() - ts > SYNC_CACHE_TTL) return null // stale
     const raw = localStorage.getItem(key)
     return raw ? (JSON.parse(raw) as T) : null
   } catch {

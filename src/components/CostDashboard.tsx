@@ -1,6 +1,7 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { KV_TOKEN_USAGE } from "@/lib/constants";
 import { ArrowLeft } from "@phosphor-icons/react";
 import { useEffect, useState } from "react";
 
@@ -12,11 +13,9 @@ interface TokenUsage {
   endpoint: string;
 }
 
-const USAGE_KEY = "kv:token-usage";
-
 function getUsageHistory(): TokenUsage[] {
   try {
-    const raw = localStorage.getItem(USAGE_KEY);
+    const raw = localStorage.getItem(KV_TOKEN_USAGE);
     return raw ? (JSON.parse(raw) as TokenUsage[]) : [];
   } catch {
     return [];
@@ -171,7 +170,7 @@ export function CostDashboard({ onBack }: CostDashboardProps) {
         variant="destructive"
         size="sm"
         onClick={() => {
-          localStorage.removeItem(USAGE_KEY);
+          localStorage.removeItem(KV_TOKEN_USAGE);
           setHistory([]);
         }}
       >

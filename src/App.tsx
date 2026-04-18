@@ -55,18 +55,18 @@ import type {
 } from "@/lib/types";
 import { CATEGORY_LABELS, DIFFICULTIES } from "@/lib/types";
 import {
-  ArrowLeft,
+  ArrowLeftIcon,
   BrainIcon,
   ChartBarIcon,
   ClipboardTextIcon,
   ClockCounterClockwiseIcon,
-  CloudArrowUp,
-  CloudCheck,
-  CloudSlash,
-  CloudX,
+  CloudArrowUpIcon,
+  CloudCheckIcon,
+  CloudSlashIcon,
+  CloudXIcon,
   FlaskIcon,
   GearIcon,
-  House,
+  HouseIcon,
   MoonIcon,
   PlayIcon,
   SparkleIcon,
@@ -209,7 +209,7 @@ function App() {
   const [syncStatus, setSyncStatus] = useState<SyncStatus>("synced");
   const { theme, setTheme } = useTheme();
   const [online, setOnline] = useState(
-    typeof navigator !== "undefined" ? navigator.onLine : true,
+    typeof navigator === "undefined" ? true : navigator.onLine,
   );
 
   const toggleTheme = useCallback(() => {
@@ -225,11 +225,11 @@ function App() {
         toast.warning("You're offline — AI-Enhanced features won't work until you reconnect.");
       }
     };
-    window.addEventListener("online", goOnline);
-    window.addEventListener("offline", goOffline);
+    globalThis.addEventListener("online", goOnline);
+    globalThis.addEventListener("offline", goOffline);
     return () => {
-      window.removeEventListener("online", goOnline);
-      window.removeEventListener("offline", goOffline);
+      globalThis.removeEventListener("online", goOnline);
+      globalThis.removeEventListener("offline", goOffline);
     };
   }, [llmMode]);
 
@@ -257,7 +257,7 @@ function App() {
       setChallenge(payload);
       navigate("challenge");
       // Clear hash so it doesn't persist on reload
-      window.history.replaceState(null, "", window.location.pathname);
+      globalThis.history.replaceState(null, "", globalThis.location.pathname);
     }
   }, [navigate]);
 
@@ -817,7 +817,7 @@ function App() {
                         onClick={() => setShowQuitDialog(true)}
                         className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
                       >
-                        <ArrowLeft size={16} />
+                        <ArrowLeftIcon size={16} />
                         Quit
                       </button>
                     </>
@@ -833,7 +833,7 @@ function App() {
                       size="sm"
                       className="flex items-center gap-2"
                     >
-                      <House size={20} />
+                      <HouseIcon size={20} />
                       <span className="hidden sm:inline">Home</span>
                     </Button>
                   )}
@@ -863,7 +863,7 @@ function App() {
                         size="sm"
                         className="flex items-center gap-2"
                       >
-                        <House size={20} />
+                        <HouseIcon size={20} />
                         <span className="hidden sm:inline">Home</span>
                       </Button>
                     </>
@@ -875,19 +875,19 @@ function App() {
                     aria-label={`Sync status: ${syncStatus}`}
                   >
                     {syncStatus === "synced" && (
-                      <CloudCheck size={18} className="text-green-400" />
+                      <CloudCheckIcon size={18} className="text-green-400" />
                     )}
                     {syncStatus === "pending" && (
-                      <CloudArrowUp
+                      <CloudArrowUpIcon
                         size={18}
                         className="text-yellow-400 animate-pulse"
                       />
                     )}
                     {syncStatus === "error" && (
-                      <CloudX size={18} className="text-red-400" />
+                      <CloudXIcon size={18} className="text-red-400" />
                     )}
                     {syncStatus === "offline" && (
-                      <CloudSlash size={18} className="text-muted-foreground" />
+                      <CloudSlashIcon size={18} className="text-muted-foreground" />
                     )}
                   </span>
                   <Button
@@ -1203,7 +1203,7 @@ function App() {
                         llmMode ? "bg-accent" : "bg-muted"
                       }`}
                       role="switch"
-                      aria-checked={llmMode ? "true" : "false"}
+                      aria-checked={llmMode}
                       aria-label="Toggle AI-Enhanced Mode"
                     >
                       <span

@@ -1,7 +1,5 @@
+import { DB_NAME, DB_VERSION } from './constants'
 import type { GameHistoryEntry } from './types'
-
-const DB_NAME = 'mystic-guesser'
-const DB_VERSION = 1
 
 function openDb(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
