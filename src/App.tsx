@@ -1,6 +1,7 @@
 import { GameOver, GuessReveal } from "@/components/GuessReveal";
 import { CoachMark } from "@/components/CoachMark";
 import { OnboardingOverlay } from "@/components/OnboardingOverlay";
+import { PossibilityGrid } from "@/components/PossibilityGrid";
 import { PossibilitySpaceChart } from "@/components/PossibilitySpaceChart";
 import { ProbabilityLeaderboard } from "@/components/ProbabilityLeaderboard";
 import { QuestionCard, ThinkingCard } from "@/components/QuestionCard";
@@ -70,6 +71,7 @@ import {
   FlaskIcon,
   GearIcon,
   HouseIcon,
+  LightningIcon,
   MoonIcon,
   PlayIcon,
   SparkleIcon,
@@ -1098,6 +1100,22 @@ function App() {
                     );
                   })()}
 
+                {/* Quick Play — prominent shortcut for returning players */}
+                {gameHistory && gameHistory.length > 0 && !hasSavedSession && (
+                  <Button
+                    onClick={startGame}
+                    size="lg"
+                    className="w-full h-14 text-lg gap-3 bg-accent/10 hover:bg-accent/20 text-accent border border-accent/30 hover:scale-[1.02] transition-transform"
+                    variant="outline"
+                  >
+                    <LightningIcon size={22} weight="fill" />
+                    Quick Play
+                    <span className="text-xs font-normal text-muted-foreground ml-1">
+                      {DIFFICULTIES[difficulty].label} · {activeCharacters.length} characters
+                    </span>
+                  </Button>
+                )}
+
                 <div className="bg-card/50 backdrop-blur-sm border-2 border-primary/20 rounded-xl p-8 space-y-6">
                   <h3 className="text-2xl font-semibold text-foreground">
                     How It Works
@@ -1555,6 +1573,10 @@ function App() {
                     />
                     <PossibilitySpaceChart
                       totalCharacters={activeCharacters.length}
+                      characters={activeCharacters}
+                      answers={answers}
+                    />
+                    <PossibilityGrid
                       characters={activeCharacters}
                       answers={answers}
                     />
