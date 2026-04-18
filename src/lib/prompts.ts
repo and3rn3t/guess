@@ -106,14 +106,14 @@ export function attributeAutoFill_v1(
   const missing = missingAttributes.join(', ')
 
   return {
-    system: `${SYSTEM_PREAMBLE}\n\nYou fill in missing character attributes for the game's database. Be accurate — incorrect attributes will cause wrong game outcomes. Return valid JSON only.`,
+    system: `${SYSTEM_PREAMBLE}\n\nYou fill in missing character attributes for the game's database. Accuracy is critical — incorrect attributes cause wrong game outcomes.\n\nRules:\n- Use widely-known canonical facts about the character\n- Set to null ONLY if genuinely ambiguous or debatable\n- Prefer false over null when the trait clearly doesn't apply\n- Consider the character's most well-known portrayal\n\nReturn valid JSON only.`,
     user: `Character: "${safeName}" (Category: ${category})
 Known attributes:
-  ${known}
+  ${known || '(none yet)'}
 
 Fill in these missing attributes: [${missing}]
 
-For each attribute, provide your best assessment of whether it's true or false for "${safeName}". Set to null if genuinely ambiguous.
+For each attribute, provide your best assessment as true, false, or null. Be decisive — most attributes have clear answers for well-known characters.
 
 Return JSON: { "attributes": { "attrName": true/false/null, ... } }`,
   }
@@ -132,19 +132,23 @@ export function dynamicQuestion_v1(
 ): PromptPair {
   const context = answeredQuestions
     .slice(-5)
+    .filter((q) => q.question) // skip empty question text
     .map((q) => `Q: ${sanitizeForPrompt(q.question)} → ${q.answer}`)
     .join('\n')
 
+  const candidateHint = topCandidates.length > 0
+    ? `\nMy top suspects: ${topCandidates.map(sanitizeForPrompt).join(', ')}`
+    : ''
+
   return {
-    system: `${SYSTEM_PREAMBLE}\n\nYou rephrase yes/no questions to feel more natural and conversational. The core question must still target the same attribute. Keep it under 120 characters. Return valid JSON only.`,
+    system: `${SYSTEM_PREAMBLE}\n\nYou rephrase yes/no questions to feel more natural, conversational, and engaging — like a curious detective narrowing down suspects. The core question must still target the same attribute. Keep it under 120 characters. Return valid JSON only.`,
     user: `Original question: "${sanitizeForPrompt(originalQuestion)}"
 Attribute: "${attribute}"
 Recent Q&A:
-${context}
-Top candidates: ${topCandidates.map(sanitizeForPrompt).join(', ')}
+${context}${candidateHint}
 Confidence: ${Math.round(confidence * 100)}%
 
-Rephrase this question to feel more natural. Reference previous answers if relevant (e.g., "Since they're human..."). Keep the same yes/no intent.
+Rephrase this question to feel natural and detective-like. Build on what we already know from recent answers (e.g., "Since they're human, do they..."). If confidence is high, sound more targeted. Keep the same yes/no intent.
 
 Return JSON: { "text": "rephrased question" }`,
   }
@@ -162,17 +166,23 @@ export function narrativeExplanation_v1(
 ): PromptPair {
   const safeName = sanitizeForPrompt(characterName)
   const qaText = questionsAndAnswers
+    .filter((qa) => qa.question) // skip empty question text
     .map((qa) => `Q: ${sanitizeForPrompt(qa.question)} → ${qa.answer}`)
     .join('\n')
 
+  const totalAsked = questionsAndAnswers.length
+  const winLose = won
+    ? `I correctly guessed "${safeName}" after ${totalAsked} questions with ${remainingCount} characters still possible`
+    : `I guessed "${safeName}" but was wrong — ${remainingCount} characters remained`
+
   return {
-    system: `${SYSTEM_PREAMBLE}\n\nYou write fun, brief narrative explanations of how the AI deduced a character. Be playful and reference specific answers. 2-3 sentences max.`,
-    user: `I ${won ? 'correctly' : 'incorrectly'} guessed "${safeName}" with ${remainingCount} characters still possible.
+    system: `${SYSTEM_PREAMBLE}\n\nYou write fun, brief narrative explanations of how the AI deduced (or failed to deduce) a character. Write like a detective wrapping up a case. Be playful, reference specific clues. 2-3 sentences max. Don't use emojis.`,
+    user: `${winLose}.
 
 Q&A history:
 ${qaText}
 
-Write a fun narrative about my reasoning process. Reference 2-3 key answers that led me to the guess.`,
+Write a ${won ? 'triumphant' : 'humble'} narrative about my reasoning. Highlight 2-3 pivotal answers that ${won ? 'cracked the case' : 'led me astray'}.`,
   }
 }
 

@@ -76,10 +76,20 @@ describe('calculateProbabilities', () => {
     expect(probs.get('kirby')!).toBeGreaterThan(0)
   })
 
-  it('treats "maybe" as neutral — no change to relative scores', () => {
+  it('treats "maybe" as soft evidence — slightly favors true', () => {
     const answers: Answer[] = [{ questionId: 'isHuman', value: 'maybe' }]
     const probs = calculateProbabilities(CHARS, answers)
-    probs.forEach((p) => expect(p).toBeCloseTo(0.25))
+    // Mario and Link are human (true) → soft positive (0.7)
+    // Pikachu and Kirby are not human (false) → soft negative (0.3)
+    expect(probs.get('mario')!).toBeGreaterThan(probs.get('pikachu')!)
+    expect(probs.get('link')!).toBeGreaterThan(probs.get('kirby')!)
+    // All should still have non-zero probability
+    CHARS.forEach((c) => {
+      expect(probs.get(c.id)!).toBeGreaterThan(0)
+    })
+    // Should still sum to 1
+    const total = Array.from(probs.values()).reduce((a, b) => a + b, 0)
+    expect(total).toBeCloseTo(1)
   })
 
   it('treats "unknown" answers as neutral — same as "maybe"', () => {
@@ -196,6 +206,13 @@ describe('shouldMakeGuess', () => {
       { questionId: 'usesWeapons', value: 'no' },
     ]
     expect(shouldMakeGuess(CHARS, answers, 2)).toBe(true)
+  })
+
+  it('returns true when only 2 candidates remain after 3+ questions', () => {
+    // isHuman=yes narrows to Mario and Link (2 candidates)
+    const answers: Answer[] = [{ questionId: 'isHuman', value: 'yes' }]
+    // With 3 questions asked, should trigger the early termination
+    expect(shouldMakeGuess(CHARS, answers, 3)).toBe(true)
   })
 })
 

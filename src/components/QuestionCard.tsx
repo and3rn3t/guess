@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import type { Question, AnswerValue } from '@/lib/types'
-import { llm } from '@/lib/llm'
+import { llmWithMeta } from '@/lib/llm'
 import { conversationalParse_v1 } from '@/lib/prompts'
 import { toast } from 'sonner'
 
@@ -35,8 +35,8 @@ export function QuestionCard({
     setIsInterpreting(true)
     try {
       const { system, user } = conversationalParse_v1(freeText, question.text, question.attribute)
-      const response = await llm(`${system}\n\n${user}`, 'gpt-4o-mini', true)
-      const parsed = JSON.parse(response) as { value: AnswerValue; confidence: number }
+      const result = await llmWithMeta({ prompt: user, model: 'gpt-4o-mini', jsonMode: true, systemPrompt: system })
+      const parsed = JSON.parse(result.content) as { value: AnswerValue; confidence: number }
       if (['yes', 'no', 'maybe', 'unknown'].includes(parsed.value)) {
         onAnswer(parsed.value)
         setFreeText('')

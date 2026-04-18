@@ -1,49 +1,52 @@
 import type { Character, Question, Answer, ReasoningExplanation } from './types'
 
-/** Compute a Bayesian-style probability for each character given the answers so far. */
+// Scoring constants for Bayesian probability updates
+const SCORE_MATCH = 1.0      // attribute matches answer
+const SCORE_MISMATCH = 0.0   // attribute contradicts answer
+const SCORE_UNKNOWN = 0.5    // attribute is null/undefined (partial credit)
+const SCORE_MAYBE = 0.7      // "maybe" answer with matching attribute (soft positive)
+const SCORE_MAYBE_MISS = 0.3 // "maybe" answer with contradicting attribute (soft negative)
+
+/** Compute a Bayesian-style probability for each character given the answers so far.
+ *  "maybe" answers now provide soft evidence rather than being ignored. */
 export function calculateProbabilities(
   characters: Character[],
   answers: Answer[]
 ): Map<string, number> {
   const probabilities = new Map<string, number>()
 
-  characters.forEach((character) => {
+  for (const character of characters) {
     let score = 1.0
 
-    answers.forEach((answer) => {
-      const attribute = answer.questionId
-      const characterValue = character.attributes[attribute]
+    for (const answer of answers) {
+      const characterValue = character.attributes[answer.questionId]
 
       if (answer.value === 'yes') {
-        if (characterValue === true) {
-          score *= 1.0
-        } else if (characterValue === false) {
-          score *= 0.0
-        } else {
-          score *= 0.5
-        }
+        score *= characterValue === true ? SCORE_MATCH
+          : characterValue === false ? SCORE_MISMATCH
+          : SCORE_UNKNOWN
       } else if (answer.value === 'no') {
-        if (characterValue === false) {
-          score *= 1.0
-        } else if (characterValue === true) {
-          score *= 0.0
-        } else {
-          score *= 0.5
-        }
-      } else {
-        // maybe and unknown answers don't affect score
+        score *= characterValue === false ? SCORE_MATCH
+          : characterValue === true ? SCORE_MISMATCH
+          : SCORE_UNKNOWN
+      } else if (answer.value === 'maybe') {
+        // "Maybe" provides soft evidence — lightly favors true, lightly penalizes false
+        score *= characterValue === true ? SCORE_MAYBE
+          : characterValue === false ? SCORE_MAYBE_MISS
+          : SCORE_UNKNOWN
       }
-    })
+      // 'unknown' → no effect on score
+    }
 
     probabilities.set(character.id, score)
-  })
+  }
 
   const totalScore = Array.from(probabilities.values()).reduce((a, b) => a + b, 0)
 
   if (totalScore > 0) {
-    probabilities.forEach((score, id) => {
+    for (const [id, score] of probabilities) {
       probabilities.set(id, score / totalScore)
-    })
+    }
   }
 
   return probabilities
@@ -56,7 +59,9 @@ function entropy(probabilities: number[]): number {
   }, 0)
 }
 
-/** Pick the question with the highest expected information gain from the remaining pool. */
+/** Pick the question with the highest expected information gain from the remaining pool.
+ *  Enhanced with: coverage penalty for sparse attributes, top-N candidate differentiation,
+ *  and tiebreaker bonus for near-50/50 splits. */
 export function selectBestQuestion(
   characters: Character[],
   answers: Answer[],
@@ -69,18 +74,13 @@ export function selectBestQuestion(
 
   const probs = calculateProbabilities(characters, answers)
 
-  // Detect if top-2 candidates dominate — if so, boost differentiating questions
-  const sortedProbs = Array.from(probs.entries()).sort((a, b) => b[1] - a[1])
-  const top1 = sortedProbs[0]
-  const top2 = sortedProbs.length > 1 ? sortedProbs[1] : null
-  const top2Dominate = top2 !== null && top1[1] + top2[1] > 0.6
-
-  let top1Char: Character | undefined
-  let top2Char: Character | undefined
-  if (top2Dominate) {
-    top1Char = characters.find((c) => c.id === top1[0])
-    top2Char = characters.find((c) => c.id === top2[0])
-  }
+  // Identify top-N candidates for differentiation boosting
+  const sortedProbs = Array.from(probs.entries())
+    .filter(([, p]) => p > 0)
+    .sort((a, b) => b[1] - a[1])
+  const topN = sortedProbs.slice(0, Math.min(5, sortedProbs.length))
+  const topNMass = topN.reduce((sum, [, p]) => sum + p, 0)
+  const topNChars = topN.map(([id]) => characters.find((c) => c.id === id)!).filter(Boolean)
 
   let bestQuestion: Question | null = null
   let bestScore = -1
@@ -88,7 +88,7 @@ export function selectBestQuestion(
   const currentProbs = characters.map((c) => probs.get(c.id) || 0)
   const currentEntropy = entropy(currentProbs)
 
-  availableQuestions.forEach((question) => {
+  for (const question of availableQuestions) {
     // Partition characters into yes/no/unknown buckets with their probabilities
     let pYes = 0
     let pNo = 0
@@ -97,7 +97,7 @@ export function selectBestQuestion(
     const noProbs: number[] = []
     const unknownProbs: number[] = []
 
-    characters.forEach((c) => {
+    for (const c of characters) {
       const prob = probs.get(c.id) || 0
       const attr = c.attributes[question.attribute]
       if (attr === true) {
@@ -110,14 +110,11 @@ export function selectBestQuestion(
         pUnknown += prob
         unknownProbs.push(prob)
       }
-    })
+    }
 
     // Expected entropy after asking this question
-    // "yes" answer: keeps yes chars + unknown chars (with penalty)
-    // "no" answer: keeps no chars + unknown chars (with penalty)
     let expectedEntropy = 0
 
-    // For "yes" answer: normalize probabilities within yes + unknown group
     const yesTotal = pYes + pUnknown * 0.5
     if (yesTotal > 0) {
       const yesGroupProbs = [
@@ -127,7 +124,6 @@ export function selectBestQuestion(
       expectedEntropy += yesTotal * entropy(yesGroupProbs)
     }
 
-    // For "no" answer: normalize probabilities within no + unknown group
     const noTotal = pNo + pUnknown * 0.5
     if (noTotal > 0) {
       const noGroupProbs = [
@@ -139,12 +135,23 @@ export function selectBestQuestion(
 
     let infoGain = currentEntropy - expectedEntropy
 
-    // Boost questions that differentiate the top-2 candidates
-    if (top2Dominate && top1Char && top2Char) {
-      const attr1 = top1Char.attributes[question.attribute]
-      const attr2 = top2Char.attributes[question.attribute]
-      if (attr1 !== null && attr2 !== null && attr1 !== attr2) {
-        infoGain *= 1.5
+    // Coverage penalty: questions where >60% of characters have null/undefined
+    // are unreliable — they produce "unknown" outcomes that don't eliminate much
+    const nullCount = characters.filter((c) => c.attributes[question.attribute] == null).length
+    const nullRatio = nullCount / characters.length
+    if (nullRatio > 0.6) {
+      infoGain *= 1 - (nullRatio - 0.6)  // Scale down: 60%→no penalty, 100%→60% of original
+    }
+
+    // Differentiation boost: when top-N candidates concentrate probability mass,
+    // boost questions that distinguish between them
+    if (topNMass > 0.6 && topNChars.length >= 2) {
+      const topValues = topNChars.map((c) => c.attributes[question.attribute])
+      const hasTrue = topValues.some((v) => v === true)
+      const hasFalse = topValues.some((v) => v === false)
+      if (hasTrue && hasFalse) {
+        // This question splits the top candidates — scale boost by how much mass they hold
+        infoGain *= 1 + 0.5 * topNMass
       }
     }
 
@@ -152,12 +159,13 @@ export function selectBestQuestion(
       bestScore = infoGain
       bestQuestion = question
     }
-  })
+  }
 
   return bestQuestion
 }
 
-/** Build a human-readable explanation of why a question was chosen and its expected impact. */
+/** Build a human-readable explanation of why a question was chosen and its expected impact.
+ *  Now includes top candidate names and probabilities for transparency. */
 export function generateReasoning(
   question: Question,
   characters: Character[],
@@ -168,8 +176,17 @@ export function generateReasoning(
   const unknownCount = characters.length - yesCount - noCount
 
   const probabilities = calculateProbabilities(characters, answers)
-  const topCharacter = Array.from(probabilities.entries()).sort((a, b) => b[1] - a[1])[0]
+  const sorted = Array.from(probabilities.entries())
+    .filter(([, p]) => p > 0)
+    .sort((a, b) => b[1] - a[1])
+
+  const topCharacter = sorted[0]
   const confidence = topCharacter ? topCharacter[1] * 100 : 0
+
+  const topCandidates = sorted.slice(0, 5).map(([id, p]) => ({
+    name: characters.find((c) => c.id === id)?.name ?? id,
+    probability: Math.round(p * 100),
+  }))
 
   const why = generateWhyExplanation(question, yesCount, noCount, unknownCount, characters.length)
   const impact = generateImpactExplanation(yesCount, noCount, characters.length)
@@ -179,6 +196,7 @@ export function generateReasoning(
     impact,
     remaining: characters.length,
     confidence: Math.round(confidence),
+    topCandidates,
   }
 }
 
@@ -210,7 +228,9 @@ function generateImpactExplanation(yesCount: number, noCount: number, total: num
   return `Answering "yes" would eliminate ${eliminateYes} possibilities (${Math.round((eliminateYes / total) * 100)}%), while "no" would eliminate ${eliminateNo} (${Math.round((eliminateNo / total) * 100)}%). Either way, we make significant progress.`
 }
 
-/** Decide whether confidence is high enough (or the question limit reached) to guess. */
+/** Decide whether confidence is high enough (or the question limit reached) to guess.
+ *  Uses progressive confidence thresholds that lower as more questions are asked,
+ *  and detects when remaining non-zero candidates are few enough to guess. */
 export function shouldMakeGuess(
   characters: Character[],
   answers: Answer[],
@@ -228,6 +248,18 @@ export function shouldMakeGuess(
 
   // High confidence: guess when top candidate is >80%
   if (topProbability > 0.8) return true
+
+  // Count characters with non-zero probability
+  const aliveCount = sorted.filter((p) => p > 0).length
+
+  // If only 2 candidates remain and we've asked at least 3 questions, pick the stronger one
+  if (aliveCount <= 2 && questionCount >= 3 && topProbability >= 0.5) return true
+
+  // Progressive threshold: lower the confidence bar as we approach maxQuestions
+  // At halfway: need >65% | At 75% through: need >55% | Near end: need >45%
+  const progress = questionCount / maxQuestions
+  if (progress >= 0.75 && topProbability > 0.45) return true
+  if (progress >= 0.5 && topProbability > 0.65) return true
 
   // Adaptive: if the gap between #1 and #2 is large enough and we've asked enough, go for it
   const halfwayPoint = Math.floor(maxQuestions / 2)

@@ -148,8 +148,9 @@ export function GameOver({
     const run = async () => {
       try {
         for await (const token of llmStream({
-          prompt: `${system}\n\n${user}`,
+          prompt: user,
           model: "gpt-4o-mini",
+          systemPrompt: system,
         })) {
           text += token;
           setNarrative(text);

@@ -339,7 +339,7 @@ function App() {
         if (llmMode) {
           const answeredQs = answers.map((a) => {
             const q = (questions || DEFAULT_QUESTIONS).find(
-              (q) => q.id === a.questionId,
+              (q) => q.attribute === a.questionId,
             );
             return { question: q?.text || "", answer: a.value };
           });
@@ -347,7 +347,7 @@ function App() {
           const confidence = filtered.length > 0 ? 1 / filtered.length : 0;
 
           Promise.all([loadPrompts(), loadLlm()])
-            .then(([{ dynamicQuestion_v1 }, { llm }]) => {
+            .then(([{ dynamicQuestion_v1 }, { llmWithMeta }]) => {
               const { system, user } = dynamicQuestion_v1(
                 nextQuestion.text,
                 nextQuestion.attribute,
@@ -355,11 +355,11 @@ function App() {
                 topNames,
                 confidence,
               );
-              return llm(`${system}\n\n${user}`, "gpt-4o-mini", true);
+              return llmWithMeta({ prompt: user, model: "gpt-4o-mini", jsonMode: true, systemPrompt: system });
             })
-            .then((response) => {
+            .then((result) => {
               try {
-                const parsed = JSON.parse(response) as { text: string };
+                const parsed = JSON.parse(result.content) as { text: string };
                 if (parsed.text && parsed.text.length < 150) {
                   dispatch({
                     type: "SET_QUESTION",
@@ -1417,7 +1417,6 @@ function App() {
                 <Suspense fallback={<Skeleton className="h-96 w-full" />}>
                   <TeachingMode
                     answers={answers}
-                    questions={questions ?? DEFAULT_QUESTIONS}
                     existingCharacters={characters || DEFAULT_CHARACTERS}
                     onAddCharacter={handleAddCharacter}
                     onAddQuestions={handleAddQuestions}

@@ -1,9 +1,10 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Brain, Lightbulb, Sparkle, CaretDown } from '@phosphor-icons/react'
+import { Brain, Lightbulb, Sparkle, CaretDown, Trophy } from '@phosphor-icons/react'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
+import { Progress } from '@/components/ui/progress'
 import type { ReasoningExplanation } from '@/lib/types'
 
 interface ReasoningPanelProps {
@@ -41,6 +42,51 @@ export function ReasoningPanel({ reasoning, isThinking = false }: ReasoningPanel
     </div>
   )
 
+  const topCandidatesSection = reasoning.topCandidates && reasoning.topCandidates.length > 0 ? (
+    <div>
+      <div className="flex items-center gap-2 mb-2">
+        <Trophy className="text-accent" size={20} weight="fill" />
+        <h4 className="font-semibold text-sm">Top Suspects</h4>
+      </div>
+      <div className="space-y-1.5">
+        {reasoning.topCandidates.slice(0, 5).map((candidate, i) => (
+          <div key={candidate.name} className="flex items-center gap-2">
+            <span className="text-xs text-muted-foreground w-4 text-right">{i + 1}.</span>
+            <span className="text-sm text-foreground/90 flex-1 truncate">{candidate.name}</span>
+            <Progress value={candidate.probability} className="w-16 h-1.5" />
+            <span className="text-xs text-muted-foreground w-8 text-right">{candidate.probability}%</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  ) : null
+
+  const detailContent = (
+    <>
+      <div>
+        <div className="flex items-center gap-2 mb-2">
+          <Lightbulb className="text-primary" size={20} weight="fill" />
+          <h4 className="font-semibold text-sm">Why This Question?</h4>
+        </div>
+        <p className="text-sm text-foreground/90 leading-relaxed">{reasoning.why}</p>
+      </div>
+      {topCandidatesSection && (
+        <>
+          <Separator className="bg-border/50" />
+          {topCandidatesSection}
+        </>
+      )}
+      <Separator className="bg-border/50" />
+      <div>
+        <div className="flex items-center gap-2 mb-2">
+          <Sparkle className="text-accent" size={20} weight="fill" />
+          <h4 className="font-semibold text-sm">Expected Impact</h4>
+        </div>
+        <p className="text-sm text-foreground/90 leading-relaxed">{reasoning.impact}</p>
+      </div>
+    </>
+  )
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -76,21 +122,7 @@ export function ReasoningPanel({ reasoning, isThinking = false }: ReasoningPanel
 
           {/* Details: always visible on lg+, collapsible on mobile */}
           <div className="hidden lg:block space-y-4">
-            <div>
-              <div className="flex items-center gap-2 mb-2">
-                <Lightbulb className="text-primary" size={20} weight="fill" />
-                <h4 className="font-semibold text-sm">Why This Question?</h4>
-              </div>
-              <p className="text-sm text-foreground/90 leading-relaxed">{reasoning.why}</p>
-            </div>
-            <Separator className="bg-border/50" />
-            <div>
-              <div className="flex items-center gap-2 mb-2">
-                <Sparkle className="text-accent" size={20} weight="fill" />
-                <h4 className="font-semibold text-sm">Expected Impact</h4>
-              </div>
-              <p className="text-sm text-foreground/90 leading-relaxed">{reasoning.impact}</p>
-            </div>
+            {detailContent}
           </div>
 
           <AnimatePresence>
@@ -102,21 +134,7 @@ export function ReasoningPanel({ reasoning, isThinking = false }: ReasoningPanel
                 transition={{ duration: 0.2 }}
                 className="overflow-hidden lg:hidden space-y-4"
               >
-                <div>
-                  <div className="flex items-center gap-2 mb-2">
-                    <Lightbulb className="text-primary" size={20} weight="fill" />
-                    <h4 className="font-semibold text-sm">Why This Question?</h4>
-                  </div>
-                  <p className="text-sm text-foreground/90 leading-relaxed">{reasoning.why}</p>
-                </div>
-                <Separator className="bg-border/50" />
-                <div>
-                  <div className="flex items-center gap-2 mb-2">
-                    <Sparkle className="text-accent" size={20} weight="fill" />
-                    <h4 className="font-semibold text-sm">Expected Impact</h4>
-                  </div>
-                  <p className="text-sm text-foreground/90 leading-relaxed">{reasoning.impact}</p>
-                </div>
+                {detailContent}
               </motion.div>
             )}
           </AnimatePresence>

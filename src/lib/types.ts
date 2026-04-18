@@ -73,6 +73,7 @@ export interface ReasoningExplanation {
   impact: string
   remaining: number
   confidence: number
+  topCandidates?: Array<{ name: string; probability: number }>
 }
 
 export interface GameHistoryEntry {
