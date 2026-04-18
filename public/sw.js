@@ -9,7 +9,7 @@ const STATIC_ASSETS = [
 ]
 
 // Read-only API endpoints eligible for stale-while-revalidate
-const CACHEABLE_API = ['/api/characters', '/api/questions', '/api/stats']
+const CACHEABLE_API = ['/api/characters', '/api/questions', '/api/stats', '/api/sync']
 
 self.addEventListener('install', (event) => {
   event.waitUntil(

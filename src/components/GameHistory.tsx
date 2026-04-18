@@ -13,10 +13,15 @@ interface GameHistoryProps {
   onBack: () => void
 }
 
+const PAGE_SIZE = 20
+
 export function GameHistory({ history, onClearHistory, onBack }: GameHistoryProps) {
   const [expandedId, setExpandedId] = useState<string | null>(null)
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
 
   const sorted = [...history].sort((a, b) => b.timestamp - a.timestamp)
+  const visible = sorted.slice(0, visibleCount)
+  const hasMore = visibleCount < sorted.length
   const wins = history.filter((g) => g.won).length
   const winRate = history.length > 0 ? Math.round((wins / history.length) * 100) : 0
 
@@ -68,7 +73,7 @@ export function GameHistory({ history, onClearHistory, onBack }: GameHistoryProp
         </Card>
       ) : (
         <div className="space-y-3">
-          {sorted.map((game) => {
+          {visible.map((game) => {
             const isExpanded = expandedId === game.id
             const date = new Date(game.timestamp)
             const diffLabel = DIFFICULTIES[game.difficulty]?.label ?? game.difficulty
@@ -137,6 +142,17 @@ export function GameHistory({ history, onClearHistory, onBack }: GameHistoryProp
               </Card>
             )
           })}
+          {hasMore && (
+            <div className="text-center pt-2">
+              <Button
+                onClick={() => setVisibleCount((prev) => prev + PAGE_SIZE)}
+                variant="outline"
+                size="sm"
+              >
+                Show more ({sorted.length - visibleCount} remaining)
+              </Button>
+            </div>
+          )}
         </div>
       )}
     </div>

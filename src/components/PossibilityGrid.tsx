@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { memo, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Users } from "@phosphor-icons/react";
 import { Card } from "@/components/ui/card";
@@ -14,7 +14,7 @@ interface PossibilityGridProps {
  * Eliminated characters fade out; remaining ones stay bright.
  * Tap/hover a dot to see the character name.
  */
-export function PossibilityGrid({ characters, answers }: PossibilityGridProps) {
+export const PossibilityGrid = memo(function PossibilityGrid({ characters, answers }: PossibilityGridProps) {
   const [hoveredId, setHoveredId] = useState<string | null>(null);
 
   const statusMap = useMemo(() => {
@@ -108,4 +108,4 @@ export function PossibilityGrid({ characters, answers }: PossibilityGridProps) {
       </div>
     </Card>
   );
-}
+});

@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
 import { Badge } from '@/components/ui/badge'
@@ -54,7 +54,11 @@ interface CharacterStats {
 }
 
 export function StatsDashboard({ characters, questions, gameHistory = [], onBack }: StatsDashboardProps) {
+  const [activeTab, setActiveTab] = useState('questions')
+
+  // Only compute question stats when the "questions" tab is active
   const questionStats = useMemo<QuestionStats[]>(() => {
+    if (activeTab !== 'questions') return []
     const statsMap = new Map<string, { timesAsked: number; positions: number[]; wins: number }>()
 
     gameHistory.forEach((game) => {
@@ -84,7 +88,7 @@ export function StatsDashboard({ characters, questions, gameHistory = [], onBack
         averagePosition: avgPosition,
       }
     }).sort((a, b) => b.timesAsked - a.timesAsked)
-  }, [questions, gameHistory])
+  }, [questions, gameHistory, activeTab])
 
   const attributeStats = useMemo<AttributeStats[]>(() => {
     const allAttributes = new Set<string>()
@@ -250,7 +254,7 @@ export function StatsDashboard({ characters, questions, gameHistory = [], onBack
         </Card>
       </div>
 
-      <Tabs defaultValue="questions" className="space-y-4">
+      <Tabs defaultValue="questions" onValueChange={setActiveTab} className="space-y-4">
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="questions">Question Usage</TabsTrigger>
           <TabsTrigger value="attributes">Attribute Analysis</TabsTrigger>

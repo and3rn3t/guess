@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { memo, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Crown, UserCircle } from '@phosphor-icons/react'
 import { Card } from '@/components/ui/card'
@@ -9,6 +9,8 @@ import { calculateProbabilities } from '@/lib/gameEngine'
 interface ProbabilityLeaderboardProps {
   characters: Character[]
   answers: Answer[]
+  /** Pre-computed probabilities map — avoids redundant recalculation */
+  probabilities?: Map<string, number> | null
 }
 
 interface RankedCandidate {
@@ -18,11 +20,11 @@ interface RankedCandidate {
   probability: number
 }
 
-export function ProbabilityLeaderboard({ characters, answers }: ProbabilityLeaderboardProps) {
+export const ProbabilityLeaderboard = memo(function ProbabilityLeaderboard({ characters, answers, probabilities: externalProbs }: ProbabilityLeaderboardProps) {
   const topCandidates = useMemo((): RankedCandidate[] => {
     if (characters.length === 0) return []
 
-    const probabilities = calculateProbabilities(characters, answers)
+    const probabilities = externalProbs ?? calculateProbabilities(characters, answers)
 
     return Array.from(probabilities.entries())
       .map(([id, probability]) => {
@@ -37,7 +39,7 @@ export function ProbabilityLeaderboard({ characters, answers }: ProbabilityLeade
       .filter((c) => c.probability > 0)
       .sort((a, b) => b.probability - a.probability)
       .slice(0, 5)
-  }, [characters, answers])
+  }, [characters, answers, externalProbs])
 
   if (topCandidates.length === 0) return null
 
@@ -106,4 +108,4 @@ export function ProbabilityLeaderboard({ characters, answers }: ProbabilityLeade
       </div>
     </Card>
   )
-}
+});

@@ -1,9 +1,6 @@
 import { GameOver, GuessReveal } from "@/components/GuessReveal";
 import { CoachMark } from "@/components/CoachMark";
 import { OnboardingOverlay } from "@/components/OnboardingOverlay";
-import { PossibilityGrid } from "@/components/PossibilityGrid";
-import { PossibilitySpaceChart } from "@/components/PossibilitySpaceChart";
-import { ProbabilityLeaderboard } from "@/components/ProbabilityLeaderboard";
 import { QuestionCard, ThinkingCard } from "@/components/QuestionCard";
 import { ReasoningPanel } from "@/components/ReasoningPanel";
 import {
@@ -103,6 +100,21 @@ import { toast, Toaster } from "sonner";
 const TeachingMode = lazy(() =>
   import("@/components/TeachingMode").then((m) => ({
     default: m.TeachingMode,
+  })),
+);
+const PossibilityGrid = lazy(() =>
+  import("@/components/PossibilityGrid").then((m) => ({
+    default: m.PossibilityGrid,
+  })),
+);
+const PossibilitySpaceChart = lazy(() =>
+  import("@/components/PossibilitySpaceChart").then((m) => ({
+    default: m.PossibilitySpaceChart,
+  })),
+);
+const ProbabilityLeaderboard = lazy(() =>
+  import("@/components/ProbabilityLeaderboard").then((m) => ({
+    default: m.ProbabilityLeaderboard,
   })),
 );
 const QuestionManager = lazy(() =>
@@ -234,6 +246,7 @@ function App() {
   );
   const [eliminatedCount, setEliminatedCount] = useState<number | null>(null);
   const prevPossibleCount = useRef<number>(0);
+  const llmAbortRef = useRef<AbortController | null>(null);
   const [onboardingDone] = useKV("onboarding-complete", false);
   const [showOnboarding, setShowOnboarding] = useState(false);
 
@@ -275,12 +288,16 @@ function App() {
     return all.filter((c) => selectedCategories.has(c.category));
   })();
 
-  // ========== CONFIDENCE ==========
+  // ========== CONFIDENCE (cached probabilities) ==========
+  const probabilities = (() => {
+    if (possibleCharacters.length === 0 || answers.length === 0) return null;
+    return calculateProbabilities(possibleCharacters, answers);
+  })();
+
   const confidence = (() => {
-    if (possibleCharacters.length === 0 || answers.length === 0) return 0;
-    const probs = calculateProbabilities(possibleCharacters, answers);
+    if (!probabilities) return 0;
     let max = 0;
-    for (const p of probs.values()) if (p > max) max = p;
+    for (const p of probabilities.values()) if (p > max) max = p;
     return Math.round(max * 100);
   })();
 
@@ -391,6 +408,11 @@ function App() {
 
         // LLM rephrasing (non-blocking, updates question text after)
         if (llmMode) {
+          // Abort any in-flight LLM request
+          llmAbortRef.current?.abort();
+          const controller = new AbortController();
+          llmAbortRef.current = controller;
+
           const answeredQs = answers.map((a) => {
             const q = (questions || DEFAULT_QUESTIONS).find(
               (q) => q.attribute === a.questionId,
@@ -402,6 +424,7 @@ function App() {
 
           Promise.all([loadPrompts(), loadLlm()])
             .then(([{ dynamicQuestion_v1 }, { llmWithMeta }]) => {
+              if (controller.signal.aborted) return null;
               const { system, user } = dynamicQuestion_v1(
                 nextQuestion.text,
                 nextQuestion.attribute,
@@ -414,9 +437,11 @@ function App() {
                 model: "gpt-4o-mini",
                 jsonMode: true,
                 systemPrompt: system,
+                signal: controller.signal,
               });
             })
             .then((result) => {
+              if (!result) return;
               try {
                 const parsed = JSON.parse(result.content) as { text: string };
                 if (parsed.text && parsed.text.length < 150) {
@@ -1501,9 +1526,11 @@ function App() {
                       reasoning={reasoning}
                       isThinking={isThinking}
                     />
+                    <Suspense fallback={<Skeleton className="h-48 w-full" />}>
                     <ProbabilityLeaderboard
                       characters={activeCharacters}
                       answers={answers}
+                      probabilities={probabilities}
                     />
                     <PossibilitySpaceChart
                       totalCharacters={activeCharacters.length}
@@ -1514,6 +1541,7 @@ function App() {
                       characters={activeCharacters}
                       answers={answers}
                     />
+                    </Suspense>
                   </div>
                 </div>
               </div>

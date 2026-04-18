@@ -81,12 +81,18 @@ export function CharacterComparison({ characters, onBack }: CharacterComparisonP
   }, [characters])
 
   const mostSimilarPairs = useMemo((): CharacterPair[] => {
+    // For large character sets, sample to avoid O(n²) explosion
+    const MAX_PAIRS_INPUT = 80
+    const chars = characters.length > MAX_PAIRS_INPUT
+      ? characters.slice(0, MAX_PAIRS_INPUT)
+      : characters
+
     const pairs: CharacterPair[] = []
 
-    for (let i = 0; i < characters.length; i++) {
-      for (let j = i + 1; j < characters.length; j++) {
-        const char1 = characters[i]
-        const char2 = characters[j]
+    for (let i = 0; i < chars.length; i++) {
+      for (let j = i + 1; j < chars.length; j++) {
+        const char1 = chars[i]
+        const char2 = chars[j]
 
         let shared = 0
         let different = 0

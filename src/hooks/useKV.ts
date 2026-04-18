@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 
 type OnErrorCallback = (error: unknown) => void
 
+const DEBOUNCE_MS = 300
+
 /** Generic hook for localStorage-backed state with JSON serialization and cross-tab sync via `storage` events. */
 export function useKV<T>(
   key: string,
@@ -27,13 +29,18 @@ export function useKV<T>(
   const valueRef = useRef(value)
   valueRef.current = value
 
-  // Persist to localStorage on changes
+  // Persist to localStorage on changes (debounced to avoid blocking main thread)
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   useEffect(() => {
-    try {
-      localStorage.setItem(storageKey, JSON.stringify(value))
-    } catch (e) {
-      onError?.(e)
-    }
+    if (timerRef.current) clearTimeout(timerRef.current)
+    timerRef.current = setTimeout(() => {
+      try {
+        localStorage.setItem(storageKey, JSON.stringify(value))
+      } catch (e) {
+        onError?.(e)
+      }
+    }, DEBOUNCE_MS)
+    return () => { if (timerRef.current) clearTimeout(timerRef.current) }
   }, [storageKey, value, onError])
 
   // Cross-tab sync: listen for storage events from other tabs

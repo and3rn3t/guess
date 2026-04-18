@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { memo, useMemo } from 'react'
 import { Area, AreaChart, XAxis, YAxis } from 'recharts'
 import { TrendDown } from '@phosphor-icons/react'
 import { Card } from '@/components/ui/card'
@@ -41,7 +41,7 @@ const chartConfig = {
  * Shows how the possibility space shrinks after each answer.
  * Computes the count of viable characters at each step by replaying answers.
  */
-export function PossibilitySpaceChart({
+export const PossibilitySpaceChart = memo(function PossibilitySpaceChart({
   totalCharacters,
   characters,
   answers,
@@ -131,4 +131,4 @@ export function PossibilitySpaceChart({
       </ChartContainer>
     </Card>
   )
-}
+});

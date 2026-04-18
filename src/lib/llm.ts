@@ -25,6 +25,7 @@ export interface LlmOptions {
   model: string
   jsonMode?: boolean
   systemPrompt?: string
+  signal?: AbortSignal
 }
 
 export interface LlmResult {
@@ -84,6 +85,7 @@ export async function llmWithMeta(options: LlmOptions): Promise<LlmResult> {
       response = await fetch('/api/llm', {
         method: 'POST',
         headers: commonHeaders(),
+        signal: options.signal,
         body: JSON.stringify({
           prompt: options.prompt,
           model: options.model,
