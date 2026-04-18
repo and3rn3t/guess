@@ -137,6 +137,12 @@ const MultiCategoryEnhancer = lazy(() =>
     default: m.MultiCategoryEnhancer,
   })),
 );
+const INSIGHT_TABS = [
+  { phase: "stats" as const, label: "Stats", icon: ChartBarIcon },
+  { phase: "history" as const, label: "History", icon: ClockCounterClockwiseIcon },
+  { phase: "compare" as const, label: "Compare", icon: UsersIcon },
+] as const;
+
 const CostDashboard = lazy(() =>
   import("@/components/CostDashboard").then((m) => ({
     default: m.CostDashboard,
@@ -800,23 +806,7 @@ function App() {
                     gamePhase === "history" ||
                     gamePhase === "compare") && (
                     <>
-                      {[
-                        {
-                          phase: "stats" as const,
-                          label: "Stats",
-                          icon: ChartBarIcon,
-                        },
-                        {
-                          phase: "history" as const,
-                          label: "History",
-                          icon: ClockCounterClockwiseIcon,
-                        },
-                        {
-                          phase: "compare" as const,
-                          label: "Compare",
-                          icon: UsersIcon,
-                        },
-                      ].map((tab) => (
+                      {INSIGHT_TABS.map((tab) => (
                         <Button
                           key={tab.phase}
                           onClick={() => navigate(tab.phase)}

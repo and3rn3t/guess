@@ -34,50 +34,68 @@ export async function llm(prompt: string, model: string, jsonMode?: boolean): Pr
   return result.content
 }
 
+const MAX_RETRIES = 2
+const RETRY_BASE_MS = 1000
+const RETRYABLE_STATUSES = new Set([429, 502, 503])
+
 export async function llmWithMeta(options: LlmOptions): Promise<LlmResult> {
-  let response: Response
-  try {
-    response = await fetch('/api/llm', {
-      method: 'POST',
-      headers: commonHeaders(),
-      body: JSON.stringify({
-        prompt: options.prompt,
-        model: options.model,
-        jsonMode: options.jsonMode,
-        systemPrompt: options.systemPrompt,
-      }),
-    })
-  } catch {
-    throw new Error('Network error — check your internet connection and try again.')
-  }
+  let lastError: Error | undefined
 
-  if (!response.ok) {
-    if (response.status === 502) {
-      throw new Error('The AI service is temporarily unavailable. Please try again in a moment.')
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    if (attempt > 0) {
+      await new Promise(r => setTimeout(r, RETRY_BASE_MS * 2 ** (attempt - 1)))
     }
-    if (response.status === 429) {
-      throw new Error('Too many requests — please wait a moment and try again.')
-    }
-    const errorText = await response.text().catch(() => 'Unknown error')
-    throw new Error(`LLM request failed (${response.status}): ${errorText}`)
-  }
 
-  const content = await response.text()
-
-  // Parse token usage from header
-  let usage: LlmResult['usage']
-  const usageHeader = response.headers.get('X-Token-Usage')
-  if (usageHeader) {
+    let response: Response
     try {
-      usage = JSON.parse(usageHeader)
+      response = await fetch('/api/llm', {
+        method: 'POST',
+        headers: commonHeaders(),
+        body: JSON.stringify({
+          prompt: options.prompt,
+          model: options.model,
+          jsonMode: options.jsonMode,
+          systemPrompt: options.systemPrompt,
+        }),
+      })
     } catch {
-      // Ignore malformed header
+      lastError = new Error('Network error — check your internet connection and try again.')
+      continue
     }
+
+    if (!response.ok) {
+      if (RETRYABLE_STATUSES.has(response.status) && attempt < MAX_RETRIES) {
+        continue
+      }
+      if (response.status === 502 || response.status === 503) {
+        throw new Error('The AI service is temporarily unavailable. Please try again in a moment.')
+      }
+      if (response.status === 429) {
+        throw new Error('Too many requests — please wait a moment and try again.')
+      }
+      const errorText = await response.text().catch(() => 'Unknown error')
+      throw new Error(`LLM request failed (${response.status}): ${errorText}`)
+    }
+
+    const content = await response.text()
+
+    // Parse token usage from header
+    let usage: LlmResult['usage']
+    const usageHeader = response.headers.get('X-Token-Usage')
+    if (usageHeader) {
+      try {
+        usage = JSON.parse(usageHeader)
+      } catch {
+        // Ignore malformed header
+      }
+    }
+
+    const cached = response.headers.get('X-Cache') === 'HIT'
+
+    return { content, usage, cached }
   }
 
-  const cached = response.headers.get('X-Cache') === 'HIT'
-
-  return { content, usage, cached }
+  throw lastError ?? new Error('LLM request failed after retries')
 }
 
 const SSE_DONE = Symbol('done')

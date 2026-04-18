@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { GraduationCap, Plus, ArrowRight, CheckCircle, ArrowLeft, SpinnerGap, House, Play } from '@phosphor-icons/react'
+import { GraduationCap, Plus, ArrowRight, CheckCircle, ArrowLeft, SpinnerGap, House, Play, WarningCircle } from '@phosphor-icons/react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -305,6 +305,13 @@ export function TeachingMode({ answers, existingCharacters, onAddCharacter, onAd
                   </div>
                 </div>
               </div>
+
+              {!llmFilled && (
+                <div className="flex items-start gap-3 rounded-lg border border-yellow-500/30 bg-yellow-500/10 p-3 text-sm text-yellow-200">
+                  <WarningCircle size={20} className="mt-0.5 shrink-0 text-yellow-400" weight="fill" />
+                  <span>AI auto-fill wasn't available — all attributes need to be set manually. Tap each one to cycle through <strong>Yes / No / Unknown</strong>.</span>
+                </div>
+              )}
 
               <div className="space-y-6 max-h-[60vh] overflow-y-auto pr-2">
                 {Object.entries(ATTRIBUTE_GROUPS).map(([group, attrs]) => (
