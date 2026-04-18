@@ -27,7 +27,18 @@ dist-ssr
 *.sw?
 
 .env
+.env.local
 .dev.vars
+
+# Staging data (local ingestion DB)
+data/
+
+# Wrangler local state
+.wrangler/
+
+# Generated migration chunks (too large for git)
+migrations/chunks/
+migrations/0005_ingest_characters.sql
 **/agent-eval-report*
 packages
 pids
