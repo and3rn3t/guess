@@ -271,7 +271,7 @@ describe('useServerGame', () => {
       renderHook(() => useServerGame(dispatch))
 
       await waitFor(() => {
-        expect(dispatch).toHaveBeenCalledWith({ type: 'START_GAME', characters: [] })
+        expect(dispatch).toHaveBeenCalledWith({ type: 'START_GAME', characters: [], guessCount: 0 })
       })
     })
 

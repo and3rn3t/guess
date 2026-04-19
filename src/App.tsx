@@ -436,7 +436,7 @@ function App() {
 
   const handleCorrectGuess = () => {
     dispatch({ type: "CORRECT_GUESS" });
-    analytics().then((m) => m.trackGameEnd(true, difficulty, gameSteps.length));
+    analytics().then((m) => m.trackGameEnd(true, difficulty, gameSteps.length, guessCount));
     playCorrectGuess();
     hapticSuccess();
     toast.success("🎉 I got it right!");
@@ -447,7 +447,7 @@ function App() {
   const handleIncorrectGuess = () => {
     dispatch({ type: "INCORRECT_GUESS" });
     analytics().then((m) =>
-      m.trackGameEnd(false, difficulty, gameSteps.length),
+      m.trackGameEnd(false, difficulty, gameSteps.length, guessCount),
     );
     playIncorrectGuess();
     hapticMedium();

@@ -61,6 +61,7 @@ interface ResumeResponse {
   remaining?: number;
   totalCharacters?: number;
   questionCount?: number;
+  guessCount?: number;
   answers?: Array<{ questionId: string; value: AnswerValue }>;
 }
 
@@ -128,7 +129,7 @@ export function useServerGame(
         persistSessionId(savedId);
         setServerRemaining(data.remaining ?? 0);
         setServerTotal(data.totalCharacters ?? 0);
-        dispatch({ type: "START_GAME", characters: [] });
+        dispatch({ type: "START_GAME", characters: [], guessCount: data.guessCount ?? 0 });
 
         // Replay answers into reducer so step count is correct
         if (data.answers) {
@@ -290,6 +291,9 @@ export function useServerGame(
         if (data.type === "exhausted") {
           dispatch({ type: "SET_EXHAUSTED" });
           postServerResult(false);
+          analytics().then((m) =>
+            m.trackGameEnd(false, "medium", data.questionCount ?? 0, data.guessCount ?? 0, true),
+          );
         } else if (data.type === "question" && data.question && data.reasoning) {
           dispatch({
             type: "SET_QUESTION",

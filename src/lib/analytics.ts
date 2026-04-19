@@ -38,8 +38,11 @@ export function trackGameStart(difficulty: Difficulty, characterCount: number) {
   trackEvent('game_start', { difficulty, characterCount })
 }
 
-export function trackGameEnd(won: boolean, difficulty: Difficulty, questionsAsked: number) {
-  trackEvent('game_end', { won, difficulty, questionsAsked })
+export function trackGameEnd(won: boolean, difficulty: Difficulty, questionsAsked: number, guessCount?: number, exhausted?: boolean) {
+  const data: Record<string, string | number | boolean> = { won, difficulty, questionsAsked }
+  if (guessCount != null) data.guessCount = guessCount
+  if (exhausted != null) data.exhausted = exhausted
+  trackEvent('game_end', data)
 }
 
 export function trackShare(method: 'native' | 'clipboard' | 'link') {

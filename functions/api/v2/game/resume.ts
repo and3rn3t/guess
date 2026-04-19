@@ -120,6 +120,8 @@ async function reconstructFromD1(
     difficulty: row.difficulty,
     maxQuestions: row.max_questions,
     createdAt: row.created_at,
+    rejectedGuesses: [],
+    guessCount: 0,
   }
 
   // Re-hydrate KV so subsequent requests are fast
@@ -161,7 +163,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   // Refresh TTL (only writes the lean session, not the pool)
   await saveSessionState(kv, session)
 
-  const filtered = filterPossibleCharacters(session.characters, session.answers)
+  const filtered = filterPossibleCharacters(session.characters, session.answers, session.rejectedGuesses)
 
   // Rebuild current state for the client
   const reasoning = session.currentQuestion
@@ -175,6 +177,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     remaining: filtered.length,
     totalCharacters: session.characters.length,
     questionCount: session.answers.length,
+    guessCount: session.guessCount,
     answers: session.answers.map((a) => ({
       questionId: a.questionId,
       value: a.value,

@@ -43,7 +43,7 @@ export interface GameState {
 
 // ========== ACTIONS ==========
 export type GameAction =
-  | { type: 'START_GAME'; characters: Character[] }
+  | { type: 'START_GAME'; characters: Character[]; guessCount?: number }
   | { type: 'SET_QUESTION'; question: Question; reasoning: ReasoningExplanation }
   | { type: 'ANSWER'; value: AnswerValue }
   | { type: 'MAKE_GUESS'; character: Character }
@@ -85,6 +85,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         ...initialState,
         phase: 'playing',
         possibleCharacters: action.characters,
+        guessCount: action.guessCount ?? 0,
       }
 
     case 'SET_QUESTION':
@@ -154,6 +155,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         ...state,
         phase: action.phase,
         selectedCharacter: action.character ?? (action.phase === 'welcome' ? null : state.selectedCharacter),
+        ...(action.phase === 'welcome' ? { guessCount: 0, exhausted: false } : {}),
       }
 
     case 'TOGGLE_DEV_TOOLS':
