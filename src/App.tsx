@@ -1,8 +1,7 @@
+import { AppHeader } from "@/components/AppHeader";
 import { GameOver, GuessReveal } from "@/components/GuessReveal";
-import { CoachMark } from "@/components/CoachMark";
-import { OnboardingOverlay } from "@/components/OnboardingOverlay";
-import { QuestionCard, ThinkingCard } from "@/components/QuestionCard";
-import { ReasoningPanel } from "@/components/ReasoningPanel";
+import { PlayingScreen } from "@/components/PlayingScreen";
+import { WelcomeScreen } from "@/components/WelcomeScreen";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -14,12 +13,6 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
-import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useGameState } from "@/hooks/useGameState";
 import { useKV } from "@/hooks/useKV";
@@ -50,31 +43,10 @@ import type {
   GameHistoryEntry,
   Question,
 } from "@/lib/types";
-import { CATEGORY_LABELS, DIFFICULTIES } from "@/lib/types";
+import { DIFFICULTIES } from "@/lib/types";
 import {
-  ArrowLeftIcon,
-  BrainIcon,
-  ChartBarIcon,
-  ClipboardTextIcon,
-  ClockCounterClockwiseIcon,
-  CloudArrowUpIcon,
-  CloudCheckIcon,
-  CloudSlashIcon,
-  CloudXIcon,
-  FlaskIcon,
-  GearIcon,
-  HouseIcon,
-  LightningIcon,
-  MoonIcon,
   PlayIcon,
   SparkleIcon,
-  SpeakerHighIcon,
-  SpeakerSlashIcon,
-  SunIcon,
-  TreeStructureIcon,
-  UsersIcon,
-  WifiSlashIcon,
-  WrenchIcon,
 } from "@phosphor-icons/react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useTheme } from "next-themes";
@@ -94,21 +66,6 @@ import { useLocalGame } from "@/hooks/useLocalGame";
 const TeachingMode = lazy(() =>
   import("@/components/TeachingMode").then((m) => ({
     default: m.TeachingMode,
-  })),
-);
-const PossibilityGrid = lazy(() =>
-  import("@/components/PossibilityGrid").then((m) => ({
-    default: m.PossibilityGrid,
-  })),
-);
-const PossibilitySpaceChart = lazy(() =>
-  import("@/components/PossibilitySpaceChart").then((m) => ({
-    default: m.PossibilitySpaceChart,
-  })),
-);
-const ProbabilityLeaderboard = lazy(() =>
-  import("@/components/ProbabilityLeaderboard").then((m) => ({
-    default: m.ProbabilityLeaderboard,
   })),
 );
 const QuestionManager = lazy(() =>
@@ -156,16 +113,6 @@ const MultiCategoryEnhancer = lazy(() =>
     default: m.MultiCategoryEnhancer,
   })),
 );
-const INSIGHT_TABS = [
-  { phase: "stats" as const, label: "Stats", icon: ChartBarIcon },
-  {
-    phase: "history" as const,
-    label: "History",
-    icon: ClockCounterClockwiseIcon,
-  },
-  { phase: "compare" as const, label: "Compare", icon: UsersIcon },
-] as const;
-
 const CostDashboard = lazy(() =>
   import("@/components/CostDashboard").then((m) => ({
     default: m.CostDashboard,
@@ -182,6 +129,177 @@ const GameHistory = lazy(() =>
 
 // Lazy-loaded modules — fire-and-forget or async-only usage
 const analytics = () => import("@/lib/analytics");
+
+const ANSWER_EMOJI: Record<string, string> = {
+  yes: "🟢",
+  no: "🔴",
+  maybe: "🟡",
+};
+
+function renderAdminPhase({
+  gamePhase,
+  characters,
+  questions,
+  selectedCharacter,
+  challenge,
+  navigate,
+  handleUpdateCharacter,
+  handleUpdateCharacters,
+  handleUpdateQuestion,
+  setChallenge,
+}: {
+  gamePhase: string;
+  characters: Character[] | null;
+  questions: Question[] | null;
+  selectedCharacter: Character | null;
+  challenge: SharePayload | null;
+  navigate: (phase: "welcome") => void;
+  handleUpdateCharacter: (c: Character) => void;
+  handleUpdateCharacters: (c: Character[]) => void;
+  handleUpdateQuestion: (q: Question) => void;
+  setChallenge: (v: null) => void;
+}): React.JSX.Element | null {
+  const onBack = () => navigate("welcome");
+  const allChars = characters || DEFAULT_CHARACTERS;
+  const allQuestions = questions || DEFAULT_QUESTIONS;
+  const wrap = (children: React.ReactNode, maxW?: string) => (
+    <div className="min-h-screen bg-background">
+      <div className="container mx-auto px-4 py-8">
+        {maxW ? <div className={maxW}>{children}</div> : children}
+      </div>
+    </div>
+  );
+
+  switch (gamePhase) {
+    case "bulkHabitat":
+      return wrap(
+        <Suspense fallback={<Skeleton className="h-96 w-full" />}>
+          <MultiCategoryEnhancer
+            characters={allChars}
+            onUpdateCharacters={handleUpdateCharacters}
+            onBack={onBack}
+          />
+        </Suspense>,
+      );
+    case "demo":
+      return (
+        <Suspense fallback={<Skeleton className="h-96 w-full" />}>
+          <QuestionGeneratorDemo onBack={onBack} />
+        </Suspense>
+      );
+    case "environmentTest":
+      if (!selectedCharacter) return null;
+      return wrap(
+        <Suspense fallback={<Skeleton className="h-96 w-full" />}>
+          <EnvironmentTest
+            character={selectedCharacter}
+            onUpdateCharacter={handleUpdateCharacter}
+            onBack={onBack}
+          />
+        </Suspense>,
+      );
+    case "coverage":
+      return wrap(
+        <Suspense fallback={<Skeleton className="h-96 w-full" />}>
+          <AttributeCoverageReport characters={allChars} onBack={onBack} />
+        </Suspense>,
+      );
+    case "categoryRecommender":
+      if (!selectedCharacter) return null;
+      return wrap(
+        <Suspense fallback={<Skeleton className="h-96 w-full" />}>
+          <CategoryRecommender
+            character={selectedCharacter}
+            onUpdateCharacter={handleUpdateCharacter}
+            onBack={onBack}
+          />
+        </Suspense>,
+      );
+    case "recommender":
+      if (!selectedCharacter) return null;
+      return wrap(
+        <Suspense fallback={<Skeleton className="h-96 w-full" />}>
+          <AttributeRecommender
+            character={selectedCharacter}
+            onUpdateCharacter={handleUpdateCharacter}
+            onBack={onBack}
+          />
+        </Suspense>,
+      );
+    case "costDashboard":
+      return wrap(
+        <Suspense fallback={<Skeleton className="h-96 w-full" />}>
+          <CostDashboard onBack={onBack} />
+        </Suspense>,
+        "max-w-4xl mx-auto",
+      );
+    case "dataHygiene":
+      return wrap(
+        <Suspense fallback={<Skeleton className="h-96 w-full" />}>
+          <DataHygiene
+            characters={allChars}
+            questions={allQuestions}
+            onUpdateCharacter={handleUpdateCharacter}
+            onUpdateQuestion={handleUpdateQuestion}
+            onBack={onBack}
+          />
+        </Suspense>,
+        "max-w-4xl mx-auto",
+      );
+    case "challenge": {
+      if (!challenge) return null;
+      const answerBar = challenge.steps
+        .map((s) => ANSWER_EMOJI[s.answer] ?? "⚪")
+        .join("");
+      return (
+        <>
+          <Toaster position="top-center" richColors />
+          <div className="min-h-screen bg-background flex items-center justify-center p-4">
+            <div className="max-w-md w-full space-y-6 text-center">
+              <SparkleIcon
+                size={64}
+                weight="fill"
+                className="mx-auto text-accent animate-float"
+              />
+              <h1 className="text-3xl font-bold text-foreground">Challenge!</h1>
+              <p className="text-muted-foreground text-lg">
+                {challenge.won
+                  ? `Mystic Guesser figured out ${challenge.characterName} in ${challenge.questionCount} questions!`
+                  : `Someone stumped Mystic Guesser thinking of ${challenge.characterName}!`}
+              </p>
+              <div className="text-2xl tracking-wider">{answerBar}</div>
+              <div className="flex flex-wrap gap-2 justify-center">
+                <span className="inline-flex items-center rounded-full bg-accent/20 px-3 py-1 text-sm font-medium text-accent">
+                  {challenge.difficulty.charAt(0).toUpperCase() +
+                    challenge.difficulty.slice(1)}
+                </span>
+                <span className="inline-flex items-center rounded-full bg-muted px-3 py-1 text-sm font-medium text-muted-foreground">
+                  {challenge.questionCount} questions
+                </span>
+              </div>
+              <p className="text-foreground font-semibold text-lg">
+                Can you do better?
+              </p>
+              <Button
+                onClick={() => {
+                  setChallenge(null);
+                  navigate("welcome");
+                }}
+                size="lg"
+                className="h-14 px-8 text-lg bg-accent hover:bg-accent/90 text-accent-foreground shadow-lg shadow-accent/20 hover:scale-105 transition-transform"
+              >
+                <PlayIcon size={24} weight="fill" className="mr-2" />
+                Play Now
+              </Button>
+            </div>
+          </div>
+        </>
+      );
+    }
+    default:
+      return null;
+  }
+}
 
 function App() {
   // ========== PERSISTENT STATE ==========
@@ -499,412 +617,43 @@ function App() {
     );
   };
 
-  if (gamePhase === "bulkHabitat") {
-    return (
-      <div className="min-h-screen bg-background">
-        <div className="container mx-auto px-4 py-8">
-          <Suspense fallback={<Skeleton className="h-96 w-full" />}>
-            <MultiCategoryEnhancer
-              characters={characters || DEFAULT_CHARACTERS}
-              onUpdateCharacters={handleUpdateCharacters}
-              onBack={() => navigate("welcome")}
-            />
-          </Suspense>
-        </div>
-      </div>
-    );
-  }
-
-  if (gamePhase === "demo") {
-    return (
-      <Suspense fallback={<Skeleton className="h-96 w-full" />}>
-        <QuestionGeneratorDemo onBack={() => navigate("welcome")} />
-      </Suspense>
-    );
-  }
-
-  if (gamePhase === "environmentTest" && selectedCharacter) {
-    return (
-      <div className="min-h-screen bg-background">
-        <div className="container mx-auto px-4 py-8">
-          <Suspense fallback={<Skeleton className="h-96 w-full" />}>
-            <EnvironmentTest
-              character={selectedCharacter}
-              onUpdateCharacter={handleUpdateCharacter}
-              onBack={() => navigate("welcome")}
-            />
-          </Suspense>
-        </div>
-      </div>
-    );
-  }
-
-  if (gamePhase === "coverage") {
-    return (
-      <div className="min-h-screen bg-background">
-        <div className="container mx-auto px-4 py-8">
-          <Suspense fallback={<Skeleton className="h-96 w-full" />}>
-            <AttributeCoverageReport
-              characters={characters || DEFAULT_CHARACTERS}
-              onBack={() => navigate("welcome")}
-            />
-          </Suspense>
-        </div>
-      </div>
-    );
-  }
-
-  if (gamePhase === "categoryRecommender" && selectedCharacter) {
-    return (
-      <div className="min-h-screen bg-background">
-        <div className="container mx-auto px-4 py-8">
-          <Suspense fallback={<Skeleton className="h-96 w-full" />}>
-            <CategoryRecommender
-              character={selectedCharacter}
-              onUpdateCharacter={handleUpdateCharacter}
-              onBack={() => navigate("welcome")}
-            />
-          </Suspense>
-        </div>
-      </div>
-    );
-  }
-
-  if (gamePhase === "recommender" && selectedCharacter) {
-    return (
-      <div className="min-h-screen bg-background">
-        <div className="container mx-auto px-4 py-8">
-          <Suspense fallback={<Skeleton className="h-96 w-full" />}>
-            <AttributeRecommender
-              character={selectedCharacter}
-              onUpdateCharacter={handleUpdateCharacter}
-              onBack={() => navigate("welcome")}
-            />
-          </Suspense>
-        </div>
-      </div>
-    );
-  }
-
-  if (gamePhase === "costDashboard") {
-    return (
-      <div className="min-h-screen bg-background">
-        <div className="container mx-auto px-4 py-8">
-          <div className="max-w-4xl mx-auto">
-            <Suspense fallback={<Skeleton className="h-96 w-full" />}>
-              <CostDashboard onBack={() => navigate("welcome")} />
-            </Suspense>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (gamePhase === "dataHygiene") {
-    return (
-      <div className="min-h-screen bg-background">
-        <div className="container mx-auto px-4 py-8">
-          <div className="max-w-4xl mx-auto">
-            <Suspense fallback={<Skeleton className="h-96 w-full" />}>
-              <DataHygiene
-                characters={characters || DEFAULT_CHARACTERS}
-                questions={questions || DEFAULT_QUESTIONS}
-                onUpdateCharacter={handleUpdateCharacter}
-                onUpdateQuestion={handleUpdateQuestion}
-                onBack={() => navigate("welcome")}
-              />
-            </Suspense>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // stats, history, compare phases are now rendered inside the main layout with persistent header
-
-  if (gamePhase === "challenge" && challenge) {
-    const answerBar = challenge.steps
-      .map((s) => {
-        switch (s.answer) {
-          case "yes":
-            return "🟢";
-          case "no":
-            return "🔴";
-          case "maybe":
-            return "🟡";
-          default:
-            return "⚪";
-        }
-      })
-      .join("");
-    return (
-      <>
-        <Toaster position="top-center" richColors />
-        <div className="min-h-screen bg-background flex items-center justify-center p-4">
-          <div className="max-w-md w-full space-y-6 text-center">
-            <SparkleIcon
-              size={64}
-              weight="fill"
-              className="mx-auto text-accent animate-float"
-            />
-            <h1 className="text-3xl font-bold text-foreground">Challenge!</h1>
-            <p className="text-muted-foreground text-lg">
-              {challenge.won
-                ? `Mystic Guesser figured out ${challenge.characterName} in ${challenge.questionCount} questions!`
-                : `Someone stumped Mystic Guesser thinking of ${challenge.characterName}!`}
-            </p>
-            <div className="text-2xl tracking-wider">{answerBar}</div>
-            <div className="flex flex-wrap gap-2 justify-center">
-              <span className="inline-flex items-center rounded-full bg-accent/20 px-3 py-1 text-sm font-medium text-accent">
-                {challenge.difficulty.charAt(0).toUpperCase() +
-                  challenge.difficulty.slice(1)}
-              </span>
-              <span className="inline-flex items-center rounded-full bg-muted px-3 py-1 text-sm font-medium text-muted-foreground">
-                {challenge.questionCount} questions
-              </span>
-            </div>
-            <p className="text-foreground font-semibold text-lg">
-              Can you do better?
-            </p>
-            <Button
-              onClick={() => {
-                setChallenge(null);
-                navigate("welcome");
-              }}
-              size="lg"
-              className="h-14 px-8 text-lg bg-accent hover:bg-accent/90 text-accent-foreground shadow-lg shadow-accent/20 hover:scale-105 transition-transform"
-            >
-              <PlayIcon size={24} weight="fill" className="mr-2" />
-              Play Now
-            </Button>
-          </div>
-        </div>
-      </>
-    );
-  }
+  const adminPhase = renderAdminPhase({
+    gamePhase,
+    characters,
+    questions,
+    selectedCharacter,
+    challenge,
+    navigate,
+    handleUpdateCharacter,
+    handleUpdateCharacters,
+    handleUpdateQuestion,
+    setChallenge,
+  });
+  if (adminPhase) return adminPhase;
 
   return (
     <>
       <Toaster position="top-center" richColors />
       <div className="min-h-screen bg-background relative overflow-hidden">
         <div
-          className="absolute inset-0 opacity-20"
-          style={{
-            backgroundImage: `
-              radial-gradient(circle at 20% 50%, var(--color-primary) 0%, transparent 50%),
-              radial-gradient(circle at 80% 80%, var(--color-accent) 0%, transparent 50%),
-              radial-gradient(circle at 40% 20%, var(--color-secondary) 0%, transparent 50%)
-            `,
-          }}
+          className="absolute inset-0 opacity-20 bg-cosmic-glow"
         />
 
         <div className="relative z-10">
-          <header
-            aria-label="Game navigation"
-            className="border-b border-border/50 backdrop-blur-sm bg-background/80"
-          >
-            <div className="container mx-auto px-4 py-4 md:py-6">
-              <div className="flex items-center justify-between">
-                <button
-                  onClick={() => {
-                    if (gamePhase === "playing") {
-                      setShowQuitDialog(true);
-                    } else {
-                      navigate("welcome");
-                    }
-                  }}
-                  className="flex items-center gap-2 md:gap-3 hover:opacity-80 transition-opacity"
-                >
-                  <SparkleIcon
-                    size={32}
-                    weight="fill"
-                    className="text-accent md:w-10 md:h-10"
-                  />
-                  <h1 className="text-2xl md:text-4xl font-bold text-foreground tracking-tight">
-                    Mystic Guesser
-                  </h1>
-                </button>
-                <div className="flex items-center gap-1.5 md:gap-3">
-                  {/* Welcome phase: Stats, History, Compare, Dev Tools */}
-                  {gamePhase === "welcome" && (
-                    <>
-                      <Button
-                        onClick={() => {
-                          analytics().then((m) => m.trackFeatureUse("stats"));
-                          navigate("stats");
-                        }}
-                        variant="outline"
-                        size="sm"
-                        className="flex items-center gap-2 bg-accent/10 hover:bg-accent/20 border-accent/30"
-                      >
-                        <ChartBarIcon size={20} />
-                        <span className="hidden sm:inline">Statistics</span>
-                      </Button>
-                      <Button
-                        onClick={() => {
-                          analytics().then((m) => m.trackFeatureUse("history"));
-                          navigate("history");
-                        }}
-                        variant="outline"
-                        size="sm"
-                        className="flex items-center gap-2"
-                      >
-                        <ClockCounterClockwiseIcon size={20} />
-                        <span className="hidden sm:inline">History</span>
-                      </Button>
-                      <Button
-                        onClick={() => {
-                          analytics().then((m) => m.trackFeatureUse("compare"));
-                          navigate("compare");
-                        }}
-                        variant="outline"
-                        size="sm"
-                        className="flex items-center gap-2"
-                      >
-                        <UsersIcon size={20} />
-                        <span className="hidden sm:inline">Compare</span>
-                      </Button>
-                      {import.meta.env.DEV && (
-                        <Button
-                          onClick={() => dispatch({ type: "TOGGLE_DEV_TOOLS" })}
-                          variant="outline"
-                          size="sm"
-                          className="flex items-center gap-2 border-dashed border-yellow-500/50 text-yellow-500"
-                        >
-                          <WrenchIcon size={20} />
-                          <span className="hidden sm:inline">Dev Tools</span>
-                        </Button>
-                      )}
-                    </>
-                  )}
-
-                  {/* Playing phase: question counter badge + quit button */}
-                  {gamePhase === "playing" && (
-                    <>
-                      <span className="inline-flex items-center rounded-full bg-accent/20 px-3 py-1 text-sm font-medium text-accent">
-                        Q{answers.length + (currentQuestion ? 1 : 0)}/
-                        {maxQuestions}
-                      </span>
-                      <button
-                        onClick={() => setShowQuitDialog(true)}
-                        className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
-                      >
-                        <ArrowLeftIcon size={16} />
-                        Quit
-                      </button>
-                    </>
-                  )}
-
-                  {/* GameOver / Teaching phase: Home button */}
-                  {(gamePhase === "gameOver" ||
-                    gamePhase === "teaching" ||
-                    gamePhase === "guessing") && (
-                    <Button
-                      onClick={() => navigate("welcome")}
-                      variant="outline"
-                      size="sm"
-                      className="flex items-center gap-2"
-                    >
-                      <HouseIcon size={20} />
-                      <span className="hidden sm:inline">Home</span>
-                    </Button>
-                  )}
-
-                  {/* Stats / History / Compare: cross-navigation tabs + Home */}
-                  {(gamePhase === "stats" ||
-                    gamePhase === "history" ||
-                    gamePhase === "compare") && (
-                    <>
-                      {INSIGHT_TABS.map((tab) => (
-                        <Button
-                          key={tab.phase}
-                          onClick={() => navigate(tab.phase)}
-                          variant={
-                            gamePhase === tab.phase ? "default" : "outline"
-                          }
-                          size="sm"
-                          className={`flex items-center gap-2 ${gamePhase === tab.phase ? "bg-accent text-accent-foreground" : ""}`}
-                        >
-                          <tab.icon size={18} />
-                          <span className="hidden sm:inline">{tab.label}</span>
-                        </Button>
-                      ))}
-                      <Button
-                        onClick={() => navigate("welcome")}
-                        variant="outline"
-                        size="sm"
-                        className="flex items-center gap-2"
-                      >
-                        <HouseIcon size={20} />
-                        <span className="hidden sm:inline">Home</span>
-                      </Button>
-                    </>
-                  )}
-
-                  <span
-                    className="text-muted-foreground"
-                    title={`Sync: ${syncStatus}`}
-                    aria-label={`Sync status: ${syncStatus}`}
-                  >
-                    {syncStatus === "synced" && (
-                      <CloudCheckIcon size={18} className="text-green-400" />
-                    )}
-                    {syncStatus === "pending" && (
-                      <CloudArrowUpIcon
-                        size={18}
-                        className="text-yellow-400 animate-pulse"
-                      />
-                    )}
-                    {syncStatus === "error" && (
-                      <CloudXIcon size={18} className="text-red-400" />
-                    )}
-                    {syncStatus === "offline" && (
-                      <CloudSlashIcon
-                        size={18}
-                        className="text-muted-foreground"
-                      />
-                    )}
-                  </span>
-                  <Button
-                    onClick={toggleMute}
-                    variant="ghost"
-                    size="sm"
-                    className="flex items-center gap-1 text-muted-foreground hover:text-foreground"
-                    title={muted ? "Unmute sounds" : "Mute sounds"}
-                    aria-label={muted ? "Unmute sounds" : "Mute sounds"}
-                  >
-                    {muted ? (
-                      <SpeakerSlashIcon size={20} />
-                    ) : (
-                      <SpeakerHighIcon size={20} />
-                    )}
-                  </Button>
-                  <Button
-                    onClick={toggleTheme}
-                    variant="ghost"
-                    size="sm"
-                    className="flex items-center gap-1 text-muted-foreground hover:text-foreground"
-                    title={
-                      theme === "dark"
-                        ? "Switch to light mode"
-                        : "Switch to dark mode"
-                    }
-                    aria-label={
-                      theme === "dark"
-                        ? "Switch to light mode"
-                        : "Switch to dark mode"
-                    }
-                  >
-                    {theme === "dark" ? (
-                      <SunIcon size={20} />
-                    ) : (
-                      <MoonIcon size={20} />
-                    )}
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </header>
+          <AppHeader
+            gamePhase={gamePhase}
+            navigate={navigate}
+            dispatch={dispatch}
+            answers={answers}
+            currentQuestion={currentQuestion}
+            maxQuestions={maxQuestions}
+            syncStatus={syncStatus}
+            muted={muted}
+            toggleMute={toggleMute}
+            theme={theme}
+            toggleTheme={toggleTheme}
+            setShowQuitDialog={setShowQuitDialog}
+          />
 
           <main
             role="main"
@@ -926,551 +675,52 @@ function App() {
 
             <AnimatePresence mode="wait">
             {gamePhase === "welcome" && (
-              <motion.div
-                key="welcome"
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -12 }}
-                transition={{ duration: 0.25 }}
-              >
-              <div className="max-w-2xl mx-auto space-y-6">
-                {/* Hero */}
-                <div className="text-center space-y-3">
-                  <SparkleIcon
-                    size={64}
-                    weight="fill"
-                    className="mx-auto text-accent animate-float"
-                  />
-                  <h2 className="text-3xl md:text-4xl font-bold text-foreground">
-                    Think of a Character
-                  </h2>
-                  <p className="text-base text-muted-foreground max-w-md mx-auto">
-                    I'll ask strategic questions and try to guess who you're
-                    thinking of.
-                  </p>
-                </div>
-
-                {/* Resume saved session */}
-                {hasSavedSession && (
-                  <div className="bg-primary/10 border border-primary/30 rounded-xl p-4 flex items-center justify-between">
-                    <div>
-                      <p className="font-semibold text-foreground">
-                        Resume your game?
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        You have an unfinished game in progress
-                      </p>
-                    </div>
-                    <div className="flex gap-2 ml-4 shrink-0">
-                      <Button
-                        onClick={resumeSession}
-                        size="sm"
-                        className="bg-accent hover:bg-accent/90"
-                      >
-                        Resume
-                      </Button>
-                      <Button
-                        onClick={clearSession}
-                        variant="outline"
-                        size="sm"
-                      >
-                        Dismiss
-                      </Button>
-                    </div>
-                  </div>
-                )}
-
-                {/* Last game + Quick Play for returning players */}
-                {gameHistory &&
-                  gameHistory.length > 0 &&
-                  !hasSavedSession &&
-                  (() => {
-                    const last = gameHistory[gameHistory.length - 1];
-                    return (
-                      <div className="space-y-3">
-                        <Button
-                          onClick={startGame}
-                          size="lg"
-                          className="w-full h-14 text-lg gap-3 bg-accent hover:bg-accent/90 text-accent-foreground shadow-lg shadow-accent/20 hover:scale-[1.02] transition-transform"
-                        >
-                          <LightningIcon size={22} weight="fill" />
-                          Quick Play
-                        </Button>
-                        <p className="text-center text-xs text-muted-foreground">
-                          Last: {last.won ? "Won" : "Lost"} in{" "}
-                          {last.steps.length} Qs — {last.characterName}
-                          {" · "}
-                          {DIFFICULTIES[difficulty].label} · {serverMode ? (serverTotal || "500+") : activeCharacters.length} characters
-                        </p>
-                      </div>
-                    );
-                  })()}
-
-                {/* Primary CTA for new players */}
-                {(!gameHistory || gameHistory.length === 0) && !hasSavedSession && (
-                  <div className="text-center">
-                    <Button
-                      onClick={startGame}
-                      size="lg"
-                      className="h-14 px-8 text-xl bg-accent hover:bg-accent/90 text-accent-foreground shadow-lg shadow-accent/20 hover:scale-105 transition-transform"
-                    >
-                      <PlayIcon size={28} weight="fill" className="mr-3" />
-                      Start Game
-                    </Button>
-                  </div>
-                )}
-
-                {/* How It Works — expanded for new users, collapsed for returning */}
-                <Collapsible defaultOpen={!gameHistory || gameHistory.length === 0}>
-                  <div className="bg-card/50 backdrop-blur-sm border border-border/50 rounded-xl p-5">
-                    <CollapsibleTrigger className="flex items-center justify-between w-full text-left">
-                      <h3 className="text-base font-semibold text-foreground">
-                        How It Works
-                      </h3>
-                      <span className="text-xs text-muted-foreground">
-                        {gameHistory && gameHistory.length > 0
-                          ? "Tap to expand"
-                          : ""}
-                      </span>
-                    </CollapsibleTrigger>
-                    <CollapsibleContent className="mt-4 space-y-3 text-foreground/90">
-                      {[
-                        ["1", "Strategic Questioning", "I ask questions that split possibilities optimally."],
-                        ["2", "Real-Time Reasoning", "See exactly why I chose each question."],
-                        ["3", "Confidence Building", "Watch my confidence grow until the final guess!"],
-                      ].map(([num, title, desc]) => (
-                        <div key={num} className="flex gap-3 items-start">
-                          <div className="shrink-0 w-6 h-6 rounded-full bg-accent/20 text-accent flex items-center justify-center text-xs font-bold">
-                            {num}
-                          </div>
-                          <div>
-                            <span className="font-medium text-sm">{title}</span>
-                            <span className="text-sm text-muted-foreground ml-1">— {desc}</span>
-                          </div>
-                        </div>
-                      ))}
-                    </CollapsibleContent>
-                  </div>
-                </Collapsible>
-
-                {/* Game Settings — consolidated single card */}
-                <div className="bg-card/50 backdrop-blur-sm border border-border/50 rounded-xl p-5 space-y-5">
-                  {/* Difficulty */}
-                  <div className="space-y-2">
-                    <h4 className="text-sm font-semibold text-foreground">Difficulty</h4>
-                    <div className="flex gap-2">
-                      {(
-                        Object.entries(DIFFICULTIES) as [
-                          Difficulty,
-                          (typeof DIFFICULTIES)[Difficulty],
-                        ][]
-                      ).map(([key, cfg]) => (
-                        <button
-                          key={key}
-                          onClick={() => setDifficulty(key)}
-                          className={`flex-1 px-3 py-2 rounded-lg border text-sm font-medium transition-colors ${
-                            difficulty === key
-                              ? "bg-accent text-accent-foreground border-accent"
-                              : "bg-card border-border hover:bg-accent/10"
-                          }`}
-                        >
-                          {cfg.label}
-                          <span className="block text-[11px] opacity-70">
-                            {cfg.maxQuestions} Qs
-                          </span>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="border-t border-border/50" />
-
-                  {/* Categories */}
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <h4 className="text-sm font-semibold text-foreground">Categories</h4>
-                      <span className="text-xs text-muted-foreground">
-                        {selectedCategories.size === 0
-                          ? "All"
-                          : selectedCategories.size}{" "}
-                        selected · {activeCharacters.length} characters
-                      </span>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      {(
-                        Object.entries(CATEGORY_LABELS) as [
-                          CharacterCategory,
-                          string,
-                        ][]
-                      ).map(([key, label]) => {
-                        const count = (characters || DEFAULT_CHARACTERS).filter(
-                          (c) => c.category === key,
-                        ).length;
-                        const isSelected = selectedCategories.has(key);
-                        return (
-                          <button
-                            key={key}
-                            onClick={() => toggleCategory(key)}
-                            className={`px-3 py-1.5 rounded-lg border text-xs font-medium transition-colors ${
-                              isSelected
-                                ? "bg-accent text-accent-foreground border-accent"
-                                : "bg-card border-border hover:bg-accent/10"
-                            }`}
-                          >
-                            {label}
-                            <span className="ml-1 opacity-60">{count}</span>
-                          </button>
-                        );
-                      })}
-                    </div>
-                    {activeCharacters.length > 0 && (
-                      <p className="text-[11px] text-muted-foreground">
-                        e.g.{" "}
-                        {activeCharacters
-                          .slice(0, 4)
-                          .map((c) => c.name)
-                          .join(", ")}
-                        {activeCharacters.length > 4 && ` + ${activeCharacters.length - 4} more`}
-                      </p>
-                    )}
-                  </div>
-
-                  <div className="border-t border-border/50" />
-
-                  {/* AI Mode */}
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <BrainIcon size={18} weight="fill" className="text-accent" />
-                      <span className="text-sm font-medium text-foreground">AI-Enhanced Mode</span>
-                    </div>
-                    <button
-                      onClick={() => setLlmMode(!llmMode)}
-                      className={`relative inline-flex h-6 w-10 items-center rounded-full transition-colors ${
-                        llmMode ? "bg-accent" : "bg-muted"
-                      }`}
-                      role="switch"
-                      aria-checked={llmMode ? "true" : "false"}
-                      aria-label="Toggle AI-Enhanced Mode"
-                    >
-                      <span
-                        className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform ${
-                          llmMode ? "translate-x-5" : "translate-x-1"
-                        }`}
-                      />
-                    </button>
-                  </div>
-                  {llmMode && (
-                    <p
-                      className={`text-xs -mt-3 ${online ? "text-accent" : "text-destructive"}`}
-                    >
-                      {online ? (
-                        "✨ Dynamic questions & narrative explanations"
-                      ) : (
-                        <span className="flex items-center gap-1">
-                          <WifiSlashIcon size={14} weight="bold" />
-                          Offline — AI features unavailable
-                        </span>
-                      )}
-                    </p>
-                  )}
-
-                  <div className="border-t border-border/50" />
-
-                  {/* Server Mode */}
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <CloudCheckIcon size={18} className="text-accent" />
-                      <span className="text-sm font-medium text-foreground">Server Mode</span>
-                    </div>
-                    <button
-                      onClick={() => setServerMode(!serverMode)}
-                      className={`relative inline-flex h-6 w-10 items-center rounded-full transition-colors ${
-                        serverMode ? "bg-accent" : "bg-muted"
-                      }`}
-                      role="switch"
-                      aria-checked={serverMode ? "true" : "false"}
-                      aria-label="Toggle Server Mode"
-                    >
-                      <span
-                        className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform ${
-                          serverMode ? "translate-x-5" : "translate-x-1"
-                        }`}
-                      />
-                    </button>
-                  </div>
-                  {serverMode && (
-                    <p
-                      className={`text-xs -mt-3 ${online ? "text-accent" : "text-destructive"}`}
-                    >
-                      {online ? (
-                        "🌐 Play against the full character database on the server"
-                      ) : (
-                        <span className="flex items-center gap-1">
-                          <WifiSlashIcon size={14} weight="bold" />
-                          Offline — server mode unavailable
-                        </span>
-                      )}
-                    </p>
-                  )}
-                </div>
-
-                {/* Bottom CTA */}
-                <div className="text-center space-y-2">
-                  <Button
-                    onClick={startGame}
-                    size="lg"
-                    className="h-12 px-8 text-lg bg-accent hover:bg-accent/90 text-accent-foreground shadow-lg shadow-accent/20 hover:scale-105 transition-transform"
-                  >
-                    <PlayIcon size={24} weight="fill" className="mr-2" />
-                    Start Game
-                  </Button>
-                  <p className="text-xs text-muted-foreground">
-                    {serverMode ? (serverTotal || "500+") : activeCharacters.length} characters · {maxQuestions}{" "}
-                    questions · {DIFFICULTIES[difficulty].label}
-                    {serverMode && " · Server"}
-                  </p>
-                </div>
-
-                {import.meta.env.DEV && showDevTools && (
-                  <div className="border-2 border-dashed border-yellow-500/30 rounded-xl p-6 space-y-4">
-                    <h3 className="text-lg font-semibold text-yellow-500 flex items-center gap-2">
-                      <WrenchIcon size={24} />
-                      Developer Tools
-                    </h3>
-                    <div className="flex flex-wrap gap-3">
-                      <Button
-                        onClick={() => navigate("coverage")}
-                        variant="outline"
-                        size="sm"
-                        className="flex items-center gap-2"
-                      >
-                        <ClipboardTextIcon size={18} />
-                        Coverage Report
-                      </Button>
-                      <Button
-                        onClick={() => navigate("demo")}
-                        variant="outline"
-                        size="sm"
-                        className="flex items-center gap-2"
-                      >
-                        <FlaskIcon size={18} />
-                        Test Generator
-                      </Button>
-                      <Button
-                        onClick={() => navigate("manage")}
-                        variant="outline"
-                        size="sm"
-                        className="flex items-center gap-2"
-                      >
-                        <GearIcon size={18} />
-                        Manage Questions
-                      </Button>
-                      <Button
-                        onClick={() => {
-                          const spongebob = (
-                            characters || DEFAULT_CHARACTERS
-                          ).find((c) => c.id === "spongebob");
-                          if (spongebob) navigate("environmentTest", spongebob);
-                        }}
-                        variant="outline"
-                        size="sm"
-                        className="flex items-center gap-2"
-                      >
-                        <TreeStructureIcon size={18} />
-                        Test Environment
-                      </Button>
-                      <Button
-                        onClick={() => navigate("bulkHabitat")}
-                        variant="outline"
-                        size="sm"
-                        className="flex items-center gap-2"
-                      >
-                        <BrainIcon size={18} weight="fill" />
-                        AI Enrichment
-                      </Button>
-                      <Button
-                        onClick={() => navigate("costDashboard")}
-                        variant="outline"
-                        size="sm"
-                        className="flex items-center gap-2"
-                      >
-                        <ChartBarIcon size={18} />
-                        Cost Dashboard
-                      </Button>
-                      <Button
-                        onClick={() => navigate("dataHygiene")}
-                        variant="outline"
-                        size="sm"
-                        className="flex items-center gap-2"
-                      >
-                        <WrenchIcon size={18} />
-                        Data Hygiene
-                      </Button>
-                    </div>
-                  </div>
-                )}
-              </div>
-              </motion.div>
+              <WelcomeScreen
+                startGame={startGame}
+                difficulty={difficulty}
+                setDifficulty={setDifficulty}
+                selectedCategories={selectedCategories}
+                toggleCategory={toggleCategory}
+                activeCharacters={activeCharacters}
+                llmMode={llmMode}
+                setLlmMode={setLlmMode}
+                serverMode={serverMode}
+                setServerMode={setServerMode}
+                serverTotal={serverTotal}
+                online={online}
+                maxQuestions={maxQuestions}
+                gameHistory={gameHistory}
+                hasSavedSession={hasSavedSession}
+                resumeSession={resumeSession}
+                clearSession={clearSession}
+                showDevTools={showDevTools}
+                navigate={navigate}
+                characters={characters}
+              />
             )}
 
             {gamePhase === "playing" && (
-              <motion.div
-                key="playing"
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -12 }}
-                transition={{ duration: 0.25 }}
-              >
-              <div className="max-w-7xl mx-auto space-y-4 lg:space-y-0">
-                <AnimatePresence>
-                  {showOnboarding && (
-                    <OnboardingOverlay onComplete={() => setShowOnboarding(false)} />
-                  )}
-                </AnimatePresence>
-                <div className="sticky top-0 z-20 bg-background/80 backdrop-blur-sm py-2 -mx-4 px-4 lg:static lg:bg-transparent lg:backdrop-blur-none lg:py-0 lg:mx-0 lg:px-0 lg:mb-6 space-y-2">
-                  <div className="flex items-center gap-3">
-                    <Progress
-                      value={(answers.length / maxQuestions) * 100}
-                      className="h-2 flex-1"
-                    />
-                    <span className="text-xs font-semibold text-accent whitespace-nowrap tabular-nums">
-                      {confidence}% confident
-                    </span>
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between text-sm text-muted-foreground mb-4 lg:mb-6">
-                  <div className="flex items-center gap-3">
-                    <span>
-                      {effectiveRemaining} possibilities remaining
-                      {serverMode && (
-                        <span className="ml-2 text-xs text-accent">🌐 Server</span>
-                      )}
-                      {llmMode && !serverMode && (
-                        <span className="ml-2 text-xs text-accent">✨ AI</span>
-                      )}
-                    </span>
-                    <AnimatePresence>
-                      {eliminatedCount !== null && (
-                        <motion.span
-                          initial={{ opacity: 0, y: 8, scale: 0.9 }}
-                          animate={{ opacity: 1, y: 0, scale: 1 }}
-                          exit={{ opacity: 0, y: -8 }}
-                          transition={{ duration: 0.3 }}
-                          className="inline-flex items-center rounded-full bg-destructive/15 px-2.5 py-0.5 text-xs font-medium text-destructive"
-                        >
-                          −{eliminatedCount} eliminated
-                        </motion.span>
-                      )}
-                    </AnimatePresence>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {answers.length > 0 && (
-                      <button
-                        onClick={() => dispatch({ type: "UNDO_LAST_ANSWER" })}
-                        className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
-                        aria-label="Undo last answer"
-                      >
-                        <ClockCounterClockwiseIcon size={14} />
-                        Undo
-                      </button>
-                    )}
-                    {!serverMode && possibleCharacters.length > 0 &&
-                      possibleCharacters.length <= 5 && (
-                        <span className="text-accent font-medium">
-                          Top: {possibleCharacters[0]?.name}
-                        </span>
-                      )}
-                  </div>
-                </div>
-
-                {/* Answer history timeline */}
-                {gameSteps.length > 0 && (
-                  <div className="flex flex-wrap gap-1.5 mb-4 lg:mb-6" aria-label="Answer history">
-                    {gameSteps.map((step, i) => {
-                      const bgClass: Record<string, string> = {
-                        yes: "bg-accent/20 text-accent",
-                        no: "bg-destructive/20 text-destructive",
-                        maybe: "bg-yellow-500/20 text-yellow-500",
-                      };
-                      const label: Record<string, string> = { yes: "Y", no: "N", maybe: "M" };
-                      return (
-                        <span
-                          key={step.questionId ?? `step-${i}`}
-                          title={`Q${i + 1}: ${step.questionText} → ${step.answer}`}
-                          className={`inline-flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold cursor-default transition-transform hover:scale-110 ${
-                            bgClass[step.answer] ?? "bg-muted text-muted-foreground"
-                          }`}
-                        >
-                          {label[step.answer] ?? "?"}
-                        </span>
-                      );
-                    })}
-                  </div>
-                )}
-
-                <div className="grid lg:grid-cols-2 gap-4 lg:gap-6">
-                  <div className="space-y-3">
-                    {/* Coach marks based on game count */}
-                    <CoachMark
-                      id="reasoning"
-                      message="💡 Check the Reasoning panel to see how I'm thinking!"
-                      showAfterGames={1}
-                      gamesPlayed={gameHistory?.length ?? 0}
-                    />
-                    <CoachMark
-                      id="stats"
-                      message="📊 After this game, visit Stats to see your win rate and trends."
-                      showAfterGames={3}
-                      gamesPlayed={gameHistory?.length ?? 0}
-                    />
-                    <CoachMark
-                      id="teaching"
-                      message="🎓 Stumped me? Use Teaching Mode to add your character to my brain!"
-                      showAfterGames={5}
-                      gamesPlayed={gameHistory?.length ?? 0}
-                    />
-                    <AnimatePresence mode="wait">
-                      {currentQuestion && (
-                        <QuestionCard
-                          question={currentQuestion}
-                          questionNumber={answers.length + 1}
-                          totalQuestions={maxQuestions}
-                          onAnswer={handleAnswer}
-                          isProcessing={isThinking}
-                        />
-                      )}
-                      {!currentQuestion && isThinking && <ThinkingCard />}
-                    </AnimatePresence>
-                  </div>
-
-                  <div className="lg:sticky lg:top-8 lg:self-start space-y-4">
-                    <ReasoningPanel
-                      reasoning={reasoning}
-                      isThinking={isThinking}
-                    />
-                    {!serverMode && (
-                    <Suspense fallback={<Skeleton className="h-48 w-full" />}>
-                    <ProbabilityLeaderboard
-                      characters={activeCharacters}
-                      answers={answers}
-                      probabilities={probabilities}
-                    />
-                    <PossibilitySpaceChart
-                      totalCharacters={activeCharacters.length}
-                      characters={activeCharacters}
-                      answers={answers}
-                    />
-                    <PossibilityGrid
-                      characters={activeCharacters}
-                      answers={answers}
-                    />
-                    </Suspense>
-                    )}
-                  </div>
-                </div>
-              </div>
-              </motion.div>
+              <PlayingScreen
+                answers={answers}
+                maxQuestions={maxQuestions}
+                confidence={confidence}
+                effectiveRemaining={effectiveRemaining}
+                serverMode={serverMode}
+                llmMode={llmMode}
+                eliminatedCount={eliminatedCount}
+                possibleCharacters={possibleCharacters}
+                currentQuestion={currentQuestion}
+                isThinking={isThinking}
+                reasoning={reasoning}
+                handleAnswer={handleAnswer}
+                dispatch={dispatch}
+                gameSteps={gameSteps}
+                gameHistory={gameHistory}
+                showOnboarding={showOnboarding}
+                setShowOnboarding={setShowOnboarding}
+                activeCharacters={activeCharacters}
+                probabilities={probabilities}
+              />
             )}
 
             {gamePhase === "guessing" && finalGuess && (

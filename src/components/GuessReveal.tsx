@@ -29,7 +29,7 @@ export function GuessReveal({
   confidence,
   onCorrect,
   onIncorrect,
-}: GuessRevealProps) {
+}: Readonly<GuessRevealProps>) {
   const [stage, setStage] = useState<"analyzing" | "confidence" | "reveal">("analyzing");
 
   useEffect(() => {
@@ -224,7 +224,7 @@ export function GameOver({
   onCopyLink,
   llmMode,
   answeredQuestions,
-}: GameOverProps) {
+}: Readonly<GameOverProps>) {
   const [narrative, setNarrative] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
 
@@ -285,7 +285,7 @@ export function GameOver({
           <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
             {Array.from({ length: 24 }).map((_, i) => (
               <motion.div
-                key={i}
+                key={`confetti-${i}`}
                 className="absolute w-2 h-2 rounded-full"
                 style={{
                   left: "50%",

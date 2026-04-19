@@ -12,7 +12,7 @@ interface ReasoningPanelProps {
   isThinking?: boolean
 }
 
-export function ReasoningPanel({ reasoning, isThinking = false }: ReasoningPanelProps) {
+export function ReasoningPanel({ reasoning, isThinking = false }: Readonly<ReasoningPanelProps>) {
   const [expanded, setExpanded] = useState(false)
 
   if (!reasoning) {

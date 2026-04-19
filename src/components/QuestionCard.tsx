@@ -19,6 +19,13 @@ interface QuestionCardProps {
   llmMode?: boolean
 }
 
+const answerButtonStyles: Record<AnswerValue, string> = {
+  yes: 'bg-accent hover:bg-accent/90 text-accent-foreground shadow-lg shadow-accent/20',
+  no: 'bg-destructive hover:bg-destructive/90 text-destructive-foreground shadow-lg shadow-destructive/20',
+  maybe: 'bg-secondary hover:bg-secondary/80 text-secondary-foreground',
+  unknown: 'bg-secondary hover:bg-secondary/80 text-secondary-foreground',
+}
+
 export function QuestionCard({
   question,
   questionNumber,
@@ -26,7 +33,7 @@ export function QuestionCard({
   onAnswer,
   isProcessing = false,
   llmMode,
-}: QuestionCardProps) {
+}: Readonly<QuestionCardProps>) {
   const [freeText, setFreeText] = useState('')
   const [isInterpreting, setIsInterpreting] = useState(false)
 
@@ -89,13 +96,7 @@ export function QuestionCard({
                 disabled={isProcessing}
                 size="lg"
                 aria-label={`Answer ${label}`}
-                className={`h-16 text-lg font-medium transition-all duration-200 ${
-                  value === 'yes'
-                    ? 'bg-accent hover:bg-accent/90 text-accent-foreground shadow-lg shadow-accent/20'
-                    : value === 'no'
-                      ? 'bg-destructive hover:bg-destructive/90 text-destructive-foreground shadow-lg shadow-destructive/20'
-                      : 'bg-secondary hover:bg-secondary/80 text-secondary-foreground'
-                } hover:scale-105 active:scale-95`}
+                className={`h-16 text-lg font-medium transition-all duration-200 ${answerButtonStyles[value]} hover:scale-105 active:scale-95`}
               >
                 <Icon size={24} weight="fill" className="mr-2" />
                 {label}

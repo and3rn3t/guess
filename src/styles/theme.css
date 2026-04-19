@@ -21,3 +21,10 @@
     border-color: var(--color-gray-200, currentColor);
   }
 }
+
+.bg-cosmic-glow {
+  background-image:
+    radial-gradient(circle at 20% 50%, var(--color-primary) 0%, transparent 50%),
+    radial-gradient(circle at 80% 80%, var(--color-accent) 0%, transparent 50%),
+    radial-gradient(circle at 40% 20%, var(--color-secondary) 0%, transparent 50%);
+}
