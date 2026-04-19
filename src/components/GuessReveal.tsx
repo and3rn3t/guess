@@ -234,7 +234,7 @@ interface GameOverProps {
   character: Character | null;
   questionsAsked?: number;
   remainingCharacters?: number;
-  gameHistory?: Array<{ won: boolean }>;
+  gamesPlayed?: number;
   onPlayAgain: () => void;
   onNewGame?: () => void;
   onTeachMode?: () => void;
@@ -250,7 +250,7 @@ export function GameOver({
   character,
   questionsAsked,
   remainingCharacters,
-  gameHistory,
+  gamesPlayed,
   onPlayAgain,
   onNewGame,
   onTeachMode,
@@ -262,17 +262,6 @@ export function GameOver({
 }: Readonly<GameOverProps>) {
   const [narrative, setNarrative] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
-
-  // Calculate best win streak for loss encouragement
-  const bestStreak = (() => {
-    if (!gameHistory || gameHistory.length === 0) return 0;
-    let max = 0;
-    let cur = 0;
-    for (const g of gameHistory) {
-      if (g.won) { cur++; max = Math.max(max, cur); } else { cur = 0; }
-    }
-    return max;
-  })();
 
   useEffect(() => {
     if (!character) return;
@@ -381,9 +370,9 @@ export function GameOver({
               <p className="text-foreground/80">
                 But I learn from every game! Play again to help me get better.
               </p>
-              {bestStreak >= 2 && (
+              {(gamesPlayed ?? 0) >= 3 && (
                 <p className="text-sm text-accent font-medium">
-                  Your best win streak: {bestStreak} in a row — can you beat it?
+                  Check your Stats to see how we've both improved!
                 </p>
               )}
             </>

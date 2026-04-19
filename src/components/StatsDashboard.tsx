@@ -1,180 +1,74 @@
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Button } from '@/components/ui/button'
-import { 
-  ChartBar, 
-  Users, 
-  Question, 
-  Sparkle, 
+import { Skeleton } from '@/components/ui/skeleton'
+import {
+  ChartBar,
+  Users,
+  Trophy,
   ArrowLeft,
   TrendUp,
   Database,
-  Lightning
+  Lightning,
+  GameController,
+  Globe,
 } from '@phosphor-icons/react'
-import type { Character, Question as QuestionType, GameHistoryEntry } from '@/lib/types'
+import type { GlobalStats } from '@/hooks/useGlobalStats'
 
 interface StatsDashboardProps {
-  characters: Character[]
-  questions: QuestionType[]
-  gameHistory?: GameHistoryEntry[]
+  stats: GlobalStats | null
+  loading: boolean
   onBack: () => void
 }
 
-interface QuestionStats {
-  questionId: string
-  questionText: string
-  attribute: string
-  timesAsked: number
-  successRate: number
-  averagePosition: number
-}
+export function StatsDashboard({ stats, loading, onBack }: StatsDashboardProps) {
+  const [_activeTab, setActiveTab] = useState('games')
 
-interface AttributeStats {
-  attribute: string
-  questionCount: number
-  characterCoverage: number
-  yesCount: number
-  noCount: number
-  nullCount: number
-  entropy: number
-}
+  const gs = stats?.gameStats
 
-interface CharacterStats {
-  totalCharacters: number
-  userTaught: number
-  default: number
-  uniqueAttributes: number
-  averageAttributesPerCharacter: number
-  mostCommonAttributes: Array<{ attribute: string; count: number }>
-  leastCommonAttributes: Array<{ attribute: string; count: number }>
-}
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <Skeleton className="h-10 w-64" />
+          <Button onClick={onBack} variant="outline" className="flex items-center gap-2">
+            <ArrowLeft size={20} />
+            Back
+          </Button>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Skeleton key={i} className="h-32 w-full" />
+          ))}
+        </div>
+        <Skeleton className="h-96 w-full" />
+      </div>
+    )
+  }
 
-export function StatsDashboard({ characters, questions, gameHistory = [], onBack }: StatsDashboardProps) {
-  const [activeTab, setActiveTab] = useState('questions')
+  if (!stats) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <h2 className="text-3xl font-bold text-foreground">Statistics Dashboard</h2>
+          <Button onClick={onBack} variant="outline" className="flex items-center gap-2">
+            <ArrowLeft size={20} />
+            Back
+          </Button>
+        </div>
+        <Card className="p-8 text-center bg-card/50 backdrop-blur-sm border-primary/20">
+          <Globe size={48} className="mx-auto text-muted-foreground mb-3" />
+          <p className="text-muted-foreground">Unable to load global statistics. Check your connection and try again.</p>
+        </Card>
+      </div>
+    )
+  }
 
-  // Only compute question stats when the "questions" tab is active
-  const questionStats = useMemo<QuestionStats[]>(() => {
-    if (activeTab !== 'questions') return []
-    const statsMap = new Map<string, { timesAsked: number; positions: number[]; wins: number }>()
-
-    gameHistory.forEach((game) => {
-      game.steps.forEach((step, index) => {
-        const qId = step.attribute
-        const existing = statsMap.get(qId) || { timesAsked: 0, positions: [], wins: 0 }
-        existing.timesAsked++
-        existing.positions.push(index + 1)
-        if (game.won) existing.wins++
-        statsMap.set(qId, existing)
-      })
-    })
-
-    return questions.map((q) => {
-      const stats = statsMap.get(q.attribute) || { timesAsked: 0, positions: [], wins: 0 }
-      const avgPosition = stats.positions.length > 0
-        ? stats.positions.reduce((a, b) => a + b, 0) / stats.positions.length
-        : 0
-      const successRate = stats.timesAsked > 0 ? (stats.wins / stats.timesAsked) * 100 : 0
-
-      return {
-        questionId: q.id,
-        questionText: q.text,
-        attribute: q.attribute,
-        timesAsked: stats.timesAsked,
-        successRate,
-        averagePosition: avgPosition,
-      }
-    }).sort((a, b) => b.timesAsked - a.timesAsked)
-  }, [questions, gameHistory, activeTab])
-
-  const attributeStats = useMemo<AttributeStats[]>(() => {
-    const allAttributes = new Set<string>()
-    characters.forEach((char) => {
-      Object.keys(char.attributes).forEach((attr) => allAttributes.add(attr))
-    })
-
-    return Array.from(allAttributes).map((attribute) => {
-      const questionCount = questions.filter((q) => q.attribute === attribute).length
-      let yesCount = 0
-      let noCount = 0
-      let nullCount = 0
-
-      characters.forEach((char) => {
-        const value = char.attributes[attribute]
-        if (value === true) yesCount++
-        else if (value === false) noCount++
-        else nullCount++
-      })
-
-      const total = characters.length
-      const characterCoverage = ((total - nullCount) / total) * 100
-      
-      const p1 = yesCount / total
-      const p2 = noCount / total
-      const p3 = nullCount / total
-      const entropy = -[p1, p2, p3]
-        .filter((p) => p > 0)
-        .reduce((sum, p) => sum + p * Math.log2(p), 0)
-
-      return {
-        attribute,
-        questionCount,
-        characterCoverage,
-        yesCount,
-        noCount,
-        nullCount,
-        entropy,
-      }
-    }).sort((a, b) => b.entropy - a.entropy)
-  }, [characters, questions])
-
-  const characterStats = useMemo<CharacterStats>(() => {
-    const totalCharacters = characters.length
-    const userTaught = characters.filter((c) => c.id.startsWith('char-')).length
-    const defaultCharacters = totalCharacters - userTaught
-
-    const allAttributes = new Set<string>()
-    const attributeCounts = new Map<string, number>()
-
-    let totalAttributeCount = 0
-
-    characters.forEach((char) => {
-      const charAttrCount = Object.keys(char.attributes).length
-      totalAttributeCount += charAttrCount
-
-      Object.entries(char.attributes).forEach(([attr, value]) => {
-        allAttributes.add(attr)
-        if (value !== null) {
-          attributeCounts.set(attr, (attributeCounts.get(attr) || 0) + 1)
-        }
-      })
-    })
-
-    const sortedAttributes = Array.from(attributeCounts.entries())
-      .map(([attribute, count]) => ({ attribute, count }))
-      .sort((a, b) => b.count - a.count)
-
-    return {
-      totalCharacters,
-      userTaught,
-      default: defaultCharacters,
-      uniqueAttributes: allAttributes.size,
-      averageAttributesPerCharacter: totalCharacters > 0 ? totalAttributeCount / totalCharacters : 0,
-      mostCommonAttributes: sortedAttributes.slice(0, 10),
-      leastCommonAttributes: sortedAttributes.slice(-10).reverse(),
-    }
-  }, [characters])
-
-  const diversityScore = useMemo(() => {
-    const maxEntropy = Math.log2(3)
-    const avgEntropy = attributeStats.length > 0
-      ? attributeStats.reduce((sum, stat) => sum + stat.entropy, 0) / attributeStats.length
-      : 0
-    return (avgEntropy / maxEntropy) * 100
-  }, [attributeStats])
+  const winRate = gs?.winRate ?? 0
 
   return (
     <div className="space-y-6">
@@ -182,10 +76,10 @@ export function StatsDashboard({ characters, questions, gameHistory = [], onBack
         <div>
           <h2 className="text-3xl font-bold text-foreground flex items-center gap-3">
             <ChartBar size={32} weight="fill" className="text-accent" />
-            Statistics Dashboard
+            Global Statistics
           </h2>
           <p className="text-muted-foreground mt-1">
-            Analyze question usage and character pool diversity
+            Live data from the global database
           </p>
         </div>
         <Button onClick={onBack} variant="outline" className="flex items-center gap-2">
@@ -194,18 +88,19 @@ export function StatsDashboard({ characters, questions, gameHistory = [], onBack
         </Button>
       </div>
 
+      {/* Summary cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="bg-card/50 backdrop-blur-sm border-primary/20">
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
               <Users size={20} className="text-accent" />
-              Total Characters
+              Characters
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-foreground">{characterStats.totalCharacters}</div>
+            <div className="text-3xl font-bold text-foreground">{stats.characters}</div>
             <div className="text-xs text-muted-foreground mt-1">
-              {characterStats.userTaught} user-taught, {characterStats.default} default
+              {stats.attributes} attributes · {stats.questions} questions
             </div>
           </CardContent>
         </Card>
@@ -213,14 +108,29 @@ export function StatsDashboard({ characters, questions, gameHistory = [], onBack
         <Card className="bg-card/50 backdrop-blur-sm border-primary/20">
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-              <Question size={20} className="text-accent" />
-              Total Questions
+              <GameController size={20} className="text-accent" />
+              Games Played
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-foreground">{questions.length}</div>
+            <div className="text-3xl font-bold text-foreground">{gs?.totalGames ?? 0}</div>
             <div className="text-xs text-muted-foreground mt-1">
-              Covering {characterStats.uniqueAttributes} attributes
+              Across all players globally
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-card/50 backdrop-blur-sm border-primary/20">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+              <Trophy size={20} className="text-accent" />
+              Win Rate
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold text-foreground">{winRate}%</div>
+            <div className="text-xs text-muted-foreground mt-1">
+              {gs?.wins ?? 0} wins of {gs?.totalGames ?? 0} games
             </div>
           </CardContent>
         </Card>
@@ -229,206 +139,141 @@ export function StatsDashboard({ characters, questions, gameHistory = [], onBack
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
               <Database size={20} className="text-accent" />
-              Unique Attributes
+              Attribute Fill Rate
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-foreground">{characterStats.uniqueAttributes}</div>
-            <div className="text-xs text-muted-foreground mt-1">
-              Avg {characterStats.averageAttributesPerCharacter.toFixed(1)} per character
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-card/50 backdrop-blur-sm border-primary/20">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-              <Sparkle size={20} className="text-accent" />
-              Diversity Score
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-foreground">{diversityScore.toFixed(0)}%</div>
-            <Progress value={diversityScore} className="h-2 mt-2" />
+            <div className="text-3xl font-bold text-foreground">{stats.characterAttributes.fillRate}%</div>
+            <Progress value={stats.characterAttributes.fillRate} className="h-2 mt-2" />
           </CardContent>
         </Card>
       </div>
 
-      <Tabs defaultValue="questions" onValueChange={setActiveTab} className="space-y-4">
+      <Tabs defaultValue="games" onValueChange={setActiveTab} className="space-y-4">
         <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="questions" className="text-xs sm:text-sm">Questions</TabsTrigger>
-          <TabsTrigger value="attributes" className="text-xs sm:text-sm">Attributes</TabsTrigger>
-          <TabsTrigger value="characters" className="text-xs sm:text-sm">Characters</TabsTrigger>
+          <TabsTrigger value="games" className="text-xs sm:text-sm">Games</TabsTrigger>
+          <TabsTrigger value="categories" className="text-xs sm:text-sm">Categories</TabsTrigger>
+          <TabsTrigger value="database" className="text-xs sm:text-sm">Database</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="questions" className="space-y-4">
-          <Card className="bg-card/50 backdrop-blur-sm border-primary/20">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Lightning size={24} className="text-accent" />
-                Question Performance
-              </CardTitle>
-              <CardDescription>
-                {gameHistory.length > 0 
-                  ? `Based on ${gameHistory.length} game${gameHistory.length !== 1 ? 's' : ''} played`
-                  : 'No game history yet - play games to see statistics'}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ScrollArea className="h-[calc(100dvh-320px)] min-h-[300px] max-h-[500px] pr-4">
-                {questionStats.length === 0 ? (
-                  <div className="text-center py-12 text-muted-foreground">
-                    <Question size={48} className="mx-auto mb-4 opacity-50" />
-                    <p>Play some games to generate question usage statistics!</p>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {questionStats.map((stat, index) => (
-                      <div
-                        key={stat.questionId}
-                        className="bg-background/50 rounded-lg p-4 border border-border/50 hover:border-accent/50 transition-colors"
-                      >
-                        <div className="flex items-start justify-between gap-4 mb-2">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-1">
-                              <Badge variant="outline" className="text-xs">
-                                #{index + 1}
-                              </Badge>
-                              <span className="text-sm font-medium text-foreground">
-                                {stat.questionText}
-                              </span>
-                            </div>
-                            <div className="text-xs text-muted-foreground">
-                              Attribute: <span className="text-accent">{stat.attribute}</span>
-                            </div>
-                          </div>
+        {/* Games tab */}
+        <TabsContent value="games" className="space-y-4">
+          {/* Difficulty breakdown */}
+          {gs && gs.byDifficulty.length > 0 && (
+            <Card className="bg-card/50 backdrop-blur-sm border-primary/20">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Lightning size={24} className="text-accent" />
+                  Performance by Difficulty
+                </CardTitle>
+                <CardDescription>
+                  Global game results across all difficulty levels
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {gs.byDifficulty.map((d) => (
+                    <div key={d.difficulty} className="bg-background/50 rounded-lg p-4 border border-border/50">
+                      <div className="flex items-center justify-between mb-3">
+                        <Badge variant="outline" className="capitalize">{d.difficulty}</Badge>
+                        <span className="text-sm text-muted-foreground">
+                          {d.games} game{d.games !== 1 ? 's' : ''}
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-3 gap-4">
+                        <div>
+                          <div className="text-xs text-muted-foreground mb-1">Win Rate</div>
+                          <div className="text-lg font-bold text-foreground">{d.winRate}%</div>
                         </div>
-                        <div className="grid grid-cols-3 gap-4 mt-3">
-                          <div>
-                            <div className="text-xs text-muted-foreground mb-1">Times Asked</div>
-                            <div className="text-lg font-bold text-foreground">{stat.timesAsked}</div>
-                          </div>
-                          <div>
-                            <div className="text-xs text-muted-foreground mb-1">Avg Position</div>
-                            <div className="text-lg font-bold text-foreground">
-                              {stat.averagePosition > 0 ? stat.averagePosition.toFixed(1) : 'N/A'}
-                            </div>
-                          </div>
-                          <div>
-                            <div className="text-xs text-muted-foreground mb-1">Success Rate</div>
-                            <div className="text-lg font-bold text-foreground">
-                              {stat.successRate.toFixed(0)}%
-                            </div>
-                          </div>
+                        <div>
+                          <div className="text-xs text-muted-foreground mb-1">Wins</div>
+                          <div className="text-lg font-bold text-green-500">{d.wins}</div>
+                        </div>
+                        <div>
+                          <div className="text-xs text-muted-foreground mb-1">Avg Questions</div>
+                          <div className="text-lg font-bold text-foreground">{d.avgQuestions}</div>
+                        </div>
+                      </div>
+                      <Progress value={d.winRate} className="h-1.5 mt-3" />
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Recent games */}
+          {gs && gs.recentGames.length > 0 && (
+            <Card className="bg-card/50 backdrop-blur-sm border-primary/20">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <TrendUp size={24} className="text-accent" />
+                  Recent Games
+                </CardTitle>
+                <CardDescription>
+                  Last {gs.recentGames.length} games played globally
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ScrollArea className="h-[calc(100dvh-400px)] min-h-[200px] max-h-[400px] pr-4">
+                  <div className="space-y-2">
+                    {gs.recentGames.map((game, i) => (
+                      <div
+                        key={i}
+                        className="flex items-center justify-between bg-background/50 rounded-lg p-3 border border-border/50"
+                      >
+                        <div className="flex items-center gap-3">
+                          <Badge variant={game.won ? 'default' : 'secondary'} className="text-xs">
+                            {game.won ? 'Won' : 'Lost'}
+                          </Badge>
+                          <span className="text-sm text-foreground capitalize">{game.difficulty}</span>
+                        </div>
+                        <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                          <span>{game.questionsAsked} Qs</span>
+                          <span>{game.poolSize} characters</span>
+                          <span>{formatTimeAgo(game.timestamp)}</span>
                         </div>
                       </div>
                     ))}
                   </div>
-                )}
-              </ScrollArea>
-            </CardContent>
-          </Card>
+                </ScrollArea>
+              </CardContent>
+            </Card>
+          )}
+
+          {(!gs || gs.totalGames === 0) && (
+            <Card className="p-8 text-center bg-card/50 backdrop-blur-sm border-primary/20">
+              <GameController size={48} className="mx-auto text-muted-foreground mb-3" />
+              <p className="text-muted-foreground">No games played yet. Start a game to see global statistics!</p>
+            </Card>
+          )}
         </TabsContent>
 
-        <TabsContent value="attributes" className="space-y-4">
-          <Card className="bg-card/50 backdrop-blur-sm border-primary/20">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <TrendUp size={24} className="text-accent" />
-                Attribute Information Entropy
-              </CardTitle>
-              <CardDescription>
-                Higher entropy means better question discrimination power
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ScrollArea className="h-[calc(100dvh-320px)] min-h-[300px] max-h-[500px] pr-4">
-                <div className="space-y-3">
-                  {attributeStats.map((stat, index) => {
-                    const maxEntropy = Math.log2(3)
-                    const entropyPercent = (stat.entropy / maxEntropy) * 100
-                    
-                    return (
-                      <div
-                        key={stat.attribute}
-                        className="bg-background/50 rounded-lg p-4 border border-border/50"
-                      >
-                        <div className="flex items-start justify-between gap-4 mb-3">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-1">
-                              <Badge variant="outline" className="text-xs">
-                                #{index + 1}
-                              </Badge>
-                              <span className="text-sm font-medium text-foreground">
-                                {stat.attribute}
-                              </span>
-                            </div>
-                            <div className="text-xs text-muted-foreground">
-                              {stat.questionCount} question{stat.questionCount !== 1 ? 's' : ''} available
-                            </div>
-                          </div>
-                          <Badge 
-                            variant={entropyPercent > 70 ? 'default' : entropyPercent > 40 ? 'secondary' : 'outline'}
-                            className="text-xs"
-                          >
-                            {entropyPercent.toFixed(0)}% Entropy
-                          </Badge>
-                        </div>
-                        
-                        <div className="space-y-2">
-                          <div className="flex items-center justify-between text-xs">
-                            <span className="text-muted-foreground">Distribution</span>
-                            <span className="text-muted-foreground">
-                              {stat.characterCoverage.toFixed(0)}% coverage
-                            </span>
-                          </div>
-                          <div className="grid grid-cols-3 gap-2">
-                            <div className="text-center">
-                              <div className="text-xs text-muted-foreground mb-1">Yes</div>
-                              <div className="text-sm font-bold text-green-500">{stat.yesCount}</div>
-                            </div>
-                            <div className="text-center">
-                              <div className="text-xs text-muted-foreground mb-1">No</div>
-                              <div className="text-sm font-bold text-red-500">{stat.noCount}</div>
-                            </div>
-                            <div className="text-center">
-                              <div className="text-xs text-muted-foreground mb-1">Unknown</div>
-                              <div className="text-sm font-bold text-muted-foreground">{stat.nullCount}</div>
-                            </div>
-                          </div>
-                          <Progress value={entropyPercent} className="h-1.5" />
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-              </ScrollArea>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="characters" className="space-y-4">
+        {/* Categories tab */}
+        <TabsContent value="categories" className="space-y-4">
           <div className="grid md:grid-cols-2 gap-4">
             <Card className="bg-card/50 backdrop-blur-sm border-primary/20">
               <CardHeader>
-                <CardTitle className="text-lg">Most Common Attributes</CardTitle>
+                <CardTitle className="text-lg">By Category</CardTitle>
                 <CardDescription>
-                  Attributes present in most characters
+                  Character distribution across categories
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <ScrollArea className="h-[calc(100dvh-400px)] min-h-[250px] max-h-[400px] pr-4">
                   <div className="space-y-2">
-                    {characterStats.mostCommonAttributes.map((attr, index) => {
-                      const percentage = (attr.count / characterStats.totalCharacters) * 100
+                    {stats.byCategory.map((cat, index) => {
+                      const percentage = stats.characters > 0
+                        ? (cat.count / stats.characters) * 100
+                        : 0
                       return (
-                        <div key={attr.attribute} className="space-y-1">
+                        <div key={cat.category} className="space-y-1">
                           <div className="flex items-center justify-between text-sm">
                             <span className="text-foreground font-medium">
-                              {index + 1}. {attr.attribute}
+                              {index + 1}. {cat.category}
                             </span>
                             <span className="text-muted-foreground">
-                              {attr.count} ({percentage.toFixed(0)}%)
+                              {cat.count} ({percentage.toFixed(0)}%)
                             </span>
                           </div>
                           <Progress value={percentage} className="h-1.5" />
@@ -442,24 +287,26 @@ export function StatsDashboard({ characters, questions, gameHistory = [], onBack
 
             <Card className="bg-card/50 backdrop-blur-sm border-primary/20">
               <CardHeader>
-                <CardTitle className="text-lg">Least Common Attributes</CardTitle>
+                <CardTitle className="text-lg">By Source</CardTitle>
                 <CardDescription>
-                  Rare attributes for unique differentiation
+                  How characters entered the database
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <ScrollArea className="h-[calc(100dvh-400px)] min-h-[250px] max-h-[400px] pr-4">
                   <div className="space-y-2">
-                    {characterStats.leastCommonAttributes.map((attr, index) => {
-                      const percentage = (attr.count / characterStats.totalCharacters) * 100
+                    {stats.bySource.map((src, index) => {
+                      const percentage = stats.characters > 0
+                        ? (src.count / stats.characters) * 100
+                        : 0
                       return (
-                        <div key={attr.attribute} className="space-y-1">
+                        <div key={src.source} className="space-y-1">
                           <div className="flex items-center justify-between text-sm">
                             <span className="text-foreground font-medium">
-                              {index + 1}. {attr.attribute}
+                              {index + 1}. {src.source}
                             </span>
                             <span className="text-muted-foreground">
-                              {attr.count} ({percentage.toFixed(0)}%)
+                              {src.count} ({percentage.toFixed(0)}%)
                             </span>
                           </div>
                           <Progress value={percentage} className="h-1.5" />
@@ -471,31 +318,71 @@ export function StatsDashboard({ characters, questions, gameHistory = [], onBack
               </CardContent>
             </Card>
           </div>
+        </TabsContent>
 
+        {/* Database tab */}
+        <TabsContent value="database" className="space-y-4">
           <Card className="bg-card/50 backdrop-blur-sm border-primary/20">
             <CardHeader>
-              <CardTitle className="text-lg">Pool Composition</CardTitle>
+              <CardTitle className="flex items-center gap-2">
+                <Database size={24} className="text-accent" />
+                Database Overview
+              </CardTitle>
               <CardDescription>
-                Character breakdown by source
+                Global character database health and coverage
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-2 gap-6">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
                 <div className="space-y-2">
-                  <div className="text-sm text-muted-foreground">Default Characters</div>
-                  <div className="text-3xl font-bold text-foreground">{characterStats.default}</div>
-                  <Progress 
-                    value={(characterStats.default / characterStats.totalCharacters) * 100} 
-                    className="h-2"
-                  />
+                  <div className="text-sm text-muted-foreground">Characters</div>
+                  <div className="text-3xl font-bold text-foreground">{stats.characters}</div>
                 </div>
                 <div className="space-y-2">
-                  <div className="text-sm text-muted-foreground">User-Taught Characters</div>
-                  <div className="text-3xl font-bold text-accent">{characterStats.userTaught}</div>
-                  <Progress 
-                    value={(characterStats.userTaught / characterStats.totalCharacters) * 100} 
-                    className="h-2"
-                  />
+                  <div className="text-sm text-muted-foreground">Attributes</div>
+                  <div className="text-3xl font-bold text-foreground">{stats.attributes}</div>
+                </div>
+                <div className="space-y-2">
+                  <div className="text-sm text-muted-foreground">Questions</div>
+                  <div className="text-3xl font-bold text-foreground">{stats.questions}</div>
+                </div>
+                <div className="space-y-2">
+                  <div className="text-sm text-muted-foreground">Avg Questions/Game</div>
+                  <div className="text-3xl font-bold text-accent">{gs?.avgQuestions ?? '—'}</div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-card/50 backdrop-blur-sm border-primary/20">
+            <CardHeader>
+              <CardTitle className="text-lg">Attribute Coverage</CardTitle>
+              <CardDescription>
+                How completely character attributes are filled in
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">Fill Rate</span>
+                  <span className="text-sm font-medium text-foreground">
+                    {stats.characterAttributes.fillRate}%
+                  </span>
+                </div>
+                <Progress value={stats.characterAttributes.fillRate} className="h-3" />
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <span className="text-muted-foreground">Total Attribute Slots</span>
+                    <div className="text-lg font-bold text-foreground mt-1">
+                      {stats.characterAttributes.total.toLocaleString()}
+                    </div>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Filled</span>
+                    <div className="text-lg font-bold text-accent mt-1">
+                      {stats.characterAttributes.filled.toLocaleString()}
+                    </div>
+                  </div>
                 </div>
               </div>
             </CardContent>
@@ -504,4 +391,17 @@ export function StatsDashboard({ characters, questions, gameHistory = [], onBack
       </Tabs>
     </div>
   )
+}
+
+function formatTimeAgo(timestamp: number): string {
+  const diffMs = Date.now() - timestamp
+  const diffMins = Math.floor(diffMs / 60_000)
+  const diffHours = Math.floor(diffMs / 3_600_000)
+  const diffDays = Math.floor(diffMs / 86_400_000)
+
+  if (diffMins < 1) return 'just now'
+  if (diffMins < 60) return `${diffMins}m ago`
+  if (diffHours < 24) return `${diffHours}h ago`
+  if (diffDays < 7) return `${diffDays}d ago`
+  return new Date(timestamp).toLocaleDateString()
 }

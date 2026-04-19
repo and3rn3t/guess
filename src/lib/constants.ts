@@ -1,20 +1,12 @@
 // ===== Storage / KV Keys =====
 export const KV_USER_ID = "kv:user-id";
 export const KV_ANALYTICS = "kv:analytics";
-export const KV_SCHEMA_VERSION = "kv:schema-version";
 export const KV_TOKEN_USAGE = "kv:token-usage";
 export const KV_CHARACTERS_CACHE = "kv:characters-cache";
 export const KV_QUESTIONS_CACHE = "kv:questions-cache";
 
-// ===== IndexedDB =====
-export const DB_NAME = "andernator";
-export const DB_VERSION = 1;
-
 // ===== Analytics =====
 export const MAX_ANALYTICS_EVENTS = 500;
-
-// ===== Schema Migrations =====
-export const CURRENT_SCHEMA_VERSION = 2;
 
 // ===== Sync =====
 export const SYNC_CACHE_TTL = 10 * 60 * 1000; // 10 minutes

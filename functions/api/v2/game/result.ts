@@ -38,19 +38,45 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
   const userId = getUserId(context.request)
 
+  // Build steps from session answers + questions
+  const steps = session.answers.map((a) => {
+    const q = session.questions.find((q) => q.attribute === a.questionId)
+    return {
+      questionText: q?.text ?? a.questionId,
+      attribute: a.questionId,
+      answer: a.value,
+    }
+  })
+
+  // Find the guessed character (the top candidate)
+  let characterId: string | null = null
+  let characterName: string | null = null
+  if (session.characters.length > 0) {
+    // Import scoring to find the best guess
+    const { getBestGuess } = await import('../_game-engine')
+    const guess = getBestGuess(session.characters, session.answers)
+    if (guess) {
+      characterId = guess.id
+      characterName = guess.name
+    }
+  }
+
   // Record stats in D1 if available
   if (db) {
     try {
       await d1Run(
         db,
-        `INSERT INTO game_stats (user_id, won, difficulty, questions_asked, character_pool_size, created_at)
-         VALUES (?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO game_stats (user_id, won, difficulty, questions_asked, character_pool_size, character_id, character_name, steps, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           userId,
           body.correct ? 1 : 0,
           session.difficulty,
           session.answers.length,
           session.characters.length,
+          characterId,
+          characterName,
+          JSON.stringify(steps),
           Date.now(),
         ]
       )

@@ -34,6 +34,7 @@ const defaultProps = () => ({
   online: true,
   maxQuestions: 20,
   gameHistory: null,
+  gamesPlayed: 0,
   hasSavedSession: false,
   resumeSession: vi.fn(),
   clearSession: vi.fn(),
@@ -74,7 +75,7 @@ describe('WelcomeScreen', () => {
       difficulty: 'medium',
       totalQuestions: 10,
     }]
-    render(<WelcomeScreen {...defaultProps()} gameHistory={history} />)
+    render(<WelcomeScreen {...defaultProps()} gameHistory={history} gamesPlayed={1} />)
     expect(screen.getByRole('button', { name: /quick play/i })).toBeInTheDocument()
   })
 

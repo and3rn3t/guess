@@ -8,7 +8,6 @@ import type { GamePhase } from "@/hooks/useGameState";
 import { DEFAULT_CHARACTERS } from "@/lib/database";
 import type {
   Character,
-  GameHistoryEntry,
 } from "@/lib/types";
 import {
   BrainIcon,
@@ -29,7 +28,8 @@ interface WelcomeScreenProps {
   serverTotal: number | null;
   online: boolean;
   maxQuestions: number;
-  gameHistory: GameHistoryEntry[] | null;
+  gameHistory: Array<{ won: boolean; characterName: string; steps: unknown[] }> | null;
+  gamesPlayed: number;
   hasSavedSession: boolean;
   resumeSession: () => void;
   clearSession: () => void;
@@ -44,6 +44,7 @@ export function WelcomeScreen({
   online: _online,
   maxQuestions,
   gameHistory,
+  gamesPlayed,
   hasSavedSession,
   resumeSession,
   clearSession,
@@ -131,7 +132,7 @@ export function WelcomeScreen({
           })()}
 
         {/* Primary CTA for new players */}
-        {(!gameHistory || gameHistory.length === 0) && !hasSavedSession && (
+        {gamesPlayed === 0 && !hasSavedSession && (
           <div className="text-center">
             <Button
               onClick={startGame}
@@ -145,14 +146,14 @@ export function WelcomeScreen({
         )}
 
         {/* How It Works — expanded for new users, collapsed for returning */}
-        <Collapsible defaultOpen={!gameHistory || gameHistory.length === 0}>
+        <Collapsible defaultOpen={gamesPlayed === 0}>
           <div className="bg-card/50 backdrop-blur-sm border border-border/50 rounded-xl p-5">
             <CollapsibleTrigger className="flex items-center justify-between w-full text-left">
               <h3 className="text-base font-semibold text-foreground">
                 How It Works
               </h3>
               <span className="text-xs text-muted-foreground">
-                {gameHistory && gameHistory.length > 0
+                {gamesPlayed > 0
                   ? "Tap to expand"
                   : ""}
               </span>

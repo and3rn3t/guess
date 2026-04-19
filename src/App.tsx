@@ -38,7 +38,6 @@ import type {
   AnswerValue,
   Character,
   Difficulty,
-  GameHistoryEntry,
   Question,
 } from "@/lib/types";
 import { DIFFICULTIES } from "@/lib/types";
@@ -56,6 +55,7 @@ import {
 import { toast, Toaster } from "sonner";
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 import { useServerGame } from "@/hooks/useServerGame";
+import { useGlobalStats } from "@/hooks/useGlobalStats";
 
 const TeachingMode = lazy(() =>
   import("@/components/TeachingMode").then((m) => ({
@@ -305,10 +305,15 @@ function App() {
     "questions",
     DEFAULT_QUESTIONS,
   );
-  const [gameHistory, setGameHistory] = useKV<GameHistoryEntry[]>(
-    "game-history",
-    [],
-  );
+
+  // ========== GLOBAL STATS (server-sourced) ==========
+  const {
+    stats: globalStats,
+    gameHistory,
+    gamesPlayed,
+    loading: statsLoading,
+    refresh: refreshStats,
+  } = useGlobalStats();
 
   // ========== GAME STATE (reducer) ==========
   const {
@@ -359,11 +364,11 @@ function App() {
     if (
       gamePhase === "playing" &&
       !onboardingDone &&
-      gameHistory?.length === 0
+      gamesPlayed === 0
     ) {
       setShowOnboarding(true);
     }
-  }, [gamePhase, onboardingDone, gameHistory]);
+  }, [gamePhase, onboardingDone, gamesPlayed]);
 
   const toggleTheme = useCallback(() => {
     setTheme(theme === "dark" ? "light" : "dark");
@@ -424,36 +429,19 @@ function App() {
   };
 
   // ========== GAME OUTCOME HANDLERS ==========
-  const recordGame = (won: boolean) => {
-    if (!finalGuess) return;
-    setGameHistory((prev) => [
-      ...(prev || []),
-      {
-        id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-        characterId: finalGuess.id,
-        characterName: finalGuess.name,
-        won,
-        timestamp: Date.now(),
-        difficulty,
-        totalQuestions: maxQuestions,
-        steps: gameSteps,
-      },
-    ]);
-  };
 
   const handleCorrectGuess = () => {
     dispatch({ type: "CORRECT_GUESS" });
-    recordGame(true);
     analytics().then((m) => m.trackGameEnd(true, difficulty, gameSteps.length));
     playCorrectGuess();
     hapticSuccess();
     toast.success("🎉 I got it right!");
     postServerResult(true);
+    refreshStats();
   };
 
   const handleIncorrectGuess = () => {
     dispatch({ type: "INCORRECT_GUESS" });
-    recordGame(false);
     analytics().then((m) =>
       m.trackGameEnd(false, difficulty, gameSteps.length),
     );
@@ -461,6 +449,7 @@ function App() {
     hapticMedium();
     toast.error("I'll learn from this and do better next time!");
     postServerResult(false);
+    refreshStats();
   };
 
   // ========== SHARE HANDLERS ==========
@@ -605,6 +594,7 @@ function App() {
                   online={online}
                   maxQuestions={maxQuestions}
                   gameHistory={gameHistory}
+                  gamesPlayed={gamesPlayed}
                   hasSavedSession={hasSavedSession}
                   resumeSession={resumeSession}
                   clearSession={clearSession}
@@ -628,7 +618,7 @@ function App() {
                   handleAnswer={handleAnswer}
                   dispatch={dispatch}
                   gameSteps={gameSteps}
-                  gameHistory={gameHistory}
+                  gamesPlayed={gamesPlayed}
                   showOnboarding={showOnboarding}
                   setShowOnboarding={setShowOnboarding}
                   activeCharacters={activeCharacters}
@@ -669,7 +659,7 @@ function App() {
                       character={finalGuess}
                       questionsAsked={gameSteps.length}
                       remainingCharacters={effectiveRemaining}
-                      gameHistory={gameHistory || []}
+                      gamesPlayed={gamesPlayed}
                       onPlayAgain={startGame}
                       onNewGame={() => navigate("welcome")}
                       onTeachMode={
@@ -770,9 +760,8 @@ function App() {
               <div className="max-w-4xl mx-auto">
                 <Suspense fallback={<Skeleton className="h-96 w-full" />}>
                   <StatsDashboard
-                    characters={characters || DEFAULT_CHARACTERS}
-                    questions={questions || DEFAULT_QUESTIONS}
-                    gameHistory={gameHistory || []}
+                    stats={globalStats}
+                    loading={statsLoading}
                     onBack={() => navigate("welcome")}
                   />
                 </Suspense>
@@ -783,8 +772,8 @@ function App() {
               <div className="max-w-4xl mx-auto">
                 <Suspense fallback={<Skeleton className="h-96 w-full" />}>
                   <GameHistory
-                    history={gameHistory || []}
-                    onClearHistory={() => setGameHistory(() => [])}
+                    history={gameHistory}
+                    loading={statsLoading}
                     onBack={() => navigate("welcome")}
                   />
                 </Suspense>

@@ -8,7 +8,6 @@ import type {
   Answer,
   AnswerValue,
   Character,
-  GameHistoryEntry,
   GameHistoryStep,
   Question,
   ReasoningExplanation,
@@ -29,7 +28,7 @@ interface PlayingScreenProps {
   handleAnswer: (value: AnswerValue) => void;
   dispatch: React.Dispatch<GameAction>;
   gameSteps: GameHistoryStep[];
-  gameHistory: GameHistoryEntry[] | null;
+  gamesPlayed: number;
   showOnboarding: boolean;
   setShowOnboarding: (show: boolean) => void;
   activeCharacters: Character[];
@@ -49,7 +48,7 @@ export function PlayingScreen({
   handleAnswer,
   dispatch,
   gameSteps,
-  gameHistory,
+  gamesPlayed,
   showOnboarding,
   setShowOnboarding,
   activeCharacters: _activeCharacters,
@@ -146,19 +145,19 @@ export function PlayingScreen({
               id="reasoning"
               message="💡 Check the Reasoning panel to see how I'm thinking!"
               showAfterGames={1}
-              gamesPlayed={gameHistory?.length ?? 0}
+              gamesPlayed={gamesPlayed}
             />
             <CoachMark
               id="stats"
               message="📊 After this game, visit Stats to see your win rate and trends."
               showAfterGames={3}
-              gamesPlayed={gameHistory?.length ?? 0}
+              gamesPlayed={gamesPlayed}
             />
             <CoachMark
               id="teaching"
               message="🎓 Stumped me? Use Teaching Mode to add your character to my brain!"
               showAfterGames={5}
-              gamesPlayed={gameHistory?.length ?? 0}
+              gamesPlayed={gamesPlayed}
             />
             <AnimatePresence mode="wait">
               {currentQuestion && (

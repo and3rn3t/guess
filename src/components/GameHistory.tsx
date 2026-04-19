@@ -1,21 +1,22 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ClockCounterClockwise, Trophy, XCircle, CaretDown, Trash, ArrowLeft } from '@phosphor-icons/react'
+import { ClockCounterClockwise, Trophy, XCircle, CaretDown, ArrowLeft } from '@phosphor-icons/react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { Skeleton } from '@/components/ui/skeleton'
 import type { GameHistoryEntry } from '@/lib/types'
 import { DIFFICULTIES } from '@/lib/types'
 
 interface GameHistoryProps {
   history: GameHistoryEntry[]
-  onClearHistory: () => void
+  loading?: boolean
   onBack: () => void
 }
 
 const PAGE_SIZE = 20
 
-export function GameHistory({ history, onClearHistory, onBack }: GameHistoryProps) {
+export function GameHistory({ history, loading = false, onBack }: GameHistoryProps) {
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
 
@@ -39,16 +40,22 @@ export function GameHistory({ history, onClearHistory, onBack }: GameHistoryProp
             </p>
           </div>
         </div>
-        {history.length > 0 && (
-          <Button onClick={onClearHistory} variant="outline" size="sm" className="text-destructive border-destructive/30 hover:bg-destructive/10">
-            <Trash size={16} className="mr-1" />
-            Clear
-          </Button>
-        )}
       </div>
 
       {/* Stats summary */}
-      {history.length > 0 && (
+      {loading && (
+        <div className="space-y-4">
+          <div className="grid grid-cols-3 gap-2 sm:gap-4">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <Skeleton key={i} className="h-20 w-full" />
+            ))}
+          </div>
+          {Array.from({ length: 3 }).map((_, i) => (
+            <Skeleton key={i} className="h-16 w-full" />
+          ))}
+        </div>
+      )}
+      {!loading && history.length > 0 && (
         <div className="grid grid-cols-3 gap-2 sm:gap-4">
           <Card className="p-3 sm:p-4 text-center bg-card/50 backdrop-blur-sm border-primary/20">
             <div className="text-xl sm:text-2xl font-bold text-accent">{history.length}</div>
@@ -66,7 +73,7 @@ export function GameHistory({ history, onClearHistory, onBack }: GameHistoryProp
       )}
 
       {/* Game list */}
-      {sorted.length === 0 ? (
+      {!loading && sorted.length === 0 ? (
         <Card className="p-5 sm:p-8 text-center bg-card/50 backdrop-blur-sm border-primary/20">
           <ClockCounterClockwise size={48} className="mx-auto text-muted-foreground mb-3" />
           <p className="text-muted-foreground">No games played yet. Start a game to see your history!</p>

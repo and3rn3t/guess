@@ -1,8 +1,11 @@
 import { KV_ANALYTICS, MAX_ANALYTICS_EVENTS } from '@/lib/constants'
 import type { Difficulty } from '@/lib/types'
-import type { AnalyticsEvent } from '@/lib/db'
 
-export type { AnalyticsEvent }
+interface AnalyticsEvent {
+  event: string
+  timestamp: number
+  data?: Record<string, string | number | boolean>
+}
 
 function loadEvents(): AnalyticsEvent[] {
   try {
@@ -45,27 +48,4 @@ export function trackShare(method: 'native' | 'clipboard' | 'link') {
 
 export function trackFeatureUse(feature: string) {
   trackEvent('feature_use', { feature })
-}
-
-// ========== QUERY HELPERS ==========
-
-export function getEvents(): AnalyticsEvent[] {
-  return loadEvents()
-}
-
-export function getEventsSince(since: number): AnalyticsEvent[] {
-  return loadEvents().filter((e) => e.timestamp >= since)
-}
-
-export function getEventCounts(): Record<string, number> {
-  const events = loadEvents()
-  const counts: Record<string, number> = {}
-  for (const e of events) {
-    counts[e.event] = (counts[e.event] || 0) + 1
-  }
-  return counts
-}
-
-export function clearAnalytics() {
-  localStorage.removeItem(KV_ANALYTICS)
 }

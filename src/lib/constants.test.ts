@@ -9,9 +9,6 @@ import {
   LLM_RETRY_BASE_MS,
   LLM_RETRYABLE_STATUSES,
   LLM_NON_RETRYABLE_CODES,
-  DB_NAME,
-  DB_VERSION,
-  CURRENT_SCHEMA_VERSION,
   SYNC_CACHE_TTL,
   MAX_ANALYTICS_EVENTS,
   KV_USER_ID,
@@ -64,19 +61,6 @@ describe('LLM retry constants', () => {
 })
 
 describe('storage/DB constants', () => {
-  it('DB_NAME is a non-empty string', () => {
-    expect(DB_NAME).toBeTruthy()
-  })
-
-  it('DB_VERSION is a positive integer', () => {
-    expect(DB_VERSION).toBeGreaterThan(0)
-    expect(Number.isInteger(DB_VERSION)).toBe(true)
-  })
-
-  it('CURRENT_SCHEMA_VERSION >= 1', () => {
-    expect(CURRENT_SCHEMA_VERSION).toBeGreaterThanOrEqual(1)
-  })
-
   it('SYNC_CACHE_TTL is 10 minutes', () => {
     expect(SYNC_CACHE_TTL).toBe(10 * 60 * 1000)
   })
