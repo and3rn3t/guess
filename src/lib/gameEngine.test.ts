@@ -161,9 +161,10 @@ describe('selectBestQuestion', () => {
     // isHuman splits 2 (true) / 2 (false) — perfect 50/50
     // canFly splits 1 (true) / 3 (false) — imbalanced
     // Top-K stochastic sampling may pick any high-info-gain question,
-    // but isHuman should be among the top candidates
+    // but isHuman should be among the top candidates.
+    // 1000 iterations keeps z-score ~2.75 for the ~38% vs ~31% margin.
     const counts: Record<string, number> = {}
-    for (let i = 0; i < 50; i++) {
+    for (let i = 0; i < 1000; i++) {
       const q = selectBestQuestion(CHARS, [], QUESTIONS)
       counts[q!.attribute] = (counts[q!.attribute] || 0) + 1
     }
