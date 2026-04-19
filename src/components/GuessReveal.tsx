@@ -14,8 +14,45 @@ import {
   Sparkle,
   XCircle,
 } from "@phosphor-icons/react";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { useEffect, useState } from "react";
+import { useIsMobile } from "@/hooks/use-mobile";
+
+/** Lightweight confetti burst — reduces particle count on mobile & respects reduced-motion */
+function ConfettiBurst() {
+  const isMobile = useIsMobile();
+  const reduced = useReducedMotion();
+  if (reduced) return null;
+  const count = isMobile ? 12 : 24;
+  return (
+    <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
+      {Array.from({ length: count }).map((_, i) => (
+        <motion.div
+          key={`confetti-${i}`}
+          className="absolute w-2 h-2 rounded-full"
+          style={{
+            left: "50%",
+            top: "30%",
+            backgroundColor: ["#a78bfa", "#34d399", "#fbbf24", "#f472b6", "#60a5fa"][i % 5],
+          }}
+          initial={{ x: 0, y: 0, opacity: 1, scale: 1 }}
+          animate={{
+            x: (Math.random() - 0.5) * (isMobile ? 250 : 400),
+            y: Math.random() * (isMobile ? 200 : 300) + 50,
+            opacity: 0,
+            scale: Math.random() * 1.5 + 0.5,
+            rotate: Math.random() * 720 - 360,
+          }}
+          transition={{
+            duration: 1.5 + Math.random() * 0.8,
+            ease: "easeOut",
+            delay: Math.random() * 0.3,
+          }}
+        />
+      ))}
+    </div>
+  );
+}
 
 interface GuessRevealProps {
   character: Character;
@@ -45,7 +82,7 @@ export function GuessReveal({
       transition={{ duration: 0.5, type: "spring" }}
     >
       <Card
-        className="p-8 bg-linear-to-br from-primary/20 to-accent/10 backdrop-blur-sm border-2 border-accent shadow-2xl"
+        className="p-5 sm:p-8 bg-linear-to-br from-primary/20 to-accent/10 backdrop-blur-sm border-2 border-accent shadow-2xl"
         aria-live="assertive"
       >
         <div className="space-y-8 text-center">
@@ -279,35 +316,10 @@ export function GameOver({
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.3 }}
     >
-      <Card className="p-8 bg-linear-to-br from-card/80 to-card/40 backdrop-blur-sm border-2 border-primary/30 relative overflow-hidden">
+      <Card className="p-5 sm:p-8 bg-linear-to-br from-card/80 to-card/40 backdrop-blur-sm border-2 border-primary/30 relative overflow-hidden">
         {/* CSS confetti burst on win */}
         {won && (
-          <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
-            {Array.from({ length: 24 }).map((_, i) => (
-              <motion.div
-                key={`confetti-${i}`}
-                className="absolute w-2 h-2 rounded-full"
-                style={{
-                  left: "50%",
-                  top: "30%",
-                  backgroundColor: ["#a78bfa", "#34d399", "#fbbf24", "#f472b6", "#60a5fa"][i % 5],
-                }}
-                initial={{ x: 0, y: 0, opacity: 1, scale: 1 }}
-                animate={{
-                  x: (Math.random() - 0.5) * 400,
-                  y: Math.random() * 300 + 50,
-                  opacity: 0,
-                  scale: Math.random() * 1.5 + 0.5,
-                  rotate: Math.random() * 720 - 360,
-                }}
-                transition={{
-                  duration: 1.5 + Math.random() * 0.8,
-                  ease: "easeOut",
-                  delay: Math.random() * 0.3,
-                }}
-              />
-            ))}
-          </div>
+          <ConfettiBurst />
         )}
 
         <div className="space-y-6 text-center">
@@ -441,15 +453,13 @@ export function GameOver({
             </div>
           )}
 
-          {/* Share row */}
           {(onShare || onCopyLink) && (
             <div className="flex gap-3 justify-center">
               {onShare && (
                 <Button
                   onClick={onShare}
                   variant="outline"
-                  size="sm"
-                  className="gap-2"
+                  className="gap-2 touch-target"
                   aria-label="Share result"
                 >
                   <ShareNetwork size={18} />
@@ -460,8 +470,7 @@ export function GameOver({
                 <Button
                   onClick={onCopyLink}
                   variant="outline"
-                  size="sm"
-                  className="gap-2"
+                  className="gap-2 touch-target"
                   aria-label="Copy share link"
                 >
                   <LinkIcon size={18} />
@@ -478,8 +487,7 @@ export function GameOver({
                 <Button
                   onClick={onViewStats}
                   variant="ghost"
-                  size="sm"
-                  className="gap-2"
+                  className="gap-2 touch-target"
                   aria-label="View stats"
                 >
                   <ChartBar size={18} />
@@ -490,8 +498,7 @@ export function GameOver({
                 <Button
                   onClick={onViewHistory}
                   variant="ghost"
-                  size="sm"
-                  className="gap-2"
+                  className="gap-2 touch-target"
                   aria-label="View game history"
                 >
                   <ClockCounterClockwise size={18} />
@@ -502,8 +509,7 @@ export function GameOver({
                 <Button
                   onClick={onNewGame}
                   variant="ghost"
-                  size="sm"
-                  className="gap-2"
+                  className="gap-2 touch-target"
                   aria-label="Start new game from welcome screen"
                 >
                   <House size={18} />

@@ -177,8 +177,8 @@ export function DataHygiene({
       </div>
 
       <Tabs defaultValue="attributes">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="attributes">
+        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4">
+          <TabsTrigger value="attributes" className="text-xs sm:text-sm">
             Attributes{" "}
             {attrIssues.length > 0 && (
               <Badge variant="destructive" className="ml-1">
@@ -186,7 +186,7 @@ export function DataHygiene({
               </Badge>
             )}
           </TabsTrigger>
-          <TabsTrigger value="duplicates">
+          <TabsTrigger value="duplicates" className="text-xs sm:text-sm">
             Duplicates{" "}
             {dupeGroups.length > 0 && (
               <Badge variant="destructive" className="ml-1">
@@ -194,7 +194,7 @@ export function DataHygiene({
               </Badge>
             )}
           </TabsTrigger>
-          <TabsTrigger value="questions">
+          <TabsTrigger value="questions" className="text-xs sm:text-sm">
             Questions{" "}
             {qScores.filter((s) => s.rewrite).length > 0 && (
               <Badge variant="destructive" className="ml-1">
@@ -202,7 +202,7 @@ export function DataHygiene({
               </Badge>
             )}
           </TabsTrigger>
-          <TabsTrigger value="categories">
+          <TabsTrigger value="categories" className="text-xs sm:text-sm">
             Categories{" "}
             {catSuggestions.length > 0 && (
               <Badge variant="destructive" className="ml-1">

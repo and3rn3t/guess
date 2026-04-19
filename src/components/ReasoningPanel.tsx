@@ -107,7 +107,7 @@ export function ReasoningPanel({ reasoning, isThinking = false }: Readonly<Reaso
           {/* Header — tappable on mobile to expand/collapse */}
           <button
             onClick={() => setExpanded((p) => !p)}
-            className="flex items-center gap-3 w-full text-left lg:cursor-default"
+            className="flex items-center gap-3 w-full text-left min-h-[44px] lg:cursor-default"
           >
             <Brain className="text-accent" size={24} weight="duotone" />
             <h3 className="text-xl font-semibold">AI Reasoning</h3>

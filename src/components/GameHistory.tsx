@@ -49,17 +49,17 @@ export function GameHistory({ history, onClearHistory, onBack }: GameHistoryProp
 
       {/* Stats summary */}
       {history.length > 0 && (
-        <div className="grid grid-cols-3 gap-4">
-          <Card className="p-4 text-center bg-card/50 backdrop-blur-sm border-primary/20">
-            <div className="text-2xl font-bold text-accent">{history.length}</div>
+        <div className="grid grid-cols-3 gap-2 sm:gap-4">
+          <Card className="p-3 sm:p-4 text-center bg-card/50 backdrop-blur-sm border-primary/20">
+            <div className="text-xl sm:text-2xl font-bold text-accent">{history.length}</div>
             <div className="text-xs text-muted-foreground">Games</div>
           </Card>
-          <Card className="p-4 text-center bg-card/50 backdrop-blur-sm border-primary/20">
-            <div className="text-2xl font-bold text-accent">{wins}</div>
+          <Card className="p-3 sm:p-4 text-center bg-card/50 backdrop-blur-sm border-primary/20">
+            <div className="text-xl sm:text-2xl font-bold text-accent">{wins}</div>
             <div className="text-xs text-muted-foreground">Wins</div>
           </Card>
-          <Card className="p-4 text-center bg-card/50 backdrop-blur-sm border-primary/20">
-            <div className="text-2xl font-bold text-accent">{winRate}%</div>
+          <Card className="p-3 sm:p-4 text-center bg-card/50 backdrop-blur-sm border-primary/20">
+            <div className="text-xl sm:text-2xl font-bold text-accent">{winRate}%</div>
             <div className="text-xs text-muted-foreground">Win Rate</div>
           </Card>
         </div>
@@ -67,7 +67,7 @@ export function GameHistory({ history, onClearHistory, onBack }: GameHistoryProp
 
       {/* Game list */}
       {sorted.length === 0 ? (
-        <Card className="p-8 text-center bg-card/50 backdrop-blur-sm border-primary/20">
+        <Card className="p-5 sm:p-8 text-center bg-card/50 backdrop-blur-sm border-primary/20">
           <ClockCounterClockwise size={48} className="mx-auto text-muted-foreground mb-3" />
           <p className="text-muted-foreground">No games played yet. Start a game to see your history!</p>
         </Card>

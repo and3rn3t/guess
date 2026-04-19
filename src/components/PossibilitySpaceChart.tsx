@@ -90,7 +90,7 @@ export const PossibilitySpaceChart = memo(function PossibilitySpaceChart({
         </Badge>
       </div>
 
-      <ChartContainer config={chartConfig} className="h-[140px] w-full">
+      <ChartContainer config={chartConfig} className="h-[180px] sm:h-[140px] w-full">
         <AreaChart data={data} margin={{ top: 4, right: 4, bottom: 0, left: -20 }}>
           <defs>
             <linearGradient id="fillRemaining" x1="0" y1="0" x2="0" y2="1">
@@ -102,12 +102,12 @@ export const PossibilitySpaceChart = memo(function PossibilitySpaceChart({
             dataKey="label"
             tickLine={false}
             axisLine={false}
-            tick={{ fontSize: 10 }}
+            tick={{ fontSize: 12 }}
           />
           <YAxis
             tickLine={false}
             axisLine={false}
-            tick={{ fontSize: 10 }}
+            tick={{ fontSize: 12 }}
             allowDecimals={false}
           />
           <ChartTooltip

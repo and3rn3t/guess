@@ -113,7 +113,6 @@ export function WelcomeScreen({
             <div className="flex gap-2 ml-4 shrink-0">
               <Button
                 onClick={resumeSession}
-                size="sm"
                 className="bg-accent hover:bg-accent/90"
               >
                 Resume
@@ -121,7 +120,6 @@ export function WelcomeScreen({
               <Button
                 onClick={clearSession}
                 variant="outline"
-                size="sm"
               >
                 Dismiss
               </Button>
@@ -217,7 +215,7 @@ export function WelcomeScreen({
                 <button
                   key={key}
                   onClick={() => setDifficulty(key)}
-                  className={`flex-1 px-3 py-2 rounded-lg border text-sm font-medium transition-colors ${
+                  className={`flex-1 px-3 py-3 rounded-lg border text-sm font-medium transition-colors ${
                     difficulty === key
                       ? "bg-accent text-accent-foreground border-accent"
                       : "bg-card border-border hover:bg-accent/10"
@@ -260,7 +258,7 @@ export function WelcomeScreen({
                   <button
                     key={key}
                     onClick={() => toggleCategory(key)}
-                    className={`px-3 py-1.5 rounded-lg border text-xs font-medium transition-colors ${
+                    className={`px-3 py-2.5 rounded-lg border text-sm font-medium transition-colors ${
                       isSelected
                         ? "bg-accent text-accent-foreground border-accent"
                         : "bg-card border-border hover:bg-accent/10"
@@ -294,7 +292,7 @@ export function WelcomeScreen({
             </div>
             <button
               onClick={() => setLlmMode(!llmMode)}
-              className={`relative inline-flex h-6 w-10 items-center rounded-full transition-colors ${
+              className={`relative inline-flex h-8 w-14 items-center rounded-full transition-colors ${
                 llmMode ? "bg-accent" : "bg-muted"
               }`}
               role="switch"
@@ -302,8 +300,8 @@ export function WelcomeScreen({
               aria-label="Toggle AI-Enhanced Mode"
             >
               <span
-                className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform ${
-                  llmMode ? "translate-x-5" : "translate-x-1"
+                className={`inline-block h-6 w-6 transform rounded-full bg-white shadow-sm transition-transform ${
+                  llmMode ? "translate-x-7" : "translate-x-1"
                 }`}
               />
             </button>
@@ -333,7 +331,7 @@ export function WelcomeScreen({
             </div>
             <button
               onClick={() => setServerMode(!serverMode)}
-              className={`relative inline-flex h-6 w-10 items-center rounded-full transition-colors ${
+              className={`relative inline-flex h-8 w-14 items-center rounded-full transition-colors ${
                 serverMode ? "bg-accent" : "bg-muted"
               }`}
               role="switch"
@@ -341,8 +339,8 @@ export function WelcomeScreen({
               aria-label="Toggle Server Mode"
             >
               <span
-                className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform ${
-                  serverMode ? "translate-x-5" : "translate-x-1"
+                className={`inline-block h-6 w-6 transform rounded-full bg-white shadow-sm transition-transform ${
+                  serverMode ? "translate-x-7" : "translate-x-1"
                 }`}
               />
             </button>

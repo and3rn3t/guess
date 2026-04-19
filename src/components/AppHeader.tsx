@@ -87,7 +87,7 @@ export function AppHeader({
               Mystic Guesser
             </h1>
           </button>
-          <div className="flex items-center gap-1.5 md:gap-3">
+          <div className="flex items-center gap-1 sm:gap-1.5 md:gap-3">
             {/* Welcome phase: Stats, History, Compare, Dev Tools */}
             {gamePhase === "welcome" && (
               <>
@@ -98,7 +98,7 @@ export function AppHeader({
                   }}
                   variant="outline"
                   size="sm"
-                  className="flex items-center gap-2 bg-accent/10 hover:bg-accent/20 border-accent/30"
+                  className="flex items-center gap-2 bg-accent/10 hover:bg-accent/20 border-accent/30 touch-target"
                 >
                   <ChartBarIcon size={20} />
                   <span className="hidden sm:inline">Statistics</span>
@@ -110,7 +110,7 @@ export function AppHeader({
                   }}
                   variant="outline"
                   size="sm"
-                  className="flex items-center gap-2"
+                  className="flex items-center gap-2 touch-target"
                 >
                   <ClockCounterClockwiseIcon size={20} />
                   <span className="hidden sm:inline">History</span>
@@ -122,7 +122,7 @@ export function AppHeader({
                   }}
                   variant="outline"
                   size="sm"
-                  className="flex items-center gap-2"
+                  className="flex items-center gap-2 touch-target"
                 >
                   <UsersIcon size={20} />
                   <span className="hidden sm:inline">Compare</span>
@@ -145,14 +145,13 @@ export function AppHeader({
             {gamePhase === "playing" && (
               <>
                 <span className="inline-flex items-center rounded-full bg-accent/20 px-3 py-1 text-sm font-medium text-accent">
-                  Q{answers.length + (currentQuestion ? 1 : 0)}/
-                  {maxQuestions}
+                  Q{answers.length + (currentQuestion ? 1 : 0)}/{maxQuestions}
                 </span>
                 <button
                   onClick={() => setShowQuitDialog(true)}
-                  className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                  className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors touch-target px-2 rounded-md"
                 >
-                  <ArrowLeftIcon size={16} />
+                  <ArrowLeftIcon size={18} />
                   Quit
                 </button>
               </>
@@ -166,7 +165,7 @@ export function AppHeader({
                 onClick={() => navigate("welcome")}
                 variant="outline"
                 size="sm"
-                className="flex items-center gap-2"
+                className="flex items-center gap-2 touch-target"
               >
                 <HouseIcon size={20} />
                 <span className="hidden sm:inline">Home</span>
@@ -182,11 +181,9 @@ export function AppHeader({
                   <Button
                     key={tab.phase}
                     onClick={() => navigate(tab.phase)}
-                    variant={
-                      gamePhase === tab.phase ? "default" : "outline"
-                    }
+                    variant={gamePhase === tab.phase ? "default" : "outline"}
                     size="sm"
-                    className={`flex items-center gap-2 ${gamePhase === tab.phase ? "bg-accent text-accent-foreground" : ""}`}
+                    className={`flex items-center gap-2 touch-target ${gamePhase === tab.phase ? "bg-accent text-accent-foreground" : ""}`}
                   >
                     <tab.icon size={18} />
                     <span className="hidden sm:inline">{tab.label}</span>
@@ -196,7 +193,7 @@ export function AppHeader({
                   onClick={() => navigate("welcome")}
                   variant="outline"
                   size="sm"
-                  className="flex items-center gap-2"
+                  className="flex items-center gap-2 touch-target"
                 >
                   <HouseIcon size={20} />
                   <span className="hidden sm:inline">Home</span>
@@ -205,48 +202,45 @@ export function AppHeader({
             )}
 
             <span
-              className="text-muted-foreground"
+              className="text-muted-foreground inline-flex items-center justify-center touch-target"
               title={`Sync: ${syncStatus}`}
               aria-label={`Sync status: ${syncStatus}`}
             >
               {syncStatus === "synced" && (
-                <CloudCheckIcon size={18} className="text-green-400" />
+                <CloudCheckIcon size={20} className="text-green-400" />
               )}
               {syncStatus === "pending" && (
                 <CloudArrowUpIcon
-                  size={18}
+                  size={20}
                   className="text-yellow-400 animate-pulse"
                 />
               )}
               {syncStatus === "error" && (
-                <CloudXIcon size={18} className="text-red-400" />
+                <CloudXIcon size={20} className="text-red-400" />
               )}
               {syncStatus === "offline" && (
-                <CloudSlashIcon
-                  size={18}
-                  className="text-muted-foreground"
-                />
+                <CloudSlashIcon size={20} className="text-muted-foreground" />
               )}
             </span>
             <Button
               onClick={toggleMute}
               variant="ghost"
-              size="sm"
-              className="flex items-center gap-1 text-muted-foreground hover:text-foreground"
+              size="icon"
+              className="text-muted-foreground hover:text-foreground touch-target"
               title={muted ? "Unmute sounds" : "Mute sounds"}
               aria-label={muted ? "Unmute sounds" : "Mute sounds"}
             >
               {muted ? (
-                <SpeakerSlashIcon size={20} />
+                <SpeakerSlashIcon size={22} />
               ) : (
-                <SpeakerHighIcon size={20} />
+                <SpeakerHighIcon size={22} />
               )}
             </Button>
             <Button
               onClick={toggleTheme}
               variant="ghost"
-              size="sm"
-              className="flex items-center gap-1 text-muted-foreground hover:text-foreground"
+              size="icon"
+              className="text-muted-foreground hover:text-foreground touch-target"
               title={
                 theme === "dark"
                   ? "Switch to light mode"
@@ -259,9 +253,9 @@ export function AppHeader({
               }
             >
               {theme === "dark" ? (
-                <SunIcon size={20} />
+                <SunIcon size={22} />
               ) : (
-                <MoonIcon size={20} />
+                <MoonIcon size={22} />
               )}
             </Button>
           </div>

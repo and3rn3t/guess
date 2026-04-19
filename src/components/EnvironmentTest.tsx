@@ -277,7 +277,7 @@ export function EnvironmentTest({
       </div>
 
       {!isLoading && recommendations.length === 0 && acceptedCount > 0 && (
-        <Card className="bg-linear-to-br from-teal-500/20 to-green-500/20 border-teal-500/40 p-8 text-center">
+        <Card className="bg-linear-to-br from-teal-500/20 to-green-500/20 border-teal-500/40 p-5 sm:p-8 text-center">
           <Sparkle size={48} weight="fill" className="mx-auto text-teal-400 mb-4" />
           <h3 className="text-2xl font-bold text-foreground mb-2">
             Environment Testing Complete!

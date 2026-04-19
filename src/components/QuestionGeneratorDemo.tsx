@@ -94,7 +94,7 @@ export function QuestionGeneratorDemo({ onBack }: QuestionGeneratorDemoProps) {
                 exit={{ opacity: 0, y: -20 }}
                 transition={{ duration: 0.3 }}
               >
-                <Card className="p-8 bg-linear-to-br from-primary/10 to-accent/10 backdrop-blur-sm border-2 border-primary/20">
+                <Card className="p-5 sm:p-8 bg-linear-to-br from-primary/10 to-accent/10 backdrop-blur-sm border-2 border-primary/20">
                   <div className="space-y-6">
                     <div className="text-center space-y-4">
                       <Sparkle size={80} weight="fill" className="mx-auto text-accent animate-float" />
@@ -205,7 +205,7 @@ export function QuestionGeneratorDemo({ onBack }: QuestionGeneratorDemoProps) {
                 exit={{ opacity: 0, y: -20 }}
                 transition={{ duration: 0.3 }}
               >
-                <Card className="p-8 bg-linear-to-br from-accent/20 to-primary/10 backdrop-blur-sm border-2 border-accent/30">
+                <Card className="p-5 sm:p-8 bg-linear-to-br from-accent/20 to-primary/10 backdrop-blur-sm border-2 border-accent/30">
                   <div className="space-y-6">
                     <div className="text-center space-y-4">
                       <motion.div
@@ -306,7 +306,7 @@ export function QuestionGeneratorDemo({ onBack }: QuestionGeneratorDemoProps) {
                 exit={{ opacity: 0, scale: 0.95 }}
                 transition={{ duration: 0.3 }}
               >
-                <Card className="p-8 bg-linear-to-br from-accent/20 to-primary/10 backdrop-blur-sm border-2 border-accent/30">
+                <Card className="p-5 sm:p-8 bg-linear-to-br from-accent/20 to-primary/10 backdrop-blur-sm border-2 border-accent/30">
                   <div className="space-y-6">
                     <div className="text-center space-y-4">
                       <motion.div

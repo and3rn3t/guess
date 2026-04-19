@@ -79,11 +79,11 @@ export const ProbabilityLeaderboard = memo(function ProbabilityLeaderboard({ cha
                     <img
                       src={candidate.imageUrl}
                       alt=""
-                      className={`w-5 h-5 rounded-full object-cover shrink-0 ${index === 0 ? 'ring-1 ring-accent' : ''}`}
+                      className={`w-7 h-7 sm:w-5 sm:h-5 rounded-full object-cover shrink-0 ${index === 0 ? 'ring-1 ring-accent' : ''}`}
                     />
                   ) : (
                     <UserCircle
-                      size={20}
+                      size={24}
                       weight={index === 0 ? 'fill' : 'regular'}
                       className={index === 0 ? 'text-accent' : 'text-muted-foreground'}
                     />
@@ -101,7 +101,7 @@ export const ProbabilityLeaderboard = memo(function ProbabilityLeaderboard({ cha
                         {pct}%
                       </span>
                     </div>
-                    <div className="h-1.5 rounded-full bg-secondary/30 mt-1 overflow-hidden">
+                    <div className="h-2 rounded-full bg-secondary/30 mt-1 overflow-hidden">
                       <motion.div
                         className={`h-full rounded-full ${index === 0 ? 'bg-accent' : 'bg-accent/40'}`}
                         initial={{ width: 0 }}

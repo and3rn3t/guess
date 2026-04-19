@@ -235,7 +235,7 @@ export function TeachingMode({ answers, existingCharacters, onAddCharacter, onAd
                       <button
                         key={key}
                         onClick={() => setCategory(key)}
-                        className={`px-4 py-2 rounded-lg border text-sm font-medium transition-colors ${
+                        className={`px-4 py-2.5 rounded-lg border text-sm font-medium transition-colors ${
                           category === key
                             ? 'bg-accent text-accent-foreground border-accent'
                             : 'bg-card border-border hover:bg-accent/10'
@@ -288,7 +288,7 @@ export function TeachingMode({ answers, existingCharacters, onAddCharacter, onAd
           exit={{ opacity: 0, scale: 0.95 }}
           transition={{ duration: 0.3 }}
         >
-          <Card className="p-8 bg-linear-to-br from-card/80 to-primary/5 backdrop-blur-sm border-2 border-primary/30 shadow-xl">
+          <Card className="p-5 sm:p-8 bg-linear-to-br from-card/80 to-primary/5 backdrop-blur-sm border-2 border-primary/30 shadow-xl">
             <div className="space-y-6 text-center py-8">
               <SpinnerGap size={64} className="mx-auto text-accent animate-spin" />
               <div>
@@ -334,7 +334,7 @@ export function TeachingMode({ answers, existingCharacters, onAddCharacter, onAd
                 {Object.entries(ATTRIBUTE_GROUPS).map(([group, attrs]) => (
                   <div key={group}>
                     <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">{group}</h3>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
                       {attrs.map((attr) => {
                         const value = attributes[attr]
                         const isFromGame = attr in gameplayAttributes
@@ -342,7 +342,7 @@ export function TeachingMode({ answers, existingCharacters, onAddCharacter, onAd
                           <button
                             key={attr}
                             onClick={() => toggleAttribute(attr)}
-                            className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-sm transition-colors text-left ${getAttributeColorClass(value)}`}
+                            className={`flex items-center gap-2 px-3 py-3 rounded-lg border text-sm transition-colors text-left ${getAttributeColorClass(value)}`}
                           >
                             <span className="flex-1 truncate">{getAttributeLabel(attr)}</span>
                             {isFromGame && (
@@ -397,7 +397,7 @@ export function TeachingMode({ answers, existingCharacters, onAddCharacter, onAd
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.3 }}
         >
-          <Card className="p-8 bg-linear-to-br from-accent/20 to-primary/10 backdrop-blur-sm border-2 border-accent shadow-2xl">
+          <Card className="p-5 sm:p-8 bg-linear-to-br from-accent/20 to-primary/10 backdrop-blur-sm border-2 border-accent shadow-2xl">
             <div className="space-y-6 text-center">
               <motion.div
                 initial={{ scale: 0 }}

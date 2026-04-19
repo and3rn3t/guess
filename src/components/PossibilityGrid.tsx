@@ -1,4 +1,4 @@
-import { memo, useMemo, useState } from "react";
+import { memo, useMemo, useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Users } from "@phosphor-icons/react";
 import { Card } from "@/components/ui/card";
@@ -16,6 +16,13 @@ interface PossibilityGridProps {
  */
 export const PossibilityGrid = memo(function PossibilityGrid({ characters, answers }: PossibilityGridProps) {
   const [hoveredId, setHoveredId] = useState<string | null>(null);
+  const [tappedId, setTappedId] = useState<string | null>(null);
+
+  const activeId = tappedId ?? hoveredId;
+
+  const handleTap = useCallback((charId: string) => {
+    setTappedId((prev) => (prev === charId ? null : charId));
+  }, []);
 
   const statusMap = useMemo(() => {
     const map = new Map<string, boolean>();
@@ -68,7 +75,7 @@ export const PossibilityGrid = memo(function PossibilityGrid({ characters, answe
         </span>
       </div>
 
-      <div className="flex flex-wrap gap-1 relative">
+      <div className="flex flex-wrap gap-1.5 sm:gap-1 relative">
         <AnimatePresence>
           {characters.map((char) => {
             const alive = statusMap.get(char.id) ?? true;
@@ -83,19 +90,20 @@ export const PossibilityGrid = memo(function PossibilityGrid({ characters, answe
                   scale: alive ? 1 : 0.7,
                 }}
                 transition={{ duration: 0.4, ease: "easeOut" }}
-                className="relative w-4 h-4 rounded-full cursor-default focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                className="relative w-6 h-6 sm:w-4 sm:h-4 rounded-full cursor-default focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
                 style={{ backgroundColor: color }}
+                onClick={() => handleTap(char.id)}
                 onMouseEnter={() => setHoveredId(char.id)}
                 onMouseLeave={() => setHoveredId(null)}
                 onFocus={() => setHoveredId(char.id)}
                 onBlur={() => setHoveredId(null)}
                 aria-label={`${char.name}${alive ? "" : " (eliminated)"}`}
               >
-                {hoveredId === char.id && (
+                {activeId === char.id && (
                   <motion.span
                     initial={{ opacity: 0, y: 4 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-0.5 rounded bg-popover text-popover-foreground text-[10px] font-medium whitespace-nowrap shadow-md border border-border z-10 pointer-events-none"
+                    className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 rounded bg-popover text-popover-foreground text-xs font-medium whitespace-nowrap shadow-md border border-border z-10 pointer-events-none"
                   >
                     {char.name}
                     {!alive && " ✕"}

@@ -256,9 +256,9 @@ export function StatsDashboard({ characters, questions, gameHistory = [], onBack
 
       <Tabs defaultValue="questions" onValueChange={setActiveTab} className="space-y-4">
         <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="questions">Question Usage</TabsTrigger>
-          <TabsTrigger value="attributes">Attribute Analysis</TabsTrigger>
-          <TabsTrigger value="characters">Character Diversity</TabsTrigger>
+          <TabsTrigger value="questions" className="text-xs sm:text-sm">Questions</TabsTrigger>
+          <TabsTrigger value="attributes" className="text-xs sm:text-sm">Attributes</TabsTrigger>
+          <TabsTrigger value="characters" className="text-xs sm:text-sm">Characters</TabsTrigger>
         </TabsList>
 
         <TabsContent value="questions" className="space-y-4">
@@ -275,7 +275,7 @@ export function StatsDashboard({ characters, questions, gameHistory = [], onBack
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <ScrollArea className="h-[500px] pr-4">
+              <ScrollArea className="h-[calc(100dvh-320px)] min-h-[300px] max-h-[500px] pr-4">
                 {questionStats.length === 0 ? (
                   <div className="text-center py-12 text-muted-foreground">
                     <Question size={48} className="mx-auto mb-4 opacity-50" />
@@ -342,7 +342,7 @@ export function StatsDashboard({ characters, questions, gameHistory = [], onBack
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <ScrollArea className="h-[500px] pr-4">
+              <ScrollArea className="h-[calc(100dvh-320px)] min-h-[300px] max-h-[500px] pr-4">
                 <div className="space-y-3">
                   {attributeStats.map((stat, index) => {
                     const maxEntropy = Math.log2(3)
@@ -417,7 +417,7 @@ export function StatsDashboard({ characters, questions, gameHistory = [], onBack
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <ScrollArea className="h-[400px] pr-4">
+                <ScrollArea className="h-[calc(100dvh-400px)] min-h-[250px] max-h-[400px] pr-4">
                   <div className="space-y-2">
                     {characterStats.mostCommonAttributes.map((attr, index) => {
                       const percentage = (attr.count / characterStats.totalCharacters) * 100
@@ -448,7 +448,7 @@ export function StatsDashboard({ characters, questions, gameHistory = [], onBack
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <ScrollArea className="h-[400px] pr-4">
+                <ScrollArea className="h-[calc(100dvh-400px)] min-h-[250px] max-h-[400px] pr-4">
                   <div className="space-y-2">
                     {characterStats.leastCommonAttributes.map((attr, index) => {
                       const percentage = (attr.count / characterStats.totalCharacters) * 100

@@ -35,15 +35,15 @@ export function CoachMark({
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -4 }}
           transition={{ duration: 0.2 }}
-          className="flex items-center gap-2 rounded-lg bg-accent/15 border border-accent/30 px-3 py-2 text-xs text-accent"
+          className="flex items-center gap-2 rounded-lg bg-accent/15 border border-accent/30 px-3 py-2.5 text-sm text-accent"
         >
           <span className="flex-1">{message}</span>
           <button
             onClick={handleDismiss}
-            className="shrink-0 rounded p-0.5 hover:bg-accent/20 transition-colors"
+            className="shrink-0 rounded p-1.5 hover:bg-accent/20 transition-colors touch-target"
             aria-label="Dismiss tip"
           >
-            <X size={14} />
+            <X size={16} />
           </button>
         </motion.div>
       )}

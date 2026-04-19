@@ -9,6 +9,20 @@
   body {
     font-family: 'Space Grotesk', sans-serif;
   }
+
+  /* Use dynamic viewport height for mobile address-bar resilience */
+  html {
+    min-height: 100vh;
+    min-height: 100dvh;
+  }
+}
+
+/* Touch-friendly interactive target — apply to small buttons/icons on mobile */
+@layer utilities {
+  .touch-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
 }
 
 :root {
