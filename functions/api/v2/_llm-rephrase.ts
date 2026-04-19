@@ -1,5 +1,5 @@
-import { getCompletionsEndpoint, getLlmHeaders, type Env } from '../../_helpers'
-import type { Answer, ServerQuestion, ReasoningExplanation } from '../_game-engine'
+import { getCompletionsEndpoint, getLlmHeaders, type Env } from '../_helpers'
+import type { Answer, ServerQuestion, ReasoningExplanation } from './_game-engine'
 
 /**
  * Rephrase a static question into a conversational, context-aware version
