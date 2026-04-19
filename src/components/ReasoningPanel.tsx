@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Brain, Lightbulb, Sparkle, CaretDown, Trophy } from '@phosphor-icons/react'
+import { Brain, Lightbulb, Sparkle, CaretDown, Trophy, UserCircle } from '@phosphor-icons/react'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
@@ -52,6 +52,11 @@ export function ReasoningPanel({ reasoning, isThinking = false }: ReasoningPanel
         {reasoning.topCandidates.slice(0, 5).map((candidate, i) => (
           <div key={candidate.name} className="flex items-center gap-2">
             <span className="text-xs text-muted-foreground w-4 text-right">{i + 1}.</span>
+            {candidate.imageUrl ? (
+              <img src={candidate.imageUrl} alt="" className="w-4 h-4 rounded-full object-cover shrink-0" />
+            ) : (
+              <UserCircle size={16} className="text-muted-foreground shrink-0" />
+            )}
             <span className="text-sm text-foreground/90 flex-1 truncate">{candidate.name}</span>
             <Progress value={candidate.probability} className="w-16 h-1.5" />
             <span className="text-xs text-muted-foreground w-8 text-right">{candidate.probability}%</span>

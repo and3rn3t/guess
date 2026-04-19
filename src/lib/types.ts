@@ -74,7 +74,7 @@ export interface ReasoningExplanation {
   impact: string
   remaining: number
   confidence: number
-  topCandidates?: Array<{ name: string; probability: number }>
+  topCandidates?: Array<{ name: string; probability: number; imageUrl?: string | null }>
 }
 
 export interface GameHistoryEntry {

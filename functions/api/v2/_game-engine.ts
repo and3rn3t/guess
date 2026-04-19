@@ -36,7 +36,7 @@ export interface ReasoningExplanation {
   impact: string
   remaining: number
   confidence: number
-  topCandidates: Array<{ name: string; probability: number }>
+  topCandidates: Array<{ name: string; probability: number; imageUrl?: string | null }>
 }
 
 export interface GameSession {
@@ -233,10 +233,14 @@ export function generateReasoning(
   const topCharacter = sorted[0]
   const confidence = topCharacter ? topCharacter[1] * 100 : 0
 
-  const topCandidates = sorted.slice(0, 5).map(([id, p]) => ({
-    name: characters.find((c) => c.id === id)?.name ?? id,
-    probability: Math.round(p * 100),
-  }))
+  const topCandidates = sorted.slice(0, 5).map(([id, p]) => {
+    const char = characters.find((c) => c.id === id)
+    return {
+      name: char?.name ?? id,
+      probability: Math.round(p * 100),
+      imageUrl: char?.imageUrl ?? null,
+    }
+  })
 
   const yesPercent = Math.round((yesCount / total) * 100)
   const noPercent = Math.round((noCount / total) * 100)
