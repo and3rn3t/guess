@@ -1,4 +1,105 @@
-import { test, expect } from '@playwright/test'
+import { test, expect, type Page } from '@playwright/test'
+
+// ---------------------------------------------------------------------------
+// Mock API helpers — the static preview server has no Workers backend,
+// so we intercept /api/v2/game/* and return canned responses.
+// ---------------------------------------------------------------------------
+
+const MOCK_SESSION_ID = 'e2e-mock-session-id'
+
+const mockReasoning = {
+  why: 'Testing question',
+  impact: 'Splits the pool evenly',
+  remaining: 50,
+  confidence: 20,
+  topCandidates: [],
+}
+
+function mockQuestion(id: number) {
+  return {
+    id: `q${id}`,
+    text: `Is your character from a movie? (mock question ${id})`,
+    attribute: `mockAttr${id}`,
+  }
+}
+
+let answerCount = 0
+
+async function setupApiMocks(page: Page) {
+  answerCount = 0
+
+  await page.route('**/api/v2/game/start', (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        sessionId: MOCK_SESSION_ID,
+        question: mockQuestion(1),
+        reasoning: mockReasoning,
+        totalCharacters: 100,
+      }),
+    }),
+  )
+
+  await page.route('**/api/v2/game/answer', (route) => {
+    answerCount++
+    // After 3 answers, return a guess
+    if (answerCount >= 3) {
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          type: 'guess',
+          character: { id: 'mario', name: 'Mario', category: 'video-games', imageUrl: null },
+          confidence: 85,
+          questionCount: answerCount,
+          remaining: 1,
+        }),
+      })
+    }
+    return route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        type: 'question',
+        question: mockQuestion(answerCount + 1),
+        reasoning: { ...mockReasoning, remaining: 100 - answerCount * 20 },
+        remaining: 100 - answerCount * 20,
+        eliminated: answerCount * 20,
+        questionCount: answerCount + 1,
+      }),
+    })
+  })
+
+  await page.route('**/api/v2/game/result', (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        success: true,
+        summary: {
+          won: true,
+          difficulty: 'medium',
+          questionsAsked: answerCount,
+          maxQuestions: 15,
+          poolSize: 100,
+        },
+      }),
+    }),
+  )
+
+  await page.route('**/api/v2/game/resume', (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ expired: true }),
+    }),
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Tests
+// ---------------------------------------------------------------------------
 
 test.describe('Game flow', () => {
   test.beforeEach(async ({ page }) => {
@@ -8,6 +109,7 @@ test.describe('Game flow', () => {
       localStorage.clear()
       localStorage.setItem('kv:onboarding-complete', 'true')
     })
+    await setupApiMocks(page)
     await page.goto('/')
   })
 
@@ -28,9 +130,8 @@ test.describe('Game flow', () => {
     test.setTimeout(60000)
     await page.getByRole('button', { name: /start game/i }).first().click()
 
-    // Answer questions until the game makes a guess or we hit max
+    // Answer questions until the mock API returns a guess (after 3 answers)
     for (let i = 0; i < 20; i++) {
-      // Check if we've reached the guess phase
       const correctButton = page.getByRole('button', { name: /yes.*correct/i })
       const wrongButton = page.getByRole('button', { name: /no.*wrong/i })
       const playAgainButton = page.getByRole('button', { name: /play again/i }).first()
@@ -49,14 +150,11 @@ test.describe('Game flow', () => {
         break
       }
 
-      // Still playing — answer the question
       const yesButton = page.getByRole('button', { name: /answer yes/i })
       if (await yesButton.isVisible().catch(() => false)) {
         await yesButton.click()
-        // Wait for next question or phase transition
         await page.waitForTimeout(500)
       } else {
-        // Might be in a transition — wait and check again
         await page.waitForTimeout(1000)
       }
     }
