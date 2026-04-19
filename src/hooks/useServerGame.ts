@@ -54,13 +54,12 @@ interface ResumeResponse {
 // ── Hook ─────────────────────────────────────────────────────
 
 /**
- * Server-mode delegate: manages session ID, remaining count, and
+ * Server game delegate: manages session ID, remaining count, and
  * server API calls.  Receives the shared game-state `dispatch` so
  * the main reducer stays the single source of truth.
  */
 export function useServerGame(
   dispatch: React.Dispatch<GameAction>,
-  serverMode: boolean,
 ) {
   const [serverSessionId, setServerSessionId] = useState<string | null>(null);
   const [serverRemaining, setServerRemaining] = useState(0);
@@ -83,7 +82,7 @@ export function useServerGame(
 
   // Auto-resume server session on mount
   useEffect(() => {
-    if (!serverMode || resumeAttempted.current) return;
+    if (resumeAttempted.current) return;
     resumeAttempted.current = true;
 
     let savedId: string | null = null;
@@ -147,7 +146,7 @@ export function useServerGame(
         persistSessionId(null);
       }
     })();
-  }, [serverMode, dispatch, persistSessionId]);
+  }, [dispatch, persistSessionId]);
 
   const startServerGame = useCallback(
     async (categories: CharacterCategory[], difficulty: Difficulty) => {

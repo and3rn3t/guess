@@ -20,18 +20,18 @@ beforeEach(() => {
 
 describe('useOnlineStatus', () => {
   it('returns true when online', () => {
-    const { result } = renderHook(() => useOnlineStatus(false))
+    const { result } = renderHook(() => useOnlineStatus())
     expect(result.current).toBe(true)
   })
 
   it('returns false when initially offline', () => {
     navigatorOnLine = false
-    const { result } = renderHook(() => useOnlineStatus(false))
+    const { result } = renderHook(() => useOnlineStatus())
     expect(result.current).toBe(false)
   })
 
   it('updates on offline event', () => {
-    const { result } = renderHook(() => useOnlineStatus(false))
+    const { result } = renderHook(() => useOnlineStatus())
     act(() => {
       globalThis.dispatchEvent(new Event('offline'))
     })
@@ -40,48 +40,28 @@ describe('useOnlineStatus', () => {
 
   it('updates on online event', () => {
     navigatorOnLine = false
-    const { result } = renderHook(() => useOnlineStatus(false))
+    const { result } = renderHook(() => useOnlineStatus())
     act(() => {
       globalThis.dispatchEvent(new Event('online'))
     })
     expect(result.current).toBe(true)
   })
 
-  it('shows toast when going offline in LLM mode', async () => {
+  it('shows toast when going offline', async () => {
     const { toast } = await import('sonner')
-    renderHook(() => useOnlineStatus(true))
+    renderHook(() => useOnlineStatus())
     act(() => {
       globalThis.dispatchEvent(new Event('offline'))
     })
     expect(toast.warning).toHaveBeenCalledWith(
-      expect.stringContaining('AI-Enhanced'),
+      expect.stringContaining('offline'),
     )
-  })
-
-  it('shows toast when going offline in server mode', async () => {
-    const { toast } = await import('sonner')
-    renderHook(() => useOnlineStatus(false, true))
-    act(() => {
-      globalThis.dispatchEvent(new Event('offline'))
-    })
-    expect(toast.warning).toHaveBeenCalledWith(
-      expect.stringContaining('Server mode'),
-    )
-  })
-
-  it('does not show toast when not in LLM or server mode', async () => {
-    const { toast } = await import('sonner')
-    renderHook(() => useOnlineStatus(false, false))
-    act(() => {
-      globalThis.dispatchEvent(new Event('offline'))
-    })
-    expect(toast.warning).not.toHaveBeenCalled()
   })
 
   it('cleans up event listeners on unmount', () => {
     const addSpy = vi.spyOn(globalThis, 'addEventListener')
     const removeSpy = vi.spyOn(globalThis, 'removeEventListener')
-    const { unmount } = renderHook(() => useOnlineStatus(false))
+    const { unmount } = renderHook(() => useOnlineStatus())
 
     const onlineHandler = addSpy.mock.calls.find(c => c[0] === 'online')?.[1]
     const offlineHandler = addSpy.mock.calls.find(c => c[0] === 'offline')?.[1]

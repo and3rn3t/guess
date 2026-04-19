@@ -18,7 +18,6 @@ import { useGameState } from "@/hooks/useGameState";
 import { useKV } from "@/hooks/useKV";
 import { useSound } from "@/hooks/useSound";
 import { DEFAULT_CHARACTERS, DEFAULT_QUESTIONS } from "@/lib/database";
-import { calculateProbabilities } from "@/lib/gameEngine";
 import type { SharePayload } from "@/lib/sharing";
 import {
   buildShareUrl,
@@ -34,11 +33,10 @@ import {
   playIncorrectGuess,
 } from "@/lib/sounds";
 import type { SyncStatus } from "@/lib/sync";
-import { getSyncStatus, initialSync, onSyncStatusChange } from "@/lib/sync";
+import { getSyncStatus, onSyncStatusChange } from "@/lib/sync";
 import type {
   AnswerValue,
   Character,
-  CharacterCategory,
   Difficulty,
   GameHistoryEntry,
   Question,
@@ -58,7 +56,6 @@ import {
 import { toast, Toaster } from "sonner";
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 import { useServerGame } from "@/hooks/useServerGame";
-import { useLocalGame } from "@/hooks/useLocalGame";
 
 const TeachingMode = lazy(() =>
   import("@/components/TeachingMode").then((m) => ({
@@ -336,14 +333,8 @@ function App() {
     showDevTools,
   } = game;
 
-  // ========== SETTINGS ==========
-  const [difficulty, setDifficulty] = useKV<Difficulty>("difficulty", "medium");
-  const [selectedCategoryList, setSelectedCategoryList] = useKV<
-    CharacterCategory[]
-  >("selected-categories", []);
-  const [llmMode, setLlmMode] = useKV<boolean>("llm-mode", false);
-  const [serverMode, setServerMode] = useKV<boolean>("server-mode", false);
-  const selectedCategories = new Set(selectedCategoryList);
+  // ========== SETTINGS (hardcoded defaults) ==========
+  const difficulty: Difficulty = "medium";
   const [challenge, setChallenge] = useState<SharePayload | null>(null);
   const {
     serverRemaining,
@@ -351,25 +342,15 @@ function App() {
     startServerGame,
     handleServerAnswer,
     postServerResult,
-  } = useServerGame(dispatch, serverMode);
+  } = useServerGame(dispatch);
   const { muted, toggle: toggleMute } = useSound();
   const [showQuitDialog, setShowQuitDialog] = useState(false);
   const [syncStatus, setSyncStatus] = useState<SyncStatus>("synced");
   const { theme, setTheme } = useTheme();
-  const online = useOnlineStatus(llmMode, serverMode);
+  const online = useOnlineStatus();
   const [eliminatedCount, setEliminatedCount] = useState<number | null>(null);
   const prevPossibleCount = useRef<number>(0);
   const maxQuestions = DIFFICULTIES[difficulty].maxQuestions;
-  const { generateNextQuestion } = useLocalGame({
-    dispatch,
-    questions,
-    possibleCharacters,
-    answers,
-    maxQuestions,
-    llmMode,
-    prevPossibleCount,
-    setEliminatedCount,
-  });
   const [onboardingDone] = useKV("onboarding-complete", false);
   const [showOnboarding, setShowOnboarding] = useState(false);
 
@@ -388,52 +369,31 @@ function App() {
     setTheme(theme === "dark" ? "light" : "dark");
   }, [theme, setTheme]);
 
-  const activeCharacters = (() => {
-    const all = characters || DEFAULT_CHARACTERS;
-    if (selectedCategories.size === 0) return all;
-    return all.filter((c) => selectedCategories.has(c.category));
-  })();
+  const activeCharacters = characters || DEFAULT_CHARACTERS;
 
-  // ========== CONFIDENCE (cached probabilities) ==========
-  const probabilities = (() => {
-    if (serverMode) return null;
-    if (possibleCharacters.length === 0 || answers.length === 0) return null;
-    return calculateProbabilities(possibleCharacters, answers);
-  })();
+  // ========== CONFIDENCE (server-provided) ==========
+  const probabilities = null;
 
-  const confidence = (() => {
-    if (serverMode) return reasoning?.confidence ?? 0;
-    if (!probabilities) return 0;
-    let max = 0;
-    for (const p of probabilities.values()) if (p > max) max = p;
-    return Math.round(max * 100);
-  })();
+  const confidence = reasoning?.confidence ?? 0;
 
-  const effectiveRemaining = serverMode
-    ? serverRemaining
-    : possibleCharacters.length;
+  const effectiveRemaining = serverRemaining;
 
   // ========== SYNC STATUS ==========
   useEffect(() => {
     setSyncStatus(getSyncStatus());
     const unsubscribe = onSyncStatusChange(setSyncStatus);
-    // Skip syncing legacy KV data in server mode — server loads from D1
-    if (!serverMode) {
-      initialSync().catch(() => {});
-    }
     return unsubscribe;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // ========== ELIMINATION FEEDBACK ==========
   useEffect(() => {
-    if (!serverMode || prevPossibleCount.current === 0) return;
+    if (prevPossibleCount.current === 0) return;
     const eliminated = prevPossibleCount.current - serverRemaining;
     if (eliminated > 0) {
       setEliminatedCount(eliminated);
       setTimeout(() => setEliminatedCount(null), 2000);
     }
-  }, [serverMode, serverRemaining]);
+  }, [serverRemaining]);
 
   // ========== PARSE URL CHALLENGE ON MOUNT ==========
   useEffect(() => {
@@ -446,61 +406,21 @@ function App() {
     }
   }, [navigate]);
 
-  // ========== AUTO-GENERATE QUESTION ==========
-  useEffect(() => {
-    if (serverMode) return; // Server manages question flow
-    if (
-      gamePhase === "playing" &&
-      currentQuestion === null &&
-      possibleCharacters.length > 0
-    ) {
-      generateNextQuestion();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [gamePhase, currentQuestion, possibleCharacters, serverMode]);
-
-  // ========== CATEGORY TOGGLE ==========
-  const toggleCategory = (cat: CharacterCategory) => {
-    setSelectedCategoryList((prev) => {
-      const set = new Set(prev);
-      if (set.has(cat)) set.delete(cat);
-      else set.add(cat);
-      return [...set];
-    });
-  };
+  // Server manages question flow — no client-side auto-generation needed
 
   // ========== GAME START ==========
   const startGame = async () => {
-    if (serverMode) {
-      await startServerGame(selectedCategoryList, difficulty);
-      return;
-    }
-
-    if (activeCharacters.length < 2) {
-      toast.error("Select categories with at least 2 characters");
-      return;
-    }
-    dispatch({ type: "START_GAME", characters: activeCharacters });
-    analytics().then((m) =>
-      m.trackGameStart(difficulty, activeCharacters.length),
-    );
+    await startServerGame([], difficulty);
   };
 
   // ========== ANSWER HANDLER ==========
   const handleAnswer = async (value: AnswerValue) => {
-    prevPossibleCount.current = serverMode
-      ? serverRemaining
-      : possibleCharacters.length;
+    prevPossibleCount.current = serverRemaining;
     dispatch({ type: "ANSWER", value });
     playAnswer();
     hapticLight();
 
-    if (serverMode) {
-      await handleServerAnswer(value, prevPossibleCount.current);
-      return;
-    }
-
-    toast.success(`Answer recorded: ${value}`);
+    await handleServerAnswer(value, prevPossibleCount.current);
   };
 
   // ========== GAME OUTCOME HANDLERS ==========
@@ -528,7 +448,7 @@ function App() {
     playCorrectGuess();
     hapticSuccess();
     toast.success("🎉 I got it right!");
-    if (serverMode) postServerResult(true);
+    postServerResult(true);
   };
 
   const handleIncorrectGuess = () => {
@@ -540,7 +460,7 @@ function App() {
     playIncorrectGuess();
     hapticMedium();
     toast.error("I'll learn from this and do better next time!");
-    if (serverMode) postServerResult(false);
+    postServerResult(false);
   };
 
   // ========== SHARE HANDLERS ==========
@@ -681,15 +601,6 @@ function App() {
               {gamePhase === "welcome" && (
                 <WelcomeScreen
                   startGame={startGame}
-                  difficulty={difficulty}
-                  setDifficulty={setDifficulty}
-                  selectedCategories={selectedCategories}
-                  toggleCategory={toggleCategory}
-                  activeCharacters={activeCharacters}
-                  llmMode={llmMode}
-                  setLlmMode={setLlmMode}
-                  serverMode={serverMode}
-                  setServerMode={setServerMode}
                   serverTotal={serverTotal}
                   online={online}
                   maxQuestions={maxQuestions}
@@ -709,8 +620,6 @@ function App() {
                   maxQuestions={maxQuestions}
                   confidence={confidence}
                   effectiveRemaining={effectiveRemaining}
-                  serverMode={serverMode}
-                  llmMode={llmMode}
                   eliminatedCount={eliminatedCount}
                   possibleCharacters={possibleCharacters}
                   currentQuestion={currentQuestion}
@@ -770,7 +679,6 @@ function App() {
                       onViewStats={() => navigate("stats")}
                       onShare={handleShare}
                       onCopyLink={handleCopyLink}
-                      llmMode={llmMode}
                       answeredQuestions={answers.map((a) => {
                         const q = (questions || DEFAULT_QUESTIONS).find(
                           (q) => q.id === a.questionId,
@@ -793,7 +701,6 @@ function App() {
                     onAddQuestions={handleAddQuestions}
                     onPlayAgain={startGame}
                     onGoHome={() => navigate("welcome")}
-                    serverMode={serverMode}
                   />
                 </Suspense>
               </div>

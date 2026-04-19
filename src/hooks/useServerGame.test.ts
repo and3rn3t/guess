@@ -38,7 +38,7 @@ beforeEach(() => {
 
 describe('useServerGame', () => {
   it('initializes with null session ID and zero counts', () => {
-    const { result } = renderHook(() => useServerGame(dispatch, false))
+    const { result } = renderHook(() => useServerGame(dispatch))
     expect(result.current.serverSessionId).toBeNull()
     expect(result.current.serverRemaining).toBe(0)
     expect(result.current.serverTotal).toBe(0)
@@ -56,7 +56,7 @@ describe('useServerGame', () => {
         { status: 200 },
       ))
 
-      const { result } = renderHook(() => useServerGame(dispatch, true))
+      const { result } = renderHook(() => useServerGame(dispatch))
 
       await act(async () => {
         await result.current.startServerGame([], 'medium')
@@ -75,7 +75,7 @@ describe('useServerGame', () => {
       const { toast } = await import('sonner')
       mockFetch.mockResolvedValueOnce(new Response('', { status: 500 }))
 
-      const { result } = renderHook(() => useServerGame(dispatch, true))
+      const { result } = renderHook(() => useServerGame(dispatch))
 
       await act(async () => {
         await result.current.startServerGame([], 'medium')
@@ -101,7 +101,7 @@ describe('useServerGame', () => {
         { status: 200 },
       ))
 
-      const { result } = renderHook(() => useServerGame(dispatch, true))
+      const { result } = renderHook(() => useServerGame(dispatch))
       await act(async () => {
         await result.current.startServerGame([], 'medium')
       })
@@ -137,7 +137,7 @@ describe('useServerGame', () => {
         { status: 200 },
       ))
 
-      const { result } = renderHook(() => useServerGame(dispatch, true))
+      const { result } = renderHook(() => useServerGame(dispatch))
       await act(async () => {
         await result.current.startServerGame([], 'medium')
       })
@@ -173,7 +173,7 @@ describe('useServerGame', () => {
         { status: 200 },
       ))
 
-      const { result } = renderHook(() => useServerGame(dispatch, true))
+      const { result } = renderHook(() => useServerGame(dispatch))
       await act(async () => {
         await result.current.startServerGame([], 'medium')
       })
@@ -208,7 +208,7 @@ describe('useServerGame', () => {
         { status: 200 },
       ))
 
-      const { result } = renderHook(() => useServerGame(dispatch, true))
+      const { result } = renderHook(() => useServerGame(dispatch))
       await act(async () => {
         await result.current.startServerGame([], 'medium')
       })
@@ -238,7 +238,7 @@ describe('useServerGame', () => {
         { status: 200 },
       ))
 
-      const { result } = renderHook(() => useServerGame(dispatch, true))
+      const { result } = renderHook(() => useServerGame(dispatch))
       await act(async () => {
         await result.current.startServerGame([], 'medium')
       })
@@ -268,17 +268,11 @@ describe('useServerGame', () => {
         { status: 200 },
       ))
 
-      renderHook(() => useServerGame(dispatch, true))
+      renderHook(() => useServerGame(dispatch))
 
       await waitFor(() => {
         expect(dispatch).toHaveBeenCalledWith({ type: 'START_GAME', characters: [] })
       })
-    })
-
-    it('does not resume when not in server mode', () => {
-      sessionStore['server-session-id'] = 'saved-sess'
-      renderHook(() => useServerGame(dispatch, false))
-      expect(mockFetch).not.toHaveBeenCalled()
     })
 
     it('clears session on expired resume', async () => {
@@ -288,7 +282,7 @@ describe('useServerGame', () => {
         { status: 200 },
       ))
 
-      renderHook(() => useServerGame(dispatch, true))
+      renderHook(() => useServerGame(dispatch))
 
       await waitFor(() => {
         expect(sessionStore['server-session-id']).toBeUndefined()

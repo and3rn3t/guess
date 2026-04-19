@@ -3,7 +3,6 @@ import { OnboardingOverlay } from "@/components/OnboardingOverlay";
 import { QuestionCard, ThinkingCard } from "@/components/QuestionCard";
 import { ReasoningPanel } from "@/components/ReasoningPanel";
 import { Progress } from "@/components/ui/progress";
-import { Skeleton } from "@/components/ui/skeleton";
 import type { GameAction } from "@/hooks/useGameState";
 import type {
   Answer,
@@ -16,31 +15,12 @@ import type {
 } from "@/lib/types";
 import { ClockCounterClockwiseIcon } from "@phosphor-icons/react";
 import { AnimatePresence, motion } from "framer-motion";
-import { lazy, Suspense } from "react";
-
-const ProbabilityLeaderboard = lazy(() =>
-  import("@/components/ProbabilityLeaderboard").then((m) => ({
-    default: m.ProbabilityLeaderboard,
-  })),
-);
-const PossibilitySpaceChart = lazy(() =>
-  import("@/components/PossibilitySpaceChart").then((m) => ({
-    default: m.PossibilitySpaceChart,
-  })),
-);
-const PossibilityGrid = lazy(() =>
-  import("@/components/PossibilityGrid").then((m) => ({
-    default: m.PossibilityGrid,
-  })),
-);
 
 interface PlayingScreenProps {
   answers: Answer[];
   maxQuestions: number;
   confidence: number;
   effectiveRemaining: number;
-  serverMode: boolean;
-  llmMode: boolean;
   eliminatedCount: number | null;
   possibleCharacters: Character[];
   currentQuestion: Question | null;
@@ -61,10 +41,8 @@ export function PlayingScreen({
   maxQuestions,
   confidence,
   effectiveRemaining,
-  serverMode,
-  llmMode,
   eliminatedCount,
-  possibleCharacters,
+  possibleCharacters: _possibleCharacters,
   currentQuestion,
   isThinking,
   reasoning,
@@ -74,8 +52,8 @@ export function PlayingScreen({
   gameHistory,
   showOnboarding,
   setShowOnboarding,
-  activeCharacters,
-  probabilities,
+  activeCharacters: _activeCharacters,
+  probabilities: _probabilities,
 }: Readonly<PlayingScreenProps>) {
   return (
     <motion.div
@@ -107,12 +85,6 @@ export function PlayingScreen({
           <div className="flex items-center gap-3">
             <span>
               {effectiveRemaining} possibilities remaining
-              {serverMode && (
-                <span className="ml-2 text-xs text-accent">🌐 Server</span>
-              )}
-              {llmMode && !serverMode && (
-                <span className="ml-2 text-xs text-accent">✨ AI</span>
-              )}
             </span>
             <AnimatePresence>
               {eliminatedCount !== null && (
@@ -139,12 +111,6 @@ export function PlayingScreen({
                 Undo
               </button>
             )}
-            {!serverMode && possibleCharacters.length > 0 &&
-              possibleCharacters.length <= 5 && (
-                <span className="text-accent font-medium">
-                  Top: {possibleCharacters[0]?.name}
-                </span>
-              )}
           </div>
         </div>
 
@@ -213,24 +179,6 @@ export function PlayingScreen({
               reasoning={reasoning}
               isThinking={isThinking}
             />
-            {!serverMode && (
-              <Suspense fallback={<Skeleton className="h-48 w-full" />}>
-                <ProbabilityLeaderboard
-                  characters={activeCharacters}
-                  answers={answers}
-                  probabilities={probabilities}
-                />
-                <PossibilitySpaceChart
-                  totalCharacters={activeCharacters.length}
-                  characters={activeCharacters}
-                  answers={answers}
-                />
-                <PossibilityGrid
-                  characters={activeCharacters}
-                  answers={answers}
-                />
-              </Suspense>
-            )}
           </div>
         </div>
       </div>

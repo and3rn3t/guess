@@ -21,7 +21,6 @@ interface TeachingModeProps {
   onAddQuestions?: (questions: Question[]) => void
   onPlayAgain: () => void
   onGoHome: () => void
-  serverMode?: boolean
 }
 
 type TeachStep = 'name' | 'loading' | 'review' | 'success'
@@ -67,7 +66,7 @@ function getAttributeSymbol(value: boolean | null | undefined): string {
   return '·'
 }
 
-export function TeachingMode({ answers, existingCharacters, onAddCharacter, onAddQuestions: _onAddQuestions, onPlayAgain, onGoHome, serverMode }: Readonly<TeachingModeProps>) {
+export function TeachingMode({ answers, existingCharacters, onAddCharacter: _onAddCharacter, onAddQuestions: _onAddQuestions, onPlayAgain, onGoHome }: Readonly<TeachingModeProps>) {
   const [step, setStep] = useState<TeachStep>('name')
   const [characterName, setCharacterName] = useState('')
   const [category, setCategory] = useState<CharacterCategory>('movies')
@@ -161,11 +160,7 @@ export function TeachingMode({ answers, existingCharacters, onAddCharacter, onAd
       createdAt: Date.now(),
     }
 
-    // In server mode, only submit to D1 (localStorage copy is unused)
-    // In local mode, save locally immediately (optimistic) + submit to global pool
-    if (!serverMode) {
-      onAddCharacter(newCharacter)
-    }
+    // Submit to server (D1 database)
     setStep('success')
 
     submitCharacter({
@@ -174,17 +169,13 @@ export function TeachingMode({ answers, existingCharacters, onAddCharacter, onAd
       attributes: newCharacter.attributes,
       isCustom: true,
     }).then((result) => {
-      if (serverMode) {
-        if (result.success) {
-          toast.success(`${newCharacter.name} added to the server database!`)
-        } else {
-          toast.error(result.error || 'Failed to save to server — try again later')
-        }
+      if (result.success) {
+        toast.success(`${newCharacter.name} added to the server database!`)
+      } else {
+        toast.error(result.error || 'Failed to save to server — try again later')
       }
     }).catch(() => {
-      if (serverMode) {
-        toast.error('Network error — character was not saved to the server')
-      }
+      toast.error('Network error — character was not saved to the server')
     })
   }
 

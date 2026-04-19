@@ -3,7 +3,7 @@ import { describe, it, expect, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { WelcomeScreen } from '../WelcomeScreen'
-import type { Character, CharacterCategory, Difficulty, GameHistoryEntry } from '@/lib/types'
+import type { Character, GameHistoryEntry } from '@/lib/types'
 
 vi.mock('framer-motion', () => ({
   motion: {
@@ -30,15 +30,6 @@ const CHARS: Character[] = [
 
 const defaultProps = () => ({
   startGame: vi.fn(),
-  difficulty: 'medium' as Difficulty,
-  setDifficulty: vi.fn(),
-  selectedCategories: new Set<CharacterCategory>(),
-  toggleCategory: vi.fn(),
-  activeCharacters: CHARS,
-  llmMode: false,
-  setLlmMode: vi.fn(),
-  serverMode: false,
-  setServerMode: vi.fn(),
   serverTotal: null,
   online: true,
   maxQuestions: 20,
@@ -110,53 +101,9 @@ describe('WelcomeScreen', () => {
     expect(props.clearSession).toHaveBeenCalledOnce()
   })
 
-  it('renders difficulty selector', () => {
-    render(<WelcomeScreen {...defaultProps()} />)
-    expect(screen.getByText('Difficulty')).toBeInTheDocument()
-    expect(screen.getByText('Easy')).toBeInTheDocument()
-    expect(screen.getByText('Medium')).toBeInTheDocument()
-    expect(screen.getByText('Hard')).toBeInTheDocument()
-  })
-
-  it('calls setDifficulty when clicking a difficulty', async () => {
-    const user = userEvent.setup()
-    const props = defaultProps()
-    render(<WelcomeScreen {...props} />)
-    await user.click(screen.getByText('Hard'))
-    expect(props.setDifficulty).toHaveBeenCalledWith('hard')
-  })
-
-  it('renders category buttons', () => {
-    render(<WelcomeScreen {...defaultProps()} />)
-    expect(screen.getByText('Categories')).toBeInTheDocument()
-  })
-
-  it('calls toggleCategory on category click', async () => {
-    const user = userEvent.setup()
-    const props = defaultProps()
-    render(<WelcomeScreen {...props} />)
-    // Find a category button (e.g., "Video Games")
-    const catButton = screen.getByText('Video Games')
-    await user.click(catButton)
-    expect(props.toggleCategory).toHaveBeenCalledWith('video-games')
-  })
-
-  it('shows AI-Enhanced mode toggle', () => {
-    render(<WelcomeScreen {...defaultProps()} />)
-    expect(screen.getByRole('switch', { name: /ai-enhanced/i })).toBeInTheDocument()
-  })
-
-  it('toggles LLM mode', async () => {
-    const user = userEvent.setup()
-    const props = defaultProps()
-    render(<WelcomeScreen {...props} />)
-    await user.click(screen.getByRole('switch', { name: /ai-enhanced/i }))
-    expect(props.setLlmMode).toHaveBeenCalledWith(true)
-  })
-
   it('shows active character count', () => {
     render(<WelcomeScreen {...defaultProps()} />)
-    const matches = screen.getAllByText(/2 characters/)
+    const matches = screen.getAllByText(/500\+/)
     expect(matches.length).toBeGreaterThanOrEqual(1)
   })
 })

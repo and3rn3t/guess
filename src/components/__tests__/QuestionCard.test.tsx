@@ -128,30 +128,17 @@ describe('QuestionCard', () => {
     })
   })
 
-  it('shows free-text input in LLM mode', () => {
+  it('shows free-text input', () => {
     render(
       <QuestionCard
         question={QUESTION}
         questionNumber={1}
         totalQuestions={10}
         onAnswer={onAnswer}
-        llmMode
       />,
     )
     expect(screen.getByPlaceholderText(/type your answer/i)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /send/i })).toBeInTheDocument()
-  })
-
-  it('does not show free-text input without LLM mode', () => {
-    render(
-      <QuestionCard
-        question={QUESTION}
-        questionNumber={1}
-        totalQuestions={10}
-        onAnswer={onAnswer}
-      />,
-    )
-    expect(screen.queryByPlaceholderText(/type your answer/i)).not.toBeInTheDocument()
   })
 
   it('has aria-live region for question text', () => {

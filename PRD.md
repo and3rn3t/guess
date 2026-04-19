@@ -3,6 +3,7 @@
 An intelligent guessing game that asks strategic questions to identify what character, object, or concept the user is thinking of, while providing real-time explanations of the AI's reasoning process and decision-making strategy.
 
 **Experience Qualities**:
+
 1. **Intriguing** - The game should feel mysterious and intelligent, with the AI appearing to read the user's mind through clever deduction
 2. **Transparent** - Every question and decision should be explained in depth so users understand the reasoning behind the AI's strategy
 3. **Engaging** - The experience should feel like a conversation with a clever detective, not a sterile Q&A session
@@ -13,6 +14,7 @@ This is a focused game experience with question-answer flow, character database 
 ## Essential Features
 
 **Question Generation & Asking**
+
 - Functionality: AI generates strategic yes/no questions to narrow down possibilities
 - Purpose: Core mechanic that drives the guessing process through binary elimination
 - Trigger: Game start or after each user answer
@@ -20,6 +22,7 @@ This is a focused game experience with question-answer flow, character database 
 - Success criteria: Questions are relevant, progressively narrow possibilities, and feel intelligent
 
 **Answer Processing**
+
 - Functionality: Records user's yes/no/maybe/don't know responses and updates probability space
 - Purpose: Captures user input and adjusts the AI's understanding of what they're thinking
 - Trigger: User clicks answer button
@@ -27,6 +30,7 @@ This is a focused game experience with question-answer flow, character database 
 - Success criteria: Answers register instantly, visual feedback is clear, probability adjustments are shown
 
 **Reasoning Explanation Panel**
+
 - Functionality: Real-time display showing why the AI asked each question and how answers affect its strategy
 - Purpose: Educational transparency that makes the AI's logic visible and builds trust/engagement
 - Trigger: Displays continuously alongside questions
@@ -34,13 +38,15 @@ This is a focused game experience with question-answer flow, character database 
 - Success criteria: Explanations are clear, informative, and update smoothly without disrupting gameplay
 
 **Final Guess & Resolution**
+
 - Functionality: AI makes confident guess when probability threshold reached, user confirms or denies
 - Purpose: Culmination of the deduction process with satisfying reveal
-- Trigger: Confidence threshold met (typically 80%+) or question limit reached
+- Trigger: Confidence threshold met (typically 80%+) or question limit reached (15 questions)
 - Progression: AI confidence builds → Guess screen appears → User confirms/denies → Win/lose state shows → Option to play again
 - Success criteria: Guesses feel accurate, win/loss feedback is satisfying, easy restart flow
 
 **Learning System (Teaching Mode)**
+
 - Functionality: When AI guesses wrong, allows user to teach it the correct answer by entering the character name; the system automatically saves all answered questions as attributes
 - Purpose: Makes the database grow smarter over time and gives users agency in improving the system
 - Trigger: User indicates AI's guess was incorrect and clicks "Teach Me" button
@@ -48,9 +54,10 @@ This is a focused game experience with question-answer flow, character database 
 - Success criteria: Teaching flow is intuitive, character name and all answered questions saved as attributes, new entries persist in KV storage, game uses new characters in future rounds
 
 **Enhanced Attribute System**
+
 - Functionality: Characters now have 57 unique attributes covering physical traits, abilities, relationships, origins, and personality
 - Purpose: Enables much deeper character differentiation and more strategic question selection
-- Categories: 
+- Categories:
   - Basic identity (isHuman, isAnimal, isRobot)
   - Abilities (canFly, canTeleport, canShapeshift, canControlElements, canRegenerate)
   - Physical traits (wearsHat, hasTail, wearsCape, hasFacialHair, hasClaws, hasWings, hasTentacles)
@@ -63,6 +70,7 @@ This is a focused game experience with question-answer flow, character database 
 - Success criteria: Question generator discovers new attributes from user-taught characters, game asks more diverse and strategic questions, characters are more easily distinguishable
 
 **Statistics Dashboard**
+
 - Functionality: Comprehensive analytics dashboard showing question usage patterns, attribute diversity metrics, and character pool composition
 - Purpose: Provides insights into game performance, identifies underutilized questions, reveals attribute entropy for strategic improvement, and tracks learning system growth
 - Trigger: User clicks "Statistics" button from welcome screen
@@ -75,6 +83,7 @@ This is a focused game experience with question-answer flow, character database 
 - Success criteria: Dashboard loads instantly, metrics update as games are played, entropy calculations guide question strategy, visualizations clearly communicate patterns
 
 **Character Comparison Tool**
+
 - Functionality: Interactive analysis tool that examines attribute overlaps between characters, identifies similar pairs, and enables detailed two-character comparisons
 - Purpose: Reveals patterns in the character database, highlights areas where differentiation is weak, helps identify opportunities for new questions, and assists in understanding which characters are too similar
 - Trigger: User clicks "Compare" button from welcome screen
@@ -90,6 +99,7 @@ This is a focused game experience with question-answer flow, character database 
 - Success criteria: Tool loads instantly, discrimination calculations accurately identify strategic attributes, similarity analysis reveals problematic character overlaps, comparison view clearly shows differences between any two characters
 
 **AI-Powered Attribute Recommendations**
+
 - Functionality: Advanced AI recommendation system that analyzes characters deeply and suggests strategic attributes based on comprehensive character knowledge across all media
 - Purpose: Uses AI (GPT-4o) to provide intelligent, character-specific attribute suggestions that go beyond rule-based recommendations with detailed reasoning that demonstrates real character knowledge
 - Trigger: User navigates to a character from the Compare tool, clicks a recommendation icon/button
@@ -126,7 +136,7 @@ The design should evoke the feeling of peering into a mystical fortune-teller's 
 A mystical, intelligent color scheme that balances mystery with clarity.
 
 - **Primary Color**: Deep cosmic purple `oklch(0.35 0.15 300)` - Communicates mystery, intelligence, and the mystical nature of mind-reading
-- **Secondary Colors**: 
+- **Secondary Colors**:
   - Rich indigo `oklch(0.28 0.12 280)` for depth and supporting UI elements
   - Soft lavender `oklch(0.75 0.08 310)` for subtle backgrounds and hover states
 - **Accent Color**: Bright cyan-blue `oklch(0.70 0.15 220)` - Attention-grabbing highlight for CTAs, correct guesses, and insights
@@ -161,7 +171,7 @@ Animations should create a sense of thought and processing—smooth transitions 
 
 ## Component Selection
 
-- **Components**: 
+- **Components**:
   - `Card` for question container, explanation panel, and final guess reveal - customized with glassmorphism backdrop-blur for mystical feel
   - `Button` for answer options (Yes/No/Maybe/Don't Know) - customized with glow effects and larger touch targets
   - `Progress` for question counter and confidence meter visualization
@@ -170,17 +180,17 @@ Animations should create a sense of thought and processing—smooth transitions 
   - `Badge` for displaying current game statistics and confidence level
   - `Separator` for dividing explanation sections
   
-- **Customizations**: 
+- **Customizations**:
   - Custom "ThinkingCard" component with animated gradient border that pulses during AI reasoning
   - Custom "ConfidenceMeter" that visualizes probability as a glowing fill bar with particle effects
   - Glassmorphic answer buttons with hover states that create ethereal glow effects
   
-- **States**: 
+- **States**:
   - Buttons: Rest (subtle border glow), Hover (increased glow + slight lift), Active (scale down + bright glow), Selected (persistent bright glow with checkmark), Disabled (reduced opacity + no glow)
   - Question cards: Idle (static), Thinking (pulsing border), Transitioning (fade + slide)
   - Explanation panel: Collapsed (show summary only), Expanded (full reasoning visible)
   
-- **Icon Selection**: 
+- **Icon Selection**:
   - `Brain` for AI reasoning indicators
   - `Lightbulb` for insights and deductions
   - `Question` for help/info tooltips
@@ -189,13 +199,13 @@ Animations should create a sense of thought and processing—smooth transitions 
   - `ArrowRight` for progression cues
   - `Plus` for teaching/adding new entries
   
-- **Spacing**: 
+- **Spacing**:
   - Container padding: `p-6` on mobile, `p-8` on desktop
   - Card gaps: `gap-6` for major sections, `gap-4` for related elements
   - Button groups: `gap-3` for answer options
   - Text spacing: `space-y-2` for paragraph groups, `space-y-4` for distinct sections
   
-- **Mobile**: 
+- **Mobile**:
   - Stack explanation panel below question on mobile (initially collapsed with expand button)
   - Answer buttons go full-width in 2x2 grid on smallest screens, row of 4 on larger mobile
   - Reduce question text from 28px to 22px on mobile

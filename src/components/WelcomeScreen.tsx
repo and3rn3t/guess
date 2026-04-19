@@ -8,38 +8,24 @@ import type { GamePhase } from "@/hooks/useGameState";
 import { DEFAULT_CHARACTERS } from "@/lib/database";
 import type {
   Character,
-  CharacterCategory,
-  Difficulty,
   GameHistoryEntry,
 } from "@/lib/types";
-import { CATEGORY_LABELS, DIFFICULTIES } from "@/lib/types";
 import {
   BrainIcon,
   ChartBarIcon,
   ClipboardTextIcon,
-  CloudCheckIcon,
   FlaskIcon,
   GearIcon,
   LightningIcon,
   PlayIcon,
   SparkleIcon,
   TreeStructureIcon,
-  WifiSlashIcon,
   WrenchIcon,
 } from "@phosphor-icons/react";
 import { motion } from "framer-motion";
 
 interface WelcomeScreenProps {
   startGame: () => void;
-  difficulty: Difficulty;
-  setDifficulty: (d: Difficulty) => void;
-  selectedCategories: Set<CharacterCategory>;
-  toggleCategory: (cat: CharacterCategory) => void;
-  activeCharacters: Character[];
-  llmMode: boolean;
-  setLlmMode: (v: boolean) => void;
-  serverMode: boolean;
-  setServerMode: (v: boolean) => void;
   serverTotal: number | null;
   online: boolean;
   maxQuestions: number;
@@ -54,17 +40,8 @@ interface WelcomeScreenProps {
 
 export function WelcomeScreen({
   startGame,
-  difficulty,
-  setDifficulty,
-  selectedCategories,
-  toggleCategory,
-  activeCharacters,
-  llmMode,
-  setLlmMode,
-  serverMode,
-  setServerMode,
   serverTotal,
-  online,
+  online: _online,
   maxQuestions,
   gameHistory,
   hasSavedSession,
@@ -147,7 +124,7 @@ export function WelcomeScreen({
                   Last: {last.won ? "Won" : "Lost"} in{" "}
                   {last.steps.length} Qs — {last.characterName}
                   {" · "}
-                  {DIFFICULTIES[difficulty].label} · {serverMode ? (serverTotal || "500+") : activeCharacters.length} characters
+                  {serverTotal || "500+"} characters
                 </p>
               </div>
             );
@@ -200,167 +177,6 @@ export function WelcomeScreen({
           </div>
         </Collapsible>
 
-        {/* Game Settings — consolidated single card */}
-        <div className="bg-card/50 backdrop-blur-sm border border-border/50 rounded-xl p-5 space-y-5">
-          {/* Difficulty */}
-          <div className="space-y-2">
-            <h4 className="text-sm font-semibold text-foreground">Difficulty</h4>
-            <div className="flex gap-2">
-              {(
-                Object.entries(DIFFICULTIES) as [
-                  Difficulty,
-                  (typeof DIFFICULTIES)[Difficulty],
-                ][]
-              ).map(([key, cfg]) => (
-                <button
-                  key={key}
-                  onClick={() => setDifficulty(key)}
-                  className={`flex-1 px-3 py-3 rounded-lg border text-sm font-medium transition-colors ${
-                    difficulty === key
-                      ? "bg-accent text-accent-foreground border-accent"
-                      : "bg-card border-border hover:bg-accent/10"
-                  }`}
-                >
-                  {cfg.label}
-                  <span className="block text-[11px] opacity-70">
-                    {cfg.maxQuestions} Qs
-                  </span>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="border-t border-border/50" />
-
-          {/* Categories */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <h4 className="text-sm font-semibold text-foreground">Categories</h4>
-              <span className="text-xs text-muted-foreground">
-                {selectedCategories.size === 0
-                  ? "All"
-                  : selectedCategories.size}{" "}
-                selected · {activeCharacters.length} characters
-              </span>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {(
-                Object.entries(CATEGORY_LABELS) as [
-                  CharacterCategory,
-                  string,
-                ][]
-              ).map(([key, label]) => {
-                const count = (characters || DEFAULT_CHARACTERS).filter(
-                  (c) => c.category === key,
-                ).length;
-                const isSelected = selectedCategories.has(key);
-                return (
-                  <button
-                    key={key}
-                    onClick={() => toggleCategory(key)}
-                    className={`px-3 py-2.5 rounded-lg border text-sm font-medium transition-colors ${
-                      isSelected
-                        ? "bg-accent text-accent-foreground border-accent"
-                        : "bg-card border-border hover:bg-accent/10"
-                    }`}
-                  >
-                    {label}
-                    <span className="ml-1 opacity-60">{count}</span>
-                  </button>
-                );
-              })}
-            </div>
-            {activeCharacters.length > 0 && (
-              <p className="text-[11px] text-muted-foreground">
-                e.g.{" "}
-                {activeCharacters
-                  .slice(0, 4)
-                  .map((c) => c.name)
-                  .join(", ")}
-                {activeCharacters.length > 4 && ` + ${activeCharacters.length - 4} more`}
-              </p>
-            )}
-          </div>
-
-          <div className="border-t border-border/50" />
-
-          {/* AI Mode */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <BrainIcon size={18} weight="fill" className="text-accent" />
-              <span className="text-sm font-medium text-foreground">AI-Enhanced Mode</span>
-            </div>
-            <button
-              onClick={() => setLlmMode(!llmMode)}
-              className={`relative inline-flex h-8 w-14 items-center rounded-full transition-colors ${
-                llmMode ? "bg-accent" : "bg-muted"
-              }`}
-              role="switch"
-              aria-checked={llmMode}
-              aria-label="Toggle AI-Enhanced Mode"
-            >
-              <span
-                className={`inline-block h-6 w-6 transform rounded-full bg-white shadow-sm transition-transform ${
-                  llmMode ? "translate-x-7" : "translate-x-1"
-                }`}
-              />
-            </button>
-          </div>
-          {llmMode && (
-            <p
-              className={`text-xs -mt-3 ${online ? "text-accent" : "text-destructive"}`}
-            >
-              {online ? (
-                "✨ Dynamic questions & narrative explanations"
-              ) : (
-                <span className="flex items-center gap-1">
-                  <WifiSlashIcon size={14} weight="bold" />
-                  Offline — AI features unavailable
-                </span>
-              )}
-            </p>
-          )}
-
-          <div className="border-t border-border/50" />
-
-          {/* Server Mode */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <CloudCheckIcon size={18} className="text-accent" />
-              <span className="text-sm font-medium text-foreground">Server Mode</span>
-            </div>
-            <button
-              onClick={() => setServerMode(!serverMode)}
-              className={`relative inline-flex h-8 w-14 items-center rounded-full transition-colors ${
-                serverMode ? "bg-accent" : "bg-muted"
-              }`}
-              role="switch"
-              aria-checked={serverMode}
-              aria-label="Toggle Server Mode"
-            >
-              <span
-                className={`inline-block h-6 w-6 transform rounded-full bg-white shadow-sm transition-transform ${
-                  serverMode ? "translate-x-7" : "translate-x-1"
-                }`}
-              />
-            </button>
-          </div>
-          {serverMode && (
-            <p
-              className={`text-xs -mt-3 ${online ? "text-accent" : "text-destructive"}`}
-            >
-              {online ? (
-                "🌐 Play against the full character database on the server"
-              ) : (
-                <span className="flex items-center gap-1">
-                  <WifiSlashIcon size={14} weight="bold" />
-                  Offline — server mode unavailable
-                </span>
-              )}
-            </p>
-          )}
-        </div>
-
         {/* Bottom CTA */}
         <div className="text-center space-y-2">
           <Button
@@ -372,9 +188,7 @@ export function WelcomeScreen({
             Start Game
           </Button>
           <p className="text-xs text-muted-foreground">
-            {serverMode ? (serverTotal || "500+") : activeCharacters.length} characters · {maxQuestions}{" "}
-            questions · {DIFFICULTIES[difficulty].label}
-            {serverMode && " · Server"}
+            {serverTotal || "500+"} characters · {maxQuestions} questions
           </p>
         </div>
 

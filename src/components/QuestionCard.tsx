@@ -16,7 +16,6 @@ interface QuestionCardProps {
   totalQuestions: number
   onAnswer: (value: AnswerValue) => void
   isProcessing?: boolean
-  llmMode?: boolean
 }
 
 const answerButtonStyles: Record<AnswerValue, string> = {
@@ -32,7 +31,6 @@ export function QuestionCard({
   totalQuestions,
   onAnswer,
   isProcessing = false,
-  llmMode,
 }: Readonly<QuestionCardProps>) {
   const [freeText, setFreeText] = useState('')
   const [isInterpreting, setIsInterpreting] = useState(false)
@@ -104,8 +102,8 @@ export function QuestionCard({
             ))}
           </div>
 
-          {llmMode && (
-            <div className="flex gap-2">
+          {/* Free-text answer input */}
+          <div className="flex gap-2">
               <Input
                 value={freeText}
                 onChange={(e) => setFreeText(e.target.value)}
@@ -123,7 +121,6 @@ export function QuestionCard({
                 {isInterpreting ? '...' : 'Send'}
               </Button>
             </div>
-          )}
         </div>
       </Card>
     </motion.div>

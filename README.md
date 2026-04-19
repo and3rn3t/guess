@@ -28,8 +28,8 @@ Think of a character. The AI asks strategic yes/no questions, uses Bayesian prob
 - **Bayesian Deduction Engine** — Probability scoring with information gain optimization picks the most strategic question every turn
 - **Reasoning Transparency** — See exactly why the AI asked each question and how your answers shift probabilities
 - **Teaching Mode** — When the AI guesses wrong, teach it the character; all answered attributes are saved automatically
-- **Three Difficulty Levels** — Easy (20 questions), Medium (15), Hard (10)
-- **Local & Server Modes** — Client-side engine for instant play, server-side engine backed by D1 database with 53K+ characters
+- **53K+ Character Database** — Server-side engine backed by D1 with 15 questions per game
+- **AI-Enhanced Answers** — Free-text answer parsing via GPT-4o understands natural language responses
 - **Statistics Dashboard** — Win/loss tracking, question performance metrics, attribute entropy analysis
 - **Character Comparison** — Side-by-side attribute diffs, similarity scoring, discrimination power analysis
 - **AI Attribute Recommendations** — GPT-4o suggests and fills in character attributes with detailed reasoning
@@ -89,9 +89,7 @@ Client (React SPA)  →  Cloudflare Workers  →  D1 / KV / R2
                         AI Gateway → OpenAI
 ```
 
-Two game modes:
-- **Local** — Client-side Bayesian engine with localStorage data
-- **Server** — Server-side engine querying D1 (53K+ characters, top 500 per session)
+All gameplay runs through the server-side Bayesian engine, querying D1 (53K+ characters, top 500 per session). The client is a thin UI shell that sends answers and renders server-computed questions, reasoning, and guesses.
 
 See [ARCHITECTURE.md](ARCHITECTURE.md) for the full system design, game engine internals, API reference, data layer details, and CI/CD pipeline.
 

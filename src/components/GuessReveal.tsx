@@ -242,7 +242,6 @@ interface GameOverProps {
   onViewStats?: () => void;
   onShare?: () => void;
   onCopyLink?: () => void;
-  llmMode?: boolean;
   answeredQuestions?: Array<{ question: string; answer: string }>;
 }
 
@@ -259,7 +258,6 @@ export function GameOver({
   onViewStats,
   onShare,
   onCopyLink,
-  llmMode,
   answeredQuestions,
 }: Readonly<GameOverProps>) {
   const [narrative, setNarrative] = useState("");
@@ -277,7 +275,7 @@ export function GameOver({
   })();
 
   useEffect(() => {
-    if (!llmMode || !character) return;
+    if (!character) return;
 
     const qaList = answeredQuestions || [];
     const { system, user } = narrativeExplanation_v1(
@@ -308,7 +306,7 @@ export function GameOver({
       }
     };
     run();
-  }, [llmMode, character, won, answeredQuestions, remainingCharacters]);
+  }, [character, won, answeredQuestions, remainingCharacters]);
 
   return (
     <motion.div

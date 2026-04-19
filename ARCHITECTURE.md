@@ -9,7 +9,7 @@
 │  Client (React 19 SPA)                                  │
 │  ┌──────────┐ ┌──────────┐ ┌───────────┐ ┌──────────┐  │
 │  │ Game UI  │ │ Engine   │ │ Analytics │ │ Teaching │  │
-│  │ screens  │ │ (local)  │ │ dashboard │ │ mode     │  │
+│  │ screens  │ │ (server) │ │ dashboard │ │ mode     │  │
 │  └────┬─────┘ └────┬─────┘ └─────┬─────┘ └────┬─────┘  │
 │       │             │             │             │        │
 │       └─────────────┴──────┬──────┴─────────────┘        │
@@ -46,7 +46,7 @@ src/
 ├── main.tsx                   # Entry point
 ├── components/
 │   ├── ui/                    # shadcn/ui primitives (DO NOT manually edit)
-│   ├── WelcomeScreen.tsx      # Landing + difficulty selector
+│   ├── WelcomeScreen.tsx      # Landing + one-click game start
 │   ├── PlayingScreen.tsx      # Active Q&A gameplay
 │   ├── GuessReveal.tsx        # Character guess with reasoning
 │   ├── GameHistory.tsx        # Past games list
@@ -61,7 +61,6 @@ src/
 ├── hooks/
 │   ├── useGameState.ts        # Reducer: phase, answers, characters, currentQuestion
 │   ├── useKV.ts               # localStorage + cross-tab sync
-│   ├── useLocalGame.ts        # Client-side game engine integration
 │   ├── useServerGame.ts       # Server game via /api/v2/game/*
 │   ├── useOnlineStatus.ts     # navigator.onLine tracking
 │   ├── useSound.ts            # Mute state (external store)
@@ -160,7 +159,7 @@ Scores are normalized to 0–1 probabilities across the candidate pool.
 `shouldMakeGuess(probabilities, questionsAsked, maxQuestions)` triggers a guess when:
 
 - Top candidate probability ≥ 80%, **or**
-- Question limit reached (varies by difficulty: easy=20, medium=15, hard=10)
+- Question limit reached (15 questions)
 
 ### Reasoning Generation
 
@@ -183,7 +182,6 @@ Additional phases: `manage`, `demo`, `stats`, `compare`, `coverage`, `recommende
 **State management**:
 
 - `useGameState` — useReducer managing `phase`, `answers[]`, `characters[]`, `currentQuestion`, `reasoning`
-- `useLocalGame` — Wires client-side engine (filter, score, select, guess)
 - `useServerGame` — Routes gameplay through `/api/v2/game/*` endpoints
 - `useKV<T>(key, default)` — localStorage persistence with JSON serialization + cross-tab `storage` event sync
 

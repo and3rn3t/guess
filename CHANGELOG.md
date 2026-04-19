@@ -6,6 +6,26 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [1.1.0] — 2025-07-21
+
+### Changed
+
+- Simplified home screen — removed difficulty selector, category picker, AI-Enhanced toggle, and Server Mode toggle
+- Hardcoded game settings: server mode always on, AI-enhanced always on, 15 questions (medium difficulty)
+- Free-text answer input now always visible (no longer gated behind LLM mode toggle)
+- Streamlined WelcomeScreen to hero section + single "Start Game" button + collapsible "How It Works"
+
+### Removed
+
+- `useLocalGame` hook and client-side game engine integration (all games now use server engine)
+- Settings UI: difficulty selector, category picker, AI-Enhanced toggle, Server Mode toggle
+- Lazy-loaded visualization components from PlayingScreen (ProbabilityLeaderboard, PossibilitySpaceChart, PossibilityGrid)
+- Server/AI mode badges from gameplay header
+- "Top candidate" hint from local-mode gameplay
+- `serverMode` and `llmMode` props from all components
+
+---
+
 ## [1.0.0] — 2026-04-19
 
 ### Added
