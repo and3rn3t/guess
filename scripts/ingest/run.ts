@@ -15,6 +15,8 @@ import { showStats } from './upload.js';
 import { runDedup } from './dedup.js';
 import { generateUploadSQL, applyToD1 } from './upload.js';
 import { formatElapsed } from './utils.js';
+import { runEnrichment, showEnrichStats, generateEnrichUploadSQL, retryFailed } from './enrich.js';
+import type { Category } from './types.js';
 
 import { ingestAniList } from './sources/anilist.js';
 import { ingestTmdb } from './sources/tmdb.js';
@@ -84,6 +86,38 @@ async function main() {
       const envArg = process.argv.find(a => a === 'production' || a === 'preview');
       const env = (envArg ?? 'production') as 'production' | 'preview';
       await applyToD1('migrations/0005_ingest_characters.sql', env, remote);
+    } else if (action === 'enrich') {
+      const batchSize = param ?? 5;
+      const limit = process.argv.includes('--limit')
+        ? parseInt(process.argv[process.argv.indexOf('--limit') + 1])
+        : undefined;
+      const concurrency = process.argv.includes('--concurrency')
+        ? parseInt(process.argv[process.argv.indexOf('--concurrency') + 1])
+        : undefined;
+      const catIdx = process.argv.indexOf('--category');
+      const category = catIdx >= 0 ? process.argv[catIdx + 1] as Category : undefined;
+      const minPop = process.argv.includes('--min-pop')
+        ? parseFloat(process.argv[process.argv.indexOf('--min-pop') + 1])
+        : undefined;
+      const dryRun = process.argv.includes('--dry-run');
+      await runEnrichment({ batchSize, concurrency, limit, category, minPopularity: minPop, dryRun });
+    } else if (action === 'enrich-stats') {
+      showEnrichStats();
+    } else if (action === 'enrich-upload') {
+      const outputFile = 'migrations/0006_character_attributes.sql';
+      generateEnrichUploadSQL({ outputFile });
+      if (process.argv.includes('--apply')) {
+        const remote = process.argv.includes('--remote');
+        const envArg = process.argv.find(a => a === 'production' || a === 'preview');
+        const env = (envArg ?? 'production') as 'production' | 'preview';
+        await applyToD1(outputFile, env, remote);
+      }
+    } else if (action === 'enrich-retry') {
+      const batchSize = param ?? 5;
+      const concurrency = process.argv.includes('--concurrency')
+        ? parseInt(process.argv[process.argv.indexOf('--concurrency') + 1])
+        : undefined;
+      await retryFailed({ batchSize, concurrency });
     } else if (action === 'all') {
       await runAll(param);
     } else if (action in SOURCES) {
@@ -101,7 +135,19 @@ Commands:
   all [maxParam]            Run all sources sequentially
   dedup                     Run cross-source deduplication
   upload [minPop] [limit]   Generate D1 migration SQL from staging DB
+  apply [env] [--remote]    Apply migration SQL to D1
+  enrich [batchSize]        AI attribute enrichment (needs OPENAI_API_KEY)
+  enrich-stats              Show enrichment progress
+  enrich-upload [--apply]   Generate + optionally apply attribute SQL to D1
+  enrich-retry [batchSize]  Retry failed enrichments
   stats                     Show staging DB statistics
+
+Enrich options:
+  --limit N                 Max characters to process
+  --concurrency N           Parallel API calls (default: 10)
+  --category <cat>          Only enrich specific category
+  --min-pop <float>         Minimum popularity (0-1)
+  --dry-run                 Preview without calling LLM
       `);
     }
   } finally {
