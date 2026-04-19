@@ -43,21 +43,27 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       `SELECT
         ad.key,
         ad.display_text,
-        (SELECT COUNT(*) FROM characters) as total_characters,
-        (SELECT COUNT(*) FROM character_attributes ca
-         WHERE ca.attribute_key = ad.key AND ca.value IS NOT NULL) as filled_count,
-        (SELECT COUNT(*) FROM character_attributes ca
-         WHERE ca.attribute_key = ad.key AND ca.value = 1) as true_count,
-        (SELECT COUNT(*) FROM character_attributes ca
-         WHERE ca.attribute_key = ad.key AND ca.value = 0) as false_count,
-        (SELECT COUNT(*) FROM character_attributes ca
-         WHERE ca.attribute_key = ad.key AND ca.value IS NULL) as null_count,
+        tc.total_characters,
+        COALESCE(cov.filled_count, 0) as filled_count,
+        COALESCE(cov.true_count, 0) as true_count,
+        COALESCE(cov.false_count, 0) as false_count,
+        tc.total_characters - COALESCE(cov.filled_count, 0) as null_count,
         ROUND(
-          CAST((SELECT COUNT(*) FROM character_attributes ca
-                WHERE ca.attribute_key = ad.key AND ca.value IS NOT NULL) AS REAL)
-          / MAX((SELECT COUNT(*) FROM characters), 1) * 100, 1
+          CAST(COALESCE(cov.filled_count, 0) AS REAL)
+          / MAX(tc.total_characters, 1) * 100, 1
         ) as coverage_pct
        FROM attribute_definitions ad
+       CROSS JOIN (SELECT COUNT(*) as total_characters FROM characters) tc
+       LEFT JOIN (
+         SELECT
+           attribute_key,
+           COUNT(*) as filled_count,
+           SUM(CASE WHEN value = 1 THEN 1 ELSE 0 END) as true_count,
+           SUM(CASE WHEN value = 0 THEN 1 ELSE 0 END) as false_count
+         FROM character_attributes
+         WHERE value IS NOT NULL
+         GROUP BY attribute_key
+       ) cov ON cov.attribute_key = ad.key
        ORDER BY ad.key ASC`
     )
     return jsonResponse(attrs)

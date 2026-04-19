@@ -37,15 +37,20 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       db,
       `SELECT
         q.id, q.text, q.attribute_key, q.priority,
-        (SELECT COUNT(*) FROM characters) as total_characters,
-        (SELECT COUNT(*) FROM character_attributes ca
-         WHERE ca.attribute_key = q.attribute_key AND ca.value IS NOT NULL) as filled_count,
+        tc.total_characters,
+        COALESCE(cov.filled_count, 0) as filled_count,
         ROUND(
-          CAST((SELECT COUNT(*) FROM character_attributes ca
-                WHERE ca.attribute_key = q.attribute_key AND ca.value IS NOT NULL) AS REAL)
-          / MAX((SELECT COUNT(*) FROM characters), 1) * 100, 1
+          CAST(COALESCE(cov.filled_count, 0) AS REAL)
+          / MAX(tc.total_characters, 1) * 100, 1
         ) as coverage_pct
        FROM questions q
+       CROSS JOIN (SELECT COUNT(*) as total_characters FROM characters) tc
+       LEFT JOIN (
+         SELECT attribute_key, COUNT(*) as filled_count
+         FROM character_attributes
+         WHERE value IS NOT NULL
+         GROUP BY attribute_key
+       ) cov ON cov.attribute_key = q.attribute_key
        ORDER BY q.priority DESC, q.id ASC`
     )
     return jsonResponse(questions)

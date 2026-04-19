@@ -53,13 +53,24 @@ interface HistoryResponse {
   total: number
 }
 
+// ── Module-level cache (stale-while-revalidate) ─────────────
+
+const CACHE_TTL_MS = 60_000 // 60 seconds
+
+let cachedStats: GlobalStats | null = null
+let cachedHistory: { entries: GameHistoryEntry[]; total: number } | null = null
+let lastFetchTime = 0
+
 // ── Hook ─────────────────────────────────────────────────────
 
 export function useGlobalStats() {
-  const [stats, setStats] = useState<GlobalStats | null>(null)
-  const [gameHistory, setGameHistory] = useState<GameHistoryEntry[]>([])
-  const [gamesPlayed, setGamesPlayed] = useState(0)
-  const [loading, setLoading] = useState(true)
+  const [stats, setStats] = useState<GlobalStats | null>(cachedStats)
+  const [gameHistory, setGameHistory] = useState<GameHistoryEntry[]>(
+    cachedHistory?.entries ?? []
+  )
+  const [gamesPlayed, setGamesPlayed] = useState(cachedHistory?.total ?? 0)
+  const hasFreshCache = cachedStats !== null && Date.now() - lastFetchTime < CACHE_TTL_MS
+  const [loading, setLoading] = useState(!hasFreshCache)
   const [error, setError] = useState<string | null>(null)
   const fetchedRef = useRef(false)
 
@@ -73,6 +84,7 @@ export function useGlobalStats() {
       const res = await fetch('/api/v2/stats', { headers: headers() })
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       const data = (await res.json()) as GlobalStats
+      cachedStats = data
       setStats(data)
     } catch (e) {
       console.warn('Failed to fetch global stats:', e)
@@ -97,6 +109,7 @@ export function useGlobalStats() {
         steps: g.steps,
       }))
 
+      cachedHistory = { entries, total: data.total }
       setGameHistory(entries)
       setGamesPlayed(data.total)
     } catch (e) {
@@ -105,22 +118,34 @@ export function useGlobalStats() {
     }
   }, [headers])
 
-  // Initial fetch on mount
+  // Initial fetch on mount (stale-while-revalidate)
   useEffect(() => {
     if (fetchedRef.current) return
     fetchedRef.current = true
 
+    const isCacheFresh = cachedStats !== null && Date.now() - lastFetchTime < CACHE_TTL_MS
+
     const load = async () => {
-      setLoading(true)
+      if (!isCacheFresh) setLoading(true)
       await Promise.all([fetchStats(), fetchHistory()])
+      lastFetchTime = Date.now()
       setLoading(false)
     }
-    load()
+
+    if (isCacheFresh) {
+      // Revalidate in background — state already initialized from cache
+      Promise.all([fetchStats(), fetchHistory()]).then(() => {
+        lastFetchTime = Date.now()
+      })
+    } else {
+      load()
+    }
   }, [fetchStats, fetchHistory])
 
-  // Refresh after a game completes
+  // Refresh after a game completes (bypasses cache)
   const refresh = useCallback(async () => {
     await Promise.all([fetchStats(), fetchHistory()])
+    lastFetchTime = Date.now()
   }, [fetchStats, fetchHistory])
 
   return {

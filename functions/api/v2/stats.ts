@@ -13,6 +13,17 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
   const db = context.env.GUESS_DB
   if (!db) return errorResponse('D1 not configured', 503)
 
+  // ── KV cache: return cached stats if available ───────────
+  const kv = context.env.GUESS_KV
+  if (kv) {
+    const cached = await kv.get('cache:stats')
+    if (cached) {
+      return new Response(cached, {
+        headers: { 'Content-Type': 'application/json' },
+      })
+    }
+  }
+
   const [characters, attributes, questions, byCategory, bySource] = await Promise.all([
     d1First<{ count: number }>(db, 'SELECT COUNT(*) as count FROM characters'),
     d1First<{ count: number }>(db, 'SELECT COUNT(*) as count FROM attribute_definitions'),
@@ -111,7 +122,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     // game_stats table may not exist yet
   }
 
-  return jsonResponse({
+  const result = {
     characters: characters?.count ?? 0,
     attributes: attributes?.count ?? 0,
     questions: questions?.count ?? 0,
@@ -125,5 +136,14 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     byCategory,
     bySource,
     gameStats,
-  })
+  }
+
+  // ── KV cache: store result with 5-minute TTL ─────────────
+  if (kv) {
+    context.waitUntil(
+      kv.put('cache:stats', JSON.stringify(result), { expirationTtl: 300 })
+    )
+  }
+
+  return jsonResponse(result)
 }

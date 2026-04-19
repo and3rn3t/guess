@@ -7,6 +7,7 @@ import {
   errorResponse,
   kvGetArray,
   kvPut,
+  d1Run,
 } from './_helpers'
 
 interface CorrectionVote {
@@ -96,12 +97,28 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const uniqueVoters = new Set(votesForThisAttr.map((c) => c.userId))
 
     if (uniqueVoters.size >= AUTO_APPLY_THRESHOLD) {
-      // Auto-apply the correction to the character
+      // Auto-apply the correction to the character in KV
       const characters = await kvGetArray<StoredCharacter>(kv, 'global:characters')
       const char = characters.find((c) => c.id === characterId)
       if (char) {
         char.attributes[attribute] = suggestedValue
         await kvPut(kv, 'global:characters', characters)
+      }
+
+      // Also write to D1 so the v2 game engine picks it up
+      const db = context.env.GUESS_DB
+      if (db) {
+        try {
+          const d1Value = suggestedValue ? 1 : 0
+          await d1Run(
+            db,
+            `INSERT OR REPLACE INTO character_attributes (character_id, attribute_key, value, confidence)
+             VALUES (?, ?, ?, 0.8)`,
+            [characterId, attribute, d1Value]
+          )
+        } catch (e) {
+          console.warn('D1 correction write failed (KV still updated):', e)
+        }
       }
 
       // Clear corrections for this attribute
