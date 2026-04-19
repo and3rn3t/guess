@@ -18,6 +18,7 @@ interface RankedCandidate {
   name: string
   category: string
   probability: number
+  imageUrl?: string
 }
 
 export const ProbabilityLeaderboard = memo(function ProbabilityLeaderboard({ characters, answers, probabilities: externalProbs }: ProbabilityLeaderboardProps) {
@@ -34,6 +35,7 @@ export const ProbabilityLeaderboard = memo(function ProbabilityLeaderboard({ cha
           name: char?.name ?? id,
           category: char?.category ?? '',
           probability,
+          imageUrl: char?.imageUrl,
         }
       })
       .filter((c) => c.probability > 0)
@@ -73,11 +75,19 @@ export const ProbabilityLeaderboard = memo(function ProbabilityLeaderboard({ cha
                   <span className="text-xs font-bold text-muted-foreground w-4 text-right shrink-0">
                     {index + 1}
                   </span>
-                  <UserCircle
-                    size={20}
-                    weight={index === 0 ? 'fill' : 'regular'}
-                    className={index === 0 ? 'text-accent' : 'text-muted-foreground'}
-                  />
+                  {candidate.imageUrl ? (
+                    <img
+                      src={candidate.imageUrl}
+                      alt=""
+                      className={`w-5 h-5 rounded-full object-cover shrink-0 ${index === 0 ? 'ring-1 ring-accent' : ''}`}
+                    />
+                  ) : (
+                    <UserCircle
+                      size={20}
+                      weight={index === 0 ? 'fill' : 'regular'}
+                      className={index === 0 ? 'text-accent' : 'text-muted-foreground'}
+                    />
+                  )}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between gap-2">
                       <span

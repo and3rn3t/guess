@@ -16,6 +16,7 @@ import { runDedup } from './dedup.js';
 import { generateUploadSQL, applyToD1 } from './upload.js';
 import { formatElapsed } from './utils.js';
 import { runEnrichment, showEnrichStats, generateEnrichUploadSQL, retryFailed } from './enrich.js';
+import { processImages, showImageStats, generateImageUrlSQL, retryFailedImages } from './images.js';
 import type { Category } from './types.js';
 
 import { ingestAniList } from './sources/anilist.js';
@@ -118,6 +119,31 @@ async function main() {
         ? parseInt(process.argv[process.argv.indexOf('--concurrency') + 1])
         : undefined;
       await retryFailed({ batchSize, concurrency });
+    } else if (action === 'images') {
+      const limit = process.argv.includes('--limit')
+        ? parseInt(process.argv[process.argv.indexOf('--limit') + 1])
+        : undefined;
+      const concurrency = process.argv.includes('--concurrency')
+        ? parseInt(process.argv[process.argv.indexOf('--concurrency') + 1])
+        : undefined;
+      const sourceIdx = process.argv.indexOf('--source');
+      const source = sourceIdx >= 0 ? process.argv[sourceIdx + 1] : undefined;
+      await processImages({ limit, concurrency, source });
+    } else if (action === 'images-stats') {
+      showImageStats();
+    } else if (action === 'images-update-urls') {
+      const r2Url = process.argv.includes('--r2-url')
+        ? process.argv[process.argv.indexOf('--r2-url') + 1]
+        : undefined;
+      generateImageUrlSQL({ r2PublicUrl: r2Url });
+      if (process.argv.includes('--apply')) {
+        const remote = process.argv.includes('--remote');
+        const envArg = process.argv.find(a => a === 'production' || a === 'preview');
+        const env = (envArg ?? 'production') as 'production' | 'preview';
+        await applyToD1('migrations/0007_image_urls.sql', env, remote);
+      }
+    } else if (action === 'images-retry') {
+      retryFailedImages();
     } else if (action === 'all') {
       await runAll(param);
     } else if (action in SOURCES) {
@@ -140,6 +166,10 @@ Commands:
   enrich-stats              Show enrichment progress
   enrich-upload [--apply]   Generate + optionally apply attribute SQL to D1
   enrich-retry [batchSize]  Retry failed enrichments
+  images                    Download, resize, upload images to R2
+  images-stats              Show image pipeline progress
+  images-update-urls        Generate SQL to update D1 image_url to R2
+  images-retry              Reset failed images to pending
   stats                     Show staging DB statistics
 
 Enrich options:
@@ -148,6 +178,13 @@ Enrich options:
   --category <cat>          Only enrich specific category
   --min-pop <float>         Minimum popularity (0-1)
   --dry-run                 Preview without calling LLM
+
+Image options:
+  --limit N                 Max images to process
+  --concurrency N           Parallel downloads (default: 5)
+  --source <src>            Only process images from specific source
+  --r2-url <url>            R2 public URL base (for images-update-urls)
+  --apply [--remote]        Apply SQL to D1 (for images-update-urls)
       `);
     }
   } finally {

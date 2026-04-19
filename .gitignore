@@ -39,6 +39,7 @@ data/
 # Generated migration chunks (too large for git)
 migrations/chunks/
 migrations/0005_ingest_characters.sql
+migrations/0007_image_urls.sql
 **/agent-eval-report*
 packages
 pids

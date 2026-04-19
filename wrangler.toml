@@ -26,6 +26,10 @@ database_name = "guess-db"
 database_id = "1ec6e6bd-56be-4ab6-9d90-09a15243154f"
 migrations_dir = "migrations"
 
+[[env.production.r2_buckets]]
+binding = "GUESS_IMAGES"
+bucket_name = "guess-images"
+
 # ── Preview / Development ─────────────────────────────────────
 # Isolated KV so preview experiments never touch production data.
 [env.preview]
@@ -43,3 +47,7 @@ binding = "GUESS_DB"
 database_name = "guess-db-preview"
 database_id = "a02a0492-36d2-4513-8270-82a3467914de"
 migrations_dir = "migrations"
+
+[[env.preview.r2_buckets]]
+binding = "GUESS_IMAGES"
+bucket_name = "guess-images"

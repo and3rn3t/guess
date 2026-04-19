@@ -40,6 +40,7 @@ export interface Character {
   name: string;
   category: CharacterCategory;
   attributes: Record<string, boolean | null>;
+  imageUrl?: string;
   isCustom?: boolean;
   createdBy?: string;
   createdAt?: number;

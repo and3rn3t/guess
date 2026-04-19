@@ -54,11 +54,22 @@ export function GuessReveal({
             animate={{ scale: 1 }}
             transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
           >
-            <Sparkle
-              size={64}
-              weight="fill"
-              className="mx-auto text-accent animate-float"
-            />
+            {character.imageUrl ? (
+              <div className="mx-auto w-24 h-24 rounded-full overflow-hidden ring-4 ring-accent/50 shadow-lg shadow-accent/20 animate-float">
+                <img
+                  src={character.imageUrl}
+                  alt={character.name}
+                  className="w-full h-full object-cover"
+                  loading="eager"
+                />
+              </div>
+            ) : (
+              <Sparkle
+                size={64}
+                weight="fill"
+                className="mx-auto text-accent animate-float"
+              />
+            )}
           </motion.div>
 
           <AnimatePresence mode="wait">
@@ -120,6 +131,23 @@ export function GuessReveal({
                 <h2 className="text-2xl font-semibold text-muted-foreground">
                   I believe you're thinking of...
                 </h2>
+                {character.imageUrl && (
+                  <motion.div
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ delay: 0.1, type: "spring", stiffness: 200 }}
+                    className="flex justify-center"
+                  >
+                    <div className="w-32 h-32 rounded-full overflow-hidden ring-4 ring-accent/50 shadow-xl shadow-accent/30">
+                      <img
+                        src={character.imageUrl}
+                        alt={character.name}
+                        className="w-full h-full object-cover"
+                        loading="eager"
+                      />
+                    </div>
+                  </motion.div>
+                )}
                 <h1 className="text-5xl md:text-6xl font-bold text-foreground">
                   {character.name}
                 </h1>
@@ -289,11 +317,21 @@ export function GameOver({
                 animate={{ rotate: [0, -8, 8, -4, 4, 0] }}
                 transition={{ duration: 0.5, delay: 0.2 }}
               >
-                <Sparkle
-                  size={64}
-                  weight="fill"
-                  className="mx-auto text-accent"
-                />
+                {character?.imageUrl ? (
+                  <div className="mx-auto w-20 h-20 rounded-full overflow-hidden ring-4 ring-accent/50 shadow-lg shadow-accent/20">
+                    <img
+                      src={character.imageUrl}
+                      alt={character.name}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                ) : (
+                  <Sparkle
+                    size={64}
+                    weight="fill"
+                    className="mx-auto text-accent"
+                  />
+                )}
               </motion.div>
               <div>
                 <h2 className="text-4xl font-bold text-foreground mb-2">

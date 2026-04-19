@@ -4,6 +4,7 @@ export interface Env {
   OPENAI_API_KEY: string
   GUESS_KV: KVNamespace
   GUESS_DB: D1Database
+  GUESS_IMAGES: R2Bucket
   CLOUDFLARE_AI_GATEWAY?: string
   AI_GATEWAY_TOKEN?: string
 }
