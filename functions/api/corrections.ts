@@ -1,6 +1,7 @@
 import {
   type Env,
-  getUserId,
+  getOrCreateUserId,
+  withSetCookie,
   checkRateLimit,
   parseJsonBody,
   jsonResponse,
@@ -64,7 +65,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   if (!attribute || typeof attribute !== 'string') return errorResponse('Missing attribute', 400)
   if (typeof suggestedValue !== 'boolean') return errorResponse('suggestedValue must be boolean', 400)
 
-  const userId = getUserId(context.request)
+  const { userId, setCookieHeader } = await getOrCreateUserId(context.request, context.env)
   const { allowed } = await checkRateLimit(kv, userId, 'corrections', 20)
   if (!allowed) return errorResponse('Rate limit exceeded', 429)
 
@@ -125,10 +126,10 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       const remaining = corrections.filter((c) => c.attribute !== attribute)
       await kvPut(kv, key, remaining)
 
-      return jsonResponse({ success: true, autoApplied: true })
+      return withSetCookie(jsonResponse({ success: true, autoApplied: true }), setCookieHeader)
     }
 
-    return jsonResponse({ success: true, autoApplied: false })
+    return withSetCookie(jsonResponse({ success: true, autoApplied: false }), setCookieHeader)
   } catch (e) {
     console.error('corrections POST error:', e)
     return errorResponse('Internal server error', 500)

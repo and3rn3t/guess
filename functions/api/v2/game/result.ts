@@ -3,11 +3,11 @@ import {
   jsonResponse,
   errorResponse,
   parseJsonBody,
-  kvGetObject,
-  getUserId,
+  getOrCreateUserId,
+  withSetCookie,
   d1Run,
 } from '../../_helpers'
-import type { GameSession } from '../_game-engine'
+import { type GameSession, loadSession, deleteSession } from '../_game-engine'
 
 // ── Types ────────────────────────────────────────────────────
 
@@ -31,12 +31,12 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   }
 
   // Load session
-  const session = await kvGetObject<GameSession>(kv, `game:${body.sessionId}`)
+  const session = await loadSession(kv, body.sessionId)
   if (!session) {
     return errorResponse('Session not found or expired', 404)
   }
 
-  const userId = getUserId(context.request)
+  const { userId, setCookieHeader } = await getOrCreateUserId(context.request, context.env)
 
   // Build steps from session answers + questions
   const steps = session.answers.map((a) => {
@@ -85,10 +85,18 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     }
   }
 
-  // Clean up session
-  await kv.delete(`game:${body.sessionId}`)
+  // Clean up session + pool from KV
+  await deleteSession(kv, body.sessionId)
 
-  return jsonResponse({
+  // Mark D1 backup as completed (non-blocking)
+  if (db) {
+    context.waitUntil(
+      d1Run(db, 'UPDATE game_sessions SET completed_at = ? WHERE id = ?', [Date.now(), body.sessionId])
+        .catch(() => {/* non-critical */})
+    )
+  }
+
+  return withSetCookie(jsonResponse({
     success: true,
     summary: {
       won: body.correct,
@@ -97,5 +105,5 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       maxQuestions: session.maxQuestions,
       poolSize: session.characters.length,
     },
-  })
+  }), setCookieHeader)
 }

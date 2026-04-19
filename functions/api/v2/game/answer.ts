@@ -3,7 +3,7 @@ import {
   jsonResponse,
   errorResponse,
   parseJsonBody,
-  kvGetObject,
+  d1Run,
 } from '../../_helpers'
 import {
   type GameSession,
@@ -15,8 +15,9 @@ import {
   selectBestQuestion,
   generateReasoning,
   calculateProbabilities,
+  loadSession,
+  saveSessionState,
   VALID_ANSWERS,
-  SESSION_TTL,
 } from '../_game-engine'
 
 // ── Types ────────────────────────────────────────────────────
@@ -39,7 +40,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   }
 
   // Load session
-  const session = await kvGetObject<GameSession>(kv, `game:${body.sessionId}`)
+  const session = await loadSession(kv, body.sessionId)
   if (!session) {
     return errorResponse('Session not found or expired', 404)
   }
@@ -64,7 +65,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     // Undo the last answer
     session.answers.pop()
     // Restore current question
-    await kv.put(`game:${session.id}`, JSON.stringify(session), { expirationTtl: SESSION_TTL })
+    await saveSessionState(kv, session)
 
     return jsonResponse({
       type: 'contradiction',
@@ -86,7 +87,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       const confidence = Math.round((probs.get(guess.id) || 0) * 100)
 
       session.currentQuestion = null
-      await kv.put(`game:${session.id}`, JSON.stringify(session), { expirationTtl: SESSION_TTL })
+      await saveSessionState(kv, session)
 
       return jsonResponse({
         type: 'guess',
@@ -110,7 +111,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     // No more questions — force a guess
     const guess = getBestGuess(filtered, session.answers)
     session.currentQuestion = null
-    await kv.put(`game:${session.id}`, JSON.stringify(session), { expirationTtl: SESSION_TTL })
+    await saveSessionState(kv, session)
 
     if (guess) {
       const probs = calculateProbabilities(filtered, session.answers)
@@ -144,7 +145,19 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
   // Save updated session
   session.currentQuestion = nextQuestion
-  await kv.put(`game:${session.id}`, JSON.stringify(session), { expirationTtl: SESSION_TTL })
+  await saveSessionState(kv, session)
+
+  // Sync answers to D1 backup (non-blocking)
+  const db = context.env.GUESS_DB
+  if (db) {
+    context.waitUntil(
+      d1Run(
+        db,
+        `UPDATE game_sessions SET answers = ?, current_question_attr = ? WHERE id = ?`,
+        [JSON.stringify(session.answers), nextQuestion.attribute, session.id]
+      ).catch(() => {/* non-critical */})
+    )
+  }
 
   return jsonResponse({
     type: 'question',

@@ -333,3 +333,90 @@ export function filterPossibleCharacters(
     return true
   })
 }
+
+// ── Session storage (split pool / mutable state) ─────────────
+// The immutable pool (characters + questions) is stored separately
+// so that each answer only rewrites the small mutable session.
+
+interface LeanSession {
+  id: string
+  poolKey: string
+  answers: Answer[]
+  currentQuestion: ServerQuestion | null
+  difficulty: string
+  maxQuestions: number
+  createdAt: number
+}
+
+interface GamePool {
+  characters: ServerCharacter[]
+  questions: ServerQuestion[]
+}
+
+/** Store a new session — writes both pool (immutable) and lean session (mutable). */
+export async function storeSession(kv: KVNamespace, session: GameSession): Promise<void> {
+  const poolKey = `pool:${session.id}`
+  const pool: GamePool = { characters: session.characters, questions: session.questions }
+  const lean: LeanSession = {
+    id: session.id,
+    poolKey,
+    answers: session.answers,
+    currentQuestion: session.currentQuestion,
+    difficulty: session.difficulty,
+    maxQuestions: session.maxQuestions,
+    createdAt: session.createdAt,
+  }
+  await Promise.all([
+    kv.put(poolKey, JSON.stringify(pool), { expirationTtl: SESSION_TTL }),
+    kv.put(`game:${session.id}`, JSON.stringify(lean), { expirationTtl: SESSION_TTL }),
+  ])
+}
+
+/** Load a session from KV — handles both legacy (full) and new (lean + pool) formats. */
+export async function loadSession(kv: KVNamespace, sessionId: string): Promise<GameSession | null> {
+  const raw = await kv.get(`game:${sessionId}`)
+  if (!raw) return null
+
+  const data = JSON.parse(raw) as LeanSession | GameSession
+
+  // Legacy full session (has 'characters' array directly)
+  if ('characters' in data) return data as GameSession
+
+  // New lean format — load pool separately
+  const poolStr = await kv.get(data.poolKey)
+  if (!poolStr) return null
+  const pool = JSON.parse(poolStr) as GamePool
+
+  return {
+    id: data.id,
+    characters: pool.characters,
+    questions: pool.questions,
+    answers: data.answers,
+    currentQuestion: data.currentQuestion,
+    difficulty: data.difficulty,
+    maxQuestions: data.maxQuestions,
+    createdAt: data.createdAt,
+  }
+}
+
+/** Save only mutable session state (answers + currentQuestion). Much smaller write. */
+export async function saveSessionState(kv: KVNamespace, session: GameSession): Promise<void> {
+  const lean: LeanSession = {
+    id: session.id,
+    poolKey: `pool:${session.id}`,
+    answers: session.answers,
+    currentQuestion: session.currentQuestion,
+    difficulty: session.difficulty,
+    maxQuestions: session.maxQuestions,
+    createdAt: session.createdAt,
+  }
+  await kv.put(`game:${session.id}`, JSON.stringify(lean), { expirationTtl: SESSION_TTL })
+}
+
+/** Delete a session and its pool from KV. */
+export async function deleteSession(kv: KVNamespace, sessionId: string): Promise<void> {
+  await Promise.all([
+    kv.delete(`game:${sessionId}`),
+    kv.delete(`pool:${sessionId}`),
+  ])
+}

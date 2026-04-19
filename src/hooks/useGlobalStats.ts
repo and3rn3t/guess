@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { getUserId } from '@/lib/sync'
 import type { Difficulty, GameHistoryEntry, GameHistoryStep } from '@/lib/types'
 
 // ── Server response types ────────────────────────────────────
@@ -74,14 +73,12 @@ export function useGlobalStats() {
   const [error, setError] = useState<string | null>(null)
   const fetchedRef = useRef(false)
 
-  const headers = useCallback((): Record<string, string> => ({
-    'Content-Type': 'application/json',
-    'X-User-Id': getUserId(),
-  }), [])
-
   const fetchStats = useCallback(async () => {
     try {
-      const res = await fetch('/api/v2/stats', { headers: headers() })
+      const res = await fetch('/api/v2/stats', {
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+      })
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       const data = (await res.json()) as GlobalStats
       cachedStats = data
@@ -90,11 +87,14 @@ export function useGlobalStats() {
       console.warn('Failed to fetch global stats:', e)
       setError('Failed to load global statistics')
     }
-  }, [headers])
+  }, [])
 
   const fetchHistory = useCallback(async () => {
     try {
-      const res = await fetch('/api/v2/history?limit=100', { headers: headers() })
+      const res = await fetch('/api/v2/history?limit=100', {
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+      })
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       const data = (await res.json()) as HistoryResponse
 
@@ -116,7 +116,7 @@ export function useGlobalStats() {
       console.warn('Failed to fetch game history:', e)
       // Non-critical — stats still usable without history
     }
-  }, [headers])
+  }, [])
 
   // Initial fetch on mount (stale-while-revalidate)
   useEffect(() => {

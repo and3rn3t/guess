@@ -1,6 +1,7 @@
 import {
   type Env,
-  getUserId,
+  getOrCreateUserId,
+  withSetCookie,
   jsonResponse,
   errorResponse,
   d1Query,
@@ -28,7 +29,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
   const db = context.env.GUESS_DB
   if (!db) return errorResponse('D1 not configured', 503)
 
-  const userId = getUserId(context.request)
+  const { userId, setCookieHeader } = await getOrCreateUserId(context.request, context.env)
   const url = new URL(context.request.url)
   const limit = Math.min(Number(url.searchParams.get('limit')) || 50, 200)
 
@@ -73,10 +74,10 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       }
     })
 
-    return jsonResponse({
+    return withSetCookie(jsonResponse({
       games,
       total: total?.count ?? games.length,
-    })
+    }), setCookieHeader)
   } catch (e) {
     console.error('history GET error:', e)
     return errorResponse('Internal server error', 500)

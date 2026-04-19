@@ -5,6 +5,9 @@ import {
   parseJsonBody,
   isValidCategory,
   d1Query,
+  d1Run,
+  getOrCreateUserId,
+  withSetCookie,
 } from '../../_helpers'
 import {
   type GameSession,
@@ -12,9 +15,9 @@ import {
   type ServerQuestion,
   selectBestQuestion,
   generateReasoning,
+  storeSession,
   POOL_SIZE,
   MIN_ATTRIBUTES,
-  SESSION_TTL,
   DIFFICULTY_MAP,
 } from '../_game-engine'
 
@@ -101,23 +104,17 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   }
 
   // Query 2: Get attributes for pool characters
-  // D1 limits bound parameters to 100 per query, so batch in chunks
+  // IDs are from our own DB query above; validated to safe charset to avoid injection
   const charIds = characters.map((c) => c.id)
-  const CHUNK_SIZE = 80 // leave headroom below D1's 100-param limit
-  const attributes: AttributeRow[] = []
-  for (let i = 0; i < charIds.length; i += CHUNK_SIZE) {
-    const chunk = charIds.slice(i, i + CHUNK_SIZE)
-    const placeholders = chunk.map(() => '?').join(',')
-    const rows = await d1Query<AttributeRow>(
-      db,
-      `SELECT ca.character_id, ca.attribute_key, ca.value
-       FROM character_attributes ca
-       WHERE ca.character_id IN (${placeholders})
-       AND ca.value IS NOT NULL`,
-      chunk
-    )
-    attributes.push(...rows)
-  }
+  const safeIds = charIds.filter((id) => /^[a-z0-9_-]+$/i.test(id))
+  const charIdSet = safeIds.map((id) => `'${id}'`).join(',')
+  const attributes = await d1Query<AttributeRow>(
+    db,
+    `SELECT ca.character_id, ca.attribute_key, ca.value
+     FROM character_attributes ca
+     WHERE ca.character_id IN (${charIdSet})
+     AND ca.value IS NOT NULL`
+  )
 
   // Query 3: Get all questions
   const questionRows = await d1Query<QuestionRow>(
@@ -177,14 +174,35 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     createdAt: Date.now(),
   }
 
-  await kv.put(`game:${sessionId}`, JSON.stringify(session), { expirationTtl: SESSION_TTL })
+  await storeSession(kv, session)
 
-  return jsonResponse({
+  // D1 backup — survives KV expiration for session recovery
+  const { userId, setCookieHeader } = await getOrCreateUserId(context.request, context.env)
+  try {
+    await d1Run(
+      db,
+      `INSERT INTO game_sessions (id, user_id, character_ids, answers, current_question_attr, difficulty, max_questions, created_at)
+       VALUES (?, ?, ?, '[]', ?, ?, ?, ?)`,
+      [
+        sessionId,
+        userId,
+        JSON.stringify(charIds),
+        firstQuestion.attribute,
+        difficulty,
+        maxQuestions,
+        session.createdAt,
+      ]
+    )
+  } catch {
+    // Non-critical — game still works via KV
+  }
+
+  return withSetCookie(jsonResponse({
     sessionId,
     question: firstQuestion,
     reasoning,
     totalCharacters: serverChars.length,
-  })
+  }), setCookieHeader)
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error'
     return errorResponse(`Game start failed: ${message}`, 500)

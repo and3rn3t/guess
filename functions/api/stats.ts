@@ -1,6 +1,7 @@
 import {
   type Env,
-  getUserId,
+  getOrCreateUserId,
+  withSetCookie,
   checkRateLimit,
   parseJsonBody,
   jsonResponse,
@@ -81,7 +82,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     return errorResponse('Missing or invalid "questionsAsked"', 400)
   }
 
-  const userId = getUserId(context.request)
+  const { userId, setCookieHeader } = await getOrCreateUserId(context.request, context.env)
   const { allowed } = await checkRateLimit(kv, userId, 'stats', 30)
   if (!allowed) return errorResponse('Rate limit exceeded', 429)
 
@@ -115,7 +116,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     leaderboard.sort((a, b) => b.timesPlayed - a.timesPlayed)
     await kvPut(kv, 'stats:leaderboard', leaderboard.slice(0, 20))
 
-    return jsonResponse({ success: true })
+    return withSetCookie(jsonResponse({ success: true }), setCookieHeader)
   } catch (e) {
     console.error('stats POST error:', e)
     return errorResponse('Internal server error', 500)

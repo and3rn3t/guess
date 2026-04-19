@@ -21,7 +21,6 @@ export function getUserId(): string {
 function headers(): Record<string, string> {
   return {
     'Content-Type': 'application/json',
-    'X-User-Id': getUserId(),
   }
 }
 
