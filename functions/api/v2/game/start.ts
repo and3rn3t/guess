@@ -48,6 +48,7 @@ interface QuestionRow {
 // Creates a game session, selects character pool from D1, returns first question
 
 export const onRequestPost: PagesFunction<Env> = async (context) => {
+  try {
   const db = context.env.GUESS_DB
   const kv = context.env.GUESS_KV
   if (!db || !kv) return errorResponse('D1/KV not configured', 503)
@@ -100,16 +101,23 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   }
 
   // Query 2: Get attributes for pool characters
+  // D1 limits bound parameters to 100 per query, so batch in chunks
   const charIds = characters.map((c) => c.id)
-  const placeholders = charIds.map(() => '?').join(',')
-  const attributes = await d1Query<AttributeRow>(
-    db,
-    `SELECT ca.character_id, ca.attribute_key, ca.value
-     FROM character_attributes ca
-     WHERE ca.character_id IN (${placeholders})
-     AND ca.value IS NOT NULL`,
-    charIds
-  )
+  const CHUNK_SIZE = 80 // leave headroom below D1's 100-param limit
+  const attributes: AttributeRow[] = []
+  for (let i = 0; i < charIds.length; i += CHUNK_SIZE) {
+    const chunk = charIds.slice(i, i + CHUNK_SIZE)
+    const placeholders = chunk.map(() => '?').join(',')
+    const rows = await d1Query<AttributeRow>(
+      db,
+      `SELECT ca.character_id, ca.attribute_key, ca.value
+       FROM character_attributes ca
+       WHERE ca.character_id IN (${placeholders})
+       AND ca.value IS NOT NULL`,
+      chunk
+    )
+    attributes.push(...rows)
+  }
 
   // Query 3: Get all questions
   const questionRows = await d1Query<QuestionRow>(
@@ -177,4 +185,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     reasoning,
     totalCharacters: serverChars.length,
   })
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Unknown error'
+    return errorResponse(`Game start failed: ${message}`, 500)
+  }
 }
