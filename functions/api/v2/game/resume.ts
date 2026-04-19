@@ -19,7 +19,7 @@ import {
   saveSessionState,
   DIFFICULTY_MAP,
 } from '../_game-engine'
-
+import { rephraseQuestion } from '../_llm-rephrase'
 import type {
   CharactersRow,
   CharacterAttributesRow,
@@ -169,6 +169,21 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   const reasoning = session.currentQuestion
     ? generateReasoning(session.currentQuestion, filtered, session.answers)
     : null
+
+  // Rephrase resumed question for conversational feel
+  if (session.currentQuestion && reasoning) {
+    const rephrased = await rephraseQuestion(
+      context.env,
+      session.currentQuestion,
+      session.answers,
+      reasoning,
+      session.answers.length + 1,
+      session.maxQuestions,
+    )
+    if (rephrased) {
+      session.currentQuestion.displayText = rephrased
+    }
+  }
 
   return jsonResponse({
     expired: false,

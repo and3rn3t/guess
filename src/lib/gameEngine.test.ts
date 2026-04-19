@@ -160,9 +160,16 @@ describe('selectBestQuestion', () => {
   it('prefers questions that split possibilities evenly', () => {
     // isHuman splits 2 (true) / 2 (false) — perfect 50/50
     // canFly splits 1 (true) / 3 (false) — imbalanced
-    // With no prior answers, isHuman should be preferred (highest info gain)
-    const q = selectBestQuestion(CHARS, [], QUESTIONS)
-    expect(q?.attribute).toBe('isHuman')
+    // Top-K stochastic sampling may pick any high-info-gain question,
+    // but isHuman should be among the top candidates
+    const counts: Record<string, number> = {}
+    for (let i = 0; i < 50; i++) {
+      const q = selectBestQuestion(CHARS, [], QUESTIONS)
+      counts[q!.attribute] = (counts[q!.attribute] || 0) + 1
+    }
+    // isHuman should be selected most often (highest info gain)
+    const best = Object.entries(counts).sort((a, b) => b[1] - a[1])[0]
+    expect(best[0]).toBe('isHuman')
   })
 
   it('boosts differentiating questions when top-2 dominate', () => {

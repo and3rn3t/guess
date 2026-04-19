@@ -14,6 +14,7 @@ import {
   BONUS_QUESTIONS_PER_REJECT,
   DIFFICULTY_MAP,
 } from '../_game-engine'
+import { rephraseQuestion } from '../_llm-rephrase'
 
 // ── Types ────────────────────────────────────────────────────
 
@@ -83,6 +84,19 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   }
 
   const reasoning = generateReasoning(nextQuestion, filtered, session.answers)
+
+  // Rephrase question via LLM for conversational feel (graceful fallback)
+  const rephrased = await rephraseQuestion(
+    context.env,
+    nextQuestion,
+    session.answers,
+    reasoning,
+    session.answers.length + 1,
+    session.maxQuestions,
+  )
+  if (rephrased) {
+    nextQuestion.displayText = rephrased
+  }
 
   session.currentQuestion = nextQuestion
   await saveSessionState(kv, session)

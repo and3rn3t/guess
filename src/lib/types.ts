@@ -50,6 +50,7 @@ export interface Question {
   id: string
   text: string
   attribute: string
+  displayText?: string
 }
 
 export type AnswerValue = 'yes' | 'no' | 'maybe' | 'unknown'

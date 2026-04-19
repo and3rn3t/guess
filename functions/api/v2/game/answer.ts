@@ -19,6 +19,7 @@ import {
   saveSessionState,
   VALID_ANSWERS,
 } from '../_game-engine'
+import { rephraseQuestion } from '../_llm-rephrase'
 
 // ── Types ────────────────────────────────────────────────────
 
@@ -139,6 +140,19 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   }
 
   const reasoning = generateReasoning(nextQuestion, filtered, session.answers)
+
+  // Rephrase question via LLM for conversational feel (graceful fallback)
+  const rephrased = await rephraseQuestion(
+    context.env,
+    nextQuestion,
+    session.answers,
+    reasoning,
+    questionCount + 1,
+    session.maxQuestions,
+  )
+  if (rephrased) {
+    nextQuestion.displayText = rephrased
+  }
 
   // Count eliminated
   const previousFiltered = filterPossibleCharacters(

@@ -20,6 +20,7 @@ import {
   MIN_ATTRIBUTES,
   DIFFICULTY_MAP,
 } from '../_game-engine'
+import { rephraseQuestion } from '../_llm-rephrase'
 
 import type { CharactersRow, CharacterAttributesRow, QuestionsRow } from '../../_db-types'
 
@@ -149,6 +150,19 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   }
 
   const reasoning = generateReasoning(firstQuestion, serverChars, [])
+
+  // Rephrase question via LLM for conversational feel (non-blocking fallback)
+  const rephrased = await rephraseQuestion(
+    context.env,
+    firstQuestion,
+    [],
+    reasoning,
+    1,
+    maxQuestions,
+  )
+  if (rephrased) {
+    firstQuestion.displayText = rephrased
+  }
 
   // Create session and store in KV
   const sessionId = crypto.randomUUID()

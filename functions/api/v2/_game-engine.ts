@@ -29,6 +29,7 @@ export interface ServerQuestion {
   id: string
   text: string
   attribute: string
+  displayText?: string
 }
 
 export interface ReasoningExplanation {
@@ -150,11 +151,9 @@ export function selectBestQuestion(
   const topNMass = topN.reduce((sum, [, p]) => sum + p, 0)
   const topNChars = topN.map(([id]) => characters.find((c) => c.id === id)).filter(Boolean)
 
-  let bestQuestion: ServerQuestion | null = null
-  let bestScore = -1
-
   const currentProbs = characters.map((c) => probs.get(c.id) || 0)
   const currentEntropy = entropy(currentProbs)
+  const scored: Array<{ question: ServerQuestion; score: number }> = []
 
   for (const question of availableQuestions) {
     let pYes = 0
@@ -215,13 +214,26 @@ export function selectBestQuestion(
       }
     }
 
-    if (infoGain > bestScore) {
-      bestScore = infoGain
-      bestQuestion = question
-    }
+    scored.push({ question, score: infoGain })
   }
 
-  return bestQuestion
+  if (scored.length === 0) return null
+
+  scored.sort((a, b) => b.score - a.score)
+  if (scored[0].score <= 0) return scored[0].question
+
+  // Top-K weighted random: pick from all questions within 70% of best score
+  // This adds variety across games while keeping selections near-optimal
+  const threshold = scored[0].score * 0.7
+  const topK = scored.filter((s) => s.score >= threshold)
+  const totalWeight = topK.reduce((sum, s) => sum + s.score, 0)
+  let random = Math.random() * totalWeight
+  for (const candidate of topK) {
+    random -= candidate.score
+    if (random <= 0) return candidate.question
+  }
+
+  return topK[0].question
 }
 
 /** Build reasoning explanation for a question. */

@@ -82,7 +82,7 @@ export function QuestionCard({
 
           <div className="min-h-[80px] md:min-h-[120px] flex items-center" aria-live="polite">
             <h2 className="text-2xl md:text-3xl lg:text-4xl font-semibold leading-tight text-foreground">
-              {question.text}
+              {question.displayText || question.text}
             </h2>
           </div>
 

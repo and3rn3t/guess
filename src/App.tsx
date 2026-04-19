@@ -587,7 +587,7 @@ function App() {
             <div className="sr-only" aria-live="polite" aria-atomic="true">
               {gamePhase === "playing" &&
                 currentQuestion &&
-                `Question ${answers.length + 1}: ${currentQuestion.text}`}
+                `Question ${answers.length + 1}: ${currentQuestion.displayText || currentQuestion.text}`}
               {gamePhase === "guessing" &&
                 finalGuess &&
                 `I think it's ${finalGuess.name}. Was I correct?`}

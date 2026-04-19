@@ -99,7 +99,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       if (!state.currentQuestion) return state
       const newAnswer: Answer = { questionId: state.currentQuestion.attribute, value: action.value }
       const newStep: GameHistoryStep = {
-        questionText: state.currentQuestion.text,
+        questionText: state.currentQuestion.displayText || state.currentQuestion.text,
         attribute: state.currentQuestion.attribute,
         answer: action.value,
       }
