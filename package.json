@@ -17,7 +17,7 @@
     "cf:dev": "pnpm build && wrangler pages dev dist",
     "test": "vitest run",
     "test:unit": "vitest run --exclude 'src/components/**'",
-    "test:components": "vitest run --include 'src/components/**/*.test.tsx'",
+    "test:components": "vitest run src/components/",
     "test:e2e": "playwright test",
     "test:coverage": "vitest run --coverage",
     "test:watch": "vitest",

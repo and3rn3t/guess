@@ -166,7 +166,7 @@ describe('useLocalGame', () => {
     const { detectContradictions } = await import('@/lib/gameEngine')
     vi.mocked(detectContradictions).mockReturnValue({
       hasContradiction: true,
-      contradictingPair: null,
+      remainingCount: 0,
     })
 
     const props = createHookProps()

@@ -75,13 +75,13 @@ describe('WelcomeScreen', () => {
   it('shows Quick Play for returning players', () => {
     const history: GameHistoryEntry[] = [{
       id: '1',
-      date: new Date().toISOString(),
+      timestamp: Date.now(),
       characterId: 'mario',
       characterName: 'Mario',
       won: true,
-      steps: [{ questionId: 'q1', questionText: 'Q1', answer: 'yes' }],
+      steps: [{ questionId: 'q1', questionText: 'Q1', attribute: 'attr1', answer: 'yes' }],
       difficulty: 'medium',
-      totalCharacters: 100,
+      totalQuestions: 10,
     }]
     render(<WelcomeScreen {...defaultProps()} gameHistory={history} />)
     expect(screen.getByRole('button', { name: /quick play/i })).toBeInTheDocument()

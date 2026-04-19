@@ -407,9 +407,9 @@ describe('detectContradictions', () => {
 describe('shouldMakeGuess – progressive thresholds', () => {
   // Create a pool where top candidate has ~60% probability
   const pool: Character[] = [
-    { id: 'a', name: 'A', category: 'other', attributes: { isHuman: true, canFly: false } },
-    { id: 'b', name: 'B', category: 'other', attributes: { isHuman: true, canFly: true } },
-    { id: 'c', name: 'C', category: 'other', attributes: { isHuman: false, canFly: false } },
+    { id: 'a', name: 'A', category: 'movies', attributes: { isHuman: true, canFly: false } },
+    { id: 'b', name: 'B', category: 'movies', attributes: { isHuman: true, canFly: true } },
+    { id: 'c', name: 'C', category: 'movies', attributes: { isHuman: false, canFly: false } },
   ]
 
   it('guesses at 50% progress when top probability > 65%', () => {
@@ -427,7 +427,7 @@ describe('shouldMakeGuess – progressive thresholds', () => {
   it('guesses at 75% progress with lower confidence', () => {
     // At 75% through, threshold drops to >45%
     const chars: Character[] = Array.from({ length: 4 }, (_, i) => ({
-      id: `c${i}`, name: `C${i}`, category: 'other' as const,
+      id: `c${i}`, name: `C${i}`, category: 'movies' as const,
       attributes: { trait: i === 0 },
     }))
     const answers: Answer[] = [{ questionId: 'trait', value: 'yes' }]
@@ -439,9 +439,9 @@ describe('shouldMakeGuess – progressive thresholds', () => {
   it('uses adaptive gap detection at halfway', () => {
     // Two chars where one dominates after answers
     const chars: Character[] = [
-      { id: 'top', name: 'Top', category: 'other', attributes: { a: true, b: true } },
-      { id: 'bot', name: 'Bot', category: 'other', attributes: { a: true, b: false } },
-      { id: 'elim', name: 'Elim', category: 'other', attributes: { a: false, b: false } },
+      { id: 'top', name: 'Top', category: 'movies', attributes: { a: true, b: true } },
+      { id: 'bot', name: 'Bot', category: 'movies', attributes: { a: true, b: false } },
+      { id: 'elim', name: 'Elim', category: 'movies', attributes: { a: false, b: false } },
     ]
     const answers: Answer[] = [
       { questionId: 'a', value: 'yes' },
@@ -457,9 +457,9 @@ describe('selectBestQuestion – coverage penalty', () => {
   it('penalizes questions where >60% of characters have null attributes', () => {
     // Create characters where most have null for 'rareAttr'
     const chars: Character[] = [
-      { id: 'a', name: 'A', category: 'other', attributes: { common: true } },
-      { id: 'b', name: 'B', category: 'other', attributes: { common: false } },
-      { id: 'c', name: 'C', category: 'other', attributes: { common: true, rareAttr: true } },
+      { id: 'a', name: 'A', category: 'movies', attributes: { common: true } },
+      { id: 'b', name: 'B', category: 'movies', attributes: { common: false } },
+      { id: 'c', name: 'C', category: 'movies', attributes: { common: true, rareAttr: true } },
     ]
     const questions: Question[] = [
       { id: 'q1', text: 'Common?', attribute: 'common' },
@@ -474,14 +474,14 @@ describe('selectBestQuestion – coverage penalty', () => {
 describe('generateReasoning – topCandidates', () => {
   it('returns up to 5 top candidates with probabilities', () => {
     const manyChars: Character[] = Array.from({ length: 10 }, (_, i) => ({
-      id: `c${i}`, name: `Char${i}`, category: 'other' as const,
+      id: `c${i}`, name: `Char${i}`, category: 'movies' as const,
       attributes: { trait: i < 5 },
     }))
     const q: Question = { id: 'q', text: 'Has trait?', attribute: 'trait' }
     const result = generateReasoning(q, manyChars, [])
     expect(result.topCandidates).toHaveLength(5)
-    expect(result.topCandidates[0]).toHaveProperty('name')
-    expect(result.topCandidates[0]).toHaveProperty('probability')
+    expect(result.topCandidates![0]).toHaveProperty('name')
+    expect(result.topCandidates![0]).toHaveProperty('probability')
   })
 
   it('includes why and impact explanation strings', () => {
