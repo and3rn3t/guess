@@ -275,9 +275,12 @@ export function useServerGame(
     [serverSessionId, persistSessionId],
   );
 
+  const lastRejectedCharRef = useRef<string | null>(null);
+
   const rejectGuess = useCallback(
     async (characterId: string) => {
       if (!serverSessionId) return;
+      lastRejectedCharRef.current = characterId;
       dispatch({ type: "REJECT_GUESS" });
       try {
         const res = await fetch("/api/v2/game/reject-guess", {
@@ -303,15 +306,25 @@ export function useServerGame(
           setServerRemaining(data.remaining ?? 0);
           if (data.maxQuestions) setServerMaxQuestions(data.maxQuestions);
           toast.info("I'll keep trying — let me ask more questions!");
+        } else {
+          // Unexpected response shape — treat as error so user can retry
+          throw new Error("Unexpected server response after rejecting guess");
         }
       } catch {
-        toast.error("Failed to continue game — try again");
+        toast.error("Something went wrong — tap 'Try Again' to continue");
       } finally {
         dispatch({ type: "SET_THINKING", isThinking: false });
       }
     },
     [dispatch, serverSessionId, postServerResult],
   );
+
+  const retryAfterReject = useCallback(() => {
+    const charId = lastRejectedCharRef.current;
+    if (!charId || !serverSessionId) return;
+    dispatch({ type: "SET_THINKING", isThinking: true });
+    rejectGuess(charId);
+  }, [rejectGuess, serverSessionId, dispatch]);
 
   return {
     serverSessionId,
@@ -323,5 +336,6 @@ export function useServerGame(
     handleServerAnswer,
     postServerResult,
     rejectGuess,
+    retryAfterReject,
   };
 }

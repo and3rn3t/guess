@@ -33,6 +33,7 @@ interface PlayingScreenProps {
   setShowOnboarding: (show: boolean) => void;
   activeCharacters: Character[];
   probabilities: Map<string, number> | null;
+  onRetry?: () => void;
 }
 
 export function PlayingScreen({
@@ -53,6 +54,7 @@ export function PlayingScreen({
   setShowOnboarding,
   activeCharacters: _activeCharacters,
   probabilities: _probabilities,
+  onRetry,
 }: Readonly<PlayingScreenProps>) {
   return (
     <motion.div
@@ -170,6 +172,25 @@ export function PlayingScreen({
                 />
               )}
               {!currentQuestion && isThinking && <ThinkingCard />}
+              {!currentQuestion && !isThinking && onRetry && answers.length > 0 && (
+                <motion.div
+                  key="retry"
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -8 }}
+                  className="rounded-xl border bg-card p-6 text-center space-y-3"
+                >
+                  <p className="text-sm text-muted-foreground">
+                    Something went wrong loading the next question.
+                  </p>
+                  <button
+                    onClick={onRetry}
+                    className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
+                  >
+                    Try Again
+                  </button>
+                </motion.div>
+              )}
             </AnimatePresence>
           </div>
 

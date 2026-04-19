@@ -351,6 +351,7 @@ function App() {
     handleServerAnswer,
     postServerResult,
     rejectGuess,
+    retryAfterReject,
   } = useServerGame(dispatch);
   const { muted, toggle: toggleMute } = useSound();
   const [showQuitDialog, setShowQuitDialog] = useState(false);
@@ -634,6 +635,7 @@ function App() {
                   setShowOnboarding={setShowOnboarding}
                   activeCharacters={activeCharacters}
                   probabilities={probabilities}
+                  onRetry={retryAfterReject}
                 />
               )}
 
