@@ -235,8 +235,12 @@ function App() {
     CharacterCategory[]
   >("selected-categories", []);
   const [llmMode, setLlmMode] = useKV<boolean>("llm-mode", false);
+  const [serverMode, setServerMode] = useKV<boolean>("server-mode", false);
   const selectedCategories = new Set(selectedCategoryList);
   const [challenge, setChallenge] = useState<SharePayload | null>(null);
+  const [serverSessionId, setServerSessionId] = useState<string | null>(null);
+  const [serverRemaining, setServerRemaining] = useState(0);
+  const [serverTotal, setServerTotal] = useState(0);
   const { muted, toggle: toggleMute } = useSound();
   const [showQuitDialog, setShowQuitDialog] = useState(false);
   const [syncStatus, setSyncStatus] = useState<SyncStatus>("synced");
@@ -290,16 +294,20 @@ function App() {
 
   // ========== CONFIDENCE (cached probabilities) ==========
   const probabilities = (() => {
+    if (serverMode) return null;
     if (possibleCharacters.length === 0 || answers.length === 0) return null;
     return calculateProbabilities(possibleCharacters, answers);
   })();
 
   const confidence = (() => {
+    if (serverMode) return reasoning?.confidence ?? 0;
     if (!probabilities) return 0;
     let max = 0;
     for (const p of probabilities.values()) if (p > max) max = p;
     return Math.round(max * 100);
   })();
+
+  const effectiveRemaining = serverMode ? serverRemaining : possibleCharacters.length;
 
   // ========== SYNC STATUS ==========
   useEffect(() => {
@@ -323,6 +331,7 @@ function App() {
 
   // ========== AUTO-GENERATE QUESTION ==========
   useEffect(() => {
+    if (serverMode) return; // Server manages question flow
     if (
       gamePhase === "playing" &&
       currentQuestion === null &&
@@ -331,7 +340,7 @@ function App() {
       generateNextQuestion();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [gamePhase, currentQuestion, possibleCharacters]);
+  }, [gamePhase, currentQuestion, possibleCharacters, serverMode]);
 
   // ========== CATEGORY TOGGLE ==========
   const toggleCategory = (cat: CharacterCategory) => {
@@ -344,7 +353,51 @@ function App() {
   };
 
   // ========== GAME START ==========
-  const startGame = () => {
+  const startGame = async () => {
+    if (serverMode) {
+      dispatch({ type: "SET_THINKING", isThinking: true });
+      playThinking();
+      try {
+        const res = await fetch("/api/v2/game/start", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            categories: selectedCategoryList.length
+              ? selectedCategoryList
+              : undefined,
+            difficulty,
+          }),
+        });
+        if (!res.ok) throw new Error("Failed to start");
+        const data = (await res.json()) as {
+          sessionId: string;
+          question: Question;
+          reasoning: typeof reasoning;
+          totalCharacters: number;
+        };
+        setServerSessionId(data.sessionId);
+        setServerRemaining(data.totalCharacters);
+        setServerTotal(data.totalCharacters);
+        dispatch({ type: "START_GAME", characters: [] });
+        dispatch({
+          type: "SET_QUESTION",
+          question: data.question,
+          reasoning: data.reasoning,
+        });
+        analytics().then((m) =>
+          m.trackGameStart(difficulty, data.totalCharacters),
+        );
+      } catch {
+        toast.error(
+          "Failed to start server game — try again or switch to local mode",
+        );
+        dispatch({ type: "NAVIGATE", phase: "welcome" });
+      } finally {
+        dispatch({ type: "SET_THINKING", isThinking: false });
+      }
+      return;
+    }
+
     if (activeCharacters.length < 2) {
       toast.error("Select categories with at least 2 characters");
       return;
@@ -488,11 +541,87 @@ function App() {
   };
 
   // ========== ANSWER HANDLER ==========
-  const handleAnswer = (value: AnswerValue) => {
-    prevPossibleCount.current = possibleCharacters.length;
+  const handleAnswer = async (value: AnswerValue) => {
+    prevPossibleCount.current = serverMode
+      ? serverRemaining
+      : possibleCharacters.length;
     dispatch({ type: "ANSWER", value });
     playAnswer();
     hapticLight();
+
+    if (serverMode) {
+      dispatch({ type: "SET_THINKING", isThinking: true });
+      try {
+        const res = await fetch("/api/v2/game/answer", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ sessionId: serverSessionId, value }),
+        });
+        if (!res.ok) throw new Error("Failed to process answer");
+        const data = (await res.json()) as {
+          type: "question" | "guess" | "contradiction";
+          question?: Question;
+          reasoning?: typeof reasoning;
+          character?: {
+            id: string;
+            name: string;
+            category: string;
+            imageUrl: string | null;
+          };
+          confidence?: number;
+          remaining?: number;
+          eliminated?: number;
+          questionCount?: number;
+          message?: string;
+        };
+
+        if (data.type === "contradiction") {
+          dispatch({ type: "UNDO_LAST_ANSWER" });
+          toast.warning(
+            data.message || "Contradictory answers — undoing last answer.",
+          );
+          if (data.question && data.reasoning) {
+            dispatch({
+              type: "SET_QUESTION",
+              question: data.question,
+              reasoning: data.reasoning,
+            });
+          }
+        } else if (data.type === "guess" && data.character) {
+          const guessChar: Character = {
+            id: data.character.id,
+            name: data.character.name,
+            category: (data.character.category || "other") as CharacterCategory,
+            attributes: {},
+            imageUrl: data.character.imageUrl ?? undefined,
+          };
+          dispatch({ type: "MAKE_GUESS", character: guessChar });
+          setServerRemaining(data.remaining ?? 1);
+          playSuspense();
+        } else if (data.type === "question" && data.question && data.reasoning) {
+          dispatch({
+            type: "SET_QUESTION",
+            question: data.question,
+            reasoning: data.reasoning,
+          });
+          const remaining = data.remaining ?? serverRemaining;
+          setServerRemaining(remaining);
+          const eliminated = prevPossibleCount.current - remaining;
+          if (eliminated > 0) {
+            setEliminatedCount(eliminated);
+            setTimeout(() => setEliminatedCount(null), 2000);
+          }
+          toast.success(`Answer recorded: ${value}`);
+        }
+      } catch {
+        toast.error("Failed to process answer — try again");
+        dispatch({ type: "UNDO_LAST_ANSWER" });
+      } finally {
+        dispatch({ type: "SET_THINKING", isThinking: false });
+      }
+      return;
+    }
+
     toast.success(`Answer recorded: ${value}`);
   };
 
@@ -521,6 +650,14 @@ function App() {
     playCorrectGuess();
     hapticSuccess();
     toast.success("🎉 I got it right!");
+    if (serverMode && serverSessionId) {
+      fetch("/api/v2/game/result", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sessionId: serverSessionId, correct: true }),
+      }).catch(() => {});
+      setServerSessionId(null);
+    }
   };
 
   const handleIncorrectGuess = () => {
@@ -532,6 +669,14 @@ function App() {
     playIncorrectGuess();
     hapticMedium();
     toast.error("I'll learn from this and do better next time!");
+    if (serverMode && serverSessionId) {
+      fetch("/api/v2/game/result", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sessionId: serverSessionId, correct: false }),
+      }).catch(() => {});
+      setServerSessionId(null);
+    }
   };
 
   // ========== SHARE HANDLERS ==========
@@ -1115,7 +1260,7 @@ function App() {
                           Last: {last.won ? "Won" : "Lost"} in{" "}
                           {last.steps.length} Qs — {last.characterName}
                           {" · "}
-                          {DIFFICULTIES[difficulty].label} · {activeCharacters.length} characters
+                          {DIFFICULTIES[difficulty].label} · {serverMode ? (serverTotal || "500+") : activeCharacters.length} characters
                         </p>
                       </div>
                     );
@@ -1288,6 +1433,45 @@ function App() {
                       )}
                     </p>
                   )}
+
+                  <div className="border-t border-border/50" />
+
+                  {/* Server Mode */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <CloudCheckIcon size={18} className="text-accent" />
+                      <span className="text-sm font-medium text-foreground">Server Mode</span>
+                    </div>
+                    <button
+                      onClick={() => setServerMode(!serverMode)}
+                      className={`relative inline-flex h-6 w-10 items-center rounded-full transition-colors ${
+                        serverMode ? "bg-accent" : "bg-muted"
+                      }`}
+                      role="switch"
+                      aria-checked={serverMode}
+                      aria-label="Toggle Server Mode"
+                    >
+                      <span
+                        className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform ${
+                          serverMode ? "translate-x-5" : "translate-x-1"
+                        }`}
+                      />
+                    </button>
+                  </div>
+                  {serverMode && (
+                    <p
+                      className={`text-xs -mt-3 ${online ? "text-accent" : "text-destructive"}`}
+                    >
+                      {online ? (
+                        "🌐 Play against the full character database on the server"
+                      ) : (
+                        <span className="flex items-center gap-1">
+                          <WifiSlashIcon size={14} weight="bold" />
+                          Offline — server mode unavailable
+                        </span>
+                      )}
+                    </p>
+                  )}
                 </div>
 
                 {/* Bottom CTA */}
@@ -1301,8 +1485,9 @@ function App() {
                     Start Game
                   </Button>
                   <p className="text-xs text-muted-foreground">
-                    {activeCharacters.length} characters · {maxQuestions}{" "}
+                    {serverMode ? (serverTotal || "500+") : activeCharacters.length} characters · {maxQuestions}{" "}
                     questions · {DIFFICULTIES[difficulty].label}
+                    {serverMode && " · Server"}
                   </p>
                 </div>
 
@@ -1417,8 +1602,11 @@ function App() {
                 <div className="flex items-center justify-between text-sm text-muted-foreground mb-4 lg:mb-6">
                   <div className="flex items-center gap-3">
                     <span>
-                      {possibleCharacters.length} possibilities remaining
-                      {llmMode && (
+                      {effectiveRemaining} possibilities remaining
+                      {serverMode && (
+                        <span className="ml-2 text-xs text-accent">🌐 Server</span>
+                      )}
+                      {llmMode && !serverMode && (
                         <span className="ml-2 text-xs text-accent">✨ AI</span>
                       )}
                     </span>
@@ -1447,7 +1635,7 @@ function App() {
                         Undo
                       </button>
                     )}
-                    {possibleCharacters.length > 0 &&
+                    {!serverMode && possibleCharacters.length > 0 &&
                       possibleCharacters.length <= 5 && (
                         <span className="text-accent font-medium">
                           Top: {possibleCharacters[0]?.name}
@@ -1526,6 +1714,7 @@ function App() {
                       reasoning={reasoning}
                       isThinking={isThinking}
                     />
+                    {!serverMode && (
                     <Suspense fallback={<Skeleton className="h-48 w-full" />}>
                     <ProbabilityLeaderboard
                       characters={activeCharacters}
@@ -1542,6 +1731,7 @@ function App() {
                       answers={answers}
                     />
                     </Suspense>
+                    )}
                   </div>
                 </div>
               </div>
@@ -1580,7 +1770,7 @@ function App() {
                   won={gameWon}
                   character={finalGuess}
                   questionsAsked={gameSteps.length}
-                  remainingCharacters={possibleCharacters.length}
+                  remainingCharacters={effectiveRemaining}
                   gameHistory={gameHistory || []}
                   onPlayAgain={startGame}
                   onNewGame={() => navigate("welcome")}
