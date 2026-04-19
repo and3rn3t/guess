@@ -48,6 +48,11 @@
     "**/node_modules": true
   },
 
+  // SQL
+  "[sql]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+
   // ESLint
   "eslint.validate": [
     "javascript",

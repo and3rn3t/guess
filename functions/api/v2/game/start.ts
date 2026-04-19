@@ -21,6 +21,8 @@ import {
   DIFFICULTY_MAP,
 } from '../_game-engine'
 
+import type { CharactersRow, CharacterAttributesRow, QuestionsRow } from '../../_db-types'
+
 // ── Types ────────────────────────────────────────────────────
 
 interface StartRequest {
@@ -28,24 +30,11 @@ interface StartRequest {
   difficulty?: string
 }
 
-interface CharacterRow {
-  id: string
-  name: string
-  category: string
-  image_url: string | null
-}
+type CharacterRow = Pick<CharactersRow, 'id' | 'name' | 'category' | 'image_url'>
 
-interface AttributeRow {
-  character_id: string
-  attribute_key: string
-  value: number | null
-}
+type AttributeRow = Pick<CharacterAttributesRow, 'character_id' | 'attribute_key' | 'value'>
 
-interface QuestionRow {
-  id: string
-  text: string
-  attribute_key: string
-}
+type QuestionRow = Pick<QuestionsRow, 'id' | 'text' | 'attribute_key'>
 
 // ── POST /api/v2/game/start ──────────────────────────────────
 // Creates a game session, selects character pool from D1, returns first question

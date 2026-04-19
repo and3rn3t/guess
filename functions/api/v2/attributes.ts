@@ -5,16 +5,11 @@ import {
   d1Query,
   d1First,
 } from '../_helpers'
+import type { AttributeDefinitionsRow } from '../_db-types'
 
 // ── Types ────────────────────────────────────────────────────
 
-interface AttributeDefRow {
-  key: string
-  display_text: string
-  question_text: string | null
-  categories: string | null
-  created_at: number
-}
+type AttributeDefRow = AttributeDefinitionsRow
 
 interface AttributeCoverage {
   key: string

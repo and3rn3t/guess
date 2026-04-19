@@ -13,28 +13,13 @@ import {
   d1First,
   d1Batch,
 } from '../_helpers'
+import type { CharactersRow, CharacterAttributesRow } from '../_db-types'
 
 // ── Types ────────────────────────────────────────────────────
 
-interface CharacterRow {
-  id: string
-  name: string
-  category: string
-  source: string
-  source_id: string | null
-  popularity: number
-  image_url: string | null
-  description: string | null
-  is_custom: number
-  created_by: string | null
-  created_at: number
-}
+type CharacterRow = CharactersRow
 
-interface AttributeRow {
-  attribute_key: string
-  value: number | null
-  confidence: number
-}
+type AttributeRow = Pick<CharacterAttributesRow, 'attribute_key' | 'value' | 'confidence'>
 
 interface CharacterWithAttributes extends CharacterRow {
   attributes: Record<string, boolean | null>

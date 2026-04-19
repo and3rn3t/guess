@@ -20,40 +20,26 @@ import {
   DIFFICULTY_MAP,
 } from '../_game-engine'
 
+import type {
+  CharactersRow,
+  CharacterAttributesRow,
+  QuestionsRow,
+  GameSessionsRow,
+} from '../../_db-types'
+
 // ── Types ────────────────────────────────────────────────────
 
 interface ResumeRequest {
   sessionId: string
 }
 
-interface D1SessionRow {
-  id: string
-  character_ids: string
-  answers: string
-  current_question_attr: string | null
-  difficulty: string
-  max_questions: number
-  created_at: number
-}
+type D1SessionRow = Omit<GameSessionsRow, 'user_id' | 'completed_at'>
 
-interface CharacterRow {
-  id: string
-  name: string
-  category: string
-  image_url: string | null
-}
+type CharacterRow = Pick<CharactersRow, 'id' | 'name' | 'category' | 'image_url'>
 
-interface AttributeRow {
-  character_id: string
-  attribute_key: string
-  value: number | null
-}
+type AttributeRow = Pick<CharacterAttributesRow, 'character_id' | 'attribute_key' | 'value'>
 
-interface QuestionRow {
-  id: string
-  text: string
-  attribute_key: string
-}
+type QuestionRow = Pick<QuestionsRow, 'id' | 'text' | 'attribute_key'>
 
 // ── D1 fallback: reconstruct session from backup ─────────────
 

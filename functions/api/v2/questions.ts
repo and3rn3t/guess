@@ -5,15 +5,11 @@ import {
   d1Query,
   d1First,
 } from '../_helpers'
+import type { QuestionsRow } from '../_db-types'
 
 // ── Types ────────────────────────────────────────────────────
 
-interface QuestionRow {
-  id: string
-  text: string
-  attribute_key: string
-  priority: number
-}
+type QuestionRow = QuestionsRow
 
 interface QuestionWithCoverage extends QuestionRow {
   total_characters: number

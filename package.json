@@ -22,6 +22,8 @@
     "test:coverage": "vitest run --coverage",
     "test:watch": "vitest",
     "validate": "tsc -b && eslint . && vitest run",
+    "db:types": "tsx scripts/generate-db-types.ts",
+    "migrate:create": "tsx scripts/create-migration.ts",
     "ingest": "tsx scripts/ingest/run.ts",
     "ingest:stats": "tsx scripts/ingest/run.ts stats",
     "ingest:dedup": "tsx scripts/ingest/run.ts dedup",

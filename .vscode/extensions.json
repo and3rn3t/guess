@@ -11,6 +11,7 @@
     "usernamehw.errorlens",
     "eamodio.gitlens",
     "formulahendry.auto-rename-tag",
-    "csstools.postcss"
+    "csstools.postcss",
+    "alexcvzz.vscode-sqlite"
   ]
 }

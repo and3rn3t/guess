@@ -7,20 +7,11 @@ import {
   d1Query,
   d1First,
 } from '../_helpers'
+import type { GameStatsRow } from '../_db-types'
 
 // ── Types ────────────────────────────────────────────────────
 
-interface GameHistoryRow {
-  id: number
-  won: number
-  difficulty: string
-  questions_asked: number
-  character_pool_size: number
-  character_id: string | null
-  character_name: string | null
-  steps: string | null
-  created_at: number
-}
+type GameHistoryRow = Omit<GameStatsRow, 'user_id'>
 
 // ── GET /api/v2/history ──────────────────────────────────────
 // Returns the current user's game history from D1
