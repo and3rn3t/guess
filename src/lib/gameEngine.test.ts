@@ -401,3 +401,101 @@ describe('detectContradictions', () => {
     expect(result.remainingCount).toBe(2)
   })
 })
+
+// ========== ADDITIONAL EDGE CASES ==========
+
+describe('shouldMakeGuess – progressive thresholds', () => {
+  // Create a pool where top candidate has ~60% probability
+  const pool: Character[] = [
+    { id: 'a', name: 'A', category: 'other', attributes: { isHuman: true, canFly: false } },
+    { id: 'b', name: 'B', category: 'other', attributes: { isHuman: true, canFly: true } },
+    { id: 'c', name: 'C', category: 'other', attributes: { isHuman: false, canFly: false } },
+  ]
+
+  it('guesses at 50% progress when top probability > 65%', () => {
+    // After answering isHuman=yes, A and B remain, ~50% each
+    // Then canFly=no → A dominates heavily (>80%)
+    const answers: Answer[] = [
+      { questionId: 'isHuman', value: 'yes' },
+      { questionId: 'canFly', value: 'no' },
+    ]
+    // With maxQuestions=4 and 2 answers, progress=50%
+    const result = shouldMakeGuess(pool, answers, 2, 4)
+    expect(result).toBe(true)
+  })
+
+  it('guesses at 75% progress with lower confidence', () => {
+    // At 75% through, threshold drops to >45%
+    const chars: Character[] = Array.from({ length: 4 }, (_, i) => ({
+      id: `c${i}`, name: `C${i}`, category: 'other' as const,
+      attributes: { trait: i === 0 },
+    }))
+    const answers: Answer[] = [{ questionId: 'trait', value: 'yes' }]
+    // 3/4 = 75% progress
+    const result = shouldMakeGuess(chars, answers, 3, 4)
+    expect(result).toBe(true)
+  })
+
+  it('uses adaptive gap detection at halfway', () => {
+    // Two chars where one dominates after answers
+    const chars: Character[] = [
+      { id: 'top', name: 'Top', category: 'other', attributes: { a: true, b: true } },
+      { id: 'bot', name: 'Bot', category: 'other', attributes: { a: true, b: false } },
+      { id: 'elim', name: 'Elim', category: 'other', attributes: { a: false, b: false } },
+    ]
+    const answers: Answer[] = [
+      { questionId: 'a', value: 'yes' },
+      { questionId: 'b', value: 'yes' },
+    ]
+    // At halfway (5/10), gap between top and second should be large
+    const result = shouldMakeGuess(chars, answers, 5, 10)
+    expect(result).toBe(true)
+  })
+})
+
+describe('selectBestQuestion – coverage penalty', () => {
+  it('penalizes questions where >60% of characters have null attributes', () => {
+    // Create characters where most have null for 'rareAttr'
+    const chars: Character[] = [
+      { id: 'a', name: 'A', category: 'other', attributes: { common: true } },
+      { id: 'b', name: 'B', category: 'other', attributes: { common: false } },
+      { id: 'c', name: 'C', category: 'other', attributes: { common: true, rareAttr: true } },
+    ]
+    const questions: Question[] = [
+      { id: 'q1', text: 'Common?', attribute: 'common' },
+      { id: 'q2', text: 'Rare?', attribute: 'rareAttr' },
+    ]
+    // 'common' has full coverage, 'rareAttr' has 67% null → penalized
+    const best = selectBestQuestion(chars, [], questions)
+    expect(best?.attribute).toBe('common')
+  })
+})
+
+describe('generateReasoning – topCandidates', () => {
+  it('returns up to 5 top candidates with probabilities', () => {
+    const manyChars: Character[] = Array.from({ length: 10 }, (_, i) => ({
+      id: `c${i}`, name: `Char${i}`, category: 'other' as const,
+      attributes: { trait: i < 5 },
+    }))
+    const q: Question = { id: 'q', text: 'Has trait?', attribute: 'trait' }
+    const result = generateReasoning(q, manyChars, [])
+    expect(result.topCandidates).toHaveLength(5)
+    expect(result.topCandidates[0]).toHaveProperty('name')
+    expect(result.topCandidates[0]).toHaveProperty('probability')
+  })
+
+  it('includes why and impact explanation strings', () => {
+    const q: Question = { id: 'q', text: 'Is human?', attribute: 'isHuman' }
+    const result = generateReasoning(q, CHARS, [])
+    expect(result.why).toBeTruthy()
+    expect(result.impact).toContain('eliminate')
+  })
+
+  it('handles near-equal splits in why explanation', () => {
+    // 2 true, 2 false for isHuman → near-equal split
+    const q: Question = { id: 'q', text: 'Is human?', attribute: 'isHuman' }
+    const result = generateReasoning(q, CHARS, [])
+    // "splits the possibilities almost perfectly" or similar
+    expect(result.why).toContain('split')
+  })
+})
