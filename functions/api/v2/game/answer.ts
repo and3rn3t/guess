@@ -56,8 +56,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   }
   session.answers.push(newAnswer)
 
-  // Filter characters (hard elimination)
-  const filtered = filterPossibleCharacters(session.characters, session.answers)
+  // Filter characters (hard elimination + rejected guesses)
+  const filtered = filterPossibleCharacters(session.characters, session.answers, session.rejectedGuesses)
 
   // Check for contradictions
   const { hasContradiction } = detectContradictions(filtered, session.answers)
@@ -80,13 +80,14 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   const questionCount = session.answers.length
 
   // Check if we should guess
-  if (shouldMakeGuess(filtered, session.answers, questionCount, session.maxQuestions)) {
-    const guess = getBestGuess(filtered, session.answers)
+  if (shouldMakeGuess(filtered, session.answers, questionCount, session.maxQuestions, session.guessCount)) {
+    const guess = getBestGuess(filtered, session.answers, session.rejectedGuesses)
     if (guess) {
       const probs = calculateProbabilities(filtered, session.answers)
       const confidence = Math.round((probs.get(guess.id) || 0) * 100)
 
       session.currentQuestion = null
+      session.guessCount += 1
       await saveSessionState(kv, session)
 
       return jsonResponse({
@@ -100,6 +101,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         confidence,
         questionCount,
         remaining: filtered.length,
+        guessCount: session.guessCount,
       })
     }
   }
@@ -109,8 +111,9 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
   if (!nextQuestion) {
     // No more questions — force a guess
-    const guess = getBestGuess(filtered, session.answers)
+    const guess = getBestGuess(filtered, session.answers, session.rejectedGuesses)
     session.currentQuestion = null
+    session.guessCount += 1
     await saveSessionState(kv, session)
 
     if (guess) {
@@ -128,6 +131,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         confidence,
         questionCount,
         remaining: filtered.length,
+        guessCount: session.guessCount,
       })
     }
 
@@ -139,7 +143,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   // Count eliminated
   const previousFiltered = filterPossibleCharacters(
     session.characters,
-    session.answers.slice(0, -1)
+    session.answers.slice(0, -1),
+    session.rejectedGuesses
   )
   const eliminated = previousFiltered.length - filtered.length
 

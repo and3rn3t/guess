@@ -22,6 +22,7 @@ interface StartResponse {
   question: Question;
   reasoning: ReasoningExplanation;
   totalCharacters: number;
+  maxQuestions?: number;
 }
 
 interface AnswerResponse {
@@ -38,6 +39,18 @@ interface AnswerResponse {
   remaining?: number;
   eliminated?: number;
   questionCount?: number;
+  guessCount?: number;
+  message?: string;
+}
+
+interface RejectGuessResponse {
+  type: "question" | "exhausted";
+  question?: Question;
+  reasoning?: ReasoningExplanation;
+  remaining?: number;
+  questionCount?: number;
+  maxQuestions?: number;
+  guessCount?: number;
   message?: string;
 }
 
@@ -64,6 +77,7 @@ export function useServerGame(
   const [serverSessionId, setServerSessionId] = useState<string | null>(null);
   const [serverRemaining, setServerRemaining] = useState(0);
   const [serverTotal, setServerTotal] = useState(0);
+  const [serverMaxQuestions, setServerMaxQuestions] = useState(0);
   const resumeAttempted = useRef(false);
 
   // Persist session ID to sessionStorage
@@ -166,6 +180,7 @@ export function useServerGame(
         persistSessionId(data.sessionId);
         setServerRemaining(data.totalCharacters);
         setServerTotal(data.totalCharacters);
+        if (data.maxQuestions) setServerMaxQuestions(data.maxQuestions);
         dispatch({ type: "START_GAME", characters: [] });
         dispatch({
           type: "SET_QUESTION",
@@ -259,13 +274,50 @@ export function useServerGame(
     [serverSessionId, persistSessionId],
   );
 
+  const rejectGuess = useCallback(
+    async (characterId: string) => {
+      if (!serverSessionId) return;
+      dispatch({ type: "REJECT_GUESS" });
+      try {
+        const res = await fetch("/api/v2/game/reject-guess", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ sessionId: serverSessionId, characterId }),
+        });
+        if (!res.ok) throw new Error("Failed to reject guess");
+        const data = (await res.json()) as RejectGuessResponse;
+
+        if (data.type === "exhausted") {
+          dispatch({ type: "SET_EXHAUSTED" });
+          postServerResult(false);
+        } else if (data.type === "question" && data.question && data.reasoning) {
+          dispatch({
+            type: "SET_QUESTION",
+            question: data.question,
+            reasoning: data.reasoning,
+          });
+          setServerRemaining(data.remaining ?? 0);
+          if (data.maxQuestions) setServerMaxQuestions(data.maxQuestions);
+          toast.info("I'll keep trying — let me ask more questions!");
+        }
+      } catch {
+        toast.error("Failed to continue game — try again");
+      } finally {
+        dispatch({ type: "SET_THINKING", isThinking: false });
+      }
+    },
+    [dispatch, serverSessionId, postServerResult],
+  );
+
   return {
     serverSessionId,
     serverRemaining,
     serverTotal,
+    serverMaxQuestions,
     setServerRemaining,
     startServerGame,
     handleServerAnswer,
     postServerResult,
+    rejectGuess,
   };
 }

@@ -37,6 +37,8 @@ export interface GameState {
   gameSteps: GameHistoryStep[]
   selectedCharacter: Character | null
   showDevTools: boolean
+  guessCount: number
+  exhausted: boolean
 }
 
 // ========== ACTIONS ==========
@@ -47,6 +49,8 @@ export type GameAction =
   | { type: 'MAKE_GUESS'; character: Character }
   | { type: 'CORRECT_GUESS' }
   | { type: 'INCORRECT_GUESS' }
+  | { type: 'REJECT_GUESS' }
+  | { type: 'SET_EXHAUSTED' }
   | { type: 'UNDO_LAST_ANSWER' }
   | { type: 'SET_THINKING'; isThinking: boolean }
   | { type: 'SET_POSSIBLE_CHARACTERS'; characters: Character[] }
@@ -68,6 +72,8 @@ export const initialState: GameState = {
   gameSteps: [],
   selectedCharacter: null,
   showDevTools: false,
+  guessCount: 0,
+  exhausted: false,
 }
 
 // ========== REDUCER ==========
@@ -117,6 +123,18 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
 
     case 'INCORRECT_GUESS':
       return { ...state, gameWon: false, phase: 'gameOver' }
+
+    case 'REJECT_GUESS':
+      return {
+        ...state,
+        phase: 'playing',
+        finalGuess: null,
+        guessCount: state.guessCount + 1,
+        isThinking: true,
+      }
+
+    case 'SET_EXHAUSTED':
+      return { ...state, exhausted: true, gameWon: false, phase: 'gameOver' }
 
     case 'UNDO_LAST_ANSWER':
       return {

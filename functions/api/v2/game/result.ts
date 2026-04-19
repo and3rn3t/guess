@@ -54,7 +54,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   if (session.characters.length > 0) {
     // Import scoring to find the best guess
     const { getBestGuess } = await import('../_game-engine')
-    const guess = getBestGuess(session.characters, session.answers)
+    const guess = getBestGuess(session.characters, session.answers, session.rejectedGuesses)
     if (guess) {
       characterId = guess.id
       characterName = guess.name
@@ -66,8 +66,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     try {
       await d1Run(
         db,
-        `INSERT INTO game_stats (user_id, won, difficulty, questions_asked, character_pool_size, character_id, character_name, steps, created_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO game_stats (user_id, won, difficulty, questions_asked, character_pool_size, character_id, character_name, steps, guesses_used, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           userId,
           body.correct ? 1 : 0,
@@ -77,6 +77,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
           characterId,
           characterName,
           JSON.stringify(steps),
+          session.guessCount,
           Date.now(),
         ]
       )
@@ -104,6 +105,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       questionsAsked: session.answers.length,
       maxQuestions: session.maxQuestions,
       poolSize: session.characters.length,
+      guessesUsed: session.guessCount,
     },
   }), setCookieHeader)
 }

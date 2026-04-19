@@ -336,6 +336,8 @@ function App() {
     gameSteps,
     selectedCharacter,
     showDevTools,
+    guessCount,
+    exhausted,
   } = game;
 
   // ========== SETTINGS (hardcoded defaults) ==========
@@ -344,9 +346,11 @@ function App() {
   const {
     serverRemaining,
     serverTotal,
+    serverMaxQuestions: _serverMaxQuestions,
     startServerGame,
     handleServerAnswer,
     postServerResult,
+    rejectGuess,
   } = useServerGame(dispatch);
   const { muted, toggle: toggleMute } = useSound();
   const [showQuitDialog, setShowQuitDialog] = useState(false);
@@ -450,6 +454,13 @@ function App() {
     toast.error("I'll learn from this and do better next time!");
     postServerResult(false);
     refreshStats();
+  };
+
+  const handleRejectGuess = () => {
+    if (!finalGuess) return;
+    playIncorrectGuess();
+    hapticMedium();
+    rejectGuess(finalGuess.id);
   };
 
   // ========== SHARE HANDLERS ==========
@@ -638,8 +649,10 @@ function App() {
                     <GuessReveal
                       character={finalGuess}
                       confidence={confidence}
+                      guessNumber={guessCount}
                       onCorrect={handleCorrectGuess}
                       onIncorrect={handleIncorrectGuess}
+                      onRejectGuess={handleRejectGuess}
                     />
                   </div>
                 </motion.div>
@@ -656,8 +669,10 @@ function App() {
                   <div className="max-w-2xl mx-auto">
                     <GameOver
                       won={gameWon}
+                      exhausted={exhausted}
                       character={finalGuess}
                       questionsAsked={gameSteps.length}
+                      guessesUsed={guessCount}
                       remainingCharacters={effectiveRemaining}
                       gamesPlayed={gamesPlayed}
                       onPlayAgain={startGame}

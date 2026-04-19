@@ -161,6 +161,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     difficulty,
     maxQuestions,
     createdAt: Date.now(),
+    rejectedGuesses: [],
+    guessCount: 0,
   }
 
   await storeSession(kv, session)
@@ -191,6 +193,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     question: firstQuestion,
     reasoning,
     totalCharacters: serverChars.length,
+    maxQuestions,
   }), setCookieHeader)
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error'

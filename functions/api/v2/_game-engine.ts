@@ -48,6 +48,8 @@ export interface GameSession {
   difficulty: string
   maxQuestions: number
   createdAt: number
+  rejectedGuesses: string[]
+  guessCount: number
 }
 
 // ── Constants ────────────────────────────────────────────────
@@ -63,6 +65,13 @@ export const DIFFICULTY_MAP: Record<string, number> = {
 }
 
 export const VALID_ANSWERS = new Set<string>(['yes', 'no', 'maybe', 'unknown'])
+
+/** Bonus questions granted per rejected guess. Hard cap at base × 2. */
+export const BONUS_QUESTIONS_PER_REJECT: Record<string, number> = {
+  easy: 3,
+  medium: 2,
+  hard: 2,
+}
 
 // ── Engine Functions ─────────────────────────────────────────
 
@@ -261,12 +270,14 @@ export function generateReasoning(
   return { why, impact, remaining: total, confidence: Math.round(confidence), topCandidates }
 }
 
-/** Should the AI guess now? Progressive confidence thresholds. */
+/** Should the AI guess now? Progressive confidence thresholds.
+ *  After wrong guesses, thresholds escalate by +0.1 per prior wrong guess (capped at 0.9). */
 export function shouldMakeGuess(
   characters: ServerCharacter[],
   answers: Answer[],
   questionCount: number,
-  maxQuestions: number
+  maxQuestions: number,
+  priorWrongGuesses: number = 0
 ): boolean {
   if (characters.length <= 1) return true
 
@@ -274,36 +285,48 @@ export function shouldMakeGuess(
   const sorted = Array.from(probabilities.values()).sort((a, b) => b - a)
   const topProbability = sorted[0]
 
+  // Confidence escalation: require higher confidence after each wrong guess
+  const escalation = Math.min(priorWrongGuesses * 0.1, 0.1) // +0.1 per wrong guess, max +0.1 effective boost
+  const confidenceFloor = Math.min(0.8 + escalation, 0.9)
+
   if (questionCount >= maxQuestions) return true
-  if (topProbability > 0.8) return true
+  if (topProbability > confidenceFloor) return true
 
   const aliveCount = sorted.filter((p) => p > 0).length
-  if (aliveCount <= 2 && questionCount >= 3 && topProbability >= 0.5) return true
+  if (aliveCount <= 2 && questionCount >= 3 && topProbability >= Math.min(0.5 + escalation, 0.9)) return true
 
   const progress = questionCount / maxQuestions
-  if (progress >= 0.75 && topProbability > 0.45) return true
-  if (progress >= 0.5 && topProbability > 0.65) return true
+  if (progress >= 0.75 && topProbability > Math.min(0.45 + escalation, 0.9)) return true
+  if (progress >= 0.5 && topProbability > Math.min(0.65 + escalation, 0.9)) return true
 
   const halfwayPoint = Math.floor(maxQuestions / 2)
   const secondProbability = sorted.length > 1 ? sorted[1] : 0
   const gap = topProbability - secondProbability
-  if (questionCount >= halfwayPoint && gap > 0.3 && topProbability > 0.5) return true
+  if (questionCount >= halfwayPoint && gap > 0.3 && topProbability > Math.min(0.5 + escalation, 0.9)) return true
 
   return false
 }
 
-/** Get the best guess character. */
-export function getBestGuess(characters: ServerCharacter[], answers: Answer[]): ServerCharacter | null {
+/** Get the best guess character, excluding previously rejected guesses. */
+export function getBestGuess(
+  characters: ServerCharacter[],
+  answers: Answer[],
+  rejectedGuesses: string[] = []
+): ServerCharacter | null {
   if (characters.length === 0) return null
 
-  const probabilities = calculateProbabilities(characters, answers)
+  const rejectedSet = new Set(rejectedGuesses)
+  const eligible = characters.filter((c) => !rejectedSet.has(c.id))
+  if (eligible.length === 0) return null
+
+  const probabilities = calculateProbabilities(eligible, answers)
   const sorted = Array.from(probabilities.entries()).sort((a, b) => {
     if (b[1] !== a[1]) return b[1] - a[1]
     return a[0].localeCompare(b[0])
   })
 
   const bestId = sorted[0][0]
-  return characters.find((c) => c.id === bestId) || characters[0]
+  return eligible.find((c) => c.id === bestId) || eligible[0]
 }
 
 /** Check for contradictions (all characters eliminated). */
@@ -319,12 +342,15 @@ export function detectContradictions(
   return { hasContradiction: remaining === 0, remainingCount: remaining }
 }
 
-/** Hard-filter characters based on definitive answers. */
+/** Hard-filter characters based on definitive answers and rejected guesses. */
 export function filterPossibleCharacters(
   characters: ServerCharacter[],
-  answers: Answer[]
+  answers: Answer[],
+  rejectedGuesses: string[] = []
 ): ServerCharacter[] {
+  const rejectedSet = new Set(rejectedGuesses)
   return characters.filter((char) => {
+    if (rejectedSet.has(char.id)) return false
     for (const answer of answers) {
       const attr = char.attributes[answer.questionId]
       if (answer.value === 'yes' && attr === false) return false
@@ -346,6 +372,8 @@ interface LeanSession {
   difficulty: string
   maxQuestions: number
   createdAt: number
+  rejectedGuesses?: string[]
+  guessCount?: number
 }
 
 interface GamePool {
@@ -365,6 +393,8 @@ export async function storeSession(kv: KVNamespace, session: GameSession): Promi
     difficulty: session.difficulty,
     maxQuestions: session.maxQuestions,
     createdAt: session.createdAt,
+    rejectedGuesses: session.rejectedGuesses,
+    guessCount: session.guessCount,
   }
   await Promise.all([
     kv.put(poolKey, JSON.stringify(pool), { expirationTtl: SESSION_TTL }),
@@ -380,7 +410,10 @@ export async function loadSession(kv: KVNamespace, sessionId: string): Promise<G
   const data = JSON.parse(raw) as LeanSession | GameSession
 
   // Legacy full session (has 'characters' array directly)
-  if ('characters' in data) return data as GameSession
+  if ('characters' in data) {
+    const legacy = data as GameSession
+    return { ...legacy, rejectedGuesses: legacy.rejectedGuesses ?? [], guessCount: legacy.guessCount ?? 0 }
+  }
 
   // New lean format — load pool separately
   const poolStr = await kv.get(data.poolKey)
@@ -396,6 +429,8 @@ export async function loadSession(kv: KVNamespace, sessionId: string): Promise<G
     difficulty: data.difficulty,
     maxQuestions: data.maxQuestions,
     createdAt: data.createdAt,
+    rejectedGuesses: data.rejectedGuesses ?? [],
+    guessCount: data.guessCount ?? 0,
   }
 }
 
@@ -409,6 +444,8 @@ export async function saveSessionState(kv: KVNamespace, session: GameSession): P
     difficulty: session.difficulty,
     maxQuestions: session.maxQuestions,
     createdAt: session.createdAt,
+    rejectedGuesses: session.rejectedGuesses,
+    guessCount: session.guessCount,
   }
   await kv.put(`game:${session.id}`, JSON.stringify(lean), { expirationTtl: SESSION_TTL })
 }

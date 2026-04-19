@@ -57,15 +57,19 @@ function ConfettiBurst() {
 interface GuessRevealProps {
   character: Character;
   confidence?: number;
+  guessNumber?: number;
   onCorrect: () => void;
   onIncorrect: () => void;
+  onRejectGuess?: () => void;
 }
 
 export function GuessReveal({
   character,
   confidence,
+  guessNumber,
   onCorrect,
   onIncorrect,
+  onRejectGuess,
 }: Readonly<GuessRevealProps>) {
   const [stage, setStage] = useState<"analyzing" | "confidence" | "reveal">("analyzing");
 
@@ -201,6 +205,11 @@ export function GuessReveal({
             >
               <p className="text-lg text-muted-foreground mb-6">
                 Was I correct?
+                {guessNumber != null && guessNumber > 1 && (
+                  <span className="block text-sm text-muted-foreground/60 mt-1">
+                    Guess attempt #{guessNumber}
+                  </span>
+                )}
               </p>
               <div className="flex gap-4 justify-center">
                 <Button
@@ -212,7 +221,7 @@ export function GuessReveal({
                   Yes! Correct
                 </Button>
                 <Button
-                  onClick={onIncorrect}
+                  onClick={onRejectGuess ?? onIncorrect}
                   size="lg"
                   variant="outline"
                   className="flex-1 max-w-xs h-14 text-lg hover:scale-105 transition-transform"
@@ -231,8 +240,10 @@ export function GuessReveal({
 
 interface GameOverProps {
   won: boolean;
+  exhausted?: boolean;
   character: Character | null;
   questionsAsked?: number;
+  guessesUsed?: number;
   remainingCharacters?: number;
   gamesPlayed?: number;
   onPlayAgain: () => void;
@@ -247,8 +258,10 @@ interface GameOverProps {
 
 export function GameOver({
   won,
+  exhausted,
   character,
   questionsAsked,
+  guessesUsed,
   remainingCharacters,
   gamesPlayed,
   onPlayAgain,
@@ -347,6 +360,35 @@ export function GameOver({
                 become.
               </p>
             </>
+          ) : exhausted ? (
+            <>
+              <motion.div
+                animate={{ rotate: [0, -5, 5, -3, 3, 0] }}
+                transition={{ duration: 0.6, delay: 0.15 }}
+              >
+                <XCircle
+                  size={64}
+                  weight="fill"
+                  className="mx-auto text-amber-400"
+                />
+              </motion.div>
+              <div>
+                <h2 className="text-4xl font-bold text-foreground mb-2">
+                  I'm Stumped!
+                </h2>
+                <p className="text-xl text-muted-foreground">
+                  I ran out of candidates after{" "}
+                  {guessesUsed != null && guessesUsed > 0
+                    ? `${guessesUsed} guess${guessesUsed === 1 ? "" : "es"}`
+                    : "all my questions"}
+                  .
+                </p>
+              </div>
+              <p className="text-foreground/80">
+                You&apos;ve truly stumped me! Every wrong guess teaches me
+                something new.
+              </p>
+            </>
           ) : (
             <>
               <motion.div
@@ -387,15 +429,22 @@ export function GameOver({
             </div>
           )}
 
-          {(questionsAsked != null || remainingCharacters != null) && (
+          {(questionsAsked != null || remainingCharacters != null || guessesUsed != null) && (
             <p className="text-sm text-muted-foreground">
               {questionsAsked != null && (
                 <>
-                  Guessed in {questionsAsked} question
-                  {questionsAsked === 1 ? "" : "s"}
+                  {questionsAsked} question
+                  {questionsAsked === 1 ? "" : "s"} asked
                 </>
               )}
-              {questionsAsked != null && remainingCharacters != null && " · "}
+              {questionsAsked != null && guessesUsed != null && guessesUsed > 0 && " · "}
+              {guessesUsed != null && guessesUsed > 0 && (
+                <>
+                  {guessesUsed} guess
+                  {guessesUsed === 1 ? "" : "es"} made
+                </>
+              )}
+              {(questionsAsked != null || (guessesUsed != null && guessesUsed > 0)) && remainingCharacters != null && " · "}
               {remainingCharacters != null && (
                 <>
                   {remainingCharacters} character
