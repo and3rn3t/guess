@@ -74,31 +74,41 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
   const where = `WHERE ${conditions.join(' AND ')}`
 
-  // Query 1: Get character pool ordered by popularity
-  const characters = await d1Query<CharacterRow>(
+  // Query 1: Get character pool — top candidates by popularity, then randomize
+  //   Fetch 2× POOL_SIZE to get popular chars, then randomly pick POOL_SIZE
+  //   This ensures variety across games while keeping the pool reasonably well-known
+  const candidateLimit = POOL_SIZE * 2
+  const candidates = await d1Query<CharacterRow>(
     db,
     `SELECT c.id, c.name, c.category, c.image_url
      FROM characters c
      ${where}
      ORDER BY c.popularity DESC
      LIMIT ?`,
-    [...params, POOL_SIZE]
+    [...params, candidateLimit]
   )
+
+  // Shuffle candidates and take POOL_SIZE
+  for (let i = candidates.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [candidates[i], candidates[j]] = [candidates[j], candidates[i]]
+  }
+  const characters = candidates.slice(0, POOL_SIZE)
 
   if (characters.length < 2) {
     return errorResponse('Not enough characters with attribute data for selected categories', 400)
   }
 
-  // Query 2: Get attributes for pool characters using subquery
+  // Query 2: Get attributes for pool characters
+  const charIds = characters.map((c) => c.id)
+  const placeholders = charIds.map(() => '?').join(',')
   const attributes = await d1Query<AttributeRow>(
     db,
     `SELECT ca.character_id, ca.attribute_key, ca.value
      FROM character_attributes ca
-     WHERE ca.character_id IN (
-       SELECT c.id FROM characters c ${where} ORDER BY c.popularity DESC LIMIT ?
-     )
+     WHERE ca.character_id IN (${placeholders})
      AND ca.value IS NOT NULL`,
-    [...params, POOL_SIZE]
+    charIds
   )
 
   // Query 3: Get all questions

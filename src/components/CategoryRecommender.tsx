@@ -199,7 +199,7 @@ export function CategoryRecommender({
 
         <Card className="bg-card/50 backdrop-blur-sm border-accent/20 p-6">
           <div className="flex items-start gap-4">
-            <div className="flex-shrink-0 p-3 bg-accent/20 rounded-lg">
+            <div className="shrink-0 p-3 bg-accent/20 rounded-lg">
               <Brain size={32} className="text-accent" weight="duotone" />
             </div>
             <div className="flex-1 space-y-2">
@@ -237,12 +237,12 @@ export function CategoryRecommender({
                 whileTap={{ scale: 0.98 }}
               >
                 <Card
-                  className={`bg-gradient-to-br ${category.color} p-5 cursor-pointer hover:shadow-lg transition-all group h-full`}
+                  className={`bg-linear-to-br ${category.color} p-5 cursor-pointer hover:shadow-lg transition-all group h-full`}
                   onClick={() => handleCategorySelect(category.key)}
                 >
                   <div className="flex flex-col gap-3 h-full">
                     <div className="flex items-center gap-3">
-                      <div className="flex-shrink-0 p-2.5 bg-background/50 rounded-lg group-hover:bg-background/70 transition-colors">
+                      <div className="shrink-0 p-2.5 bg-background/50 rounded-lg group-hover:bg-background/70 transition-colors">
                         <Icon size={24} weight="duotone" className="text-foreground" />
                       </div>
                       <h3 className="text-base font-semibold text-foreground">
@@ -306,7 +306,7 @@ export function CategoryRecommender({
               <ArrowLeft size={18} />
             </Button>
             <div className="flex items-center gap-3">
-              <div className={`p-2 bg-gradient-to-br ${categoryInfo.color} rounded-lg`}>
+              <div className={`p-2 bg-linear-to-br ${categoryInfo.color} rounded-lg`}>
                 <Icon size={24} weight="duotone" />
               </div>
               <div>

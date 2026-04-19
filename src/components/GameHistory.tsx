@@ -85,9 +85,9 @@ export function GameHistory({ history, onClearHistory, onBack }: GameHistoryProp
                   className="w-full text-left p-4 flex items-center gap-3"
                 >
                   {game.won ? (
-                    <Trophy size={24} weight="fill" className="text-accent flex-shrink-0" />
+                    <Trophy size={24} weight="fill" className="text-accent shrink-0" />
                   ) : (
-                    <XCircle size={24} weight="fill" className="text-muted-foreground flex-shrink-0" />
+                    <XCircle size={24} weight="fill" className="text-muted-foreground shrink-0" />
                   )}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
@@ -105,7 +105,7 @@ export function GameHistory({ history, onClearHistory, onBack }: GameHistoryProp
                   </div>
                   <CaretDown
                     size={18}
-                    className={`text-muted-foreground transition-transform flex-shrink-0 ${isExpanded ? 'rotate-180' : ''}`}
+                    className={`text-muted-foreground transition-transform shrink-0 ${isExpanded ? 'rotate-180' : ''}`}
                   />
                 </button>
 
@@ -122,13 +122,13 @@ export function GameHistory({ history, onClearHistory, onBack }: GameHistoryProp
                         <ol className="space-y-2">
                           {game.steps.map((step, i) => (
                             <li key={i} className="flex items-start gap-3 text-sm">
-                              <span className="text-muted-foreground font-mono text-xs w-5 pt-0.5 text-right flex-shrink-0">
+                              <span className="text-muted-foreground font-mono text-xs w-5 pt-0.5 text-right shrink-0">
                                 {i + 1}.
                               </span>
                               <span className="text-foreground/90 flex-1">{step.questionText}</span>
                               <Badge
                                 variant="outline"
-                                className={`text-xs flex-shrink-0 ${answerColor(step.answer)}`}
+                                className={`text-xs shrink-0 ${answerColor(step.answer)}`}
                               >
                                 {step.answer}
                               </Badge>

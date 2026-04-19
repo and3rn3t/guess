@@ -204,9 +204,9 @@ export function AttributeRecommender({
 
         <TabsContent value="rule-based" className="space-y-4 mt-6">
           {detectedType && (
-            <Card className="p-6 bg-gradient-to-br from-accent/10 to-primary/10 backdrop-blur-sm border-2 border-accent/30">
+            <Card className="p-6 bg-linear-to-br from-accent/10 to-primary/10 backdrop-blur-sm border-2 border-accent/30">
               <div className="flex items-start gap-4">
-                <Sparkle size={32} weight="fill" className="text-accent flex-shrink-0" />
+                <Sparkle size={32} weight="fill" className="text-accent shrink-0" />
                 <div>
                   <h3 className="text-lg font-semibold text-foreground mb-2">
                     Character Type Detected: {detectedType.type}
@@ -354,9 +354,9 @@ export function AttributeRecommender({
             </Card>
           ) : (
             <>
-              <Card className="p-4 bg-gradient-to-r from-primary/10 to-accent/10 border-accent/30">
+              <Card className="p-4 bg-linear-to-r from-primary/10 to-accent/10 border-accent/30">
                 <div className="flex items-start gap-3">
-                  <Sparkle size={24} weight="fill" className="text-accent flex-shrink-0 mt-1" />
+                  <Sparkle size={24} weight="fill" className="text-accent shrink-0 mt-1" />
                   <div className="flex-1">
                     <h3 className="text-sm font-semibold text-foreground mb-1">
                       AI Analysis{focusedCategory && ` - ${focusedCategory.charAt(0).toUpperCase() + focusedCategory.slice(1)}`}
@@ -372,7 +372,7 @@ export function AttributeRecommender({
                     variant="outline"
                     size="sm"
                     disabled={isLoadingAI}
-                    className="flex-shrink-0"
+                    className="shrink-0"
                   >
                     <Sparkle size={16} className="mr-1" />
                     Regenerate

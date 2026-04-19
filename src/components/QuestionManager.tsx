@@ -58,7 +58,7 @@ export function QuestionManager({ characters, questions, onAddQuestions }: Quest
 
   return (
     <div className="space-y-4">
-      <Card className="p-6 bg-gradient-to-br from-primary/10 to-accent/10 backdrop-blur-sm border-2 border-primary/20">
+      <Card className="p-6 bg-linear-to-br from-primary/10 to-accent/10 backdrop-blur-sm border-2 border-primary/20">
         <div className="space-y-4">
           <div className="flex items-start justify-between gap-4">
             <div className="flex items-center gap-3">
@@ -74,7 +74,7 @@ export function QuestionManager({ characters, questions, onAddQuestions }: Quest
               onClick={() => setShowDetails(!showDetails)}
               variant="ghost"
               size="sm"
-              className="flex-shrink-0"
+              className="shrink-0"
             >
               <Info size={20} />
             </Button>
@@ -91,7 +91,7 @@ export function QuestionManager({ characters, questions, onAddQuestions }: Quest
               >
                 <div className="bg-muted/30 rounded-lg p-4 space-y-2 border border-border/50">
                   <div className="flex items-start gap-2">
-                    <Sparkle size={20} className="text-accent flex-shrink-0 mt-0.5" />
+                    <Sparkle size={20} className="text-accent shrink-0 mt-0.5" />
                     <div className="text-sm text-foreground/80 space-y-2">
                       <p className="font-semibold">How Question Generation Works:</p>
                       <ol className="list-decimal list-inside space-y-1 ml-2">
@@ -161,7 +161,7 @@ export function QuestionManager({ characters, questions, onAddQuestions }: Quest
             exit={{ opacity: 0, scale: 0.95 }}
             transition={{ duration: 0.3 }}
           >
-            <Card className="p-6 bg-gradient-to-br from-card to-accent/5 backdrop-blur-sm border-2 border-accent/30">
+            <Card className="p-6 bg-linear-to-br from-card to-accent/5 backdrop-blur-sm border-2 border-accent/30">
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <h4 className="text-lg font-bold text-foreground flex items-center gap-2">
@@ -189,7 +189,7 @@ export function QuestionManager({ characters, questions, onAddQuestions }: Quest
                       <div className="flex items-start gap-3">
                         <Badge
                           variant="secondary"
-                          className="flex-shrink-0 mt-1 font-mono text-xs"
+                          className="shrink-0 mt-1 font-mono text-xs"
                         >
                           {index + 1}
                         </Badge>

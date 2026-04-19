@@ -45,7 +45,7 @@ export function GuessReveal({
       transition={{ duration: 0.5, type: "spring" }}
     >
       <Card
-        className="p-8 bg-gradient-to-br from-primary/20 to-accent/10 backdrop-blur-sm border-2 border-accent shadow-2xl"
+        className="p-8 bg-linear-to-br from-primary/20 to-accent/10 backdrop-blur-sm border-2 border-accent shadow-2xl"
         aria-live="assertive"
       >
         <div className="space-y-8 text-center">
@@ -279,7 +279,7 @@ export function GameOver({
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.3 }}
     >
-      <Card className="p-8 bg-gradient-to-br from-card/80 to-card/40 backdrop-blur-sm border-2 border-primary/30 relative overflow-hidden">
+      <Card className="p-8 bg-linear-to-br from-card/80 to-card/40 backdrop-blur-sm border-2 border-primary/30 relative overflow-hidden">
         {/* CSS confetti burst on win */}
         {won && (
           <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">

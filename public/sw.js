@@ -1,5 +1,5 @@
-const CACHE_NAME = 'mystic-guesser-v3'
-const API_CACHE = 'mystic-guesser-api-v1'
+const CACHE_NAME = 'mystic-guesser-v4'
+const API_CACHE = 'mystic-guesser-api-v2'
 const STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -9,7 +9,10 @@ const STATIC_ASSETS = [
 ]
 
 // Read-only API endpoints eligible for stale-while-revalidate
-const CACHEABLE_API = ['/api/characters', '/api/questions', '/api/stats', '/api/sync']
+const CACHEABLE_API = [
+  '/api/characters', '/api/questions', '/api/stats', '/api/sync',
+  '/api/v2/characters', '/api/v2/questions', '/api/v2/stats',
+]
 
 self.addEventListener('install', (event) => {
   event.waitUntil(

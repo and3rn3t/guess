@@ -64,7 +64,7 @@ export function QuestionCard({
       exit={{ opacity: 0, x: 20 }}
       transition={{ duration: 0.3 }}
     >
-      <Card className="p-6 md:p-8 bg-gradient-to-br from-card/80 to-card/40 backdrop-blur-sm border-2 border-primary/30 shadow-xl">
+      <Card className="p-6 md:p-8 bg-linear-to-br from-card/80 to-card/40 backdrop-blur-sm border-2 border-primary/30 shadow-xl">
         <div className="space-y-4 md:space-y-6">
           <div className="flex items-center justify-between">
             <div className="text-sm font-medium text-muted-foreground">
@@ -131,7 +131,7 @@ export function QuestionCard({
 
 export function ThinkingCard() {
   return (
-    <Card className="p-6 md:p-8 bg-gradient-to-br from-card/80 to-card/40 backdrop-blur-sm border-2 border-primary/30 shadow-xl">
+    <Card className="p-6 md:p-8 bg-linear-to-br from-card/80 to-card/40 backdrop-blur-sm border-2 border-primary/30 shadow-xl">
       <div className="space-y-4 md:space-y-6">
         <div className="flex items-center justify-between">
           <Skeleton className="h-5 w-32" />

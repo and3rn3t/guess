@@ -214,7 +214,7 @@ export function EnvironmentTest({
               >
                 <Card className="bg-card/50 backdrop-blur-sm border-teal-500/20 hover:border-teal-500/40 transition-colors p-6">
                   <div className="flex items-start gap-4">
-                    <div className="flex-shrink-0">
+                    <div className="shrink-0">
                       <div className="w-10 h-10 rounded-full bg-teal-500/20 flex items-center justify-center">
                         <TreeStructure size={20} weight="fill" className="text-teal-400" />
                       </div>
@@ -277,7 +277,7 @@ export function EnvironmentTest({
       </div>
 
       {!isLoading && recommendations.length === 0 && acceptedCount > 0 && (
-        <Card className="bg-gradient-to-br from-teal-500/20 to-green-500/20 border-teal-500/40 p-8 text-center">
+        <Card className="bg-linear-to-br from-teal-500/20 to-green-500/20 border-teal-500/40 p-8 text-center">
           <Sparkle size={48} weight="fill" className="mx-auto text-teal-400 mb-4" />
           <h3 className="text-2xl font-bold text-foreground mb-2">
             Environment Testing Complete!

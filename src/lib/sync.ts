@@ -48,7 +48,7 @@ export async function submitCharacter(
   newQuestions?: Array<{ text: string; attribute: string }>
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    const res = await fetch('/api/characters', {
+    const res = await fetch('/api/v2/characters', {
       method: 'POST',
       headers: headers(),
       body: JSON.stringify({

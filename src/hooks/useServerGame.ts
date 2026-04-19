@@ -1,247 +1,174 @@
-import { useReducer, useCallback, useRef, useEffect, useState } from 'react'
+import { useCallback, useState } from "react";
+import { toast } from "sonner";
+import type { GameAction } from "@/hooks/useGameState";
 import type {
-  Character,
-  Question,
   AnswerValue,
-  Difficulty,
+  Character,
   CharacterCategory,
-} from '@/lib/types'
-import type { GamePhase } from './useGameState'
-import { gameReducer, initialState } from './useGameState'
+  Difficulty,
+  Question,
+  ReasoningExplanation,
+} from "@/lib/types";
+import { playThinking, playSuspense } from "@/lib/sounds";
+
+const analytics = () => import("@/lib/analytics");
 
 // ── Server response types ────────────────────────────────────
 
 interface StartResponse {
-  sessionId: string
-  question: { id: string; text: string; attribute: string }
-  reasoning: ReasoningExplanation
-  totalCharacters: number
+  sessionId: string;
+  question: Question;
+  reasoning: ReasoningExplanation;
+  totalCharacters: number;
 }
 
 interface AnswerResponse {
-  type: 'question' | 'guess' | 'contradiction'
-  question?: { id: string; text: string; attribute: string }
-  reasoning?: ReasoningExplanation
-  character?: { id: string; name: string; category: string; imageUrl: string | null }
-  confidence?: number
-  remaining?: number
-  eliminated?: number
-  questionCount?: number
-  message?: string
-}
-
-interface ResultResponse {
-  success: boolean
-  summary: {
-    won: boolean
-    difficulty: string
-    questionsAsked: number
-    maxQuestions: number
-    poolSize: number
-  }
-}
-
-// ── Session persistence ──────────────────────────────────────
-
-const SERVER_SESSION_KEY = 'kv:server-game-session'
-
-function saveServerSession(sessionId: string): void {
-  try {
-    localStorage.setItem(SERVER_SESSION_KEY, sessionId)
-  } catch { /* ignore */ }
-}
-
-function loadServerSession(): string | null {
-  try {
-    return localStorage.getItem(SERVER_SESSION_KEY)
-  } catch {
-    return null
-  }
-}
-
-function clearServerSession(): void {
-  localStorage.removeItem(SERVER_SESSION_KEY)
-}
-
-// ── API helpers ──────────────────────────────────────────────
-
-async function apiPost<T>(url: string, body: unknown): Promise<T> {
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  })
-
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ error: 'Request failed' }))
-    throw new Error((error as { error: string }).error || `HTTP ${response.status}`)
-  }
-
-  return response.json() as Promise<T>
+  type: "question" | "guess" | "contradiction";
+  question?: Question;
+  reasoning?: ReasoningExplanation;
+  character?: {
+    id: string;
+    name: string;
+    category: string;
+    imageUrl: string | null;
+  };
+  confidence?: number;
+  remaining?: number;
+  eliminated?: number;
+  questionCount?: number;
+  message?: string;
 }
 
 // ── Hook ─────────────────────────────────────────────────────
 
-export function useServerGame() {
-  const [state, dispatch] = useReducer(gameReducer, initialState)
-  const [sessionId, setSessionId] = useState<string | null>(loadServerSession)
-  const [totalCharacters, setTotalCharacters] = useState(0)
-  const [error, setError] = useState<string | null>(null)
-  const abortRef = useRef<AbortController | null>(null)
+/**
+ * Server-mode delegate: manages session ID, remaining count, and
+ * server API calls.  Receives the shared game-state `dispatch` so
+ * the main reducer stays the single source of truth.
+ */
+export function useServerGame(dispatch: React.Dispatch<GameAction>) {
+  const [serverSessionId, setServerSessionId] = useState<string | null>(null);
+  const [serverRemaining, setServerRemaining] = useState(0);
+  const [serverTotal, setServerTotal] = useState(0);
 
-  // Clean up on unmount
-  useEffect(() => {
-    const ref = abortRef
-    return () => {
-      ref.current?.abort()
-    }
-  }, [])
-
-  const navigate = useCallback(
-    (phase: GamePhase, character?: Character) =>
-      dispatch({ type: 'NAVIGATE', phase, character }),
-    [],
-  )
-
-  /** Start a new server-side game */
-  const startGame = useCallback(
-    async (categories?: CharacterCategory[], difficulty: Difficulty = 'medium') => {
-      setError(null)
-      dispatch({ type: 'SET_THINKING', isThinking: true })
-
+  const startServerGame = useCallback(
+    async (categories: CharacterCategory[], difficulty: Difficulty) => {
+      dispatch({ type: "SET_THINKING", isThinking: true });
+      playThinking();
       try {
-        const data = await apiPost<StartResponse>('/api/v2/game/start', {
-          categories: categories?.length ? categories : undefined,
-          difficulty,
-        })
-
-        setSessionId(data.sessionId)
-        saveServerSession(data.sessionId)
-        setTotalCharacters(data.totalCharacters)
-
-        // Use START_GAME with empty array (characters live server-side)
-        dispatch({ type: 'START_GAME', characters: [] })
+        const res = await fetch("/api/v2/game/start", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            categories: categories.length ? categories : undefined,
+            difficulty,
+          }),
+        });
+        if (!res.ok) throw new Error("Failed to start");
+        const data = (await res.json()) as StartResponse;
+        setServerSessionId(data.sessionId);
+        setServerRemaining(data.totalCharacters);
+        setServerTotal(data.totalCharacters);
+        dispatch({ type: "START_GAME", characters: [] });
         dispatch({
-          type: 'SET_QUESTION',
-          question: data.question as Question,
+          type: "SET_QUESTION",
+          question: data.question,
           reasoning: data.reasoning,
-        })
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to start game')
-        dispatch({ type: 'NAVIGATE', phase: 'welcome' })
+        });
+        analytics().then((m) =>
+          m.trackGameStart(difficulty, data.totalCharacters),
+        );
+      } catch {
+        toast.error(
+          "Failed to start server game — try again or switch to local mode",
+        );
+        dispatch({ type: "NAVIGATE", phase: "welcome" });
       } finally {
-        dispatch({ type: 'SET_THINKING', isThinking: false })
+        dispatch({ type: "SET_THINKING", isThinking: false });
       }
     },
-    [],
-  )
+    [dispatch],
+  );
 
-  /** Send answer to server, receive next question or guess */
-  const handleAnswer = useCallback(
-    async (value: AnswerValue) => {
-      if (!sessionId) return
-      setError(null)
-
-      // Record answer locally for UI (step tracking)
-      dispatch({ type: 'ANSWER', value })
-      dispatch({ type: 'SET_THINKING', isThinking: true })
-
+  const handleServerAnswer = useCallback(
+    async (value: AnswerValue, prevCount: number) => {
+      dispatch({ type: "SET_THINKING", isThinking: true });
       try {
-        const data = await apiPost<AnswerResponse>('/api/v2/game/answer', {
-          sessionId,
-          value,
-        })
+        const res = await fetch("/api/v2/game/answer", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ sessionId: serverSessionId, value }),
+        });
+        if (!res.ok) throw new Error("Failed to process answer");
+        const data = (await res.json()) as AnswerResponse;
 
-        if (data.type === 'contradiction') {
-          // Server undid the answer — undo locally too
-          dispatch({ type: 'UNDO_LAST_ANSWER' })
+        if (data.type === "contradiction") {
+          dispatch({ type: "UNDO_LAST_ANSWER" });
+          toast.warning(
+            data.message || "Contradictory answers — undoing last answer.",
+          );
           if (data.question && data.reasoning) {
             dispatch({
-              type: 'SET_QUESTION',
-              question: data.question as Question,
+              type: "SET_QUESTION",
+              question: data.question,
               reasoning: data.reasoning,
-            })
+            });
           }
-          setError(data.message || 'Contradictory answers detected')
-          return
-        }
-
-        if (data.type === 'guess' && data.character) {
+        } else if (data.type === "guess" && data.character) {
           const guessChar: Character = {
             id: data.character.id,
             name: data.character.name,
-            category: data.character.category as CharacterCategory,
+            category: (data.character.category ||
+              "other") as CharacterCategory,
             attributes: {},
             imageUrl: data.character.imageUrl ?? undefined,
-          }
-          dispatch({ type: 'MAKE_GUESS', character: guessChar })
-          return
-        }
-
-        if (data.type === 'question' && data.question && data.reasoning) {
+          };
+          dispatch({ type: "MAKE_GUESS", character: guessChar });
+          setServerRemaining(data.remaining ?? 1);
+          playSuspense();
+        } else if (
+          data.type === "question" &&
+          data.question &&
+          data.reasoning
+        ) {
           dispatch({
-            type: 'SET_QUESTION',
-            question: data.question as Question,
+            type: "SET_QUESTION",
+            question: data.question,
             reasoning: data.reasoning,
-          })
+          });
+          setServerRemaining(data.remaining ?? prevCount);
+          toast.success(`Answer recorded: ${value}`);
         }
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to process answer')
-      } finally {
-        dispatch({ type: 'SET_THINKING', isThinking: false })
-      }
-    },
-    [sessionId],
-  )
-
-  /** Record game result (correct/incorrect guess) */
-  const recordResult = useCallback(
-    async (correct: boolean) => {
-      if (!sessionId) return
-
-      try {
-        await apiPost<ResultResponse>('/api/v2/game/result', {
-          sessionId,
-          correct,
-        })
       } catch {
-        // Non-critical — game still works
+        toast.error("Failed to process answer — try again");
+        dispatch({ type: "UNDO_LAST_ANSWER" });
       } finally {
-        clearServerSession()
-        setSessionId(null)
+        dispatch({ type: "SET_THINKING", isThinking: false });
       }
     },
-    [sessionId],
-  )
+    [dispatch, serverSessionId],
+  );
 
-  const handleCorrectGuess = useCallback(() => {
-    dispatch({ type: 'CORRECT_GUESS' })
-    recordResult(true)
-  }, [recordResult])
-
-  const handleIncorrectGuess = useCallback(() => {
-    dispatch({ type: 'INCORRECT_GUESS' })
-    recordResult(false)
-  }, [recordResult])
-
-  const clearSession = useCallback(() => {
-    clearServerSession()
-    setSessionId(null)
-    dispatch({ type: 'NAVIGATE', phase: 'welcome' })
-  }, [])
+  const postServerResult = useCallback(
+    (correct: boolean) => {
+      if (!serverSessionId) return;
+      fetch("/api/v2/game/result", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sessionId: serverSessionId, correct }),
+      }).catch(() => {});
+      setServerSessionId(null);
+    },
+    [serverSessionId],
+  );
 
   return {
-    state,
-    dispatch,
-    navigate,
-    sessionId,
-    totalCharacters,
-    error,
-    startGame,
-    handleAnswer,
-    handleCorrectGuess,
-    handleIncorrectGuess,
-    clearSession,
-    hasSavedSession: sessionId !== null,
-  }
+    serverSessionId,
+    serverRemaining,
+    serverTotal,
+    setServerRemaining,
+    startServerGame,
+    handleServerAnswer,
+    postServerResult,
+  };
 }

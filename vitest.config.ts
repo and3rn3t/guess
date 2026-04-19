@@ -8,11 +8,11 @@ export default defineConfig({
     },
   },
   test: {
-    include: ['src/**/*.test.ts'],
+    include: ['src/**/*.test.ts', 'functions/**/*.test.ts'],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'lcov'],
-      include: ['src/lib/**', 'src/hooks/**'],
+      include: ['src/lib/**', 'src/hooks/**', 'functions/api/**'],
     },
   },
 })

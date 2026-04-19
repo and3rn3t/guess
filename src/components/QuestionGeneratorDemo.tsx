@@ -94,7 +94,7 @@ export function QuestionGeneratorDemo({ onBack }: QuestionGeneratorDemoProps) {
                 exit={{ opacity: 0, y: -20 }}
                 transition={{ duration: 0.3 }}
               >
-                <Card className="p-8 bg-gradient-to-br from-primary/10 to-accent/10 backdrop-blur-sm border-2 border-primary/20">
+                <Card className="p-8 bg-linear-to-br from-primary/10 to-accent/10 backdrop-blur-sm border-2 border-primary/20">
                   <div className="space-y-6">
                     <div className="text-center space-y-4">
                       <Sparkle size={80} weight="fill" className="mx-auto text-accent animate-float" />
@@ -151,7 +151,7 @@ export function QuestionGeneratorDemo({ onBack }: QuestionGeneratorDemoProps) {
                       <h4 className="font-semibold text-foreground">What will happen:</h4>
                       <ol className="space-y-2 text-foreground/80">
                         <li className="flex gap-3">
-                          <span className="flex-shrink-0 w-6 h-6 rounded-full bg-accent/20 text-accent flex items-center justify-center text-sm font-bold">
+                          <span className="shrink-0 w-6 h-6 rounded-full bg-accent/20 text-accent flex items-center justify-center text-sm font-bold">
                             1
                           </span>
                           <span>
@@ -160,7 +160,7 @@ export function QuestionGeneratorDemo({ onBack }: QuestionGeneratorDemoProps) {
                           </span>
                         </li>
                         <li className="flex gap-3">
-                          <span className="flex-shrink-0 w-6 h-6 rounded-full bg-accent/20 text-accent flex items-center justify-center text-sm font-bold">
+                          <span className="shrink-0 w-6 h-6 rounded-full bg-accent/20 text-accent flex items-center justify-center text-sm font-bold">
                             2
                           </span>
                           <span>
@@ -168,7 +168,7 @@ export function QuestionGeneratorDemo({ onBack }: QuestionGeneratorDemoProps) {
                           </span>
                         </li>
                         <li className="flex gap-3">
-                          <span className="flex-shrink-0 w-6 h-6 rounded-full bg-accent/20 text-accent flex items-center justify-center text-sm font-bold">
+                          <span className="shrink-0 w-6 h-6 rounded-full bg-accent/20 text-accent flex items-center justify-center text-sm font-bold">
                             3
                           </span>
                           <span>
@@ -176,7 +176,7 @@ export function QuestionGeneratorDemo({ onBack }: QuestionGeneratorDemoProps) {
                           </span>
                         </li>
                         <li className="flex gap-3">
-                          <span className="flex-shrink-0 w-6 h-6 rounded-full bg-accent/20 text-accent flex items-center justify-center text-sm font-bold">
+                          <span className="shrink-0 w-6 h-6 rounded-full bg-accent/20 text-accent flex items-center justify-center text-sm font-bold">
                             4
                           </span>
                           <span>Show the newly generated questions ready to be added to the pool</span>
@@ -205,7 +205,7 @@ export function QuestionGeneratorDemo({ onBack }: QuestionGeneratorDemoProps) {
                 exit={{ opacity: 0, y: -20 }}
                 transition={{ duration: 0.3 }}
               >
-                <Card className="p-8 bg-gradient-to-br from-accent/20 to-primary/10 backdrop-blur-sm border-2 border-accent/30">
+                <Card className="p-8 bg-linear-to-br from-accent/20 to-primary/10 backdrop-blur-sm border-2 border-accent/30">
                   <div className="space-y-6">
                     <div className="text-center space-y-4">
                       <motion.div
@@ -306,7 +306,7 @@ export function QuestionGeneratorDemo({ onBack }: QuestionGeneratorDemoProps) {
                 exit={{ opacity: 0, scale: 0.95 }}
                 transition={{ duration: 0.3 }}
               >
-                <Card className="p-8 bg-gradient-to-br from-accent/20 to-primary/10 backdrop-blur-sm border-2 border-accent/30">
+                <Card className="p-8 bg-linear-to-br from-accent/20 to-primary/10 backdrop-blur-sm border-2 border-accent/30">
                   <div className="space-y-6">
                     <div className="text-center space-y-4">
                       <motion.div
@@ -326,7 +326,7 @@ export function QuestionGeneratorDemo({ onBack }: QuestionGeneratorDemoProps) {
                       <h3 className="text-xl font-semibold text-foreground">What Just Happened</h3>
                       <div className="space-y-3 text-foreground/80">
                         <div className="flex gap-3">
-                          <CheckCircle size={24} weight="fill" className="text-accent flex-shrink-0" />
+                          <CheckCircle size={24} weight="fill" className="text-accent shrink-0" />
                           <div>
                             <p className="font-semibold">Character Analysis</p>
                             <p className="text-sm text-muted-foreground">
@@ -335,7 +335,7 @@ export function QuestionGeneratorDemo({ onBack }: QuestionGeneratorDemoProps) {
                           </div>
                         </div>
                         <div className="flex gap-3">
-                          <CheckCircle size={24} weight="fill" className="text-accent flex-shrink-0" />
+                          <CheckCircle size={24} weight="fill" className="text-accent shrink-0" />
                           <div>
                             <p className="font-semibold">Attribute Filtering</p>
                             <p className="text-sm text-muted-foreground">
@@ -344,7 +344,7 @@ export function QuestionGeneratorDemo({ onBack }: QuestionGeneratorDemoProps) {
                           </div>
                         </div>
                         <div className="flex gap-3">
-                          <CheckCircle size={24} weight="fill" className="text-accent flex-shrink-0" />
+                          <CheckCircle size={24} weight="fill" className="text-accent shrink-0" />
                           <div>
                             <p className="font-semibold">AI Question Generation</p>
                             <p className="text-sm text-muted-foreground">
@@ -353,7 +353,7 @@ export function QuestionGeneratorDemo({ onBack }: QuestionGeneratorDemoProps) {
                           </div>
                         </div>
                         <div className="flex gap-3">
-                          <CheckCircle size={24} weight="fill" className="text-accent flex-shrink-0" />
+                          <CheckCircle size={24} weight="fill" className="text-accent shrink-0" />
                           <div>
                             <p className="font-semibold">Pool Expansion</p>
                             <p className="text-sm text-muted-foreground">

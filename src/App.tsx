@@ -25,14 +25,7 @@ import { useGameState } from "@/hooks/useGameState";
 import { useKV } from "@/hooks/useKV";
 import { useSound } from "@/hooks/useSound";
 import { DEFAULT_CHARACTERS, DEFAULT_QUESTIONS } from "@/lib/database";
-import {
-  calculateProbabilities,
-  detectContradictions,
-  generateReasoning,
-  getBestGuess,
-  selectBestQuestion,
-  shouldMakeGuess,
-} from "@/lib/gameEngine";
+import { calculateProbabilities } from "@/lib/gameEngine";
 import type { SharePayload } from "@/lib/sharing";
 import {
   buildShareUrl,
@@ -46,8 +39,6 @@ import {
   playAnswer,
   playCorrectGuess,
   playIncorrectGuess,
-  playSuspense,
-  playThinking,
 } from "@/lib/sounds";
 import type { SyncStatus } from "@/lib/sync";
 import { getSyncStatus, initialSync, onSyncStatusChange } from "@/lib/sync";
@@ -96,6 +87,9 @@ import {
   useState,
 } from "react";
 import { toast, Toaster } from "sonner";
+import { useOnlineStatus } from "@/hooks/useOnlineStatus";
+import { useServerGame } from "@/hooks/useServerGame";
+import { useLocalGame } from "@/hooks/useLocalGame";
 
 const TeachingMode = lazy(() =>
   import("@/components/TeachingMode").then((m) => ({
@@ -188,8 +182,6 @@ const GameHistory = lazy(() =>
 
 // Lazy-loaded modules — fire-and-forget or async-only usage
 const analytics = () => import("@/lib/analytics");
-const loadLlm = () => import("@/lib/llm");
-const loadPrompts = () => import("@/lib/prompts");
 
 function App() {
   // ========== PERSISTENT STATE ==========
@@ -238,19 +230,31 @@ function App() {
   const [serverMode, setServerMode] = useKV<boolean>("server-mode", false);
   const selectedCategories = new Set(selectedCategoryList);
   const [challenge, setChallenge] = useState<SharePayload | null>(null);
-  const [serverSessionId, setServerSessionId] = useState<string | null>(null);
-  const [serverRemaining, setServerRemaining] = useState(0);
-  const [serverTotal, setServerTotal] = useState(0);
+  const {
+    serverRemaining,
+    serverTotal,
+    startServerGame,
+    handleServerAnswer,
+    postServerResult,
+  } = useServerGame(dispatch);
   const { muted, toggle: toggleMute } = useSound();
   const [showQuitDialog, setShowQuitDialog] = useState(false);
   const [syncStatus, setSyncStatus] = useState<SyncStatus>("synced");
   const { theme, setTheme } = useTheme();
-  const [online, setOnline] = useState(
-    typeof navigator === "undefined" ? true : navigator.onLine,
-  );
+  const online = useOnlineStatus(llmMode);
   const [eliminatedCount, setEliminatedCount] = useState<number | null>(null);
   const prevPossibleCount = useRef<number>(0);
-  const llmAbortRef = useRef<AbortController | null>(null);
+  const maxQuestions = DIFFICULTIES[difficulty].maxQuestions;
+  const { generateNextQuestion } = useLocalGame({
+    dispatch,
+    questions,
+    possibleCharacters,
+    answers,
+    maxQuestions,
+    llmMode,
+    prevPossibleCount,
+    setEliminatedCount,
+  });
   const [onboardingDone] = useKV("onboarding-complete", false);
   const [showOnboarding, setShowOnboarding] = useState(false);
 
@@ -264,27 +268,6 @@ function App() {
   const toggleTheme = useCallback(() => {
     setTheme(theme === "dark" ? "light" : "dark");
   }, [theme, setTheme]);
-
-  // ========== ONLINE STATUS ==========
-  useEffect(() => {
-    const goOnline = () => setOnline(true);
-    const goOffline = () => {
-      setOnline(false);
-      if (llmMode) {
-        toast.warning(
-          "You're offline — AI-Enhanced features won't work until you reconnect.",
-        );
-      }
-    };
-    globalThis.addEventListener("online", goOnline);
-    globalThis.addEventListener("offline", goOffline);
-    return () => {
-      globalThis.removeEventListener("online", goOnline);
-      globalThis.removeEventListener("offline", goOffline);
-    };
-  }, [llmMode]);
-
-  const maxQuestions = DIFFICULTIES[difficulty].maxQuestions;
 
   const activeCharacters = (() => {
     const all = characters || DEFAULT_CHARACTERS;
@@ -317,6 +300,16 @@ function App() {
     initialSync().catch(() => {});
     return unsubscribe;
   }, []);
+
+  // ========== ELIMINATION FEEDBACK ==========
+  useEffect(() => {
+    if (!serverMode || prevPossibleCount.current === 0) return;
+    const eliminated = prevPossibleCount.current - serverRemaining;
+    if (eliminated > 0) {
+      setEliminatedCount(eliminated);
+      setTimeout(() => setEliminatedCount(null), 2000);
+    }
+  }, [serverMode, serverRemaining]);
 
   // ========== PARSE URL CHALLENGE ON MOUNT ==========
   useEffect(() => {
@@ -355,46 +348,7 @@ function App() {
   // ========== GAME START ==========
   const startGame = async () => {
     if (serverMode) {
-      dispatch({ type: "SET_THINKING", isThinking: true });
-      playThinking();
-      try {
-        const res = await fetch("/api/v2/game/start", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            categories: selectedCategoryList.length
-              ? selectedCategoryList
-              : undefined,
-            difficulty,
-          }),
-        });
-        if (!res.ok) throw new Error("Failed to start");
-        const data = (await res.json()) as {
-          sessionId: string;
-          question: Question;
-          reasoning: typeof reasoning;
-          totalCharacters: number;
-        };
-        setServerSessionId(data.sessionId);
-        setServerRemaining(data.totalCharacters);
-        setServerTotal(data.totalCharacters);
-        dispatch({ type: "START_GAME", characters: [] });
-        dispatch({
-          type: "SET_QUESTION",
-          question: data.question,
-          reasoning: data.reasoning,
-        });
-        analytics().then((m) =>
-          m.trackGameStart(difficulty, data.totalCharacters),
-        );
-      } catch {
-        toast.error(
-          "Failed to start server game — try again or switch to local mode",
-        );
-        dispatch({ type: "NAVIGATE", phase: "welcome" });
-      } finally {
-        dispatch({ type: "SET_THINKING", isThinking: false });
-      }
+      await startServerGame(selectedCategoryList, difficulty);
       return;
     }
 
@@ -408,138 +362,6 @@ function App() {
     );
   };
 
-  // ========== GENERATE NEXT QUESTION ==========
-  const generateNextQuestion = () => {
-    dispatch({ type: "SET_THINKING", isThinking: true });
-    playThinking();
-
-    setTimeout(() => {
-      const allQuestions = questions || DEFAULT_QUESTIONS;
-      const filtered = filterPossibleCharacters(possibleCharacters, answers);
-      dispatch({ type: "SET_POSSIBLE_CHARACTERS", characters: filtered });
-
-      // Show elimination feedback
-      if (prevPossibleCount.current > 0) {
-        const eliminated = prevPossibleCount.current - filtered.length;
-        if (eliminated > 0) {
-          setEliminatedCount(eliminated);
-          setTimeout(() => setEliminatedCount(null), 2000);
-        }
-      }
-
-      const { hasContradiction } = detectContradictions(
-        possibleCharacters,
-        answers,
-      );
-      if (hasContradiction) {
-        toast.warning(
-          "Your answers seem contradictory — no characters match! Undoing last answer.",
-        );
-        dispatch({ type: "UNDO_LAST_ANSWER" });
-        dispatch({ type: "SET_THINKING", isThinking: false });
-        return;
-      }
-
-      if (shouldMakeGuess(filtered, answers, answers.length, maxQuestions)) {
-        const guess = getBestGuess(filtered, answers);
-        if (guess) {
-          dispatch({ type: "MAKE_GUESS", character: guess });
-          playSuspense();
-        }
-        return;
-      }
-
-      const nextQuestion = selectBestQuestion(filtered, answers, allQuestions);
-
-      if (nextQuestion) {
-        const newReasoning = generateReasoning(nextQuestion, filtered, answers);
-        dispatch({
-          type: "SET_QUESTION",
-          question: nextQuestion,
-          reasoning: newReasoning,
-        });
-
-        // LLM rephrasing (non-blocking, updates question text after)
-        if (llmMode) {
-          // Abort any in-flight LLM request
-          llmAbortRef.current?.abort();
-          const controller = new AbortController();
-          llmAbortRef.current = controller;
-
-          const answeredQs = answers.map((a) => {
-            const q = (questions || DEFAULT_QUESTIONS).find(
-              (q) => q.attribute === a.questionId,
-            );
-            return { question: q?.text || "", answer: a.value };
-          });
-          const topNames = filtered.slice(0, 5).map((c) => c.name);
-          const confidence = filtered.length > 0 ? 1 / filtered.length : 0;
-
-          Promise.all([loadPrompts(), loadLlm()])
-            .then(([{ dynamicQuestion_v1 }, { llmWithMeta }]) => {
-              if (controller.signal.aborted) return null;
-              const { system, user } = dynamicQuestion_v1(
-                nextQuestion.text,
-                nextQuestion.attribute,
-                answeredQs,
-                topNames,
-                confidence,
-              );
-              return llmWithMeta({
-                prompt: user,
-                model: "gpt-4o-mini",
-                jsonMode: true,
-                systemPrompt: system,
-                signal: controller.signal,
-              });
-            })
-            .then((result) => {
-              if (!result) return;
-              try {
-                const parsed = JSON.parse(result.content) as { text: string };
-                if (parsed.text && parsed.text.length < 150) {
-                  dispatch({
-                    type: "SET_QUESTION",
-                    question: { ...nextQuestion, text: parsed.text },
-                    reasoning: newReasoning,
-                  });
-                }
-              } catch {
-                /* Use original question */
-              }
-            })
-            .catch(() => {
-              /* Fallback: keep deterministic question */
-            });
-        }
-      } else {
-        const guess = getBestGuess(filtered, answers);
-        if (guess) {
-          dispatch({ type: "MAKE_GUESS", character: guess });
-          playSuspense();
-        }
-      }
-
-      dispatch({ type: "SET_THINKING", isThinking: false });
-    }, 800);
-  };
-
-  // ========== FILTER POSSIBLE CHARACTERS ==========
-  const filterPossibleCharacters = (
-    chars: Character[],
-    currentAnswers: { questionId: string; value: AnswerValue }[],
-  ): Character[] => {
-    return chars.filter((char) => {
-      for (const answer of currentAnswers) {
-        const attr = char.attributes[answer.questionId];
-        if (answer.value === "yes" && attr === false) return false;
-        if (answer.value === "no" && attr === true) return false;
-        // 'maybe' and 'unknown' don't eliminate
-      }
-      return true;
-    });
-  };
-
   // ========== ANSWER HANDLER ==========
   const handleAnswer = async (value: AnswerValue) => {
     prevPossibleCount.current = serverMode
@@ -550,75 +372,7 @@ function App() {
     hapticLight();
 
     if (serverMode) {
-      dispatch({ type: "SET_THINKING", isThinking: true });
-      try {
-        const res = await fetch("/api/v2/game/answer", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ sessionId: serverSessionId, value }),
-        });
-        if (!res.ok) throw new Error("Failed to process answer");
-        const data = (await res.json()) as {
-          type: "question" | "guess" | "contradiction";
-          question?: Question;
-          reasoning?: typeof reasoning;
-          character?: {
-            id: string;
-            name: string;
-            category: string;
-            imageUrl: string | null;
-          };
-          confidence?: number;
-          remaining?: number;
-          eliminated?: number;
-          questionCount?: number;
-          message?: string;
-        };
-
-        if (data.type === "contradiction") {
-          dispatch({ type: "UNDO_LAST_ANSWER" });
-          toast.warning(
-            data.message || "Contradictory answers — undoing last answer.",
-          );
-          if (data.question && data.reasoning) {
-            dispatch({
-              type: "SET_QUESTION",
-              question: data.question,
-              reasoning: data.reasoning,
-            });
-          }
-        } else if (data.type === "guess" && data.character) {
-          const guessChar: Character = {
-            id: data.character.id,
-            name: data.character.name,
-            category: (data.character.category || "other") as CharacterCategory,
-            attributes: {},
-            imageUrl: data.character.imageUrl ?? undefined,
-          };
-          dispatch({ type: "MAKE_GUESS", character: guessChar });
-          setServerRemaining(data.remaining ?? 1);
-          playSuspense();
-        } else if (data.type === "question" && data.question && data.reasoning) {
-          dispatch({
-            type: "SET_QUESTION",
-            question: data.question,
-            reasoning: data.reasoning,
-          });
-          const remaining = data.remaining ?? serverRemaining;
-          setServerRemaining(remaining);
-          const eliminated = prevPossibleCount.current - remaining;
-          if (eliminated > 0) {
-            setEliminatedCount(eliminated);
-            setTimeout(() => setEliminatedCount(null), 2000);
-          }
-          toast.success(`Answer recorded: ${value}`);
-        }
-      } catch {
-        toast.error("Failed to process answer — try again");
-        dispatch({ type: "UNDO_LAST_ANSWER" });
-      } finally {
-        dispatch({ type: "SET_THINKING", isThinking: false });
-      }
+      await handleServerAnswer(value, prevPossibleCount.current);
       return;
     }
 
@@ -650,14 +404,7 @@ function App() {
     playCorrectGuess();
     hapticSuccess();
     toast.success("🎉 I got it right!");
-    if (serverMode && serverSessionId) {
-      fetch("/api/v2/game/result", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sessionId: serverSessionId, correct: true }),
-      }).catch(() => {});
-      setServerSessionId(null);
-    }
+    if (serverMode) postServerResult(true);
   };
 
   const handleIncorrectGuess = () => {
@@ -669,14 +416,7 @@ function App() {
     playIncorrectGuess();
     hapticMedium();
     toast.error("I'll learn from this and do better next time!");
-    if (serverMode && serverSessionId) {
-      fetch("/api/v2/game/result", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sessionId: serverSessionId, correct: false }),
-      }).catch(() => {});
-      setServerSessionId(null);
-    }
+    if (serverMode) postServerResult(false);
   };
 
   // ========== SHARE HANDLERS ==========
@@ -1300,7 +1040,7 @@ function App() {
                         ["3", "Confidence Building", "Watch my confidence grow until the final guess!"],
                       ].map(([num, title, desc]) => (
                         <div key={num} className="flex gap-3 items-start">
-                          <div className="flex-shrink-0 w-6 h-6 rounded-full bg-accent/20 text-accent flex items-center justify-center text-xs font-bold">
+                          <div className="shrink-0 w-6 h-6 rounded-full bg-accent/20 text-accent flex items-center justify-center text-xs font-bold">
                             {num}
                           </div>
                           <div>
@@ -1409,7 +1149,7 @@ function App() {
                         llmMode ? "bg-accent" : "bg-muted"
                       }`}
                       role="switch"
-                      aria-checked={llmMode}
+                      aria-checked={llmMode ? "true" : "false"}
                       aria-label="Toggle AI-Enhanced Mode"
                     >
                       <span
@@ -1448,7 +1188,7 @@ function App() {
                         serverMode ? "bg-accent" : "bg-muted"
                       }`}
                       role="switch"
-                      aria-checked={serverMode}
+                      aria-checked={serverMode ? "true" : "false"}
                       aria-label="Toggle Server Mode"
                     >
                       <span
@@ -1647,29 +1387,25 @@ function App() {
                 {/* Answer history timeline */}
                 {gameSteps.length > 0 && (
                   <div className="flex flex-wrap gap-1.5 mb-4 lg:mb-6" aria-label="Answer history">
-                    {gameSteps.map((step, i) => (
-                      <span
-                        key={i}
-                        title={`Q${i + 1}: ${step.questionText} → ${step.answer}`}
-                        className={`inline-flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold cursor-default transition-transform hover:scale-110 ${
-                          step.answer === "yes"
-                            ? "bg-accent/20 text-accent"
-                            : step.answer === "no"
-                              ? "bg-destructive/20 text-destructive"
-                              : step.answer === "maybe"
-                                ? "bg-yellow-500/20 text-yellow-500"
-                                : "bg-muted text-muted-foreground"
-                        }`}
-                      >
-                        {step.answer === "yes"
-                          ? "Y"
-                          : step.answer === "no"
-                            ? "N"
-                            : step.answer === "maybe"
-                              ? "M"
-                              : "?"}
-                      </span>
-                    ))}
+                    {gameSteps.map((step, i) => {
+                      const bgClass: Record<string, string> = {
+                        yes: "bg-accent/20 text-accent",
+                        no: "bg-destructive/20 text-destructive",
+                        maybe: "bg-yellow-500/20 text-yellow-500",
+                      };
+                      const label: Record<string, string> = { yes: "Y", no: "N", maybe: "M" };
+                      return (
+                        <span
+                          key={step.questionId ?? `step-${i}`}
+                          title={`Q${i + 1}: ${step.questionText} → ${step.answer}`}
+                          className={`inline-flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold cursor-default transition-transform hover:scale-110 ${
+                            bgClass[step.answer] ?? "bg-muted text-muted-foreground"
+                          }`}
+                        >
+                          {label[step.answer] ?? "?"}
+                        </span>
+                      );
+                    })}
                   </div>
                 )}
 
@@ -1695,7 +1431,7 @@ function App() {
                       gamesPlayed={gameHistory?.length ?? 0}
                     />
                     <AnimatePresence mode="wait">
-                      {currentQuestion ? (
+                      {currentQuestion && (
                         <QuestionCard
                           question={currentQuestion}
                           questionNumber={answers.length + 1}
@@ -1703,9 +1439,8 @@ function App() {
                           onAnswer={handleAnswer}
                           isProcessing={isThinking}
                         />
-                      ) : isThinking ? (
-                        <ThinkingCard />
-                      ) : null}
+                      )}
+                      {!currentQuestion && isThinking && <ThinkingCard />}
                     </AnimatePresence>
                   </div>
 
@@ -1775,7 +1510,7 @@ function App() {
                   onPlayAgain={startGame}
                   onNewGame={() => navigate("welcome")}
                   onTeachMode={
-                    !gameWon ? () => navigate("teaching") : undefined
+                    gameWon ? undefined : () => navigate("teaching")
                   }
                   onViewHistory={() => navigate("history")}
                   onViewStats={() => navigate("stats")}

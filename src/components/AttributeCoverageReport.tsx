@@ -342,7 +342,7 @@ export function AttributeCoverageReport({ characters, onBack }: AttributeCoverag
                               key={idx}
                               className="flex items-start gap-2 text-xs text-muted-foreground"
                             >
-                              <Warning size={12} className="text-destructive mt-0.5 flex-shrink-0" />
+                              <Warning size={12} className="text-destructive mt-0.5 shrink-0" />
                               <span>{issue}</span>
                             </div>
                           ))}
@@ -357,7 +357,7 @@ export function AttributeCoverageReport({ characters, onBack }: AttributeCoverag
         </CardContent>
       </Card>
 
-      <Card className="bg-gradient-to-br from-accent/10 to-primary/10 border-accent/30">
+      <Card className="bg-linear-to-br from-accent/10 to-primary/10 border-accent/30">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Warning size={24} className="text-accent" />
@@ -367,7 +367,7 @@ export function AttributeCoverageReport({ characters, onBack }: AttributeCoverag
         <CardContent className="space-y-3">
           {summary.totalGaps > 0 && (
             <div className="flex items-start gap-3">
-              <div className="flex-shrink-0 w-6 h-6 rounded-full bg-accent/20 text-accent flex items-center justify-center text-xs font-bold">
+              <div className="shrink-0 w-6 h-6 rounded-full bg-accent/20 text-accent flex items-center justify-center text-xs font-bold">
                 1
               </div>
               <div>
@@ -383,7 +383,7 @@ export function AttributeCoverageReport({ characters, onBack }: AttributeCoverag
           {attributeStats.filter((s) => s.diversityScore < 0.2 && s.coveragePercent === 100)
             .length > 0 && (
             <div className="flex items-start gap-3">
-              <div className="flex-shrink-0 w-6 h-6 rounded-full bg-accent/20 text-accent flex items-center justify-center text-xs font-bold">
+              <div className="shrink-0 w-6 h-6 rounded-full bg-accent/20 text-accent flex items-center justify-center text-xs font-bold">
                 2
               </div>
               <div>
@@ -402,7 +402,7 @@ export function AttributeCoverageReport({ characters, onBack }: AttributeCoverag
 
           {summary.completeAttributes === summary.totalAttributes && summary.totalGaps === 0 && (
             <div className="flex items-start gap-3">
-              <div className="flex-shrink-0 w-6 h-6 rounded-full bg-green-500/20 text-green-500 flex items-center justify-center">
+              <div className="shrink-0 w-6 h-6 rounded-full bg-green-500/20 text-green-500 flex items-center justify-center">
                 <CheckCircle size={16} weight="fill" />
               </div>
               <div>
