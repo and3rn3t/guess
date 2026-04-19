@@ -17,7 +17,7 @@ pages_build_output_dir = "./dist"
 [env.production.vars]
 # Cloudflare AI Gateway — proxies OpenAI calls with built-in caching,
 # rate limiting, logging, cost analytics, and fallbacks.
-CLOUDFLARE_AI_GATEWAY = "https://gateway.ai.cloudflare.com/v1/362c458c58efc6b65b7005148383403d/andernet-ai/compat/chat/completions"
+CLOUDFLARE_AI_GATEWAY = "https://gateway.ai.cloudflare.com/v1/362c458c58efc6b65b7005148383403d/andernet-ai/openai/chat/completions"
 
 [[env.production.kv_namespaces]]
 binding = "GUESS_KV"
@@ -39,7 +39,7 @@ bucket_name = "guess-images"
 
 [env.preview.vars]
 # Uses same AI Gateway for preview — switch to a separate gateway if needed.
-CLOUDFLARE_AI_GATEWAY = "https://gateway.ai.cloudflare.com/v1/362c458c58efc6b65b7005148383403d/andernet-ai/compat/chat/completions"
+CLOUDFLARE_AI_GATEWAY = "https://gateway.ai.cloudflare.com/v1/362c458c58efc6b65b7005148383403d/andernet-ai/openai/chat/completions"
 
 [[env.preview.kv_namespaces]]
 binding = "GUESS_KV"
