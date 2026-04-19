@@ -261,8 +261,8 @@ function renderAdminPhase({
               <h1 className="text-3xl font-bold text-foreground">Challenge!</h1>
               <p className="text-muted-foreground text-lg">
                 {challenge.won
-                  ? `Mystic Guesser figured out ${challenge.characterName} in ${challenge.questionCount} questions!`
-                  : `Someone stumped Mystic Guesser thinking of ${challenge.characterName}!`}
+                  ? `Andernator figured out ${challenge.characterName} in ${challenge.questionCount} questions!`
+                  : `Someone stumped Andernator thinking of ${challenge.characterName}!`}
               </p>
               <div className="text-2xl tracking-wider">{answerBar}</div>
               <div className="flex flex-wrap gap-2 justify-center">

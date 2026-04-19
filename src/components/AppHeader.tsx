@@ -84,7 +84,7 @@ export function AppHeader({
               className="text-accent md:w-10 md:h-10"
             />
             <h1 className="text-2xl md:text-4xl font-bold text-foreground tracking-tight">
-              Mystic Guesser
+              Andernator
             </h1>
           </button>
           <div className="flex items-center gap-1 sm:gap-1.5 md:gap-3">

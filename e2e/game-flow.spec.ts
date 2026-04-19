@@ -2,18 +2,17 @@ import { test, expect } from '@playwright/test'
 
 test.describe('Game flow', () => {
   test.beforeEach(async ({ page }) => {
-    // Clear storage for a clean state, then mark onboarding as complete
-    // to prevent the overlay from blocking interactions
-    await page.goto('/')
-    await page.evaluate(() => {
+    // Set localStorage BEFORE the page loads so useKV hooks read these
+    // values on first render (avoids race with the 300ms debounce write-back)
+    await page.addInitScript(() => {
       localStorage.clear()
       localStorage.setItem('kv:onboarding-complete', 'true')
     })
-    await page.reload()
+    await page.goto('/')
   })
 
   test('shows welcome screen with title and start button', async ({ page }) => {
-    await expect(page.getByText('Mystic Guesser')).toBeVisible()
+    await expect(page.getByText('Andernator')).toBeVisible()
     await expect(page.getByRole('button', { name: /start game/i }).first()).toBeVisible()
   })
 
@@ -99,13 +98,6 @@ test.describe('Game flow', () => {
     await page.getByRole('button', { name: /start game/i }).first().click()
     await expect(page.getByRole('button', { name: /answer yes/i })).toBeVisible({ timeout: 5000 })
 
-    // Dismiss onboarding overlay if it appears
-    const skipButton = page.getByRole('button', { name: /skip/i })
-    if (await skipButton.isVisible({ timeout: 1000 }).catch(() => false)) {
-      await skipButton.click()
-      await page.waitForTimeout(500)
-    }
-
     // Click quit button (text is just "Quit")
     await page.getByRole('button', { name: /^quit$/i }).click()
 
@@ -114,7 +106,7 @@ test.describe('Game flow', () => {
     await page.getByRole('button', { name: /quit game/i }).click()
 
     // Should be back at welcome
-    await expect(page.getByText('Mystic Guesser')).toBeVisible({ timeout: 5000 })
+    await expect(page.getByText('Andernator')).toBeVisible({ timeout: 5000 })
   })
 })
 

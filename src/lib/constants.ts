@@ -7,7 +7,7 @@ export const KV_CHARACTERS_CACHE = "kv:characters-cache";
 export const KV_QUESTIONS_CACHE = "kv:questions-cache";
 
 // ===== IndexedDB =====
-export const DB_NAME = "mystic-guesser";
+export const DB_NAME = "andernator";
 export const DB_VERSION = 1;
 
 // ===== Analytics =====

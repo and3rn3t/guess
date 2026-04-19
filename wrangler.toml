@@ -4,6 +4,9 @@ name = "guess"
 compatibility_date = "2025-04-01"
 pages_build_output_dir = "./dist"
 
+# Custom domain: andernator.com (configured in Cloudflare Pages dashboard)
+# DNS: CNAME andernator.com → guess.pages.dev
+
 # Cloudflare Pages static site deployment
 # Build: pnpm build (outputs to dist/)
 # Deploy: pnpm run deploy

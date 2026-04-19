@@ -95,7 +95,7 @@ export function generateShareText(payload: SharePayload): string {
     .join('')
 
   return [
-    `${emoji} Mystic Guesser ${result} in ${payload.steps.length} questions!`,
+    `${emoji} Andernator ${result} in ${payload.steps.length} questions!`,
     `${bar}`,
     `Difficulty: ${payload.difficulty.charAt(0).toUpperCase() + payload.difficulty.slice(1)}`,
     `Can you do better?`,

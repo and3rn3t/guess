@@ -1,7 +1,7 @@
 {
-  "name": "Mystic Guesser",
-  "short_name": "Guesser",
-  "description": "AI-powered character guessing game with real-time reasoning",
+  "name": "Andernator",
+  "short_name": "Andernator",
+  "description": "Andernator — AI-powered character guessing game with real-time reasoning",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0c0a1a",

@@ -39,7 +39,7 @@ const baseProps = () => ({
 describe('AppHeader', () => {
   it('renders app name', () => {
     render(<AppHeader {...baseProps()} />)
-    expect(screen.getByText('Mystic Guesser')).toBeInTheDocument()
+    expect(screen.getByText('Andernator')).toBeInTheDocument()
   })
 
   it('shows mute toggle button', () => {
