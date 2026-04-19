@@ -1,0 +1,94 @@
+- generic [ref=e2]:
+  - region "Notifications alt+T"
+  - generic [ref=e5]:
+    - banner "Game navigation" [ref=e6]:
+      - generic [ref=e8]:
+        - button "Andernator" [ref=e9]:
+          - img [ref=e10]
+          - heading "Andernator" [level=1] [ref=e12]
+        - generic [ref=e13]:
+          - button "Statistics" [ref=e14]:
+            - img
+            - generic [ref=e15]: Statistics
+          - button "History" [ref=e16]:
+            - img
+            - generic [ref=e17]: History
+          - button "Compare" [ref=e18]:
+            - img
+            - generic [ref=e19]: Compare
+          - 'generic "Sync status: synced" [ref=e20]':
+            - img [ref=e21]
+          - button "Mute sounds" [ref=e23]:
+            - img
+          - button "Switch to light mode" [ref=e24]:
+            - img
+    - main "Game content" [ref=e25]:
+      - generic [ref=e28]:
+        - generic [ref=e29]:
+          - img [ref=e30]
+          - heading "Think of a Character" [level=2] [ref=e32]
+          - paragraph [ref=e33]: I'll ask strategic questions and try to guess who you're thinking of.
+        - button "Start Game" [ref=e35]:
+          - img
+          - text: Start Game
+        - generic [ref=e37]:
+          - button "How It Works" [expanded] [ref=e38]:
+            - heading "How It Works" [level=3] [ref=e39]
+          - generic [ref=e40]:
+            - generic [ref=e41]:
+              - generic [ref=e42]: "1"
+              - generic [ref=e43]:
+                - text: Strategic Questioning
+                - generic [ref=e44]: — I ask questions that split possibilities optimally.
+            - generic [ref=e45]:
+              - generic [ref=e46]: "2"
+              - generic [ref=e47]:
+                - text: Real-Time Reasoning
+                - generic [ref=e48]: — See exactly why I chose each question.
+            - generic [ref=e49]:
+              - generic [ref=e50]: "3"
+              - generic [ref=e51]:
+                - text: Confidence Building
+                - generic [ref=e52]: — Watch my confidence grow until the final guess!
+        - generic [ref=e53]:
+          - generic [ref=e54]:
+            - heading "Difficulty" [level=4] [ref=e55]
+            - generic [ref=e56]:
+              - button "Easy 20 Qs" [ref=e57]:
+                - text: Easy
+                - generic [ref=e58]: 20 Qs
+              - button "Medium 15 Qs" [ref=e59]:
+                - text: Medium
+                - generic [ref=e60]: 15 Qs
+              - button "Hard 10 Qs" [ref=e61]:
+                - text: Hard
+                - generic [ref=e62]: 10 Qs
+          - generic [ref=e64]:
+            - generic [ref=e65]:
+              - heading "Categories" [level=4] [ref=e66]
+              - generic [ref=e67]: All selected · 136 characters
+            - generic [ref=e68]:
+              - button "Video Games20" [ref=e69]
+              - button "Movies27" [ref=e70]
+              - button "Anime16" [ref=e71]
+              - button "Comics23" [ref=e72]
+              - button "Books13" [ref=e73]
+              - button "Cartoons17" [ref=e74]
+              - button "TV Shows10" [ref=e75]
+              - button "Pop Culture10" [ref=e76]
+            - paragraph [ref=e77]: e.g. Mario, Pikachu, Darth Vader, Harry Potter + 132 more
+          - generic [ref=e79]:
+            - generic [ref=e80]:
+              - img [ref=e81]
+              - generic [ref=e83]: AI-Enhanced Mode
+            - switch "Toggle AI-Enhanced Mode" [ref=e84]
+          - generic [ref=e87]:
+            - generic [ref=e88]:
+              - img [ref=e89]
+              - generic [ref=e91]: Server Mode
+            - switch "Toggle Server Mode" [ref=e92]
+        - generic [ref=e94]:
+          - button "Start Game" [ref=e95]:
+            - img
+            - text: Start Game
+          - paragraph [ref=e96]: 136 characters · 15 questions · Medium
