@@ -3,9 +3,9 @@ import { toast } from "sonner";
 
 /**
  * Tracks navigator.onLine and fires a toast when going offline
- * while LLM mode is active.
+ * while LLM mode or server mode is active.
  */
-export function useOnlineStatus(llmMode: boolean): boolean {
+export function useOnlineStatus(llmMode: boolean, serverMode = false): boolean {
   const [online, setOnline] = useState(
     typeof navigator === "undefined" ? true : navigator.onLine,
   );
@@ -14,7 +14,11 @@ export function useOnlineStatus(llmMode: boolean): boolean {
     const goOnline = () => setOnline(true);
     const goOffline = () => {
       setOnline(false);
-      if (llmMode) {
+      if (serverMode) {
+        toast.warning(
+          "You're offline — Server mode won't work until you reconnect.",
+        );
+      } else if (llmMode) {
         toast.warning(
           "You're offline — AI-Enhanced features won't work until you reconnect.",
         );
@@ -26,7 +30,7 @@ export function useOnlineStatus(llmMode: boolean): boolean {
       globalThis.removeEventListener("online", goOnline);
       globalThis.removeEventListener("offline", goOffline);
     };
-  }, [llmMode]);
+  }, [llmMode, serverMode]);
 
   return online;
 }

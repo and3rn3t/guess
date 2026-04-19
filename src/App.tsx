@@ -44,10 +44,7 @@ import type {
   Question,
 } from "@/lib/types";
 import { DIFFICULTIES } from "@/lib/types";
-import {
-  PlayIcon,
-  SparkleIcon,
-} from "@phosphor-icons/react";
+import { PlayIcon, SparkleIcon } from "@phosphor-icons/react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useTheme } from "next-themes";
 import {
@@ -354,12 +351,12 @@ function App() {
     startServerGame,
     handleServerAnswer,
     postServerResult,
-  } = useServerGame(dispatch);
+  } = useServerGame(dispatch, serverMode);
   const { muted, toggle: toggleMute } = useSound();
   const [showQuitDialog, setShowQuitDialog] = useState(false);
   const [syncStatus, setSyncStatus] = useState<SyncStatus>("synced");
   const { theme, setTheme } = useTheme();
-  const online = useOnlineStatus(llmMode);
+  const online = useOnlineStatus(llmMode, serverMode);
   const [eliminatedCount, setEliminatedCount] = useState<number | null>(null);
   const prevPossibleCount = useRef<number>(0);
   const maxQuestions = DIFFICULTIES[difficulty].maxQuestions;
@@ -378,7 +375,11 @@ function App() {
 
   // Show onboarding when first game starts
   useEffect(() => {
-    if (gamePhase === "playing" && !onboardingDone && gameHistory?.length === 0) {
+    if (
+      gamePhase === "playing" &&
+      !onboardingDone &&
+      gameHistory?.length === 0
+    ) {
       setShowOnboarding(true);
     }
   }, [gamePhase, onboardingDone, gameHistory]);
@@ -408,15 +409,20 @@ function App() {
     return Math.round(max * 100);
   })();
 
-  const effectiveRemaining = serverMode ? serverRemaining : possibleCharacters.length;
+  const effectiveRemaining = serverMode
+    ? serverRemaining
+    : possibleCharacters.length;
 
   // ========== SYNC STATUS ==========
   useEffect(() => {
     setSyncStatus(getSyncStatus());
     const unsubscribe = onSyncStatusChange(setSyncStatus);
-    // Run initial sync (fire-and-forget)
-    initialSync().catch(() => {});
+    // Skip syncing legacy KV data in server mode — server loads from D1
+    if (!serverMode) {
+      initialSync().catch(() => {});
+    }
     return unsubscribe;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // ========== ELIMINATION FEEDBACK ==========
@@ -635,9 +641,7 @@ function App() {
     <>
       <Toaster position="top-center" richColors />
       <div className="min-h-screen bg-background relative overflow-hidden">
-        <div
-          className="absolute inset-0 opacity-20 bg-cosmic-glow"
-        />
+        <div className="absolute inset-0 opacity-20 bg-cosmic-glow" />
 
         <div className="relative z-10">
           <AppHeader
@@ -674,109 +678,109 @@ function App() {
             </div>
 
             <AnimatePresence mode="wait">
-            {gamePhase === "welcome" && (
-              <WelcomeScreen
-                startGame={startGame}
-                difficulty={difficulty}
-                setDifficulty={setDifficulty}
-                selectedCategories={selectedCategories}
-                toggleCategory={toggleCategory}
-                activeCharacters={activeCharacters}
-                llmMode={llmMode}
-                setLlmMode={setLlmMode}
-                serverMode={serverMode}
-                setServerMode={setServerMode}
-                serverTotal={serverTotal}
-                online={online}
-                maxQuestions={maxQuestions}
-                gameHistory={gameHistory}
-                hasSavedSession={hasSavedSession}
-                resumeSession={resumeSession}
-                clearSession={clearSession}
-                showDevTools={showDevTools}
-                navigate={navigate}
-                characters={characters}
-              />
-            )}
-
-            {gamePhase === "playing" && (
-              <PlayingScreen
-                answers={answers}
-                maxQuestions={maxQuestions}
-                confidence={confidence}
-                effectiveRemaining={effectiveRemaining}
-                serverMode={serverMode}
-                llmMode={llmMode}
-                eliminatedCount={eliminatedCount}
-                possibleCharacters={possibleCharacters}
-                currentQuestion={currentQuestion}
-                isThinking={isThinking}
-                reasoning={reasoning}
-                handleAnswer={handleAnswer}
-                dispatch={dispatch}
-                gameSteps={gameSteps}
-                gameHistory={gameHistory}
-                showOnboarding={showOnboarding}
-                setShowOnboarding={setShowOnboarding}
-                activeCharacters={activeCharacters}
-                probabilities={probabilities}
-              />
-            )}
-
-            {gamePhase === "guessing" && finalGuess && (
-              <motion.div
-                key="guessing"
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -12 }}
-                transition={{ duration: 0.25 }}
-              >
-              <div className="max-w-2xl mx-auto">
-                <GuessReveal
-                  character={finalGuess}
-                  confidence={confidence}
-                  onCorrect={handleCorrectGuess}
-                  onIncorrect={handleIncorrectGuess}
-                />
-              </div>
-              </motion.div>
-            )}
-
-            {gamePhase === "gameOver" && (
-              <motion.div
-                key="gameOver"
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -12 }}
-                transition={{ duration: 0.25 }}
-              >
-              <div className="max-w-2xl mx-auto">
-                <GameOver
-                  won={gameWon}
-                  character={finalGuess}
-                  questionsAsked={gameSteps.length}
-                  remainingCharacters={effectiveRemaining}
-                  gameHistory={gameHistory || []}
-                  onPlayAgain={startGame}
-                  onNewGame={() => navigate("welcome")}
-                  onTeachMode={
-                    gameWon ? undefined : () => navigate("teaching")
-                  }
-                  onViewHistory={() => navigate("history")}
-                  onViewStats={() => navigate("stats")}
-                  onShare={handleShare}
-                  onCopyLink={handleCopyLink}
+              {gamePhase === "welcome" && (
+                <WelcomeScreen
+                  startGame={startGame}
+                  difficulty={difficulty}
+                  setDifficulty={setDifficulty}
+                  selectedCategories={selectedCategories}
+                  toggleCategory={toggleCategory}
+                  activeCharacters={activeCharacters}
                   llmMode={llmMode}
-                  answeredQuestions={answers.map((a) => {
-                    const q = (questions || DEFAULT_QUESTIONS).find(
-                      (q) => q.id === a.questionId,
-                    );
-                    return { question: q?.text || "", answer: a.value };
-                  })}
+                  setLlmMode={setLlmMode}
+                  serverMode={serverMode}
+                  setServerMode={setServerMode}
+                  serverTotal={serverTotal}
+                  online={online}
+                  maxQuestions={maxQuestions}
+                  gameHistory={gameHistory}
+                  hasSavedSession={hasSavedSession}
+                  resumeSession={resumeSession}
+                  clearSession={clearSession}
+                  showDevTools={showDevTools}
+                  navigate={navigate}
+                  characters={characters}
                 />
-              </div>
-              </motion.div>
-            )}
+              )}
+
+              {gamePhase === "playing" && (
+                <PlayingScreen
+                  answers={answers}
+                  maxQuestions={maxQuestions}
+                  confidence={confidence}
+                  effectiveRemaining={effectiveRemaining}
+                  serverMode={serverMode}
+                  llmMode={llmMode}
+                  eliminatedCount={eliminatedCount}
+                  possibleCharacters={possibleCharacters}
+                  currentQuestion={currentQuestion}
+                  isThinking={isThinking}
+                  reasoning={reasoning}
+                  handleAnswer={handleAnswer}
+                  dispatch={dispatch}
+                  gameSteps={gameSteps}
+                  gameHistory={gameHistory}
+                  showOnboarding={showOnboarding}
+                  setShowOnboarding={setShowOnboarding}
+                  activeCharacters={activeCharacters}
+                  probabilities={probabilities}
+                />
+              )}
+
+              {gamePhase === "guessing" && finalGuess && (
+                <motion.div
+                  key="guessing"
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -12 }}
+                  transition={{ duration: 0.25 }}
+                >
+                  <div className="max-w-2xl mx-auto">
+                    <GuessReveal
+                      character={finalGuess}
+                      confidence={confidence}
+                      onCorrect={handleCorrectGuess}
+                      onIncorrect={handleIncorrectGuess}
+                    />
+                  </div>
+                </motion.div>
+              )}
+
+              {gamePhase === "gameOver" && (
+                <motion.div
+                  key="gameOver"
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -12 }}
+                  transition={{ duration: 0.25 }}
+                >
+                  <div className="max-w-2xl mx-auto">
+                    <GameOver
+                      won={gameWon}
+                      character={finalGuess}
+                      questionsAsked={gameSteps.length}
+                      remainingCharacters={effectiveRemaining}
+                      gameHistory={gameHistory || []}
+                      onPlayAgain={startGame}
+                      onNewGame={() => navigate("welcome")}
+                      onTeachMode={
+                        gameWon ? undefined : () => navigate("teaching")
+                      }
+                      onViewHistory={() => navigate("history")}
+                      onViewStats={() => navigate("stats")}
+                      onShare={handleShare}
+                      onCopyLink={handleCopyLink}
+                      llmMode={llmMode}
+                      answeredQuestions={answers.map((a) => {
+                        const q = (questions || DEFAULT_QUESTIONS).find(
+                          (q) => q.id === a.questionId,
+                        );
+                        return { question: q?.text || "", answer: a.value };
+                      })}
+                    />
+                  </div>
+                </motion.div>
+              )}
             </AnimatePresence>
 
             {gamePhase === "teaching" && (
@@ -789,6 +793,7 @@ function App() {
                     onAddQuestions={handleAddQuestions}
                     onPlayAgain={startGame}
                     onGoHome={() => navigate("welcome")}
+                    serverMode={serverMode}
                   />
                 </Suspense>
               </div>

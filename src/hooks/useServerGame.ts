@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import type { GameAction } from "@/hooks/useGameState";
 import type {
@@ -12,6 +12,8 @@ import type {
 import { playThinking, playSuspense } from "@/lib/sounds";
 
 const analytics = () => import("@/lib/analytics");
+
+const SERVER_SESSION_KEY = "server-session-id";
 
 // ── Server response types ────────────────────────────────────
 
@@ -39,6 +41,16 @@ interface AnswerResponse {
   message?: string;
 }
 
+interface ResumeResponse {
+  expired: boolean;
+  question?: Question;
+  reasoning?: ReasoningExplanation;
+  remaining?: number;
+  totalCharacters?: number;
+  questionCount?: number;
+  answers?: Array<{ questionId: string; value: AnswerValue }>;
+}
+
 // ── Hook ─────────────────────────────────────────────────────
 
 /**
@@ -46,10 +58,96 @@ interface AnswerResponse {
  * server API calls.  Receives the shared game-state `dispatch` so
  * the main reducer stays the single source of truth.
  */
-export function useServerGame(dispatch: React.Dispatch<GameAction>) {
+export function useServerGame(
+  dispatch: React.Dispatch<GameAction>,
+  serverMode: boolean,
+) {
   const [serverSessionId, setServerSessionId] = useState<string | null>(null);
   const [serverRemaining, setServerRemaining] = useState(0);
   const [serverTotal, setServerTotal] = useState(0);
+  const resumeAttempted = useRef(false);
+
+  // Persist session ID to sessionStorage
+  const persistSessionId = useCallback((id: string | null) => {
+    setServerSessionId(id);
+    try {
+      if (id) {
+        sessionStorage.setItem(SERVER_SESSION_KEY, id);
+      } else {
+        sessionStorage.removeItem(SERVER_SESSION_KEY);
+      }
+    } catch {
+      // sessionStorage unavailable — ignore
+    }
+  }, []);
+
+  // Auto-resume server session on mount
+  useEffect(() => {
+    if (!serverMode || resumeAttempted.current) return;
+    resumeAttempted.current = true;
+
+    let savedId: string | null = null;
+    try {
+      savedId = sessionStorage.getItem(SERVER_SESSION_KEY);
+    } catch {
+      return;
+    }
+    if (!savedId) return;
+
+    (async () => {
+      try {
+        const res = await fetch("/api/v2/game/resume", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ sessionId: savedId }),
+        });
+        if (!res.ok) {
+          persistSessionId(null);
+          return;
+        }
+        const data = (await res.json()) as ResumeResponse;
+        if (data.expired || !data.question || !data.reasoning) {
+          persistSessionId(null);
+          return;
+        }
+
+        // Restore game state
+        persistSessionId(savedId);
+        setServerRemaining(data.remaining ?? 0);
+        setServerTotal(data.totalCharacters ?? 0);
+        dispatch({ type: "START_GAME", characters: [] });
+
+        // Replay answers into reducer so step count is correct
+        if (data.answers) {
+          for (const a of data.answers) {
+            dispatch({
+              type: "SET_QUESTION",
+              question: { id: a.questionId, text: "", attribute: a.questionId },
+              reasoning: {
+                why: "",
+                impact: "",
+                remaining: 0,
+                confidence: 0,
+                topCandidates: [],
+              },
+            });
+            dispatch({ type: "ANSWER", value: a.value });
+          }
+        }
+
+        // Set current question
+        dispatch({
+          type: "SET_QUESTION",
+          question: data.question,
+          reasoning: data.reasoning,
+        });
+
+        toast.info("Server game resumed");
+      } catch {
+        persistSessionId(null);
+      }
+    })();
+  }, [serverMode, dispatch, persistSessionId]);
 
   const startServerGame = useCallback(
     async (categories: CharacterCategory[], difficulty: Difficulty) => {
@@ -66,7 +164,7 @@ export function useServerGame(dispatch: React.Dispatch<GameAction>) {
         });
         if (!res.ok) throw new Error("Failed to start");
         const data = (await res.json()) as StartResponse;
-        setServerSessionId(data.sessionId);
+        persistSessionId(data.sessionId);
         setServerRemaining(data.totalCharacters);
         setServerTotal(data.totalCharacters);
         dispatch({ type: "START_GAME", characters: [] });
@@ -87,7 +185,7 @@ export function useServerGame(dispatch: React.Dispatch<GameAction>) {
         dispatch({ type: "SET_THINKING", isThinking: false });
       }
     },
-    [dispatch],
+    [dispatch, persistSessionId],
   );
 
   const handleServerAnswer = useCallback(
@@ -157,9 +255,9 @@ export function useServerGame(dispatch: React.Dispatch<GameAction>) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ sessionId: serverSessionId, correct }),
       }).catch(() => {});
-      setServerSessionId(null);
+      persistSessionId(null);
     },
-    [serverSessionId],
+    [serverSessionId, persistSessionId],
   );
 
   return {
