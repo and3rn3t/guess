@@ -95,6 +95,36 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       ),
     ])
 
+    const readinessSummary = await d1First<{
+      instrumented_games: number
+      recent_instrumented_games: number
+      avg_confidence: number | null
+      avg_questions_at_guess: number | null
+      strict_readiness_win_pct: number | null
+      high_certainty_win_pct: number | null
+      forced_guess_rate: number | null
+      forced_guess_win_pct: number | null
+      early_guess_win_pct: number | null
+      low_ambiguity_win_pct: number | null
+      max_question_guess_rate: number | null
+    }>(
+      db,
+      `SELECT
+         COUNT(*) AS instrumented_games,
+         SUM(CASE WHEN created_at >= unixepoch('now', '-14 days') * 1000 THEN 1 ELSE 0 END) AS recent_instrumented_games,
+         ROUND(AVG(confidence_at_guess), 2) AS avg_confidence,
+         ROUND(AVG(questions_asked), 1) AS avg_questions_at_guess,
+         ROUND(100.0 * AVG(CASE WHEN guess_trigger = 'strict_readiness' THEN won END), 1) AS strict_readiness_win_pct,
+         ROUND(100.0 * AVG(CASE WHEN guess_trigger = 'high_certainty' THEN won END), 1) AS high_certainty_win_pct,
+         ROUND(100.0 * AVG(CASE WHEN forced_guess = 1 THEN 1 ELSE 0 END), 1) AS forced_guess_rate,
+         ROUND(100.0 * AVG(CASE WHEN forced_guess = 1 THEN won END), 1) AS forced_guess_win_pct,
+         ROUND(100.0 * AVG(CASE WHEN questions_remaining_at_guess >= 4 THEN won END), 1) AS early_guess_win_pct,
+         ROUND(100.0 * AVG(CASE WHEN alive_count_at_guess <= 3 THEN won END), 1) AS low_ambiguity_win_pct,
+         ROUND(100.0 * AVG(CASE WHEN guess_trigger = 'max_questions' THEN 1 ELSE 0 END), 1) AS max_question_guess_rate
+       FROM game_stats
+       WHERE confidence_at_guess IS NOT NULL`
+    )
+
     gameStats = {
       totalGames: overview?.total_games ?? 0,
       wins: overview?.wins ?? 0,
@@ -117,6 +147,21 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
         poolSize: g.character_pool_size,
         timestamp: g.created_at,
       })),
+      readiness: readinessSummary && readinessSummary.instrumented_games > 0
+        ? {
+            instrumentedGames: readinessSummary.instrumented_games,
+            recentInstrumentedGames: readinessSummary.recent_instrumented_games,
+            avgConfidence: readinessSummary.avg_confidence ?? 0,
+            avgQuestionsAtGuess: readinessSummary.avg_questions_at_guess ?? 0,
+            strictReadinessWinRate: readinessSummary.strict_readiness_win_pct,
+            highCertaintyWinRate: readinessSummary.high_certainty_win_pct,
+            forcedGuessRate: readinessSummary.forced_guess_rate ?? 0,
+            forcedGuessWinRate: readinessSummary.forced_guess_win_pct,
+            earlyGuessWinRate: readinessSummary.early_guess_win_pct,
+            lowAmbiguityWinRate: readinessSummary.low_ambiguity_win_pct,
+            maxQuestionGuessRate: readinessSummary.max_question_guess_rate ?? 0,
+          }
+        : null,
     }
   } catch {
     // game_stats table may not exist yet

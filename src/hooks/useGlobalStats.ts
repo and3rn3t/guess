@@ -34,6 +34,19 @@ export interface GlobalStats {
       poolSize: number
       timestamp: number
     }>
+    readiness: {
+      instrumentedGames: number
+      recentInstrumentedGames: number
+      avgConfidence: number
+      avgQuestionsAtGuess: number
+      strictReadinessWinRate: number | null
+      highCertaintyWinRate: number | null
+      forcedGuessRate: number
+      forcedGuessWinRate: number | null
+      earlyGuessWinRate: number | null
+      lowAmbiguityWinRate: number | null
+      maxQuestionGuessRate: number
+    } | null
   } | null
 }
 

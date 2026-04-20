@@ -29,6 +29,7 @@ export function StatsDashboard({ stats, loading, onBack }: StatsDashboardProps) 
   const [_activeTab, setActiveTab] = useState('games')
 
   const gs = stats?.gameStats
+  const readiness = gs?.readiness
 
   if (loading) {
     return (
@@ -150,8 +151,9 @@ export function StatsDashboard({ stats, loading, onBack }: StatsDashboardProps) 
       </div>
 
       <Tabs defaultValue="games" onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="games" className="text-xs sm:text-sm">Games</TabsTrigger>
+          <TabsTrigger value="readiness" className="text-xs sm:text-sm">Readiness</TabsTrigger>
           <TabsTrigger value="categories" className="text-xs sm:text-sm">Categories</TabsTrigger>
           <TabsTrigger value="database" className="text-xs sm:text-sm">Database</TabsTrigger>
         </TabsList>
@@ -245,6 +247,108 @@ export function StatsDashboard({ stats, loading, onBack }: StatsDashboardProps) 
             <Card className="p-8 text-center bg-card/50 backdrop-blur-sm border-primary/20">
               <GameController size={48} className="mx-auto text-muted-foreground mb-3" />
               <p className="text-muted-foreground">No games played yet. Start a game to see global statistics!</p>
+            </Card>
+          )}
+        </TabsContent>
+
+        <TabsContent value="readiness" className="space-y-4">
+          {readiness ? (
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <Card className="bg-card/50 backdrop-blur-sm border-primary/20">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm font-medium text-muted-foreground">Instrumented Games</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-3xl font-bold text-foreground">{readiness.instrumentedGames}</div>
+                    <div className="text-xs text-muted-foreground mt-1">
+                      {readiness.recentInstrumentedGames} in the last 14 days
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-card/50 backdrop-blur-sm border-primary/20">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm font-medium text-muted-foreground">Avg Confidence</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-3xl font-bold text-foreground">{Math.round(readiness.avgConfidence * 100)}%</div>
+                    <div className="text-xs text-muted-foreground mt-1">
+                      {readiness.avgQuestionsAtGuess} questions on average
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-card/50 backdrop-blur-sm border-primary/20">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm font-medium text-muted-foreground">Forced Guess Rate</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-3xl font-bold text-foreground">{readiness.forcedGuessRate}%</div>
+                    <div className="text-xs text-muted-foreground mt-1">
+                      Target below 8%
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-card/50 backdrop-blur-sm border-primary/20">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm font-medium text-muted-foreground">Max-Question Guess Rate</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-3xl font-bold text-foreground">{readiness.maxQuestionGuessRate}%</div>
+                    <div className="text-xs text-muted-foreground mt-1">
+                      Target below 15%
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              <Card className="bg-card/50 backdrop-blur-sm border-primary/20">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Lightning size={24} className="text-accent" />
+                    Guess Readiness KPIs
+                  </CardTitle>
+                  <CardDescription>
+                    Server-side calibration metrics from instrumented guesses
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <ReadinessMetric
+                      label="Strict readiness win rate"
+                      value={readiness.strictReadinessWinRate}
+                      target="75%+ target"
+                    />
+                    <ReadinessMetric
+                      label="High-certainty win rate"
+                      value={readiness.highCertaintyWinRate}
+                      target="90%+ target"
+                    />
+                    <ReadinessMetric
+                      label="Forced guess win rate"
+                      value={readiness.forcedGuessWinRate}
+                      target="Within 15 points of overall win rate"
+                    />
+                    <ReadinessMetric
+                      label="Early guess win rate"
+                      value={readiness.earlyGuessWinRate}
+                      target="Healthy, but should stay rare"
+                    />
+                    <ReadinessMetric
+                      label="Low-ambiguity win rate"
+                      value={readiness.lowAmbiguityWinRate}
+                      target="Above overall win rate"
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+            </>
+          ) : (
+            <Card className="p-8 text-center bg-card/50 backdrop-blur-sm border-primary/20">
+              <Lightning size={48} className="mx-auto text-muted-foreground mb-3" />
+              <p className="text-muted-foreground">Not enough instrumented guess data yet to show readiness KPIs.</p>
             </Card>
           )}
         </TabsContent>
@@ -389,6 +493,26 @@ export function StatsDashboard({ stats, loading, onBack }: StatsDashboardProps) 
           </Card>
         </TabsContent>
       </Tabs>
+    </div>
+  )
+}
+
+function ReadinessMetric({
+  label,
+  value,
+  target,
+}: {
+  label: string
+  value: number | null
+  target: string
+}) {
+  return (
+    <div className="bg-background/50 rounded-lg p-4 border border-border/50 space-y-2">
+      <div className="flex items-center justify-between gap-3">
+        <span className="text-sm text-foreground font-medium">{label}</span>
+        <Badge variant="outline">{value == null ? '—' : `${value}%`}</Badge>
+      </div>
+      <div className="text-xs text-muted-foreground">{target}</div>
     </div>
   )
 }

@@ -132,6 +132,8 @@ pnpm analytics:readiness:prod
 
 These commands run the query set in [docs/guess-readiness-queries.sql](docs/guess-readiness-queries.sql) against the remote D1 databases so threshold tuning can be based on real outcomes instead of heuristics alone.
 
+Calibration targets and review guidance live in [docs/guess-readiness-calibration.md](docs/guess-readiness-calibration.md).
+
 ## D1 Operations
 
 Use these commands for the normal schema workflow:
