@@ -64,23 +64,10 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   // Record stats in D1 if available
   if (db) {
     try {
-      const answerDistributionPayload = session.guessAnalytics?.answerDistribution
-        ? JSON.stringify({
-            answers: session.guessAnalytics.answerDistribution,
-            readiness: {
-              trigger: session.guessAnalytics.trigger ?? null,
-              forced: session.guessAnalytics.forced ?? false,
-              gap: session.guessAnalytics.gap ?? null,
-              aliveCount: session.guessAnalytics.aliveCount ?? null,
-              questionsRemaining: session.guessAnalytics.questionsRemaining ?? null,
-            },
-          })
-        : null
-
       await d1Run(
         db,
-        `INSERT INTO game_stats (user_id, won, difficulty, questions_asked, character_pool_size, character_id, character_name, steps, guesses_used, confidence_at_guess, entropy_at_guess, remaining_at_guess, answer_distribution, created_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO game_stats (user_id, won, difficulty, questions_asked, character_pool_size, character_id, character_name, steps, guesses_used, confidence_at_guess, entropy_at_guess, remaining_at_guess, answer_distribution, guess_trigger, forced_guess, gap_at_guess, alive_count_at_guess, questions_remaining_at_guess, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           userId,
           body.correct ? 1 : 0,
@@ -94,7 +81,14 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
           session.guessAnalytics?.confidence ?? null,
           session.guessAnalytics?.entropy ?? null,
           session.guessAnalytics?.remaining ?? null,
-          answerDistributionPayload,
+          session.guessAnalytics?.answerDistribution
+            ? JSON.stringify(session.guessAnalytics.answerDistribution)
+            : null,
+          session.guessAnalytics?.trigger ?? null,
+          session.guessAnalytics?.forced ? 1 : 0,
+          session.guessAnalytics?.gap ?? null,
+          session.guessAnalytics?.aliveCount ?? null,
+          session.guessAnalytics?.questionsRemaining ?? null,
           Date.now(),
         ]
       )
