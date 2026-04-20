@@ -550,6 +550,9 @@ export function evaluateGuessReadiness(
   const aliveProbs = sorted.filter((p) => p > ALIVE_THRESHOLD)
   const aliveCount = aliveProbs.length
   const currentEntropy = entropy(aliveProbs)
+  // With SCORE_MISMATCH=0.05, tolerated 1-mismatch chars have residual probability that inflates
+  // aliveCount. Use competitiveCount (chars with ≥15% of top probability) for readiness gates.
+  const competitiveCount = aliveProbs.filter((p) => p >= topProbability * 0.15).length
   const questionsRemaining = Math.max(0, maxQuestions - questionCount)
   const progress = maxQuestions > 0 ? questionCount / maxQuestions : 1
 
@@ -594,7 +597,7 @@ export function evaluateGuessReadiness(
     }
   }
 
-  const highCertainty = topProbability >= 0.9 && gap >= 0.2 && aliveCount <= 2
+  const highCertainty = topProbability >= 0.9 && gap >= 0.2 && competitiveCount <= 2
   if (highCertainty) {
     return {
       shouldGuess: true,
@@ -609,7 +612,7 @@ export function evaluateGuessReadiness(
     questionCount >= 3 &&
     topProbability >= requiredConfidence &&
     gap >= requiredGap &&
-    aliveCount <= 3 &&
+    competitiveCount <= 3 &&
     currentEntropy <= requiredEntropy
 
   return {

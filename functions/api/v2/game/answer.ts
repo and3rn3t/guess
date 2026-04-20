@@ -145,7 +145,10 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
   // Select next question (pass progress for dynamic top-K threshold)
   const progress = questionCount / session.maxQuestions
-  const nextQuestion = selectBestQuestion(filtered, session.answers, session.questions, { progress })
+  const recentCategories = session.answers.slice(-3)
+    .map((a) => session.questions.find((q) => q.attribute === a.questionId)?.category)
+    .filter((c): c is string => c != null)
+  const nextQuestion = selectBestQuestion(filtered, session.answers, session.questions, { progress, recentCategories })
 
   if (!nextQuestion) {
     // No more questions — force a guess
