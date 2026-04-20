@@ -491,6 +491,27 @@ describe('selectBestQuestion – coverage penalty', () => {
     const best = selectBestQuestion(chars, [], questions)
     expect(best?.attribute).toBe('common')
   })
+
+  it('prefers a decisive top-candidate separator late in the game', () => {
+    const chars: Character[] = [
+      { id: 'a', name: 'A', category: 'movies', attributes: { seedA: true, seedB: true, decisive: true, broad: true } },
+      { id: 'b', name: 'B', category: 'movies', attributes: { seedA: true, seedB: true, decisive: false, broad: true } },
+      { id: 'c', name: 'C', category: 'movies', attributes: { seedA: null, seedB: null, decisive: null, broad: false } },
+      { id: 'd', name: 'D', category: 'movies', attributes: { seedA: null, seedB: null, decisive: null, broad: false } },
+      { id: 'e', name: 'E', category: 'movies', attributes: { seedA: null, seedB: null, decisive: null, broad: false } },
+    ]
+    const questions: Question[] = [
+      { id: 'q1', text: 'Decisive?', attribute: 'decisive' },
+      { id: 'q2', text: 'Broad?', attribute: 'broad' },
+    ]
+    const answers: Answer[] = [
+      { questionId: 'seedA', value: 'yes' },
+      { questionId: 'seedB', value: 'yes' },
+    ]
+
+    const question = selectBestQuestion(chars, answers, questions, { progress: 0.9 })
+    expect(question?.attribute).toBe('decisive')
+  })
 })
 
 describe('generateReasoning – topCandidates', () => {

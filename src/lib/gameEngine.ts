@@ -103,6 +103,51 @@ function entropy(probabilities: number[]): number {
   }, 0)
 }
 
+function calculateTopCandidateSeparation(
+  topChars: Character[],
+  probs: Map<string, number>,
+  attribute: string,
+): { separation: number; coverage: number } {
+  if (topChars.length < 2) {
+    return { separation: 0, coverage: 0 }
+  }
+
+  let weightedSeparation = 0
+  let totalWeight = 0
+  let knownTopCandidates = 0
+
+  for (const char of topChars) {
+    if (char.attributes[attribute] != null) knownTopCandidates += 1
+  }
+
+  for (let index = 0; index < topChars.length; index += 1) {
+    for (let compareIndex = index + 1; compareIndex < topChars.length; compareIndex += 1) {
+      const left = topChars[index]
+      const right = topChars[compareIndex]
+      const pairWeight = (probs.get(left.id) ?? 0) * (probs.get(right.id) ?? 0)
+      if (pairWeight <= 0) continue
+
+      totalWeight += pairWeight
+
+      const leftValue = left.attributes[attribute]
+      const rightValue = right.attributes[attribute]
+      if (leftValue == null && rightValue == null) continue
+      if (leftValue == null || rightValue == null) {
+        weightedSeparation += pairWeight * 0.35
+        continue
+      }
+      if (leftValue !== rightValue) {
+        weightedSeparation += pairWeight
+      }
+    }
+  }
+
+  return {
+    separation: totalWeight > 0 ? weightedSeparation / totalWeight : 0,
+    coverage: knownTopCandidates / topChars.length,
+  }
+}
+
 /** Pick the question with the highest expected information gain from the remaining pool.
  *  Enhanced with: sigmoid coverage penalty, three-way entropy (yes/no/maybe),
  *  top-N differentiation, category diversity, and dynamic top-K variety. */
@@ -126,10 +171,13 @@ export function selectBestQuestion(
   const topN = sortedProbs.slice(0, Math.min(5, sortedProbs.length))
   const topNMass = topN.reduce((sum, [, p]) => sum + p, 0)
   const topNChars = topN.map(([id]) => characters.find((c) => c.id === id)!).filter(Boolean)
+  const topTwoChars = topNChars.slice(0, 2)
 
   const currentProbs = characters.map((c) => probs.get(c.id) || 0)
   const currentEntropy = entropy(currentProbs)
-  const scored: Array<{ question: Question; score: number }> = []
+  const progress = options?.progress ?? 0
+  const endgameFocus = progress >= 0.65 || topNMass >= 0.75
+  const scored: Array<{ question: Question; score: number; topTwoSplit: boolean }> = []
 
   for (const question of availableQuestions) {
     // Partition characters into yes/no/unknown buckets with their probabilities
@@ -217,6 +265,32 @@ export function selectBestQuestion(
       }
     }
 
+    let topTwoSplit = false
+
+    if (endgameFocus && topNChars.length >= 2) {
+      const { separation, coverage } = calculateTopCandidateSeparation(topNChars, probs, question.attribute)
+      const focusStrength = 0.35 + 0.45 * progress
+      infoGain *= 1 + focusStrength * separation * (0.6 + 0.4 * coverage)
+
+      if (coverage < 0.5) {
+        infoGain *= 0.8 + 0.4 * coverage
+      }
+
+      if (topTwoChars.length === 2) {
+        const firstValue = topTwoChars[0].attributes[question.attribute]
+        const secondValue = topTwoChars[1].attributes[question.attribute]
+
+        if (firstValue != null && secondValue != null && firstValue !== secondValue) {
+          topTwoSplit = true
+          infoGain *= 1 + 0.9 * topNMass + 0.35 * progress
+        } else if (firstValue == null || secondValue == null) {
+          infoGain *= 0.78
+        } else {
+          infoGain *= 0.72
+        }
+      }
+    }
+
     // Category diversity penalty: avoid consecutive questions in the same category
     if (options?.recentCategories?.length && question.category) {
       if (options.recentCategories.includes(question.category)) {
@@ -224,7 +298,7 @@ export function selectBestQuestion(
       }
     }
 
-    scored.push({ question, score: infoGain })
+    scored.push({ question, score: infoGain, topTwoSplit })
   }
 
   if (scored.length === 0) return null
@@ -232,8 +306,15 @@ export function selectBestQuestion(
   scored.sort((a, b) => b.score - a.score)
   if (scored[0].score <= 0) return scored[0].question
 
+  if (endgameFocus && progress >= 0.85) {
+    const bestTopTwoSplit = scored.find((candidate) => candidate.topTwoSplit)
+    if (bestTopTwoSplit && bestTopTwoSplit.score >= scored[0].score * 0.55) {
+      return bestTopTwoSplit.question
+    }
+    return scored[0].question
+  }
+
   // Dynamic top-K threshold: more variety early, more optimal late
-  const progress = options?.progress ?? 0
   const thresholdFactor = 0.5 + 0.4 * progress // 0.5 early → 0.9 late
   const threshold = scored[0].score * thresholdFactor
   const topK = scored.filter((s) => s.score >= threshold)
