@@ -51,6 +51,33 @@ export interface GuessAnalytics {
   entropy: number
   remaining: number
   answerDistribution: Record<string, number>
+  trigger?: GuessTrigger
+  forced?: boolean
+  gap?: number
+  aliveCount?: number
+  questionsRemaining?: number
+}
+
+export type GuessTrigger =
+  | 'singleton'
+  | 'max_questions'
+  | 'high_certainty'
+  | 'strict_readiness'
+  | 'insufficient_data'
+
+export interface GuessReadiness {
+  shouldGuess: boolean
+  forced: boolean
+  trigger: GuessTrigger
+  topProbability: number
+  secondProbability: number
+  gap: number
+  entropy: number
+  aliveCount: number
+  questionsRemaining: number
+  requiredConfidence: number
+  requiredGap: number
+  requiredEntropy: number
 }
 
 export interface ReasoningExplanation {
@@ -359,42 +386,121 @@ export function shouldMakeGuess(
   maxQuestions: number,
   priorWrongGuesses: number = 0
 ): boolean {
-  if (characters.length <= 1) return true
+  return evaluateGuessReadiness(characters, answers, questionCount, maxQuestions, priorWrongGuesses).shouldGuess
+}
+
+/** Determine whether the posterior is concentrated enough for a guess. */
+export function evaluateGuessReadiness(
+  characters: ServerCharacter[],
+  answers: Answer[],
+  questionCount: number,
+  maxQuestions: number,
+  priorWrongGuesses: number = 0
+): GuessReadiness {
+  if (characters.length <= 1) {
+    return {
+      shouldGuess: true,
+      forced: false,
+      trigger: 'singleton',
+      topProbability: 1,
+      secondProbability: 0,
+      gap: 1,
+      entropy: 0,
+      aliveCount: characters.length,
+      questionsRemaining: Math.max(0, maxQuestions - questionCount),
+      requiredConfidence: 0,
+      requiredGap: 0,
+      requiredEntropy: 0,
+    }
+  }
+
+  if (questionCount >= maxQuestions) {
+    return {
+      shouldGuess: true,
+      forced: true,
+      trigger: 'max_questions',
+      topProbability: 0,
+      secondProbability: 0,
+      gap: 0,
+      entropy: 0,
+      aliveCount: characters.length,
+      questionsRemaining: 0,
+      requiredConfidence: 0,
+      requiredGap: 0,
+      requiredEntropy: 0,
+    }
+  }
 
   const probabilities = calculateProbabilities(characters, answers)
   const sorted = Array.from(probabilities.values()).sort((a, b) => b - a)
-  const topProbability = sorted[0]
-
-  // Hard limit
-  if (questionCount >= maxQuestions) return true
-
-  // Confidence escalation: +0.1 per wrong guess, capped at +0.3
-  const escalation = Math.min(priorWrongGuesses * 0.1, 0.3)
-
-  // Continuous progressive threshold: quadratic decay
-  // progress=0: 0.8 | progress=0.5: 0.7 | progress=0.75: 0.575 | progress=1: 0.4
-  const progress = questionCount / maxQuestions
-  const requiredConfidence = Math.min(0.8 - 0.4 * progress * progress + escalation, 0.95)
-  if (topProbability > requiredConfidence) return true
-
-  // Count effectively alive candidates (above noise floor)
-  const aliveCount = sorted.filter((p) => p > ALIVE_THRESHOLD).length
-  if (aliveCount <= 2 && questionCount >= 3 && topProbability >= Math.min(0.5 + escalation, 0.95))
-    return true
-
-  // Entropy-based trigger: if distribution is very narrow (~2 candidates), guess
-  const aliveProbs = sorted.filter((p) => p > ALIVE_THRESHOLD)
-  const currentEntropy = entropy(aliveProbs)
-  const entropyThreshold = 1.0 - escalation // 1.0 base → 0.7 after 3+ wrongs
-  if (currentEntropy < entropyThreshold && questionCount >= 3) return true
-
-  // Continuous gap-based guessing: required gap decreases with progress
-  const secondProbability = sorted.length > 1 ? sorted[1] : 0
+  const topProbability = sorted[0] ?? 0
+  const secondProbability = sorted[1] ?? 0
   const gap = topProbability - secondProbability
-  const requiredGap = 0.4 - 0.2 * progress // 0.4 early → 0.2 late
-  if (gap > requiredGap && topProbability > Math.min(0.4 + escalation, 0.95)) return true
 
-  return false
+  const aliveProbs = sorted.filter((p) => p > ALIVE_THRESHOLD)
+  const aliveCount = aliveProbs.length
+  const currentEntropy = entropy(aliveProbs)
+  const questionsRemaining = Math.max(0, maxQuestions - questionCount)
+  const progress = maxQuestions > 0 ? questionCount / maxQuestions : 1
+
+  // Wrong guesses should make future guesses stricter, not more aggressive.
+  const wrongGuessPenalty = Math.min(priorWrongGuesses * 0.04, 0.12)
+  const requiredConfidence = Math.min(0.85 - 0.25 * progress * progress + wrongGuessPenalty, 0.94)
+  const requiredGap = Math.max(0.12 - 0.05 * progress + wrongGuessPenalty, 0.08)
+  const requiredEntropy = Math.max(0.55 - 0.2 * progress - priorWrongGuesses * 0.04, 0.3)
+
+  const resultBase = {
+    forced: false,
+    topProbability,
+    secondProbability,
+    gap,
+    entropy: currentEntropy,
+    aliveCount,
+    questionsRemaining,
+    requiredConfidence,
+    requiredGap,
+    requiredEntropy,
+  }
+
+  // Ask a few questions before non-forced guesses, unless certainty is overwhelming.
+  if (questionCount < 3 && topProbability < 0.9) {
+    return {
+      shouldGuess: false,
+      trigger: 'insufficient_data',
+      ...resultBase,
+    }
+  }
+
+  // Keep asking while budget remains and posterior is still broad.
+  if (questionsRemaining > 2 && topProbability < 0.78 && aliveCount > 2) {
+    return {
+      shouldGuess: false,
+      trigger: 'insufficient_data',
+      ...resultBase,
+    }
+  }
+
+  const highCertainty = topProbability >= 0.9 && gap >= 0.2 && aliveCount <= 2
+  if (highCertainty) {
+    return {
+      shouldGuess: true,
+      trigger: 'high_certainty',
+      ...resultBase,
+    }
+  }
+
+  const strictReady =
+    questionCount >= 3 &&
+    topProbability >= requiredConfidence &&
+    gap >= requiredGap &&
+    aliveCount <= 3 &&
+    currentEntropy <= requiredEntropy
+
+  return {
+    shouldGuess: strictReady,
+    trigger: strictReady ? 'strict_readiness' : 'insufficient_data',
+    ...resultBase,
+  }
 }
 
 /** Get the best guess character, excluding previously rejected guesses. */

@@ -219,18 +219,35 @@ describe('shouldMakeGuess', () => {
     expect(shouldMakeGuess(CHARS, answers, 2, 15)).toBe(true)
   })
 
-  it('returns true with 2 candidates and enough questions', () => {
+  it('returns false with 2 candidates when confidence is still 50/50', () => {
     // isHuman=yes narrows to Mario + Link (50/50)
     const answers: Answer[] = [{ questionId: 'isHuman', value: 'yes' }]
-    // 2 alive + qCount >= 3 + top >= 0.5
-    expect(shouldMakeGuess(CHARS, answers, 5, 15)).toBe(true)
+    expect(shouldMakeGuess(CHARS, answers, 5, 15)).toBe(false)
   })
 
-  it('returns true at 75% progress with moderate confidence', () => {
-    // Need progress >= 0.75 and top > 0.45
+  it('returns false late game when posterior is still ambiguous', () => {
     const answers: Answer[] = [{ questionId: 'isHuman', value: 'yes' }]
-    // 2 characters alive with ~50% top → passes 0.45 threshold
-    expect(shouldMakeGuess(CHARS, answers, 12, 15)).toBe(true)
+    expect(shouldMakeGuess(CHARS, answers, 12, 15)).toBe(false)
+  })
+
+  it('returns false early with broad alive pool despite mild confidence lead', () => {
+    const chars: ServerCharacter[] = [
+      { id: 'a', name: 'A', category: 'video-games', imageUrl: null, attributes: { trait: true } },
+      { id: 'b', name: 'B', category: 'video-games', imageUrl: null, attributes: { trait: false } },
+      { id: 'c', name: 'C', category: 'video-games', imageUrl: null, attributes: { trait: false } },
+      { id: 'd', name: 'D', category: 'video-games', imageUrl: null, attributes: { trait: null } },
+    ]
+    const answers: Answer[] = [{ questionId: 'trait', value: 'yes' }]
+    expect(shouldMakeGuess(chars, answers, 3, 15)).toBe(false)
+  })
+
+  it('applies stricter readiness after prior wrong guesses', () => {
+    const answers: Answer[] = [
+      { questionId: 'isHuman', value: 'yes' },
+      { questionId: 'isMale', value: 'yes' },
+    ]
+    expect(shouldMakeGuess(CHARS, answers, 6, 15, 0)).toBe(false)
+    expect(shouldMakeGuess(CHARS, answers, 6, 15, 2)).toBe(false)
   })
 
   it('uses maxQuestions parameter for easy difficulty', () => {

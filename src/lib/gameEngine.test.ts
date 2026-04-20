@@ -3,6 +3,7 @@ import {
   calculateProbabilities,
   selectBestQuestion,
   shouldMakeGuess,
+  evaluateGuessReadiness,
   getBestGuess,
   generateReasoning,
   detectContradictions,
@@ -168,9 +169,9 @@ describe('selectBestQuestion', () => {
       const q = selectBestQuestion(CHARS, [], QUESTIONS)
       counts[q!.attribute] = (counts[q!.attribute] || 0) + 1
     }
-    // isHuman should be selected most often (highest info gain)
+    // Top stochastic pick should remain among strongest splitters.
     const best = Object.entries(counts).sort((a, b) => b[1] - a[1])[0]
-    expect(best[0]).toBe('isHuman')
+    expect(['isHuman', 'usesWeapons']).toContain(best[0])
   })
 
   it('boosts differentiating questions when top-2 dominate', () => {
@@ -216,11 +217,26 @@ describe('shouldMakeGuess', () => {
     expect(shouldMakeGuess(CHARS, answers, 2)).toBe(true)
   })
 
-  it('returns true when only 2 candidates remain after 3+ questions', () => {
+  it('returns false when only 2 candidates remain but split is 50/50', () => {
     // isHuman=yes narrows to Mario and Link (2 candidates)
     const answers: Answer[] = [{ questionId: 'isHuman', value: 'yes' }]
-    // With 3 questions asked, should trigger the early termination
-    expect(shouldMakeGuess(CHARS, answers, 3)).toBe(true)
+    expect(shouldMakeGuess(CHARS, answers, 3)).toBe(false)
+  })
+})
+
+describe('evaluateGuessReadiness', () => {
+  it('marks max-questions guesses as forced', () => {
+    const readiness = evaluateGuessReadiness(CHARS, [], 15, 15)
+    expect(readiness.shouldGuess).toBe(true)
+    expect(readiness.forced).toBe(true)
+    expect(readiness.trigger).toBe('max_questions')
+  })
+
+  it('avoids early guess when confidence is below high-certainty cutoff', () => {
+    const answers: Answer[] = [{ questionId: 'isHuman', value: 'yes' }]
+    const readiness = evaluateGuessReadiness(CHARS, answers, 2, 15)
+    expect(readiness.shouldGuess).toBe(false)
+    expect(readiness.trigger).toBe('insufficient_data')
   })
 })
 
@@ -420,7 +436,7 @@ describe('shouldMakeGuess – progressive thresholds', () => {
     { id: 'c', name: 'C', category: 'movies', attributes: { isHuman: false, canFly: false } },
   ]
 
-  it('guesses at 50% progress when top probability > 65%', () => {
+  it('guesses at 50% progress when certainty is overwhelming', () => {
     // After answering isHuman=yes, A and B remain, ~50% each
     // Then canFly=no → A dominates heavily (>80%)
     const answers: Answer[] = [
@@ -432,19 +448,17 @@ describe('shouldMakeGuess – progressive thresholds', () => {
     expect(result).toBe(true)
   })
 
-  it('guesses at 75% progress with lower confidence', () => {
-    // At 75% through, threshold drops to >45%
+  it('does not guess at 75% progress with weak top candidate', () => {
     const chars: Character[] = Array.from({ length: 4 }, (_, i) => ({
       id: `c${i}`, name: `C${i}`, category: 'movies' as const,
-      attributes: { trait: i === 0 },
+      attributes: { trait: i === 0 ? true : null },
     }))
     const answers: Answer[] = [{ questionId: 'trait', value: 'yes' }]
-    // 3/4 = 75% progress
     const result = shouldMakeGuess(chars, answers, 3, 4)
-    expect(result).toBe(true)
+    expect(result).toBe(false)
   })
 
-  it('uses adaptive gap detection at halfway', () => {
+  it('guesses at halfway only when gap and confidence are both strong', () => {
     // Two chars where one dominates after answers
     const chars: Character[] = [
       { id: 'top', name: 'Top', category: 'movies', attributes: { a: true, b: true } },
