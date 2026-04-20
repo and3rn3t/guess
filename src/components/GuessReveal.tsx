@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { llmStream, LlmError } from "@/lib/llm";
 import { narrativeExplanation_v1 } from "@/lib/prompts";
 import type { Character } from "@/lib/types";
@@ -15,7 +16,7 @@ import {
   XCircle,
 } from "@phosphor-icons/react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 /** Lightweight confetti burst — reduces particle count on mobile & respects reduced-motion */
@@ -238,6 +239,12 @@ export function GuessReveal({
   );
 }
 
+interface RevealResult {
+  found: boolean;
+  characterName?: string | null;
+  attributesFilled?: number;
+}
+
 interface GameOverProps {
   won: boolean;
   exhausted?: boolean;
@@ -254,6 +261,7 @@ interface GameOverProps {
   onShare?: () => void;
   onCopyLink?: () => void;
   answeredQuestions?: Array<{ question: string; answer: string }>;
+  onReveal?: (characterName: string) => Promise<RevealResult>;
 }
 
 export function GameOver({
@@ -272,9 +280,30 @@ export function GameOver({
   onShare,
   onCopyLink,
   answeredQuestions,
+  onReveal,
 }: Readonly<GameOverProps>) {
   const [narrative, setNarrative] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
+  const [revealInput, setRevealInput] = useState("");
+  const [revealStatus, setRevealStatus] = useState<
+    "idle" | "loading" | "done"
+  >("idle");
+  const [revealResult, setRevealResult] = useState<RevealResult | null>(null);
+  const revealInputRef = useRef<HTMLInputElement>(null);
+
+  const handleRevealSubmit = async () => {
+    if (!onReveal || revealInput.trim().length === 0 || revealStatus !== "idle")
+      return;
+    setRevealStatus("loading");
+    try {
+      const result = await onReveal(revealInput.trim());
+      setRevealResult(result);
+    } catch {
+      setRevealResult({ found: false });
+    } finally {
+      setRevealStatus("done");
+    }
+  };
 
   useEffect(() => {
     if (!character) return;
@@ -426,6 +455,84 @@ export function GameOver({
                 {narrative}
                 {isStreaming && <span className="animate-pulse">▌</span>}
               </p>
+            </div>
+          )}
+
+          {/* Reveal section — ask what the user was thinking of when AI lost */}
+          {!won && onReveal && (
+            <div className="bg-primary/5 rounded-lg p-4 border border-primary/20 text-left space-y-3">
+              {revealStatus === "done" && revealResult ? (
+                <motion.div
+                  initial={{ opacity: 0, y: 4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="text-center space-y-1"
+                >
+                  {revealResult.found ? (
+                    <>
+                      <p className="text-sm font-medium text-foreground">
+                        Got it —{" "}
+                        <span className="text-accent">
+                          {revealResult.characterName}
+                        </span>
+                        !
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {revealResult.attributesFilled
+                          ? `Used your answers to fill in ${revealResult.attributesFilled} attribute${revealResult.attributesFilled === 1 ? "" : "s"}. I'll be smarter next time!`
+                          : "Your answers have been recorded to help me improve!"}
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-sm font-medium text-foreground">
+                        Thanks for telling me!
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {revealInput} isn&apos;t in my database yet — your
+                        answers have been logged so they can be added.
+                      </p>
+                    </>
+                  )}
+                </motion.div>
+              ) : (
+                <>
+                  <p className="text-sm font-medium text-foreground">
+                    Who were you thinking of?
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Your answer helps train me for future games.
+                  </p>
+                  <form
+                    className="flex gap-2"
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      void handleRevealSubmit();
+                    }}
+                  >
+                    <Input
+                      ref={revealInputRef}
+                      value={revealInput}
+                      onChange={(e) => setRevealInput(e.target.value)}
+                      placeholder="Character name…"
+                      disabled={revealStatus === "loading"}
+                      className="h-9 text-sm"
+                      maxLength={200}
+                      autoComplete="off"
+                    />
+                    <Button
+                      type="submit"
+                      size="sm"
+                      disabled={
+                        revealInput.trim().length === 0 ||
+                        revealStatus === "loading"
+                      }
+                      className="shrink-0"
+                    >
+                      {revealStatus === "loading" ? "Saving…" : "Submit"}
+                    </Button>
+                  </form>
+                </>
+              )}
             </div>
           )}
 

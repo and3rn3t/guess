@@ -515,6 +515,32 @@ function App() {
     }
   };
 
+  const handleReveal = async (
+    characterName: string,
+  ): Promise<{
+    found: boolean;
+    characterName?: string | null;
+    attributesFilled?: number;
+  }> => {
+    const res = await fetch("/api/v2/game/reveal", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        characterName,
+        answers: answers.map((a) => ({
+          questionId: a.questionId,
+          value: a.value,
+        })),
+      }),
+    });
+    if (!res.ok) return { found: false };
+    return res.json() as Promise<{
+      found: boolean;
+      characterName?: string | null;
+      attributesFilled?: number;
+    }>;
+  };
+
   // ========== DATA HANDLERS ==========
   const handleAddCharacter = (character: Character) => {
     setCharacters((prev) => [...(prev || []), character]);
@@ -695,6 +721,7 @@ function App() {
                         );
                         return { question: q?.text || "", answer: a.value };
                       })}
+                      onReveal={gameWon ? undefined : handleReveal}
                     />
                   </div>
                 </motion.div>

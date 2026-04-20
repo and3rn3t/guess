@@ -6,6 +6,21 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [Unreleased] — 2026-04-20
+
+### Added
+
+- **User answer reveal on loss** — when the AI fails to guess, `GameOver` now shows a "Who were you thinking of?" input field
+- `POST /api/v2/game/reveal` endpoint — accepts the character name + session Q&A answers:
+  - Fuzzy-matches the name against `characters` table (exact then LIKE)
+  - Backfills `null` attribute values with confidence 0.5 from confident yes/no answers
+  - Queues `system:reveal:` correction votes in KV for any contradicting attribute values
+  - Stores a `game_reveals` audit row regardless of whether the character was found
+- `game_reveals` D1 table — stores `actual_character_name`, `actual_character_id`, `answers` (JSON), `attributes_filled`, `discrepancies`, `created_at`
+- Migration `0016_game_reveals.sql` applied to both production and preview databases
+
+---
+
 ## [1.1.0] — 2025-07-21
 
 ### Changed

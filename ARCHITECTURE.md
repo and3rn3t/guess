@@ -105,7 +105,8 @@ functions/api/                 # Cloudflare Workers
         ├── start.ts           # Initialize session → first question
         ├── answer.ts          # Process answer → next question or guess
         ├── result.ts          # Record outcome to game_stats
-        └── resume.ts          # Restore interrupted session from KV
+        ├── resume.ts          # Restore interrupted session from KV
+        └── reveal.ts          # User reveals answer on loss → backfill DB attributes
 
 scripts/                       # Build & data tools
 ├── generate-seed-sql.ts       # database.ts → SQL INSERT statements
@@ -122,7 +123,8 @@ scripts/                       # Build & data tools
 migrations/                    # D1 SQLite migrations
 ├── 0001_initial.sql           # Schema: characters, attributes, questions, stats
 ├── 0002_seed.sql              # Seed DEFAULT_CHARACTERS & DEFAULT_QUESTIONS
-├── 0003–0009_*.sql            # Expanded attributes, backfills, images, game stats
+├── 0003–0015_*.sql            # Expanded attributes, backfills, images, game stats, guess analytics
+├── 0016_game_reveals.sql      # game_reveals table for user-disclosed answers
 └── chunks/                    # Split data imports (chunk_001–053.sql)
 ```
 
@@ -203,7 +205,7 @@ Additional phases: `manage`, `demo`, `stats`, `compare`, `coverage`, `recommende
 
 Primary database for the server-side engine and character catalog.
 
-**Tables**: `characters`, `character_attributes`, `questions`, `question_coverage`, `attribute_definitions`, `game_stats`, `game_plays`
+**Tables**: `characters`, `character_attributes`, `questions`, `question_coverage`, `attribute_definitions`, `game_stats`, `game_plays`, `game_reveals`
 
 - 187 DEFAULT_CHARACTERS seeded via migrations
 - 53K+ ingested characters from AniList, WikiData, TMDB, IGDB, ComicVine
@@ -261,6 +263,7 @@ Object storage for character images.
 | `/api/v2/game/answer` | POST | Process answer → next Q or guess |
 | `/api/v2/game/resume` | GET | Restore interrupted session |
 | `/api/v2/game/result` | POST | Record outcome + stats |
+| `/api/v2/game/reveal` | POST | User-disclosed answer on loss → backfill null attributes, queue corrections |
 
 ### Guess Analytics
 
