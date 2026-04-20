@@ -151,15 +151,19 @@ Scores are normalized to 0–1 probabilities across the candidate pool.
 
 1. For each unused question, simulate yes/no/maybe splits
 2. Calculate weighted entropy of each split
-3. Boost questions that differentiate the top-2 candidates
-4. Select the question with maximum expected information gain
+3. Boost questions that differentiate the top candidates
+4. In the endgame, prefer questions that explicitly separate the strongest remaining suspects
+5. Select the question with maximum expected information gain, with reduced late-game randomness
 
 ### Guess Decision
 
-`shouldMakeGuess(probabilities, questionsAsked, maxQuestions)` triggers a guess when:
+`evaluateGuessReadiness()` and `shouldMakeGuess()` now use a stricter readiness model. A guess is made when the posterior is genuinely concentrated, not just because one candidate is slightly ahead.
 
-- Top candidate probability ≥ 80%, **or**
-- Question limit reached (15 questions)
+- Hard budget is exhausted, **or**
+- Confidence, top-2 gap, viable-candidate count, and entropy all satisfy the readiness gate, **or**
+- Overwhelming high-certainty conditions are met
+
+After a rejected guess, the engine becomes stricter and enforces a short cooldown before another guess is allowed.
 
 ### Reasoning Generation
 
@@ -257,6 +261,24 @@ Object storage for character images.
 | `/api/v2/game/answer` | POST | Process answer → next Q or guess |
 | `/api/v2/game/resume` | GET | Restore interrupted session |
 | `/api/v2/game/result` | POST | Record outcome + stats |
+
+### Guess Analytics
+
+`game_stats` now stores dedicated guess-readiness analytics:
+
+- `confidence_at_guess`
+- `entropy_at_guess`
+- `remaining_at_guess`
+- `guess_trigger`
+- `forced_guess`
+- `gap_at_guess`
+- `alive_count_at_guess`
+- `questions_remaining_at_guess`
+
+Calibration queries live in [docs/guess-readiness-queries.sql](docs/guess-readiness-queries.sql) and can be run via:
+
+- `pnpm analytics:readiness:preview`
+- `pnpm analytics:readiness:prod`
 
 ### Other
 

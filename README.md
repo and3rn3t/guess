@@ -77,6 +77,11 @@ pnpm dev
 | `pnpm deploy:preview` | Build + deploy preview branch |
 | `pnpm cf:login` | Authenticate with Cloudflare |
 | `pnpm cf:dev` | Dev server with Cloudflare bindings (KV, D1, R2) |
+| `pnpm db:types` | Regenerate D1 row types from migrations |
+| `pnpm migrate:preview` | Apply pending D1 migrations to preview |
+| `pnpm migrate:prod` | Apply pending D1 migrations to production |
+| `pnpm analytics:readiness:preview` | Run guess-readiness calibration queries against preview D1 |
+| `pnpm analytics:readiness:prod` | Run guess-readiness calibration queries against production D1 |
 | `pnpm ingest` | Run data ingestion pipeline |
 
 ## Architecture
@@ -115,6 +120,30 @@ Deployed to [Cloudflare Pages](https://andernator.com) via `wrangler`. See [`.gi
 pnpm deploy            # Production
 pnpm deploy:preview    # Preview branch
 ```
+
+## Analytics Calibration
+
+Guess timing now records dedicated readiness analytics in `game_stats`, including trigger type, forced guesses, top-gap, alive suspects, and questions remaining at guess time.
+
+```bash
+pnpm analytics:readiness:preview
+pnpm analytics:readiness:prod
+```
+
+These commands run the query set in [docs/guess-readiness-queries.sql](docs/guess-readiness-queries.sql) against the remote D1 databases so threshold tuning can be based on real outcomes instead of heuristics alone.
+
+## D1 Operations
+
+Use these commands for the normal schema workflow:
+
+```bash
+pnpm migrate:create
+pnpm migrate:preview
+pnpm migrate:prod
+pnpm db:types
+```
+
+Apply the migration to preview first, then production, and regenerate [functions/api/_db-types.ts](functions/api/_db-types.ts) after schema changes land.
 
 ## License
 
