@@ -8,6 +8,15 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased] — 2026-04-20
 
+### Changed
+
+- **Soft scoring resilience** — `SCORE_MISMATCH` raised from `0.0` → `0.05`; a single wrong/inconsistent answer no longer permanently zeros out the correct character
+- **Fuzzy hard-filter** — `filterPossibleCharacters` now tolerates 1 mismatch (`MAX_MISMATCHES=1`) before eliminating a character, preventing premature elimination from one bad answer
+- **Singleton guard** — AI no longer guesses on a singleton candidate until at least 5 questions have been asked (was 0), avoiding false-confident guesses early in the game
+- **Zero-candidates fallback** — if all candidates are eliminated (contradictory answers), the engine now forces a guess rather than stalling
+- **`detectContradictions` accuracy** — fixed to use the hard-filter count rather than soft probability scores, so contradiction detection is consistent with filtering logic
+- Deleted 3 duplicate questions from production DB (`q176` isFromMovie, `q171` isVideoGameCharacter, `q177` isFromBook) that caused double-elimination when the same question appeared twice
+
 ### Added
 
 - **User answer reveal on loss** — when the AI fails to guess, `GameOver` now shows a "Who were you thinking of?" input field
