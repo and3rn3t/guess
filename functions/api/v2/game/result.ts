@@ -64,6 +64,19 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   // Record stats in D1 if available
   if (db) {
     try {
+      const answerDistributionPayload = session.guessAnalytics?.answerDistribution
+        ? JSON.stringify({
+            answers: session.guessAnalytics.answerDistribution,
+            readiness: {
+              trigger: session.guessAnalytics.trigger ?? null,
+              forced: session.guessAnalytics.forced ?? false,
+              gap: session.guessAnalytics.gap ?? null,
+              aliveCount: session.guessAnalytics.aliveCount ?? null,
+              questionsRemaining: session.guessAnalytics.questionsRemaining ?? null,
+            },
+          })
+        : null
+
       await d1Run(
         db,
         `INSERT INTO game_stats (user_id, won, difficulty, questions_asked, character_pool_size, character_id, character_name, steps, guesses_used, confidence_at_guess, entropy_at_guess, remaining_at_guess, answer_distribution, created_at)
@@ -81,9 +94,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
           session.guessAnalytics?.confidence ?? null,
           session.guessAnalytics?.entropy ?? null,
           session.guessAnalytics?.remaining ?? null,
-          session.guessAnalytics?.answerDistribution
-            ? JSON.stringify(session.guessAnalytics.answerDistribution)
-            : null,
+          answerDistributionPayload,
           Date.now(),
         ]
       )

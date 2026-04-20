@@ -38,6 +38,7 @@ import type {
   AnswerValue,
   Character,
   Difficulty,
+  GuessReadinessSnapshot,
   Question,
 } from "@/lib/types";
 import { DIFFICULTIES } from "@/lib/types";
@@ -347,6 +348,7 @@ function App() {
     serverRemaining,
     serverTotal,
     serverMaxQuestions: _serverMaxQuestions,
+    serverReadiness,
     startServerGame,
     handleServerAnswer,
     postServerResult,
@@ -635,6 +637,7 @@ function App() {
                   setShowOnboarding={setShowOnboarding}
                   activeCharacters={activeCharacters}
                   probabilities={probabilities}
+                  readiness={serverReadiness as GuessReadinessSnapshot | null}
                   onRetry={retryAfterReject}
                 />
               )}

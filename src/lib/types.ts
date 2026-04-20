@@ -79,6 +79,24 @@ export interface ReasoningExplanation {
   topCandidates?: Array<{ name: string; probability: number; imageUrl?: string | null }>
 }
 
+export type GuessReadinessTrigger =
+  | 'singleton'
+  | 'max_questions'
+  | 'high_certainty'
+  | 'strict_readiness'
+  | 'insufficient_data'
+
+export interface GuessReadinessSnapshot {
+  trigger: GuessReadinessTrigger
+  blockedByRejectCooldown: boolean
+  rejectCooldownRemaining: number
+  topProbability?: number
+  gap?: number
+  aliveCount?: number
+  questionsRemaining?: number
+  forced?: boolean
+}
+
 export interface GameHistoryEntry {
   id: string
   characterId: string

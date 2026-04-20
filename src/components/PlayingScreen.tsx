@@ -9,6 +9,7 @@ import type {
   AnswerValue,
   Character,
   GameHistoryStep,
+  GuessReadinessSnapshot,
   Question,
   ReasoningExplanation,
 } from "@/lib/types";
@@ -33,6 +34,7 @@ interface PlayingScreenProps {
   setShowOnboarding: (show: boolean) => void;
   activeCharacters: Character[];
   probabilities: Map<string, number> | null;
+  readiness: GuessReadinessSnapshot | null;
   onRetry?: () => void;
 }
 
@@ -54,8 +56,17 @@ export function PlayingScreen({
   setShowOnboarding,
   activeCharacters: _activeCharacters,
   probabilities: _probabilities,
+  readiness,
   onRetry,
 }: Readonly<PlayingScreenProps>) {
+  const readinessSummary = readiness?.blockedByRejectCooldown
+    ? `Holding the next guess until I collect ${readiness.rejectCooldownRemaining} more answer${readiness.rejectCooldownRemaining === 1 ? "" : "s"}.`
+    : readiness?.trigger === "high_certainty"
+      ? "I’m closing in on a very strong suspect."
+      : readiness?.trigger === "strict_readiness"
+        ? "I’m nearly ready to guess, but I’m still validating the top suspects."
+        : "I’m still narrowing down the strongest candidates before guessing.";
+
   return (
     <motion.div
       key="playing"
@@ -114,6 +125,25 @@ export function PlayingScreen({
             )}
           </div>
         </div>
+
+        {readiness && (
+          <div className="mb-4 lg:mb-6 rounded-xl border border-accent/20 bg-accent/5 px-4 py-3 text-sm text-foreground/90">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="font-medium text-accent">Guess timing</span>
+              {readiness.questionsRemaining != null && (
+                <span className="text-xs text-muted-foreground">
+                  {readiness.questionsRemaining} question{readiness.questionsRemaining === 1 ? "" : "s"} left
+                </span>
+              )}
+              {readiness.aliveCount != null && (
+                <span className="text-xs text-muted-foreground">
+                  {readiness.aliveCount} viable suspects
+                </span>
+              )}
+            </div>
+            <p className="mt-1 text-sm text-muted-foreground">{readinessSummary}</p>
+          </div>
+        )}
 
         {/* Answer history timeline */}
         {gameSteps.length > 0 && (
@@ -198,6 +228,7 @@ export function PlayingScreen({
             <ReasoningPanel
               reasoning={reasoning}
               isThinking={isThinking}
+              readiness={readiness}
             />
           </div>
         </div>

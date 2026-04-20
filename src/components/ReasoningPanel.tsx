@@ -5,14 +5,15 @@ import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { Progress } from '@/components/ui/progress'
-import type { ReasoningExplanation } from '@/lib/types'
+import type { GuessReadinessSnapshot, ReasoningExplanation } from '@/lib/types'
 
 interface ReasoningPanelProps {
   reasoning: ReasoningExplanation | null
+  readiness?: GuessReadinessSnapshot | null
   isThinking?: boolean
 }
 
-export function ReasoningPanel({ reasoning, isThinking = false }: Readonly<ReasoningPanelProps>) {
+export function ReasoningPanel({ reasoning, readiness = null, isThinking = false }: Readonly<ReasoningPanelProps>) {
   const [expanded, setExpanded] = useState(false)
 
   if (!reasoning) {
@@ -66,8 +67,30 @@ export function ReasoningPanel({ reasoning, isThinking = false }: Readonly<Reaso
     </div>
   ) : null
 
+  const readinessLabel = readiness?.blockedByRejectCooldown
+    ? 'Collecting More Evidence'
+    : readiness?.trigger === 'high_certainty'
+      ? 'Very Close'
+      : readiness?.trigger === 'strict_readiness'
+        ? 'Almost Ready To Guess'
+        : 'Still Narrowing'
+
+  const readinessDetail = readiness?.blockedByRejectCooldown
+    ? `${readiness.rejectCooldownRemaining} more answer${readiness.rejectCooldownRemaining === 1 ? '' : 's'} before the next guess.`
+    : readiness?.aliveCount != null && readiness?.questionsRemaining != null
+      ? `${readiness.aliveCount} viable suspects with ${readiness.questionsRemaining} question${readiness.questionsRemaining === 1 ? '' : 's'} remaining.`
+      : 'The AI is still reducing ambiguity before it commits to a guess.'
+
   const detailContent = (
     <>
+      <div className="rounded-lg border border-accent/20 bg-accent/5 p-3">
+        <div className="flex items-center justify-between gap-2 mb-1">
+          <h4 className="font-semibold text-sm">Guess Readiness</h4>
+          <Badge variant="outline" className="border-accent/30 text-accent">{readinessLabel}</Badge>
+        </div>
+        <p className="text-sm text-muted-foreground leading-relaxed">{readinessDetail}</p>
+      </div>
+
       <div>
         <div className="flex items-center gap-2 mb-2">
           <Lightbulb className="text-primary" size={20} weight="fill" />

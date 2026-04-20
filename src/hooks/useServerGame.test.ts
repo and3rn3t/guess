@@ -113,6 +113,13 @@ describe('useServerGame', () => {
           question: { id: 'q2', text: 'Q2', attribute: 'canFly' },
           reasoning: { why: 'next', impact: '30%', remaining: 7, confidence: 30, topCandidates: [] },
           remaining: 7,
+          readiness: {
+            trigger: 'insufficient_data',
+            blockedByRejectCooldown: false,
+            rejectCooldownRemaining: 0,
+            aliveCount: 7,
+            questionsRemaining: 10,
+          },
         }),
         { status: 200 },
       ))
@@ -123,6 +130,14 @@ describe('useServerGame', () => {
 
       expect(dispatch).toHaveBeenCalledWith(
         expect.objectContaining({ type: 'SET_QUESTION' }),
+      )
+      expect(result.current.serverReadiness).toEqual(
+        expect.objectContaining({
+          trigger: 'insufficient_data',
+          blockedByRejectCooldown: false,
+          aliveCount: 7,
+          questionsRemaining: 10,
+        }),
       )
     })
 

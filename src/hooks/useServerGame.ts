@@ -6,6 +6,7 @@ import type {
   Character,
   CharacterCategory,
   Difficulty,
+  GuessReadinessSnapshot,
   Question,
   ReasoningExplanation,
 } from "@/lib/types";
@@ -42,8 +43,14 @@ interface AnswerResponse {
   guessCount?: number;
   message?: string;
   readiness?: {
+    trigger?: GuessReadinessSnapshot["trigger"];
     blockedByRejectCooldown?: boolean;
     rejectCooldownRemaining?: number;
+    topProbability?: number;
+    gap?: number;
+    aliveCount?: number;
+    questionsRemaining?: number;
+    forced?: boolean;
   };
 }
 
@@ -70,6 +77,23 @@ interface ResumeResponse {
   answers?: Array<{ questionId: string; value: AnswerValue }>;
 }
 
+function normalizeReadiness(
+  readiness?: Partial<GuessReadinessSnapshot> | null,
+): GuessReadinessSnapshot | null {
+  if (!readiness) return null;
+
+  return {
+    trigger: readiness.trigger ?? "insufficient_data",
+    blockedByRejectCooldown: readiness.blockedByRejectCooldown ?? false,
+    rejectCooldownRemaining: readiness.rejectCooldownRemaining ?? 0,
+    topProbability: readiness.topProbability,
+    gap: readiness.gap,
+    aliveCount: readiness.aliveCount,
+    questionsRemaining: readiness.questionsRemaining,
+    forced: readiness.forced,
+  };
+}
+
 // ── Hook ─────────────────────────────────────────────────────
 
 /**
@@ -84,6 +108,7 @@ export function useServerGame(
   const [serverRemaining, setServerRemaining] = useState(0);
   const [serverTotal, setServerTotal] = useState(0);
   const [serverMaxQuestions, setServerMaxQuestions] = useState(0);
+  const [serverReadiness, setServerReadiness] = useState<GuessReadinessSnapshot | null>(null);
   const resumeAttempted = useRef(false);
 
   // Persist session ID to sessionStorage
@@ -134,6 +159,7 @@ export function useServerGame(
         persistSessionId(savedId);
         setServerRemaining(data.remaining ?? 0);
         setServerTotal(data.totalCharacters ?? 0);
+        setServerReadiness(null);
         dispatch({ type: "START_GAME", characters: [], guessCount: data.guessCount ?? 0 });
 
         // Replay answers into reducer so step count is correct
@@ -186,6 +212,7 @@ export function useServerGame(
         persistSessionId(data.sessionId);
         setServerRemaining(data.totalCharacters);
         setServerTotal(data.totalCharacters);
+        setServerReadiness(null);
         if (data.maxQuestions) setServerMaxQuestions(data.maxQuestions);
         dispatch({ type: "START_GAME", characters: [] });
         dispatch({
@@ -243,6 +270,7 @@ export function useServerGame(
           };
           dispatch({ type: "MAKE_GUESS", character: guessChar });
           setServerRemaining(data.remaining ?? 1);
+          setServerReadiness(normalizeReadiness(data.readiness));
           playSuspense();
         } else if (
           data.type === "question" &&
@@ -255,6 +283,7 @@ export function useServerGame(
             reasoning: data.reasoning,
           });
           setServerRemaining(data.remaining ?? prevCount);
+          setServerReadiness(normalizeReadiness(data.readiness));
           if (data.readiness?.blockedByRejectCooldown) {
             const remaining = data.readiness.rejectCooldownRemaining ?? 0;
             const suffix = remaining > 0 ? ` (${remaining} more before next guess)` : "";
@@ -315,6 +344,11 @@ export function useServerGame(
             reasoning: data.reasoning,
           });
           setServerRemaining(data.remaining ?? 0);
+          setServerReadiness({
+            trigger: "insufficient_data",
+            blockedByRejectCooldown: (data.rejectCooldownRemaining ?? 0) > 0,
+            rejectCooldownRemaining: data.rejectCooldownRemaining ?? 0,
+          });
           if (data.maxQuestions) setServerMaxQuestions(data.maxQuestions);
           const cooldown = data.rejectCooldownRemaining ?? 0;
           const suffix = cooldown > 0 ? ` (${cooldown} more before next guess)` : "";
@@ -344,6 +378,7 @@ export function useServerGame(
     serverRemaining,
     serverTotal,
     serverMaxQuestions,
+    serverReadiness,
     setServerRemaining,
     startServerGame,
     handleServerAnswer,
