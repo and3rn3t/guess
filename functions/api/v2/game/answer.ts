@@ -86,8 +86,20 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     session.guessCount,
   )
 
+  const cooldownBeforeAnswer = session.postRejectCooldown
+  const blockedByRejectCooldown = cooldownBeforeAnswer > 0 && !readiness.forced
+  if (blockedByRejectCooldown) {
+    session.postRejectCooldown = Math.max(0, cooldownBeforeAnswer - 1)
+  }
+
+  const responseReadiness = {
+    ...readiness,
+    blockedByRejectCooldown,
+    rejectCooldownRemaining: session.postRejectCooldown,
+  }
+
   // Check if we should guess
-  if (readiness.shouldGuess) {
+  if (responseReadiness.shouldGuess && !responseReadiness.blockedByRejectCooldown) {
     const guess = getBestGuess(filtered, session.answers, session.rejectedGuesses)
     if (guess) {
       const probs = calculateProbabilities(filtered, session.answers)
@@ -103,11 +115,11 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         entropy: Math.round(guessEntropy * 100) / 100,
         remaining: filtered.length,
         answerDistribution: answerDist,
-        trigger: readiness.trigger,
-        forced: readiness.forced,
-        gap: Math.round(readiness.gap * 100) / 100,
-        aliveCount: readiness.aliveCount,
-        questionsRemaining: readiness.questionsRemaining,
+        trigger: responseReadiness.trigger,
+        forced: responseReadiness.forced,
+        gap: Math.round(responseReadiness.gap * 100) / 100,
+        aliveCount: responseReadiness.aliveCount,
+        questionsRemaining: responseReadiness.questionsRemaining,
       }
 
       session.currentQuestion = null
@@ -126,7 +138,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         questionCount,
         remaining: filtered.length,
         guessCount: session.guessCount,
-        readiness,
+        readiness: responseReadiness,
       })
     }
   }
@@ -210,6 +222,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     remaining: filtered.length,
     eliminated,
     questionCount,
-    readiness,
+    readiness: responseReadiness,
   })
 }

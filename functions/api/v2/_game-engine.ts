@@ -78,6 +78,8 @@ export interface GuessReadiness {
   requiredConfidence: number
   requiredGap: number
   requiredEntropy: number
+  blockedByRejectCooldown: boolean
+  rejectCooldownRemaining: number
 }
 
 export interface ReasoningExplanation {
@@ -99,6 +101,7 @@ export interface GameSession {
   createdAt: number
   rejectedGuesses: string[]
   guessCount: number
+  postRejectCooldown: number
   guessAnalytics?: GuessAnalytics
 }
 
@@ -411,6 +414,8 @@ export function evaluateGuessReadiness(
       requiredConfidence: 0,
       requiredGap: 0,
       requiredEntropy: 0,
+      blockedByRejectCooldown: false,
+      rejectCooldownRemaining: 0,
     }
   }
 
@@ -428,6 +433,8 @@ export function evaluateGuessReadiness(
       requiredConfidence: 0,
       requiredGap: 0,
       requiredEntropy: 0,
+      blockedByRejectCooldown: false,
+      rejectCooldownRemaining: 0,
     }
   }
 
@@ -467,6 +474,8 @@ export function evaluateGuessReadiness(
     return {
       shouldGuess: false,
       trigger: 'insufficient_data',
+      blockedByRejectCooldown: false,
+      rejectCooldownRemaining: 0,
       ...resultBase,
     }
   }
@@ -476,6 +485,8 @@ export function evaluateGuessReadiness(
     return {
       shouldGuess: false,
       trigger: 'insufficient_data',
+      blockedByRejectCooldown: false,
+      rejectCooldownRemaining: 0,
       ...resultBase,
     }
   }
@@ -485,6 +496,8 @@ export function evaluateGuessReadiness(
     return {
       shouldGuess: true,
       trigger: 'high_certainty',
+      blockedByRejectCooldown: false,
+      rejectCooldownRemaining: 0,
       ...resultBase,
     }
   }
@@ -499,6 +512,8 @@ export function evaluateGuessReadiness(
   return {
     shouldGuess: strictReady,
     trigger: strictReady ? 'strict_readiness' : 'insufficient_data',
+    blockedByRejectCooldown: false,
+    rejectCooldownRemaining: 0,
     ...resultBase,
   }
 }
@@ -570,6 +585,7 @@ interface LeanSession {
   createdAt: number
   rejectedGuesses?: string[]
   guessCount?: number
+  postRejectCooldown?: number
   guessAnalytics?: GuessAnalytics
 }
 
@@ -592,6 +608,7 @@ export async function storeSession(kv: KVNamespace, session: GameSession): Promi
     createdAt: session.createdAt,
     rejectedGuesses: session.rejectedGuesses,
     guessCount: session.guessCount,
+    postRejectCooldown: session.postRejectCooldown,
     guessAnalytics: session.guessAnalytics,
   }
   await Promise.all([
@@ -610,7 +627,12 @@ export async function loadSession(kv: KVNamespace, sessionId: string): Promise<G
   // Legacy full session (has 'characters' array directly)
   if ('characters' in data) {
     const legacy = data as GameSession
-    return { ...legacy, rejectedGuesses: legacy.rejectedGuesses ?? [], guessCount: legacy.guessCount ?? 0 }
+    return {
+      ...legacy,
+      rejectedGuesses: legacy.rejectedGuesses ?? [],
+      guessCount: legacy.guessCount ?? 0,
+      postRejectCooldown: legacy.postRejectCooldown ?? 0,
+    }
   }
 
   // New lean format — load pool separately
@@ -629,6 +651,7 @@ export async function loadSession(kv: KVNamespace, sessionId: string): Promise<G
     createdAt: data.createdAt,
     rejectedGuesses: data.rejectedGuesses ?? [],
     guessCount: data.guessCount ?? 0,
+    postRejectCooldown: data.postRejectCooldown ?? 0,
     guessAnalytics: data.guessAnalytics,
   }
 }
@@ -645,6 +668,7 @@ export async function saveSessionState(kv: KVNamespace, session: GameSession): P
     createdAt: session.createdAt,
     rejectedGuesses: session.rejectedGuesses,
     guessCount: session.guessCount,
+    postRejectCooldown: session.postRejectCooldown,
     guessAnalytics: session.guessAnalytics,
   }
   await kv.put(`game:${session.id}`, JSON.stringify(lean), { expirationTtl: SESSION_TTL })

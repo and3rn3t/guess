@@ -122,6 +122,7 @@ async function reconstructFromD1(
     createdAt: row.created_at,
     rejectedGuesses: [],
     guessCount: 0,
+    postRejectCooldown: 0,
   }
 
   // Re-hydrate KV so subsequent requests are fast

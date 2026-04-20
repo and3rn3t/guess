@@ -41,6 +41,10 @@ interface AnswerResponse {
   questionCount?: number;
   guessCount?: number;
   message?: string;
+  readiness?: {
+    blockedByRejectCooldown?: boolean;
+    rejectCooldownRemaining?: number;
+  };
 }
 
 interface RejectGuessResponse {
@@ -51,6 +55,7 @@ interface RejectGuessResponse {
   questionCount?: number;
   maxQuestions?: number;
   guessCount?: number;
+  rejectCooldownRemaining?: number;
   message?: string;
 }
 
@@ -250,7 +255,13 @@ export function useServerGame(
             reasoning: data.reasoning,
           });
           setServerRemaining(data.remaining ?? prevCount);
-          toast.success(`Answer recorded: ${value}`);
+          if (data.readiness?.blockedByRejectCooldown) {
+            const remaining = data.readiness.rejectCooldownRemaining ?? 0;
+            const suffix = remaining > 0 ? ` (${remaining} more before next guess)` : "";
+            toast.info(`Collecting more evidence before guessing${suffix}`);
+          } else {
+            toast.success(`Answer recorded: ${value}`);
+          }
         }
       } catch {
         toast.error("Failed to process answer — try again");
@@ -305,7 +316,9 @@ export function useServerGame(
           });
           setServerRemaining(data.remaining ?? 0);
           if (data.maxQuestions) setServerMaxQuestions(data.maxQuestions);
-          toast.info("I'll keep trying — let me ask more questions!");
+          const cooldown = data.rejectCooldownRemaining ?? 0;
+          const suffix = cooldown > 0 ? ` (${cooldown} more before next guess)` : "";
+          toast.info(`I'll keep trying — let me ask more questions${suffix}!`);
         } else {
           // Unexpected response shape — treat as error so user can retry
           throw new Error("Unexpected server response after rejecting guess");

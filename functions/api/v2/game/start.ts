@@ -177,6 +177,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     createdAt: Date.now(),
     rejectedGuesses: [],
     guessCount: 0,
+    postRejectCooldown: 0,
   }
 
   await storeSession(kv, session)

@@ -58,6 +58,11 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
   session.maxQuestions = Math.min(session.maxQuestions + effectiveBonus, hardCap)
 
+  // Require extra evidence after a wrong guess: ask 1-2 more answers before allowing another guess.
+  const questionsRemaining = Math.max(0, session.maxQuestions - session.answers.length)
+  const desiredCooldown = filtered.length > 12 ? 2 : 1
+  session.postRejectCooldown = Math.min(desiredCooldown, questionsRemaining)
+
   // Check if any viable candidates remain
   if (filtered.length === 0) {
     await saveSessionState(kv, session)
@@ -66,6 +71,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       message: "I've run out of candidates — you stumped me!",
       questionCount: session.answers.length,
       guessCount: session.guessCount,
+      rejectCooldownRemaining: session.postRejectCooldown,
     })
   }
 
@@ -81,6 +87,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       message: "I've run out of questions to ask — you stumped me!",
       questionCount: session.answers.length,
       guessCount: session.guessCount,
+      rejectCooldownRemaining: session.postRejectCooldown,
     })
   }
 
@@ -122,5 +129,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     questionCount: session.answers.length,
     maxQuestions: session.maxQuestions,
     guessCount: session.guessCount,
+    rejectCooldownRemaining: session.postRejectCooldown,
   })
 }
