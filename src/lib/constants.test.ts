@@ -20,8 +20,8 @@ describe('Bayesian scoring constants', () => {
     expect(SCORE_MATCH).toBe(1.0)
   })
 
-  it('SCORE_MISMATCH is 0.0', () => {
-    expect(SCORE_MISMATCH).toBe(0.0)
+  it('SCORE_MISMATCH is 0.05 (soft penalty for resilience)', () => {
+    expect(SCORE_MISMATCH).toBe(0.05)
   })
 
   it('SCORE_UNKNOWN is 0.5', () => {

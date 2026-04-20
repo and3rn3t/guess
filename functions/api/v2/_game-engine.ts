@@ -3,7 +3,7 @@
 
 // ── Scoring constants (mirrored from src/lib/constants.ts) ──
 const SCORE_MATCH = 1
-const SCORE_MISMATCH = 0
+const SCORE_MISMATCH = 0.05  // Non-zero: resilient to 1-2 bad attribute values or user errors
 const SCORE_UNKNOWN = 0.5
 const SCORE_MAYBE = 0.7
 const SCORE_MAYBE_MISS = 0.3
@@ -481,7 +481,29 @@ export function evaluateGuessReadiness(
   maxQuestions: number,
   priorWrongGuesses: number = 0
 ): GuessReadiness {
-  if (characters.length <= 1) {
+  // 0 characters = full contradiction; always trigger a forced guess to surface it
+  if (characters.length === 0) {
+    return {
+      shouldGuess: true,
+      forced: true,
+      trigger: 'singleton',
+      topProbability: 0,
+      secondProbability: 0,
+      gap: 0,
+      entropy: 0,
+      aliveCount: 0,
+      questionsRemaining: Math.max(0, maxQuestions - questionCount),
+      requiredConfidence: 0,
+      requiredGap: 0,
+      requiredEntropy: 0,
+      blockedByRejectCooldown: false,
+      rejectCooldownRemaining: 0,
+    }
+  }
+
+  // Singleton: only one character survives, but require a minimum of 5 questions
+  // to avoid premature guesses from early bad eliminations.
+  if (characters.length <= 1 && questionCount >= 5) {
     return {
       shouldGuess: true,
       forced: false,
@@ -627,14 +649,16 @@ export function detectContradictions(
   answers: Answer[]
 ): { hasContradiction: boolean; remainingCount: number } {
   if (answers.length === 0) return { hasContradiction: false, remainingCount: characters.length }
-
-  const probabilities = calculateProbabilities(characters, answers)
-  const remaining = Array.from(probabilities.values()).filter((p) => p > 0).length
-
+  // Use the same hard-filter as filterPossibleCharacters for consistency
+  const remaining = filterPossibleCharacters(characters, answers).length
   return { hasContradiction: remaining === 0, remainingCount: remaining }
 }
 
-/** Hard-filter characters based on definitive answers and rejected guesses. */
+/** Hard-filter characters based on definitive answers and rejected guesses.
+ *  Allows up to MAX_MISMATCHES contradictions to tolerate bad attribute data
+ *  or occasional user errors. Characters beyond this threshold are eliminated. */
+const MAX_MISMATCHES = 1
+
 export function filterPossibleCharacters(
   characters: ServerCharacter[],
   answers: Answer[],
@@ -643,10 +667,12 @@ export function filterPossibleCharacters(
   const rejectedSet = new Set(rejectedGuesses)
   return characters.filter((char) => {
     if (rejectedSet.has(char.id)) return false
+    let mismatches = 0
     for (const answer of answers) {
       const attr = char.attributes[answer.questionId]
-      if (answer.value === 'yes' && attr === false) return false
-      if (answer.value === 'no' && attr === true) return false
+      if (answer.value === 'yes' && attr === false) mismatches++
+      else if (answer.value === 'no' && attr === true) mismatches++
+      if (mismatches > MAX_MISMATCHES) return false
     }
     return true
   })

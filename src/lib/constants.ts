@@ -13,7 +13,7 @@ export const SYNC_CACHE_TTL = 10 * 60 * 1000; // 10 minutes
 
 // ===== Game Engine: Bayesian Scoring =====
 export const SCORE_MATCH = 1.0; // attribute matches answer
-export const SCORE_MISMATCH = 0.0; // attribute contradicts answer
+export const SCORE_MISMATCH = 0.05; // Non-zero: resilient to 1-2 bad attribute values or user errors
 export const SCORE_UNKNOWN = 0.5; // attribute is null/undefined (partial credit)
 export const SCORE_MAYBE = 0.7; // "maybe" answer with matching attribute
 export const SCORE_MAYBE_MISS = 0.3; // "maybe" answer with contradicting attribute

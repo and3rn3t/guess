@@ -55,24 +55,29 @@ describe('calculateProbabilities', () => {
     probs.forEach((p) => expect(p).toBeCloseTo(0.25))
   })
 
-  it('eliminates characters that contradict a "yes" answer', () => {
+  it('penalizes characters that contradict a "yes" answer (soft scoring)', () => {
     const answers: Answer[] = [{ questionId: 'isHuman', value: 'yes' }]
     const probs = calculateProbabilities(CHARS, answers)
 
-    // Mario and Link are human (true), should have probability
+    // Mario and Link are human (true), should have much higher probability
     expect(probs.get('mario')!).toBeGreaterThan(0)
     expect(probs.get('link')!).toBeGreaterThan(0)
-    // Pikachu and Kirby are not human (false), should be eliminated
-    expect(probs.get('pikachu')).toBe(0)
-    expect(probs.get('kirby')).toBe(0)
+    // Pikachu and Kirby are not human — heavily penalized but not zero
+    expect(probs.get('pikachu')!).toBeGreaterThan(0)
+    expect(probs.get('pikachu')!).toBeLessThan(0.05)
+    expect(probs.get('kirby')!).toBeGreaterThan(0)
+    expect(probs.get('kirby')!).toBeLessThan(0.05)
   })
 
-  it('eliminates characters that contradict a "no" answer', () => {
+  it('penalizes characters that contradict a "no" answer (soft scoring)', () => {
     const answers: Answer[] = [{ questionId: 'isHuman', value: 'no' }]
     const probs = calculateProbabilities(CHARS, answers)
 
-    expect(probs.get('mario')).toBe(0)
-    expect(probs.get('link')).toBe(0)
+    // Mario and Link are human — heavily penalized but not zero
+    expect(probs.get('mario')!).toBeGreaterThan(0)
+    expect(probs.get('mario')!).toBeLessThan(0.05)
+    expect(probs.get('link')!).toBeGreaterThan(0)
+    expect(probs.get('link')!).toBeLessThan(0.05)
     expect(probs.get('pikachu')!).toBeGreaterThan(0)
     expect(probs.get('kirby')!).toBeGreaterThan(0)
   })
@@ -122,18 +127,19 @@ describe('calculateProbabilities', () => {
     expect(total).toBeCloseTo(1)
   })
 
-  it('narrows down to a single character with specific answers', () => {
+  it('strongly favors the matching character with specific answers', () => {
     const answers: Answer[] = [
       { questionId: 'isHuman', value: 'no' },
       { questionId: 'canFly', value: 'yes' },
     ]
     const probs = calculateProbabilities(CHARS, answers)
 
-    // Only Kirby: not human + can fly
-    expect(probs.get('kirby')).toBeCloseTo(1)
-    expect(probs.get('mario')).toBe(0)
-    expect(probs.get('link')).toBe(0)
-    expect(probs.get('pikachu')).toBe(0)
+    // Kirby: not human ✓ + can fly ✓ — dominant
+    expect(probs.get('kirby')!).toBeGreaterThan(0.9)
+    // Others have 1-2 mismatches — heavily penalized
+    expect(probs.get('mario')!).toBeLessThan(0.01)
+    expect(probs.get('link')!).toBeLessThan(0.01)
+    expect(probs.get('pikachu')!).toBeLessThan(0.1)
   })
 })
 
@@ -186,9 +192,9 @@ describe('selectBestQuestion', () => {
 // --- shouldMakeGuess ---
 
 describe('shouldMakeGuess', () => {
-  it('returns true when only 1 character remains', () => {
+  it('returns true when only 1 character remains (after min questions)', () => {
     const one = [CHARS[0]]
-    expect(shouldMakeGuess(one, [], 0)).toBe(true)
+    expect(shouldMakeGuess(one, [], 5)).toBe(true)
   })
 
   it('returns true when 0 characters remain', () => {
@@ -208,13 +214,12 @@ describe('shouldMakeGuess', () => {
     expect(shouldMakeGuess(CHARS, [], 9, 10)).toBe(false)
   })
 
-  it('returns true with high confidence (>80%)', () => {
-    // Narrow to Mario with answers that eliminate others
-    const answers: Answer[] = [
-      { questionId: 'isHuman', value: 'yes' },
-      { questionId: 'usesWeapons', value: 'no' },
-    ]
-    expect(shouldMakeGuess(CHARS, answers, 2)).toBe(true)
+  it('returns true with high confidence when top candidate dominates a 2-char pool', () => {
+    // 2-char pool: usesWeapons=no strongly favors Mario over Link
+    const twoChars = [CHARS[0], CHARS[1]] // Mario (usesWeapons=false), Link (usesWeapons=true)
+    const answers: Answer[] = [{ questionId: 'usesWeapons', value: 'no' }]
+    // Mario: 1.0, Link: 0.05 (1 mismatch). topProb ≈ 95%, gap ≈ 90%
+    expect(shouldMakeGuess(twoChars, answers, 2)).toBe(true)
   })
 
   it('returns false when only 2 candidates remain but split is 50/50', () => {
@@ -288,17 +293,17 @@ describe('getBestGuess – edge cases', () => {
 // --- edge case: all characters eliminated ---
 
 describe('shouldMakeGuess – all eliminated', () => {
-  it('does not auto-trigger when all characters are eliminated mid-game', () => {
-    // Contradictory: isHuman=yes keeps Mario & Link, canFly=yes keeps Kirby → 0 overlap
+  it('does not auto-trigger with contradictory answers (soft scoring keeps all alive)', () => {
+    // With SCORE_MISMATCH=0.05, no character is zeroed; contradicted chars are penalized
     const answers: Answer[] = [
       { questionId: 'isHuman', value: 'yes' },
       { questionId: 'canFly', value: 'yes' },
     ]
     const probs = calculateProbabilities(CHARS, answers)
     const remaining = Array.from(probs.values()).filter((p) => p > 0).length
-    expect(remaining).toBe(0)
+    expect(remaining).toBe(4)  // all 4 survive with soft penalties
 
-    // shouldMakeGuess only checks confidence/maxQuestions — all-zero probs don't exceed 0.8
+    // shouldMakeGuess returns false — max prob ~33%, well below threshold
     expect(shouldMakeGuess(CHARS, answers, 2)).toBe(false)
   })
 
@@ -324,14 +329,19 @@ describe('detectContradictions', () => {
     const answers: Answer[] = [{ questionId: 'isHuman', value: 'yes' }]
     const result = detectContradictions(CHARS, answers)
     expect(result.hasContradiction).toBe(false)
-    expect(result.remainingCount).toBe(2)
+    // With MAX_MISMATCHES=1, isHuman mismatch on Pikachu/Kirby = 1 → all 4 kept
+    expect(result.remainingCount).toBe(4)
   })
 
   it('detects contradiction when all characters are eliminated', () => {
-    // isHuman=yes keeps Mario & Link; canFly=yes keeps Kirby → intersection = 0
+    // 4 answers needed to give ALL 4 chars 2+ mismatches with MAX_MISMATCHES=1:
+    // Mario: canFly(1)+usesWeapons(2)→out; Link: canFly(1)+isMale(2)→out
+    // Pikachu: isHuman(1)+canFly(2)→out; Kirby: isHuman(1)+usesWeapons(2)→out
     const answers: Answer[] = [
       { questionId: 'isHuman', value: 'yes' },
       { questionId: 'canFly', value: 'yes' },
+      { questionId: 'usesWeapons', value: 'yes' },
+      { questionId: 'isMale', value: 'no' },
     ]
     const result = detectContradictions(CHARS, answers)
     expect(result.hasContradiction).toBe(true)
@@ -390,10 +400,12 @@ describe('generateReasoning', () => {
     expect(reasoning.confidence).toBe(25)
   })
 
-  it('confidence increases when characters are eliminated', () => {
+  it('confidence increases when top candidate is favored', () => {
     const answers: Answer[] = [{ questionId: 'isHuman', value: 'yes' }]
     const reasoning = generateReasoning(QUESTIONS[1], CHARS, answers)
-    expect(reasoning.confidence).toBe(50)
+    // Mario & Link at ~47.6% each (Pikachu/Kirby still have residual 2.4%)
+    expect(reasoning.confidence).toBeGreaterThanOrEqual(47)
+    expect(reasoning.confidence).toBeLessThanOrEqual(50)
   })
 })
 
@@ -407,11 +419,14 @@ describe('detectContradictions', () => {
   })
 
   it('detects contradiction when all characters eliminated', () => {
-    // isHuman=yes eliminates Pikachu/Kirby, canFly=yes eliminates Mario/Link
-    // → 0 remaining
+    // 4 answers to give all chars 2+ mismatches (MAX_MISMATCHES=1):
+    // Mario: canFly(1)+usesWeapons(2)→out; Link: canFly(1)+isMale(2)→out
+    // Pikachu: isHuman(1)+canFly(2)→out; Kirby: isHuman(1)+usesWeapons(2)→out
     const answers: Answer[] = [
       { questionId: 'isHuman', value: 'yes' },
       { questionId: 'canFly', value: 'yes' },
+      { questionId: 'usesWeapons', value: 'yes' },
+      { questionId: 'isMale', value: 'no' },
     ]
     const result = detectContradictions(CHARS, answers)
     expect(result.hasContradiction).toBe(true)
@@ -422,7 +437,8 @@ describe('detectContradictions', () => {
     const answers: Answer[] = [{ questionId: 'isHuman', value: 'yes' }]
     const result = detectContradictions(CHARS, answers)
     expect(result.hasContradiction).toBe(false)
-    expect(result.remainingCount).toBe(2)
+    // All 4 kept: isHuman mismatch on Pikachu/Kirby = 1 ≤ MAX_MISMATCHES
+    expect(result.remainingCount).toBe(4)
   })
 })
 
@@ -436,15 +452,15 @@ describe('shouldMakeGuess – progressive thresholds', () => {
     { id: 'c', name: 'C', category: 'movies', attributes: { isHuman: false, canFly: false } },
   ]
 
-  it('guesses at 50% progress when certainty is overwhelming', () => {
-    // After answering isHuman=yes, A and B remain, ~50% each
-    // Then canFly=no → A dominates heavily (>80%)
+  it('guesses when one candidate overwhelmingly dominates (2-char pool)', () => {
+    // Use a 2-char subset so highCertainty (aliveCount ≤ 2) can fire
+    const pair: Character[] = [pool[0], pool[1]] // A and B
     const answers: Answer[] = [
       { questionId: 'isHuman', value: 'yes' },
       { questionId: 'canFly', value: 'no' },
     ]
-    // With maxQuestions=4 and 2 answers, progress=50%
-    const result = shouldMakeGuess(pool, answers, 2, 4)
+    // A matches both; B has 1 mismatch (canFly) → A at ~95%, aliveCount=2
+    const result = shouldMakeGuess(pair, answers, 2, 4)
     expect(result).toBe(true)
   })
 
