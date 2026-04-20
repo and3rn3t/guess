@@ -87,6 +87,18 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       const probs = calculateProbabilities(filtered, session.answers)
       const confidence = Math.round((probs.get(guess.id) || 0) * 100)
 
+      // Capture analytics at guess time
+      const probValues = Array.from(probs.values()).filter((p) => p > 0)
+      const guessEntropy = probValues.reduce((sum, p) => (p > 0 ? sum - p * Math.log2(p) : sum), 0)
+      const answerDist: Record<string, number> = { yes: 0, no: 0, maybe: 0, unknown: 0 }
+      for (const a of session.answers) answerDist[a.value] = (answerDist[a.value] || 0) + 1
+      session.guessAnalytics = {
+        confidence: confidence / 100,
+        entropy: Math.round(guessEntropy * 100) / 100,
+        remaining: filtered.length,
+        answerDistribution: answerDist,
+      }
+
       session.currentQuestion = null
       session.guessCount += 1
       await saveSessionState(kv, session)
@@ -107,8 +119,9 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     }
   }
 
-  // Select next question
-  const nextQuestion = selectBestQuestion(filtered, session.answers, session.questions)
+  // Select next question (pass progress for dynamic top-K threshold)
+  const progress = questionCount / session.maxQuestions
+  const nextQuestion = selectBestQuestion(filtered, session.answers, session.questions, { progress })
 
   if (!nextQuestion) {
     // No more questions — force a guess

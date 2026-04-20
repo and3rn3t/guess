@@ -69,8 +69,9 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     })
   }
 
-  // Select next question
-  const nextQuestion = selectBestQuestion(filtered, session.answers, session.questions)
+  // Select next question (pass progress for dynamic top-K threshold)
+  const progress = session.answers.length / session.maxQuestions
+  const nextQuestion = selectBestQuestion(filtered, session.answers, session.questions, { progress })
 
   if (!nextQuestion) {
     // No more unanswered questions but candidates remain — exhausted

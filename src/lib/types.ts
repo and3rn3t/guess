@@ -51,6 +51,7 @@ export interface Question {
   text: string
   attribute: string
   displayText?: string
+  category?: string
 }
 
 export type AnswerValue = 'yes' | 'no' | 'maybe' | 'unknown'

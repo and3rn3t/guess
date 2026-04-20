@@ -66,8 +66,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     try {
       await d1Run(
         db,
-        `INSERT INTO game_stats (user_id, won, difficulty, questions_asked, character_pool_size, character_id, character_name, steps, guesses_used, created_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO game_stats (user_id, won, difficulty, questions_asked, character_pool_size, character_id, character_name, steps, guesses_used, confidence_at_guess, entropy_at_guess, remaining_at_guess, answer_distribution, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           userId,
           body.correct ? 1 : 0,
@@ -78,6 +78,12 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
           characterName,
           JSON.stringify(steps),
           session.guessCount,
+          session.guessAnalytics?.confidence ?? null,
+          session.guessAnalytics?.entropy ?? null,
+          session.guessAnalytics?.remaining ?? null,
+          session.guessAnalytics?.answerDistribution
+            ? JSON.stringify(session.guessAnalytics.answerDistribution)
+            : null,
           Date.now(),
         ]
       )

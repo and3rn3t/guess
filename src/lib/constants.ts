@@ -18,6 +18,10 @@ export const SCORE_UNKNOWN = 0.5; // attribute is null/undefined (partial credit
 export const SCORE_MAYBE = 0.7; // "maybe" answer with matching attribute
 export const SCORE_MAYBE_MISS = 0.3; // "maybe" answer with contradicting attribute
 
+// ===== Game Engine: Question Selection =====
+export const MAYBE_ANSWER_PROB = 0.15; // estimated probability user answers "maybe"
+export const ALIVE_THRESHOLD = 0.001; // probability below which a character is effectively eliminated
+
 // ===== LLM Retry =====
 export const LLM_MAX_RETRIES = 2;
 export const LLM_RETRY_BASE_MS = 1000;
