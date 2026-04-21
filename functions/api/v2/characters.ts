@@ -64,8 +64,10 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
   }
 
   if (search && search.length >= 2) {
-    conditions.push('name LIKE ?')
-    params.push(`%${search}%`)
+    // Use FTS5 index for fast full-text prefix search (no leading-wildcard table scan)
+    // Append '*' for prefix matching so "bat" finds "Batman", "Batgirl", etc.
+    conditions.push('c.rowid IN (SELECT rowid FROM characters_fts WHERE name MATCH ?)')
+    params.push(`${search}*`)
   }
 
   const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : ''

@@ -10,10 +10,9 @@ import {
   filterPossibleCharacters,
   detectContradictions,
   evaluateGuessReadiness,
-  getBestGuess,
+  getBestGuessResult,
   selectBestQuestion,
   generateReasoning,
-  calculateProbabilities,
   loadSession,
   saveSessionState,
   VALID_ANSWERS,
@@ -59,13 +58,16 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   // Filter characters (hard elimination + rejected guesses)
   const filtered = filterPossibleCharacters(session.characters, session.answers, session.rejectedGuesses)
 
-  // Build coverage map: ratio of characters in the pool with each attribute filled.
-  // Used for coverage-weighted null scoring in calculateProbabilities.
-  const coverageMap = new Map<string, number>()
-  const charCount = session.characters.length
-  for (const q of session.questions) {
-    const known = session.characters.filter((c) => c.attributes[q.attribute] != null).length
-    coverageMap.set(q.attribute, known / charCount)
+  // Use pre-computed coverage map stored in the session pool at game start (immutable per game).
+  // Fall back to recomputation for sessions created before this optimization.
+  let coverageMap = session.coverageMap
+  if (!coverageMap) {
+    coverageMap = new Map<string, number>()
+    const charCount = session.characters.length
+    for (const q of session.questions) {
+      const known = session.characters.filter((c) => c.attributes[q.attribute] != null).length
+      coverageMap.set(q.attribute, known / charCount)
+    }
   }
   const scoring = { coverageMap }
 
@@ -111,9 +113,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
   // Check if we should guess
   if (responseReadiness.shouldGuess && !responseReadiness.blockedByRejectCooldown) {
-    const guess = getBestGuess(filtered, session.answers, session.rejectedGuesses, scoring)
+    const { character: guess, probs } = getBestGuessResult(filtered, session.answers, session.rejectedGuesses, scoring)
     if (guess) {
-      const probs = calculateProbabilities(filtered, session.answers, scoring)
       const confidence = Math.round((probs.get(guess.id) || 0) * 100)
 
       // Capture analytics at guess time
@@ -163,13 +164,12 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
   if (!nextQuestion) {
     // No more questions — force a guess
-    const guess = getBestGuess(filtered, session.answers, session.rejectedGuesses, scoring)
+    const { character: guess, probs } = getBestGuessResult(filtered, session.answers, session.rejectedGuesses, scoring)
     session.currentQuestion = null
     session.guessCount += 1
     await saveSessionState(kv, session)
 
     if (guess) {
-      const probs = calculateProbabilities(filtered, session.answers, scoring)
       const confidence = Math.round((probs.get(guess.id) || 0) * 100)
 
       return jsonResponse({

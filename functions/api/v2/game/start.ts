@@ -70,12 +70,17 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   }
 
   // Only include characters with sufficient attribute coverage
-  conditions.push(
-    `c.id IN (SELECT character_id FROM character_attributes WHERE value IS NOT NULL GROUP BY character_id HAVING COUNT(*) >= ?)`
-  )
+  // Uses denormalized attribute_count column (maintained by triggers in migration 0017)
+  conditions.push('c.attribute_count >= ?')
   params.push(MIN_ATTRIBUTES)
 
   const where = `WHERE ${conditions.join(' AND ')}`
+
+  // Start questions query immediately — it's independent of the character pool selection
+  const questionRowsPromise = d1Query<QuestionRow>(
+    db,
+    'SELECT id, text, attribute_key FROM questions ORDER BY priority DESC'
+  )
 
   // Query 1: Get character pool — top candidates by popularity, then randomize
   //   Fetch 2× POOL_SIZE to get popular chars, then randomly pick POOL_SIZE
@@ -115,24 +120,22 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     return errorResponse('Not enough characters with attribute data for selected categories', 400)
   }
 
-  // Query 2: Get attributes for pool characters using parameterized IN clause
+  // Query 2 + 3 in parallel: attributes for the pool and all questions
   const charIds = characters.map((c) => c.id)
   const safeIds = charIds.filter((id) => /^[a-z0-9_-]+$/.test(id))
   const placeholders = safeIds.map(() => '?').join(',')
-  const attributes = await d1Query<AttributeRow>(
-    db,
-    `SELECT ca.character_id, ca.attribute_key, ca.value
-     FROM character_attributes ca
-     WHERE ca.character_id IN (${placeholders})
-     AND ca.value IS NOT NULL`,
-    safeIds
-  )
 
-  // Query 3: Get all questions
-  const questionRows = await d1Query<QuestionRow>(
-    db,
-    'SELECT id, text, attribute_key FROM questions ORDER BY priority DESC'
-  )
+  const [attributes, questionRows] = await Promise.all([
+    d1Query<AttributeRow>(
+      db,
+      `SELECT ca.character_id, ca.attribute_key, ca.value
+       FROM character_attributes ca
+       WHERE ca.character_id IN (${placeholders})
+       AND ca.value IS NOT NULL`,
+      safeIds
+    ),
+    questionRowsPromise,
+  ])
 
   // Assemble character objects with attribute maps
   const attrMap = new Map<string, Record<string, boolean | null>>()
@@ -201,6 +204,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     id: sessionId,
     characters: serverChars,
     questions: serverQuestions,
+    coverageMap,
     answers: [],
     currentQuestion: firstQuestion,
     difficulty,

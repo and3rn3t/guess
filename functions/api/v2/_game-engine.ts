@@ -96,6 +96,8 @@ export interface GameSession {
   id: string
   characters: ServerCharacter[]
   questions: ServerQuestion[]
+  /** Pre-computed at game start (immutable for pool lifetime). Avoids recomputation per answer. */
+  coverageMap?: Map<string, number>
   answers: Answer[]
   currentQuestion: ServerQuestion | null
   difficulty: string
@@ -670,20 +672,32 @@ export function getBestGuess(
   rejectedGuesses: string[] = [],
   scoring?: ScoringOptions
 ): ServerCharacter | null {
-  if (characters.length === 0) return null
+  return getBestGuessResult(characters, answers, rejectedGuesses, scoring).character
+}
+
+/** Like getBestGuess but also returns the probability map, avoiding a redundant
+ *  calculateProbabilities call in the caller when confidence/entropy are needed. */
+export function getBestGuessResult(
+  characters: ServerCharacter[],
+  answers: Answer[],
+  rejectedGuesses: string[] = [],
+  scoring?: ScoringOptions
+): { character: ServerCharacter | null; probs: Map<string, number> } {
+  if (characters.length === 0) return { character: null, probs: new Map() }
 
   const rejectedSet = new Set(rejectedGuesses)
   const eligible = characters.filter((c) => !rejectedSet.has(c.id))
-  if (eligible.length === 0) return null
+  if (eligible.length === 0) return { character: null, probs: new Map() }
 
-  const probabilities = calculateProbabilities(eligible, answers, scoring)
-  const sorted = Array.from(probabilities.entries()).sort((a, b) => {
+  const probs = calculateProbabilities(eligible, answers, scoring)
+  const sorted = Array.from(probs.entries()).sort((a, b) => {
     if (b[1] !== a[1]) return b[1] - a[1]
     return a[0].localeCompare(b[0])
   })
 
   const bestId = sorted[0][0]
-  return eligible.find((c) => c.id === bestId) || eligible[0]
+  const character = eligible.find((c) => c.id === bestId) || eligible[0]
+  return { character, probs }
 }
 
 /** Check for contradictions (all characters eliminated). */
@@ -742,12 +756,18 @@ interface LeanSession {
 interface GamePool {
   characters: ServerCharacter[]
   questions: ServerQuestion[]
+  /** Serialized coverage map (Map → plain object for JSON storage). */
+  coverageMap?: Record<string, number>
 }
 
 /** Store a new session — writes both pool (immutable) and lean session (mutable). */
 export async function storeSession(kv: KVNamespace, session: GameSession): Promise<void> {
   const poolKey = `pool:${session.id}`
-  const pool: GamePool = { characters: session.characters, questions: session.questions }
+  // Serialize Map → plain object for JSON
+  const coverageRecord: Record<string, number> | undefined = session.coverageMap
+    ? Object.fromEntries(session.coverageMap)
+    : undefined
+  const pool: GamePool = { characters: session.characters, questions: session.questions, coverageMap: coverageRecord }
   const lean: LeanSession = {
     id: session.id,
     poolKey,
@@ -790,10 +810,14 @@ export async function loadSession(kv: KVNamespace, sessionId: string): Promise<G
   if (!poolStr) return null
   const pool = JSON.parse(poolStr) as GamePool
 
+  // Deserialize coverage map plain object → Map
+  const coverageMap = pool.coverageMap ? new Map(Object.entries(pool.coverageMap)) : undefined
+
   return {
     id: data.id,
     characters: pool.characters,
     questions: pool.questions,
+    coverageMap,
     answers: data.answers,
     currentQuestion: data.currentQuestion,
     difficulty: data.difficulty,
