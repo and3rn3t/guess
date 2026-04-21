@@ -35,6 +35,7 @@ Think of a character. The AI asks strategic yes/no questions, uses Bayesian prob
 - **Character Comparison** — Side-by-side attribute diffs, similarity scoring, discrimination power analysis
 - **AI Attribute Recommendations** — GPT-4o suggests and fills in character attributes with detailed reasoning
 - **Keyboard Shortcuts** — Y / N / M / U answer the current question without lifting your hands off the keyboard
+- **Touch-Optimized UI** — Gradient answer buttons with haptic-style `whileTap` feedback, animated guess reveal, confetti win screen, answer history pills
 - **Offline Support** — PWA with service worker caching for offline gameplay
 - **Sound Effects** — Web Audio API tone synthesis (no audio files needed)
 

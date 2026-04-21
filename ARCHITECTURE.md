@@ -136,26 +136,36 @@ The core deduction algorithm lives in `src/lib/gameEngine.ts` (client) and `func
 
 ### Probability Calculation
 
-`calculateProbabilities(characters, answers)` uses Bayesian-style scoring:
+`calculateProbabilities(characters, answers, options?)` uses a multiplicative Bayesian scoring model. Each character starts with a popularity prior and each answer multiplies its score by a factor:
 
-| Answer vs Attribute | Score |
-|---|---|
-| Match (`yes` ↔ `true`, `no` ↔ `false`) | +2 |
-| Mismatch | −3 |
-| Attribute is `null` (unknown) | +0.1 (slight benefit of the doubt) |
-| `maybe` answer | ±0.5 (soft evidence) |
+| Answer | Attribute value | Factor |
+|---|---|---|
+| `yes` | `true` (match) | 1.0 (`SCORE_MATCH`) |
+| `yes` | `false` (mismatch) | 0.05 (`SCORE_MISMATCH`) |
+| `yes` / `no` | `null` (unknown) | 0.35 (`SCORE_UNKNOWN`) |
+| `no` | `false` (match) | 1.0 |
+| `no` | `true` (mismatch) | 0.05 |
+| `maybe` | `true` | 0.7 (`SCORE_MAYBE`) |
+| `maybe` | `false` | 0.3 (`SCORE_MAYBE_MISS`) |
+| `unknown` | any | 1.0 (no effect) |
 
-Scores are normalized to 0–1 probabilities across the candidate pool.
+`SCORE_MISMATCH = 0.05` (non-zero) means a single wrong attribute doesn't eliminate a character — resilient to 1–2 bad attribute values or user errors. The popularity prior decays with game progress (full weight early → neutral at the final question). Scores are normalised to 0–1 probabilities across the candidate pool.
+
+`filterPossibleCharacters` hard-filters with `MAX_MISMATCHES = 1` — a character survives if it has at most 1 definite mismatch, preventing premature elimination from one bad answer while still narrowing the field.
 
 ### Question Selection
 
-`selectBestQuestion(characters, answers, questions)` optimizes for **information gain** (entropy reduction):
+`selectBestQuestion(characters, answers, questions, options?)` optimizes for **information gain** (entropy reduction):
 
-1. For each unused question, simulate yes/no/maybe splits
+1. For each unused question, simulate yes/no/maybe splits across the candidate pool
 2. Calculate weighted entropy of each split
 3. Boost questions that differentiate the top candidates
-4. In the endgame, prefer questions that explicitly separate the strongest remaining suspects
-5. Select the question with maximum expected information gain, with reduced late-game randomness
+4. Penalize back-to-back questions from the same attribute category (diversity tracking)
+5. Pre-compute null ratios per question to avoid redundant scans
+6. In the endgame, prefer questions that explicitly separate the strongest remaining suspects
+7. Select the question with maximum expected information gain, with reduced late-game randomness
+
+`coverageMap` (attribute → coverage %) is pre-computed at session start and passed via `ScoringOptions` to avoid recomputing it on every answer. Rephrased question text is cached in KV (`question-rephrase:{id}`) with a 24h TTL.
 
 ### Guess Decision
 
