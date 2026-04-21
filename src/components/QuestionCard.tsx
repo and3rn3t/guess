@@ -4,7 +4,6 @@ import { CheckCircle, XCircle, Question as QuestionIcon } from '@phosphor-icons/
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Skeleton } from '@/components/ui/skeleton'
 import type { Question, AnswerValue } from '@/lib/types'
 import { llmWithMeta, LlmError } from '@/lib/llm'
 import { conversationalParse_v1 } from '@/lib/prompts'
@@ -20,10 +19,10 @@ interface QuestionCardProps {
 }
 
 const answerButtonStyles: Record<AnswerValue, string> = {
-  yes: 'bg-accent hover:bg-accent/90 text-accent-foreground shadow-lg shadow-accent/20',
-  no: 'bg-destructive hover:bg-destructive/90 text-destructive-foreground shadow-lg shadow-destructive/20',
-  maybe: 'bg-secondary hover:bg-secondary/80 text-secondary-foreground',
-  unknown: 'bg-secondary hover:bg-secondary/80 text-secondary-foreground',
+  yes: 'bg-emerald-500 hover:bg-emerald-400 text-white shadow-lg shadow-emerald-500/30',
+  no: 'bg-rose-500 hover:bg-rose-400 text-white shadow-lg shadow-rose-500/30',
+  maybe: 'bg-amber-500 hover:bg-amber-400 text-white shadow-lg shadow-amber-500/30',
+  unknown: 'bg-secondary hover:bg-secondary/80 text-secondary-foreground border border-muted-foreground/30',
 }
 
 export function QuestionCard({
@@ -118,22 +117,30 @@ export function QuestionCard({
         onDragEnd={handleDragEnd}
         className="relative cursor-grab active:cursor-grabbing"
       >
-        {/* YES swipe overlay (green, right drag) */}
+        {/* YES swipe overlay (emerald gradient, right drag) */}
         <motion.div
           aria-hidden
-          className="absolute inset-0 rounded-xl pointer-events-none z-10 bg-accent"
+          className="absolute inset-0 rounded-xl pointer-events-none z-10 bg-gradient-to-br from-emerald-400/80 to-green-600/60 flex items-center justify-center"
           style={{ opacity: yesOverlayOpacity }}
-        />
-        {/* NO swipe overlay (red, left drag) */}
+        >
+          <motion.div style={{ scale: yesOverlayOpacity }}>
+            <CheckCircle size={72} weight="fill" className="text-white drop-shadow-lg" />
+          </motion.div>
+        </motion.div>
+        {/* NO swipe overlay (rose gradient, left drag) */}
         <motion.div
           aria-hidden
-          className="absolute inset-0 rounded-xl pointer-events-none z-10 bg-destructive"
+          className="absolute inset-0 rounded-xl pointer-events-none z-10 bg-gradient-to-br from-rose-400/80 to-red-600/60 flex items-center justify-center"
           style={{ opacity: noOverlayOpacity }}
-        />
+        >
+          <motion.div style={{ scale: noOverlayOpacity }}>
+            <XCircle size={72} weight="fill" className="text-white drop-shadow-lg" />
+          </motion.div>
+        </motion.div>
         {/* YES hint label */}
         <motion.span
           aria-hidden
-          className="absolute left-4 top-6 z-20 pointer-events-none font-bold text-2xl text-accent border-2 border-accent rounded-lg px-3 py-1"
+          className="absolute left-4 top-6 z-20 pointer-events-none font-bold text-2xl text-emerald-400 border-2 border-emerald-400 rounded-lg px-3 py-1"
           style={{ opacity: yesLabelOpacity, rotate: '-15deg' }}
         >
           YES
@@ -141,13 +148,13 @@ export function QuestionCard({
         {/* NO hint label */}
         <motion.span
           aria-hidden
-          className="absolute right-4 top-6 z-20 pointer-events-none font-bold text-2xl text-destructive border-2 border-destructive rounded-lg px-3 py-1"
+          className="absolute right-4 top-6 z-20 pointer-events-none font-bold text-2xl text-rose-400 border-2 border-rose-400 rounded-lg px-3 py-1"
           style={{ opacity: noLabelOpacity, rotate: '15deg' }}
         >
           NO
         </motion.span>
 
-        <Card className="p-6 md:p-8 bg-linear-to-br from-card/80 to-card/40 backdrop-blur-sm border-2 border-primary/30 shadow-xl">
+        <Card className={`p-6 md:p-8 bg-linear-to-br from-card via-card/60 to-primary/5 backdrop-blur-md shadow-xl border-2 transition-colors duration-300 ${isProcessing ? 'border-accent/40' : 'border-primary/30'}`}>
           <div className="space-y-4 md:space-y-6">
             <div className="flex items-center justify-between">
               <div className="text-sm font-medium text-muted-foreground">
@@ -166,17 +173,18 @@ export function QuestionCard({
 
             <div className="grid grid-cols-2 gap-3">
               {answerButtons.map(({ value, label, icon: Icon }) => (
-                <Button
-                  key={value}
-                  onClick={() => onAnswer(value)}
-                  disabled={isProcessing}
-                  size="lg"
-                  aria-label={`Answer ${label}`}
-                  className={`h-16 text-lg font-medium transition-all duration-200 select-none ${answerButtonStyles[value]} hover:scale-105 active:scale-95`}
-                >
-                  <Icon size={24} weight="fill" className="mr-2" />
-                  {label}
-                </Button>
+                <motion.div key={value} whileTap={{ scale: 0.93 }} transition={{ type: 'spring', stiffness: 500, damping: 20 }}>
+                  <Button
+                    onClick={() => onAnswer(value)}
+                    disabled={isProcessing}
+                    size="lg"
+                    aria-label={`Answer ${label}`}
+                    className={`w-full h-16 text-lg font-medium transition-all duration-200 select-none ${answerButtonStyles[value]} hover:scale-105`}
+                  >
+                    <Icon size={24} weight="fill" className="mr-2" />
+                    {label}
+                  </Button>
+                </motion.div>
               ))}
             </div>
 
@@ -220,25 +228,49 @@ export function QuestionCard({
 
 export function ThinkingCard() {
   return (
-    <Card className="p-6 md:p-8 bg-linear-to-br from-card/80 to-card/40 backdrop-blur-sm border-2 border-primary/30 shadow-xl">
+    <Card className="p-6 md:p-8 bg-linear-to-br from-card via-card/60 to-primary/5 backdrop-blur-md border-2 border-accent/40 shadow-xl">
       <div className="space-y-4 md:space-y-6">
         <div className="flex items-center justify-between">
-          <Skeleton className="h-5 w-32" />
-          <Skeleton className="h-6 w-24 rounded-full" />
+          <div className="h-5 w-32 rounded-md bg-accent/10 animate-shimmer" />
+          <div className="h-6 w-24 rounded-full bg-accent/10 animate-shimmer" />
         </div>
         <div className="min-h-[80px] md:min-h-[120px] flex items-center">
           <div className="space-y-3 w-full">
-            <Skeleton className="h-8 w-3/4" />
-            <Skeleton className="h-8 w-1/2" />
+            <div className="h-8 w-3/4 rounded-md bg-accent/10 animate-shimmer" />
+            <div className="h-8 w-1/2 rounded-md bg-accent/8 animate-shimmer [animation-delay:0.15s]" />
           </div>
         </div>
         <div className="grid grid-cols-2 gap-3">
-          <Skeleton className="h-16 rounded-lg" />
-          <Skeleton className="h-16 rounded-lg" />
-          <Skeleton className="h-16 rounded-lg" />
-          <Skeleton className="h-16 rounded-lg" />
+          {(['emerald', 'rose', 'amber', 'secondary'] as const).map((color, i) => (
+            <div
+              key={color}
+              className={`h-16 rounded-lg animate-shimmer [animation-delay:${i * 0.1}s] ${
+                color === 'emerald' ? 'bg-emerald-500/10' :
+                color === 'rose' ? 'bg-rose-500/10' :
+                color === 'amber' ? 'bg-amber-500/10' :
+                'bg-secondary/20'
+              }`}
+            />
+          ))}
         </div>
-        <p className="text-center text-sm text-muted-foreground animate-pulse">Analyzing possibilities...</p>
+        <div className="flex items-center justify-center gap-2 text-sm text-accent/70">
+          <motion.div
+            className="w-2 h-2 rounded-full bg-accent"
+            animate={{ opacity: [0.3, 1, 0.3] }}
+            transition={{ duration: 1, repeat: Infinity, delay: 0 }}
+          />
+          <motion.div
+            className="w-2 h-2 rounded-full bg-accent"
+            animate={{ opacity: [0.3, 1, 0.3] }}
+            transition={{ duration: 1, repeat: Infinity, delay: 0.2 }}
+          />
+          <motion.div
+            className="w-2 h-2 rounded-full bg-accent"
+            animate={{ opacity: [0.3, 1, 0.3] }}
+            transition={{ duration: 1, repeat: Infinity, delay: 0.4 }}
+          />
+          <span className="ml-1">Analyzing possibilities...</span>
+        </div>
       </div>
     </Card>
   )

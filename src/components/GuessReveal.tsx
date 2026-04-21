@@ -51,13 +51,17 @@ export function GuessReveal({
             transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
           >
             {character.imageUrl ? (
-              <div className="mx-auto w-24 h-24 rounded-full overflow-hidden ring-4 ring-accent/50 shadow-lg shadow-accent/20 animate-float">
-                <img
-                  src={character.imageUrl}
-                  alt={character.name}
-                  className="w-full h-full object-cover"
-                  loading="eager"
-                />
+              <div className="relative mx-auto w-24 h-24 flex items-center justify-center">
+                {/* Animated gradient ring — outer conic-gradient, inner clipped by background-colored ring */}
+                <div className="animate-spin-ring absolute inset-0 rounded-full" />
+                <div className="relative w-[88px] h-[88px] rounded-full overflow-hidden shadow-lg shadow-accent/20 animate-float border-[3px] border-background">
+                  <img
+                    src={character.imageUrl}
+                    alt={character.name}
+                    className="w-full h-full object-cover"
+                    loading="eager"
+                  />
+                </div>
               </div>
             ) : (
               <Sparkle
@@ -78,6 +82,16 @@ export function GuessReveal({
                 transition={{ duration: 0.3 }}
                 className="space-y-3"
               >
+                {/* Radial burst pulse rings */}
+                <div className="relative flex justify-center h-10">
+                  {[0, 1, 2].map((i) => (
+                    <div
+                      key={i}
+                      className="absolute w-20 h-20 rounded-full border-2 border-accent/40 animate-radial-burst"
+                      style={{ animationDelay: `${i * 0.45}s` }}
+                    />
+                  ))}
+                </div>
                 <h2 className="text-2xl font-semibold text-muted-foreground">
                   Analyzing all evidence...
                 </h2>
@@ -119,9 +133,9 @@ export function GuessReveal({
             {stage === "reveal" && (
               <motion.div
                 key="reveal"
-                initial={{ opacity: 0, scale: 0.9, filter: "blur(8px)" }}
+                initial={{ opacity: 0, scale: 0.7, filter: "blur(12px)" }}
                 animate={{ opacity: 1, scale: 1, filter: "blur(0px)" }}
-                transition={{ duration: 0.5 }}
+                transition={{ type: "spring", stiffness: 150, damping: 18 }}
                 className="space-y-3"
               >
                 <h2 className="text-2xl font-semibold text-muted-foreground">
@@ -134,19 +148,36 @@ export function GuessReveal({
                     transition={{ delay: 0.1, type: "spring", stiffness: 200 }}
                     className="flex justify-center"
                   >
-                    <div className="w-32 h-32 rounded-full overflow-hidden ring-4 ring-accent/50 shadow-xl shadow-accent/30">
-                      <img
-                        src={character.imageUrl}
-                        alt={character.name}
-                        className="w-full h-full object-cover"
-                        loading="eager"
-                      />
+                    <div className="relative flex items-center justify-center w-36 h-36">
+                      {/* Radial burst on reveal */}
+                      {[0, 1].map((i) => (
+                        <div
+                          key={i}
+                          className="absolute inset-0 rounded-full border-2 border-accent/30 animate-radial-burst"
+                          style={{ animationDelay: `${i * 0.6}s` }}
+                        />
+                      ))}
+                      {/* Animated gradient ring */}
+                      <div className="animate-spin-ring absolute inset-0 rounded-full" />
+                      <div className="relative w-[128px] h-[128px] rounded-full overflow-hidden shadow-xl shadow-accent/30 border-[4px] border-background">
+                        <img
+                          src={character.imageUrl}
+                          alt={character.name}
+                          className="w-full h-full object-cover"
+                          loading="eager"
+                        />
+                      </div>
                     </div>
                   </motion.div>
                 )}
-                <h1 className="text-5xl md:text-6xl font-bold text-foreground">
+                <motion.h1
+                  initial={{ opacity: 0, scale: 0.7, filter: "blur(8px)" }}
+                  animate={{ opacity: 1, scale: 1, filter: "blur(0px)" }}
+                  transition={{ type: "spring", stiffness: 150, damping: 18, delay: 0.15 }}
+                  className="text-5xl md:text-6xl font-bold text-gradient-win"
+                >
                   {character.name}
-                </h1>
+                </motion.h1>
               </motion.div>
             )}
           </AnimatePresence>
@@ -170,7 +201,7 @@ export function GuessReveal({
                 <Button
                   onClick={onCorrect}
                   size="lg"
-                  className="flex-1 max-w-xs h-14 text-lg bg-accent hover:bg-accent/90 text-accent-foreground shadow-lg shadow-accent/20 hover:scale-105 transition-transform"
+                  className="flex-1 max-w-xs h-14 text-lg bg-emerald-500 hover:bg-emerald-400 text-white shadow-lg shadow-emerald-500/30 hover:scale-105 transition-transform"
                 >
                   <CheckCircle size={24} weight="fill" className="mr-2" />
                   Yes! Correct

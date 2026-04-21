@@ -62,7 +62,7 @@ export function GameHistory({ history, loading = false, onBack }: GameHistoryPro
             <div className="text-xs text-muted-foreground">Games</div>
           </Card>
           <Card className="p-3 sm:p-4 text-center bg-card/50 backdrop-blur-sm border-primary/20">
-            <div className="text-xl sm:text-2xl font-bold text-accent">{wins}</div>
+            <div className="text-xl sm:text-2xl font-bold text-gradient-win">{wins}</div>
             <div className="text-xs text-muted-foreground">Wins</div>
           </Card>
           <Card className="p-3 sm:p-4 text-center bg-card/50 backdrop-blur-sm border-primary/20">
@@ -86,7 +86,7 @@ export function GameHistory({ history, loading = false, onBack }: GameHistoryPro
             const diffLabel = DIFFICULTIES[game.difficulty]?.label ?? game.difficulty
 
             return (
-              <Card key={game.id} className="bg-card/50 backdrop-blur-sm border-primary/20 overflow-hidden">
+              <Card key={game.id} className={`bg-card/50 backdrop-blur-sm border-primary/20 overflow-hidden border-l-4 ${game.won ? 'border-l-emerald-500/60' : 'border-l-rose-500/30'}`}>
                 <button
                   onClick={() => setExpandedId(isExpanded ? null : game.id)}
                   className="w-full text-left p-4 flex items-center gap-3"
@@ -168,9 +168,9 @@ export function GameHistory({ history, loading = false, onBack }: GameHistoryPro
 
 function answerColor(answer: string): string {
   switch (answer) {
-    case 'yes': return 'border-green-500/50 text-green-400'
-    case 'no': return 'border-red-500/50 text-red-400'
-    case 'maybe': return 'border-yellow-500/50 text-yellow-400'
+    case 'yes': return 'border-emerald-500/50 text-emerald-400'
+    case 'no': return 'border-rose-500/50 text-rose-400'
+    case 'maybe': return 'border-amber-500/50 text-amber-400'
     default: return 'border-muted-foreground/50 text-muted-foreground'
   }
 }

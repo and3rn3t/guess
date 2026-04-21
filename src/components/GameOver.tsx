@@ -23,7 +23,7 @@ function ConfettiBurst() {
   const isMobile = useIsMobile();
   const reduced = useReducedMotion();
   if (reduced) return null;
-  const count = isMobile ? 12 : 24;
+  const count = isMobile ? 20 : 40;
   return (
     <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
       {Array.from({ length: count }).map((_, i) => (
@@ -33,12 +33,12 @@ function ConfettiBurst() {
           style={{
             left: "50%",
             top: "30%",
-            backgroundColor: ["#a78bfa", "#34d399", "#fbbf24", "#f472b6", "#60a5fa"][i % 5],
+            backgroundColor: ["#a78bfa", "#34d399", "#fbbf24", "#f472b6", "#60a5fa", "#38bdf8", "#e879f9"][i % 7],
           }}
-          initial={{ x: 0, y: 0, opacity: 1, scale: 1 }}
+          initial={{ x: 0, y: 0, opacity: 1, scale: 1, rotate: 0 }}
           animate={{
-            x: (Math.random() - 0.5) * (isMobile ? 250 : 400),
-            y: Math.random() * (isMobile ? 200 : 300) + 50,
+            x: (Math.random() - 0.5) * (isMobile ? 280 : 460),
+            y: Math.random() * (isMobile ? 240 : 340) + 50,
             opacity: 0,
             scale: Math.random() * 1.5 + 0.5,
             rotate: Math.random() * 720 - 360,
@@ -170,11 +170,12 @@ export function GameOver({
           {won ? (
             <>
               <motion.div
-                animate={{ rotate: [0, -8, 8, -4, 4, 0] }}
-                transition={{ duration: 0.5, delay: 0.2 }}
+                animate={{ rotate: [0, -8, 8, -4, 4, 0], scale: [1, 1.3, 0.9, 1.15, 1] }}
+                transition={{ duration: 0.6, delay: 0.2 }}
+                className="animate-glow-pulse w-fit mx-auto"
               >
                 {character?.imageUrl ? (
-                  <div className="mx-auto w-20 h-20 rounded-full overflow-hidden ring-4 ring-accent/50 shadow-lg shadow-accent/20">
+                  <div className="w-20 h-20 rounded-full overflow-hidden ring-4 ring-emerald-500/60 shadow-lg shadow-emerald-500/30">
                     <img
                       src={character.imageUrl}
                       alt={character.name}
@@ -190,7 +191,7 @@ export function GameOver({
                 )}
               </motion.div>
               <div>
-                <h2 className="text-4xl font-bold text-foreground mb-2">
+                <h2 className="text-4xl font-bold text-gradient-win mb-2">
                   I Got It Right!
                 </h2>
                 {character && (
@@ -265,7 +266,7 @@ export function GameOver({
           )}
 
           {(narrative || isStreaming) && (
-            <div className="text-left bg-accent/5 rounded-lg p-4 border border-accent/20">
+            <div className="text-left bg-gradient-to-br from-accent/10 to-primary/5 rounded-xl p-4 border border-accent/30 border-l-4 border-l-accent">
               <p className="text-sm text-foreground/80 italic">
                 {narrative}
                 {isStreaming && <span className="animate-pulse">▌</span>}
@@ -275,7 +276,7 @@ export function GameOver({
 
           {/* Reveal section — ask what the user was thinking of when AI lost */}
           {!won && onReveal && (
-            <div className="bg-primary/5 rounded-lg p-4 border border-primary/20 text-left space-y-3">
+            <div className="bg-gradient-to-br from-primary/8 to-secondary/5 rounded-xl p-4 border border-primary/30 text-left space-y-3">
               {revealStatus === "done" && revealResult ? (
                 <motion.div
                   initial={{ opacity: 0, y: 4 }}
@@ -382,7 +383,7 @@ export function GameOver({
               <Button
                 onClick={onPlayAgain}
                 size="lg"
-                className="h-14 text-lg bg-accent hover:bg-accent/90 text-accent-foreground shadow-lg hover:scale-105 transition-transform"
+                className="h-14 text-lg bg-accent hover:bg-accent/90 text-accent-foreground shadow-lg shadow-accent/30 hover:scale-105 transition-transform"
               >
                 <ArrowClockwise size={24} weight="bold" className="mr-2" />
                 Play Again
@@ -393,7 +394,7 @@ export function GameOver({
               <Button
                 onClick={onPlayAgain}
                 size="lg"
-                className="h-14 text-lg bg-accent hover:bg-accent/90 text-accent-foreground shadow-lg hover:scale-105 transition-transform"
+                className="h-14 text-lg bg-accent hover:bg-accent/90 text-accent-foreground shadow-lg shadow-accent/30 hover:scale-105 transition-transform"
               >
                 <ArrowClockwise size={24} weight="bold" className="mr-2" />
                 Play Again
@@ -402,7 +403,8 @@ export function GameOver({
                 <Button
                   onClick={onTeachMode}
                   size="lg"
-                  className="h-14 text-lg bg-accent hover:bg-accent/90 text-accent-foreground shadow-lg hover:scale-105 transition-transform"
+                  variant="outline"
+                  className="h-14 text-lg hover:scale-105 transition-transform text-accent border-accent/40 hover:bg-accent/10"
                 >
                   <Sparkle size={24} weight="fill" className="mr-2" />
                   Teach Me

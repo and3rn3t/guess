@@ -2,7 +2,6 @@ import { CoachMark } from "@/components/CoachMark";
 import { OnboardingOverlay } from "@/components/OnboardingOverlay";
 import { QuestionCard, ThinkingCard } from "@/components/QuestionCard";
 import { ReasoningPanel } from "@/components/ReasoningPanel";
-import { Progress } from "@/components/ui/progress";
 import type { GameAction } from "@/hooks/useGameState";
 import type {
   Answer,
@@ -82,10 +81,22 @@ function PlayingScreenBase({
         </AnimatePresence>
         <div className="sticky top-0 z-20 bg-background/80 backdrop-blur-sm py-2 -mx-4 px-4 lg:static lg:bg-transparent lg:backdrop-blur-none lg:py-0 lg:mx-0 lg:px-0 lg:mb-6 space-y-2">
           <div className="flex items-center gap-3">
-            <Progress
-              value={(answers.length / maxQuestions) * 100}
-              className="h-2 flex-1"
-            />
+            <div
+              className="flex-1 relative h-2 overflow-hidden rounded-full bg-secondary"
+              role="progressbar"
+              aria-valuenow={answers.length}
+              aria-valuemin={0}
+              aria-valuemax={maxQuestions}
+            >
+              <div
+                className="h-full rounded-full transition-all duration-500 ease-out"
+                style={{
+                  width: `${(answers.length / maxQuestions) * 100}%`,
+                  background: 'linear-gradient(90deg, oklch(0.72 0.18 155), oklch(0.70 0.15 220), oklch(0.35 0.15 300))',
+                  boxShadow: '0 0 8px oklch(0.70 0.15 220 / 0.5)',
+                }}
+              />
+            </div>
             <span className="text-sm font-semibold text-accent whitespace-nowrap tabular-nums">
               {confidence}% confident
             </span>
@@ -101,10 +112,10 @@ function PlayingScreenBase({
               {eliminatedCount !== null && (
                 <motion.span
                   initial={{ opacity: 0, y: 8, scale: 0.9 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  animate={{ opacity: 1, y: 0, scale: [1, 1.15, 1] }}
                   exit={{ opacity: 0, y: -8 }}
-                  transition={{ duration: 0.3 }}
-                  className="inline-flex items-center rounded-full bg-destructive/15 px-2.5 py-0.5 text-xs font-medium text-destructive"
+                  transition={{ duration: 0.4 }}
+                  className="inline-flex items-center rounded-full bg-destructive/15 px-2.5 py-0.5 text-xs font-medium text-destructive shadow-md shadow-destructive/30"
                 >
                   −{eliminatedCount} eliminated
                 </motion.span>
@@ -126,7 +137,7 @@ function PlayingScreenBase({
         </div>
 
         {readiness && (
-          <div className="mb-4 lg:mb-6 rounded-xl border border-accent/20 bg-accent/5 px-4 py-3 text-sm text-foreground/90">
+          <div className="mb-4 lg:mb-6 rounded-xl border-l-4 border-l-accent border border-accent/30 bg-accent/10 px-4 py-3 text-sm text-foreground/90">
             <div className="flex flex-wrap items-center gap-2">
               <span className="font-medium text-accent">Guess timing</span>
               {readiness.questionsRemaining != null && (
@@ -149,21 +160,24 @@ function PlayingScreenBase({
           <div className="flex flex-wrap gap-1.5 mb-4 lg:mb-6" aria-label="Answer history">
             {gameSteps.map((step, i) => {
               const bgClass: Record<string, string> = {
-                yes: "bg-accent/20 text-accent",
-                no: "bg-destructive/20 text-destructive",
-                maybe: "bg-yellow-500/20 text-yellow-500",
+                yes: 'bg-gradient-to-br from-emerald-500/30 to-emerald-600/20 text-emerald-400 ring-emerald-500/40',
+                no: 'bg-gradient-to-br from-rose-500/30 to-rose-600/20 text-rose-400 ring-rose-500/40',
+                maybe: 'bg-gradient-to-br from-amber-500/30 to-amber-600/20 text-amber-400 ring-amber-500/40',
               };
-              const label: Record<string, string> = { yes: "Y", no: "N", maybe: "M" };
+              const label: Record<string, string> = { yes: 'Y', no: 'N', maybe: 'M' };
               return (
-                <span
+                <motion.span
                   key={step.questionId ?? `step-${i}`}
+                  initial={{ scale: 0, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ type: 'spring', stiffness: 380, damping: 20, delay: i * 0.025 }}
                   title={`Q${i + 1}: ${step.questionText} → ${step.answer}`}
-                  className={`inline-flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold cursor-default transition-transform hover:scale-110 ${
-                    bgClass[step.answer] ?? "bg-muted text-muted-foreground"
+                  className={`inline-flex items-center justify-center w-8 h-8 sm:w-7 sm:h-7 rounded-full text-xs font-bold cursor-default transition-all hover:scale-110 ring-1 ring-offset-1 ring-offset-background hover:ring-2 ${
+                    bgClass[step.answer] ?? 'bg-muted text-muted-foreground ring-muted-foreground/30'
                   }`}
                 >
-                  {label[step.answer] ?? "?"}
-                </span>
+                  {label[step.answer] ?? '?'}
+                </motion.span>
               );
             })}
           </div>

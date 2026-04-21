@@ -145,12 +145,85 @@
   }
 }
 
+@keyframes shimmer {
+  0% {
+    background-position: -200% center;
+  }
+  100% {
+    background-position: 200% center;
+  }
+}
+
+@keyframes radial-burst {
+  0% {
+    transform: scale(0.8);
+    opacity: 0.6;
+  }
+  100% {
+    transform: scale(2.2);
+    opacity: 0;
+  }
+}
+
+@property --spin-angle {
+  syntax: '<angle>';
+  inherits: false;
+  initial-value: 0deg;
+}
+
+@keyframes spin-gradient {
+  to {
+    --spin-angle: 360deg;
+  }
+}
+
 .animate-glow-pulse {
   animation: glow-pulse 2s ease-in-out infinite;
 }
 
 .animate-float {
   animation: float 3s ease-in-out infinite;
+}
+
+.animate-shimmer {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    oklch(0.70 0.15 220 / 0.18) 50%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.8s ease-in-out infinite;
+}
+
+.animate-radial-burst {
+  animation: radial-burst 1.4s ease-out infinite;
+}
+
+.animate-spin-ring {
+  animation: spin-gradient 3s linear infinite;
+  background: conic-gradient(
+    from var(--spin-angle),
+    oklch(0.70 0.15 220),
+    oklch(0.35 0.15 300),
+    oklch(0.70 0.15 220)
+  );
+}
+
+.text-gradient-accent {
+  background: linear-gradient(135deg, oklch(0.70 0.15 220), oklch(0.35 0.15 300), oklch(0.70 0.15 220));
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+
+.text-gradient-win {
+  background: linear-gradient(135deg, oklch(0.72 0.18 155), oklch(0.78 0.15 190));
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
 }
 
 /* Accessibility: respect reduced motion preference */

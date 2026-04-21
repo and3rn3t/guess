@@ -94,7 +94,9 @@ export function StatsDashboard({ stats, loading, onBack }: StatsDashboardProps) 
         <Card className="bg-card/50 backdrop-blur-sm border-primary/20">
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-              <Users size={20} className="text-accent" />
+              <span className="w-7 h-7 rounded-md bg-accent/15 flex items-center justify-center">
+                <Users size={16} className="text-accent" />
+              </span>
               Characters
             </CardTitle>
           </CardHeader>
@@ -109,7 +111,9 @@ export function StatsDashboard({ stats, loading, onBack }: StatsDashboardProps) 
         <Card className="bg-card/50 backdrop-blur-sm border-primary/20">
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-              <GameController size={20} className="text-accent" />
+              <span className="w-7 h-7 rounded-md bg-accent/15 flex items-center justify-center">
+                <GameController size={16} className="text-accent" />
+              </span>
               Games Played
             </CardTitle>
           </CardHeader>
@@ -124,12 +128,14 @@ export function StatsDashboard({ stats, loading, onBack }: StatsDashboardProps) 
         <Card className="bg-card/50 backdrop-blur-sm border-primary/20">
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-              <Trophy size={20} className="text-accent" />
+              <span className="w-7 h-7 rounded-md bg-emerald-500/15 flex items-center justify-center">
+                <Trophy size={16} className="text-emerald-400" />
+              </span>
               Win Rate
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-foreground">{winRate}%</div>
+            <div className="text-3xl font-bold text-gradient-win">{winRate}%</div>
             <div className="text-xs text-muted-foreground mt-1">
               {gs?.wins ?? 0} wins of {gs?.totalGames ?? 0} games
             </div>
@@ -139,7 +145,9 @@ export function StatsDashboard({ stats, loading, onBack }: StatsDashboardProps) 
         <Card className="bg-card/50 backdrop-blur-sm border-primary/20">
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-              <Database size={20} className="text-accent" />
+              <span className="w-7 h-7 rounded-md bg-accent/15 flex items-center justify-center">
+                <Database size={16} className="text-accent" />
+              </span>
               Attribute Fill Rate
             </CardTitle>
           </CardHeader>

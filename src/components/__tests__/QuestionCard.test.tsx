@@ -161,10 +161,10 @@ describe('QuestionCard', () => {
 })
 
 describe('ThinkingCard', () => {
-  it('renders skeleton elements', () => {
+  it('renders thinking indicator elements', () => {
     const { container } = render(<ThinkingCard />)
-    // Skeleton components render with data-slot="skeleton"
-    const skeletons = container.querySelectorAll('[data-slot="skeleton"]')
-    expect(skeletons.length).toBeGreaterThan(0)
+    // ThinkingCard renders shimmer divs with animate-shimmer class
+    const shimmers = container.querySelectorAll('.animate-shimmer')
+    expect(shimmers.length).toBeGreaterThan(0)
   })
 })
