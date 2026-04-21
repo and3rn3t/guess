@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef, useCallback } from 'react'
 import { motion } from 'framer-motion'
 import { CheckCircle, XCircle, Question as QuestionIcon } from '@phosphor-icons/react'
 import { Card } from '@/components/ui/card'
@@ -9,6 +9,7 @@ import type { Question, AnswerValue } from '@/lib/types'
 import { llmWithMeta, LlmError } from '@/lib/llm'
 import { conversationalParse_v1 } from '@/lib/prompts'
 import { toast } from 'sonner'
+import { useSwipeAnswer } from '@/hooks/useSwipeAnswer'
 
 interface QuestionCardProps {
   question: Question
@@ -34,6 +35,14 @@ export function QuestionCard({
 }: Readonly<QuestionCardProps>) {
   const [freeText, setFreeText] = useState('')
   const [isInterpreting, setIsInterpreting] = useState(false)
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  const handleInputFocus = useCallback(() => {
+    // Wait for the iOS keyboard to animate into place before scrolling
+    setTimeout(() => {
+      inputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+    }, 300)
+  }, [])
 
   const handleFreeText = async () => {
     if (!freeText.trim()) return
@@ -54,6 +63,17 @@ export function QuestionCard({
     }
   }
 
+  const {
+    dragX,
+    cardRotate,
+    yesOverlayOpacity,
+    noOverlayOpacity,
+    yesLabelOpacity,
+    noLabelOpacity,
+    handleDragEnd,
+    isDragEnabled,
+  } = useSwipeAnswer({ onAnswer, enabled: !isProcessing })
+
   const answerButtons: Array<{ value: AnswerValue; label: string; icon: typeof CheckCircle }> = [
     { value: 'yes', label: 'Yes', icon: CheckCircle },
     { value: 'no', label: 'No', icon: XCircle },
@@ -69,60 +89,106 @@ export function QuestionCard({
       exit={{ opacity: 0, x: 20 }}
       transition={{ duration: 0.3 }}
     >
-      <Card className="p-6 md:p-8 bg-linear-to-br from-card/80 to-card/40 backdrop-blur-sm border-2 border-primary/30 shadow-xl">
-        <div className="space-y-4 md:space-y-6">
-          <div className="flex items-center justify-between">
-            <div className="text-sm font-medium text-muted-foreground">
-              Question {questionNumber} of {totalQuestions}
-            </div>
-            <div className="text-xs text-muted-foreground px-3 py-1 rounded-full bg-secondary/20">
-              {Math.round((questionNumber / totalQuestions) * 100)}% Complete
-            </div>
-          </div>
+      {/* Draggable layer — handles swipe-to-answer on mobile */}
+      <motion.div
+        drag={isDragEnabled ? 'x' : false}
+        dragConstraints={{ left: 0, right: 0 }}
+        dragElastic={0.15}
+        style={{ x: dragX, rotate: cardRotate }}
+        onDragEnd={handleDragEnd}
+        className="relative cursor-grab active:cursor-grabbing"
+      >
+        {/* YES swipe overlay (green, right drag) */}
+        <motion.div
+          aria-hidden
+          className="absolute inset-0 rounded-xl pointer-events-none z-10 bg-accent"
+          style={{ opacity: yesOverlayOpacity }}
+        />
+        {/* NO swipe overlay (red, left drag) */}
+        <motion.div
+          aria-hidden
+          className="absolute inset-0 rounded-xl pointer-events-none z-10 bg-destructive"
+          style={{ opacity: noOverlayOpacity }}
+        />
+        {/* YES hint label */}
+        <motion.span
+          aria-hidden
+          className="absolute left-4 top-6 z-20 pointer-events-none font-bold text-2xl text-accent border-2 border-accent rounded-lg px-3 py-1"
+          style={{ opacity: yesLabelOpacity, rotate: '-15deg' }}
+        >
+          YES
+        </motion.span>
+        {/* NO hint label */}
+        <motion.span
+          aria-hidden
+          className="absolute right-4 top-6 z-20 pointer-events-none font-bold text-2xl text-destructive border-2 border-destructive rounded-lg px-3 py-1"
+          style={{ opacity: noLabelOpacity, rotate: '15deg' }}
+        >
+          NO
+        </motion.span>
 
-          <div className="min-h-[80px] md:min-h-[120px] flex items-center" aria-live="polite">
-            <h2 className="text-2xl md:text-3xl lg:text-4xl font-semibold leading-tight text-foreground">
-              {question.displayText || question.text}
-            </h2>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            {answerButtons.map(({ value, label, icon: Icon }) => (
-              <Button
-                key={value}
-                onClick={() => onAnswer(value)}
-                disabled={isProcessing}
-                size="lg"
-                aria-label={`Answer ${label}`}
-                className={`h-16 text-lg font-medium transition-all duration-200 ${answerButtonStyles[value]} hover:scale-105 active:scale-95`}
-              >
-                <Icon size={24} weight="fill" className="mr-2" />
-                {label}
-              </Button>
-            ))}
-          </div>
-
-          {/* Free-text answer input */}
-          <div className="flex gap-2">
-              <Input
-                value={freeText}
-                onChange={(e) => setFreeText(e.target.value)}
-                placeholder="Or type your answer..."
-                disabled={isProcessing || isInterpreting}
-                onKeyDown={(e) => e.key === 'Enter' && handleFreeText()}
-                className="flex-1"
-              />
-              <Button
-                onClick={handleFreeText}
-                disabled={!freeText.trim() || isProcessing || isInterpreting}
-                size="sm"
-                variant="secondary"
-              >
-                {isInterpreting ? '...' : 'Send'}
-              </Button>
+        <Card className="p-6 md:p-8 bg-linear-to-br from-card/80 to-card/40 backdrop-blur-sm border-2 border-primary/30 shadow-xl">
+          <div className="space-y-4 md:space-y-6">
+            <div className="flex items-center justify-between">
+              <div className="text-sm font-medium text-muted-foreground">
+                Question {questionNumber} of {totalQuestions}
+              </div>
+              <div className="text-xs text-muted-foreground px-3 py-1 rounded-full bg-secondary/20">
+                {Math.round((questionNumber / totalQuestions) * 100)}% Complete
+              </div>
             </div>
-        </div>
-      </Card>
+
+            <div className="min-h-[80px] md:min-h-[120px] flex items-center" aria-live="polite">
+              <h2 className="text-2xl md:text-3xl lg:text-4xl font-semibold leading-tight text-foreground select-none">
+                {question.displayText || question.text}
+              </h2>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              {answerButtons.map(({ value, label, icon: Icon }) => (
+                <Button
+                  key={value}
+                  onClick={() => onAnswer(value)}
+                  disabled={isProcessing}
+                  size="lg"
+                  aria-label={`Answer ${label}`}
+                  className={`h-16 text-lg font-medium transition-all duration-200 select-none ${answerButtonStyles[value]} hover:scale-105 active:scale-95`}
+                >
+                  <Icon size={24} weight="fill" className="mr-2" />
+                  {label}
+                </Button>
+              ))}
+            </div>
+
+            {/* Free-text answer input */}
+            <div className="flex gap-2">
+                <Input
+                  ref={inputRef}
+                  value={freeText}
+                  onChange={(e) => setFreeText(e.target.value)}
+                  placeholder="Or type your answer..."
+                  disabled={isProcessing || isInterpreting}
+                  onKeyDown={(e) => e.key === 'Enter' && handleFreeText()}
+                  onFocus={handleInputFocus}
+                  inputMode="text"
+                  enterKeyHint="send"
+                  autoCapitalize="sentences"
+                  autoCorrect="on"
+                  className="flex-1 text-base"
+                />
+                <Button
+                  onClick={handleFreeText}
+                  disabled={!freeText.trim() || isProcessing || isInterpreting}
+                  size="default"
+                  variant="secondary"
+                  className="touch-target"
+                >
+                  {isInterpreting ? '...' : 'Send'}
+                </Button>
+              </div>
+          </div>
+        </Card>
+      </motion.div>
     </motion.div>
   )
 }

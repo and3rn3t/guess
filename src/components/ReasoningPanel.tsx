@@ -148,6 +148,29 @@ export function ReasoningPanel({ reasoning, readiness = null, isThinking = false
           {/* Stats always visible */}
           {statsBar}
 
+          {/* Peek strip: mobile-only persistent hint showing the #1 suspect */}
+          {reasoning.topCandidates && reasoning.topCandidates.length > 0 && (
+            <div className="flex items-center gap-2 py-0.5 lg:hidden">
+              <Trophy className="text-accent shrink-0" size={14} weight="fill" />
+              <span className="text-xs text-muted-foreground shrink-0">Most likely:</span>
+              {reasoning.topCandidates[0].imageUrl ? (
+                <img
+                  src={reasoning.topCandidates[0].imageUrl}
+                  alt=""
+                  className="w-4 h-4 rounded-full object-cover shrink-0"
+                />
+              ) : (
+                <UserCircle size={14} className="text-muted-foreground shrink-0" />
+              )}
+              <span className="text-sm font-medium text-foreground flex-1 truncate">
+                {reasoning.topCandidates[0].name}
+              </span>
+              <Badge variant="outline" className="text-xs border-accent/40 text-accent shrink-0">
+                {reasoning.topCandidates[0].probability}%
+              </Badge>
+            </div>
+          )}
+
           {/* Details: always visible on lg+, collapsible on mobile */}
           <div className="hidden lg:block space-y-4">
             {detailContent}

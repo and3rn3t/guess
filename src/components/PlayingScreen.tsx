@@ -87,7 +87,7 @@ export function PlayingScreen({
               value={(answers.length / maxQuestions) * 100}
               className="h-2 flex-1"
             />
-            <span className="text-xs font-semibold text-accent whitespace-nowrap tabular-nums">
+            <span className="text-sm font-semibold text-accent whitespace-nowrap tabular-nums">
               {confidence}% confident
             </span>
           </div>
@@ -116,7 +116,7 @@ export function PlayingScreen({
             {answers.length > 0 && (
               <button
                 onClick={() => dispatch({ type: "UNDO_LAST_ANSWER" })}
-                className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors min-h-[44px] px-2"
                 aria-label="Undo last answer"
               >
                 <ClockCounterClockwiseIcon size={14} />

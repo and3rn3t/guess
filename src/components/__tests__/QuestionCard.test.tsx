@@ -8,11 +8,16 @@ import type { Question } from '@/lib/types'
 // Mock framer-motion to avoid animation issues in tests
 vi.mock('framer-motion', () => ({
   motion: {
-    div: ({ children, initial: _, animate: _a, exit: _e, transition: _t, ...rest }: React.PropsWithChildren<Record<string, unknown>>) => {
+    div: ({ children, initial: _, animate: _a, exit: _e, transition: _t, drag: _dr, dragConstraints: _dc, dragElastic: _de, onDragEnd: _od, style: _s, ...rest }: React.PropsWithChildren<Record<string, unknown>>) => {
       return <div {...rest}>{children}</div>
+    },
+    span: ({ children, style: _s, ...rest }: React.PropsWithChildren<Record<string, unknown>>) => {
+      return <span {...rest}>{children}</span>
     },
   },
   AnimatePresence: ({ children }: React.PropsWithChildren) => <>{children}</>,
+  useMotionValue: () => ({ get: () => 0, set: vi.fn() }),
+  useTransform: () => ({ get: () => 0 }),
 }))
 
 vi.mock('@phosphor-icons/react', () => ({

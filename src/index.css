@@ -4,16 +4,25 @@
 @layer base {
   * {
     @apply border-border;
+    /* Remove iOS/Android blue tap flash on interactive elements */
+    -webkit-tap-highlight-color: transparent;
   }
   
   body {
     font-family: 'Space Grotesk', sans-serif;
+    /* Respect notch / Dynamic Island / home indicator in PWA standalone mode */
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
   }
 
   /* Use dynamic viewport height for mobile address-bar resilience */
   html {
     min-height: 100vh;
     min-height: 100dvh;
+    /* Prevent pull-to-refresh and back-swipe navigation during gameplay */
+    overscroll-behavior: contain;
   }
 }
 
