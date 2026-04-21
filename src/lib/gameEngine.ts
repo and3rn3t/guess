@@ -8,6 +8,8 @@ export interface ScoringOptions {
   coverageMap?: Map<string, number>
   /** Map of character id → normalized popularity (0-1). Weak prior for initial scoring. */
   popularityMap?: Map<string, number>
+  /** Game progress (0–1). Decays the popularity prior (full weight at 0, neutral at 1). */
+  progress?: number
 }
 
 /** Options for question selection behavior. */
@@ -53,9 +55,10 @@ export function calculateProbabilities(
   const { coverageMap, popularityMap } = options ?? {}
 
   for (const character of characters) {
-    // Weak popularity prior: 1.0 (unknown) to 1.1 (most popular)
+    // Popularity prior decays with game progress: full strength early → neutral at game end
+    const priorStrength = options?.progress !== undefined ? 1 - options.progress : 1
     let score = popularityMap
-      ? 1.0 + 0.1 * (popularityMap.get(character.id) ?? 0)
+      ? 1.0 + 0.1 * priorStrength * (popularityMap.get(character.id) ?? 0)
       : 1.0
 
     for (const answer of answers) {
@@ -80,6 +83,8 @@ export function calculateProbabilities(
           : effectiveUnknown
       }
       // 'unknown' → no effect on score
+      // Early exit: once negligibly probable, skip remaining answers
+      if (score < 1e-8) { score = 0; break }
     }
 
     probabilities.set(character.id, score)
@@ -335,7 +340,9 @@ export function selectBestQuestion(
 
   if (endgameFocus && progress >= 0.85) {
     const bestTopTwoSplit = scored.find((candidate) => candidate.topTwoSplit)
-    if (bestTopTwoSplit && bestTopTwoSplit.score >= scored[0].score * 0.55) {
+    // Threshold scales down as turns run out: 0.55 at progress=0.85 → 0.40 at progress=1.0
+    const splitThreshold = Math.max(0.55 - (progress - 0.85), 0.4)
+    if (bestTopTwoSplit && bestTopTwoSplit.score >= scored[0].score * splitThreshold) {
       return bestTopTwoSplit.question
     }
     return scored[0].question
@@ -513,7 +520,8 @@ export function evaluateGuessReadiness(
   const currentEntropy = entropy(aliveProbs)
   // With SCORE_MISMATCH=0.05, tolerated 1-mismatch chars have residual probability that inflates
   // aliveCount. Use competitiveCount (chars with ≥15% of top probability) for readiness gates.
-  const competitiveCount = aliveProbs.filter((p) => p >= topProbability * 0.15).length
+  // Hard floor of 0.01 prevents inflated competitiveCount in uniform low-probability pools
+  const competitiveCount = aliveProbs.filter((p) => p >= topProbability * 0.15 && p > 0.01).length
   const questionsRemaining = Math.max(0, maxQuestions - questionCount)
   const progress = maxQuestions > 0 ? questionCount / maxQuestions : 1
 
@@ -563,8 +571,8 @@ export function evaluateGuessReadiness(
     }
   }
 
+  // questionCount >= 3 is always satisfied here (min-guard above blocks q < 5)
   const strictReady =
-    questionCount >= 3 &&
     topProbability >= requiredConfidence &&
     gap >= requiredGap &&
     competitiveCount <= 3 &&
