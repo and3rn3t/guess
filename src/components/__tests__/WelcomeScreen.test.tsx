@@ -17,7 +17,7 @@ vi.mock('framer-motion', () => ({
 vi.mock('@phosphor-icons/react', () => {
   const Icon = () => <span />
   return {
-    BrainIcon: Icon, ChartBarIcon: Icon, ClipboardTextIcon: Icon, CloudCheckIcon: Icon,
+    BrainIcon: Icon, CalendarBlankIcon: Icon, ChartBarIcon: Icon, ClipboardTextIcon: Icon, CloudCheckIcon: Icon,
     FlaskIcon: Icon, GearIcon: Icon, LightningIcon: Icon, PlayIcon: Icon, SparkleIcon: Icon,
     TreeStructureIcon: Icon, WifiSlashIcon: Icon, WrenchIcon: Icon,
   }
@@ -41,6 +41,9 @@ const defaultProps = () => ({
   showDevTools: false,
   navigate: vi.fn(),
   characters: CHARS,
+  globalStats: null,
+  dailyStatus: null,
+  startDailyChallenge: vi.fn(),
 })
 
 describe('WelcomeScreen', () => {

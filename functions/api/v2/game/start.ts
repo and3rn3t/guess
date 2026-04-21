@@ -5,6 +5,7 @@ import {
   parseJsonBody,
   isValidCategory,
   d1Query,
+  d1First,
   d1Run,
   getOrCreateUserId,
   withSetCookie,
@@ -29,6 +30,8 @@ import type { CharactersRow, CharacterAttributesRow, QuestionsRow } from '../../
 interface StartRequest {
   categories?: string[]
   difficulty?: string
+  /** Optional: pin the answer character (used for daily challenge). */
+  characterId?: string
 }
 
 type CharacterRow = Pick<CharactersRow, 'id' | 'name' | 'category' | 'image_url'>
@@ -51,6 +54,12 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   const difficulty =
     body?.difficulty && body.difficulty in DIFFICULTY_MAP ? body.difficulty : 'medium'
   const maxQuestions = DIFFICULTY_MAP[difficulty]
+
+  // Validate optional pinned character ID (daily challenge)
+  const pinnedCharId =
+    typeof body?.characterId === 'string' && /^[a-z0-9_-]+$/.test(body.characterId)
+      ? body.characterId
+      : null
 
   // Build category filter
   const conditions: string[] = []
@@ -89,6 +98,19 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   }
   const characters = candidates.slice(0, POOL_SIZE)
 
+  // Daily challenge: ensure the pinned character is in the pool
+  if (pinnedCharId && !characters.some((c) => c.id === pinnedCharId)) {
+    const pinned = await d1First<CharacterRow>(
+      db,
+      'SELECT id, name, category, image_url FROM characters WHERE id = ?',
+      [pinnedCharId]
+    )
+    if (pinned) {
+      // Replace the last slot with the pinned character
+      characters[characters.length - 1] = pinned
+    }
+  }
+
   if (characters.length < 2) {
     return errorResponse('Not enough characters with attribute data for selected categories', 400)
   }
@@ -96,7 +118,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   // Query 2: Get attributes for pool characters
   // IDs are from our own DB query above; validated to safe charset to avoid injection
   const charIds = characters.map((c) => c.id)
-  const safeIds = charIds.filter((id) => /^[a-z0-9_-]+$/i.test(id))
+  const safeIds = charIds.filter((id) => /^[a-z0-9_-]+$/.test(id))
   const charIdSet = safeIds.map((id) => `'${id}'`).join(',')
   const attributes = await d1Query<AttributeRow>(
     db,

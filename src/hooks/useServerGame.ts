@@ -195,7 +195,7 @@ export function useServerGame(
   }, [dispatch, persistSessionId]);
 
   const startServerGame = useCallback(
-    async (categories: CharacterCategory[], difficulty: Difficulty) => {
+    async (categories: CharacterCategory[], difficulty: Difficulty, characterId?: string) => {
       dispatch({ type: "SET_THINKING", isThinking: true });
       playThinking();
       try {
@@ -205,6 +205,7 @@ export function useServerGame(
           body: JSON.stringify({
             categories: categories.length ? categories : undefined,
             difficulty,
+            characterId: characterId ?? undefined,
           }),
         });
         if (!res.ok) throw new Error("Failed to start");

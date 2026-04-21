@@ -57,6 +57,7 @@ import { toast, Toaster } from "sonner";
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 import { useServerGame } from "@/hooks/useServerGame";
 import { useGlobalStats } from "@/hooks/useGlobalStats";
+import { useDailyChallenge } from "@/hooks/useDailyChallenge";
 
 const TeachingMode = lazy(() =>
   import("@/components/TeachingMode").then((m) => ({
@@ -316,6 +317,12 @@ function App() {
     refresh: refreshStats,
   } = useGlobalStats();
 
+  // ========== DAILY CHALLENGE ==========
+  const {
+    status: dailyStatus,
+    recordCompletion: recordDailyCompletion,
+  } = useDailyChallenge();
+
   // ========== GAME STATE (reducer) ==========
   const {
     state: game,
@@ -365,6 +372,14 @@ function App() {
   const maxQuestions = DIFFICULTIES[difficulty].maxQuestions;
   const [onboardingDone] = useKV("onboarding-complete", false);
   const [showOnboarding, setShowOnboarding] = useState(false);
+
+  // ========== DAILY CHALLENGE (needs difficulty + startServerGame in scope) ==========
+  const [isDailyGame, setIsDailyGame] = useState(false)
+  const startDailyChallenge = useCallback(async () => {
+    if (!dailyStatus) return
+    setIsDailyGame(true)
+    await startServerGame([], difficulty, dailyStatus.characterId)
+  }, [dailyStatus, startServerGame, difficulty])
 
   // Show onboarding when first game starts
   useEffect(() => {
@@ -444,6 +459,10 @@ function App() {
     hapticSuccess();
     toast.success("🎉 I got it right!");
     postServerResult(true);
+    if (isDailyGame) {
+      void recordDailyCompletion(true, gameSteps.length)
+      setIsDailyGame(false)
+    }
     refreshStats();
   };
 
@@ -456,6 +475,10 @@ function App() {
     hapticMedium();
     toast.error("I'll learn from this and do better next time!");
     postServerResult(false);
+    if (isDailyGame) {
+      void recordDailyCompletion(false, gameSteps.length)
+      setIsDailyGame(false)
+    }
     refreshStats();
   };
 
@@ -641,6 +664,9 @@ function App() {
                   showDevTools={showDevTools}
                   navigate={navigate}
                   characters={characters}
+                  globalStats={globalStats}
+                  dailyStatus={dailyStatus}
+                  startDailyChallenge={startDailyChallenge}
                 />
               )}
 

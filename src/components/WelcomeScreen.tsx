@@ -5,12 +5,15 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import type { GamePhase } from "@/hooks/useGameState";
+import type { GlobalStats } from "@/hooks/useGlobalStats";
+import type { DailyChallengeStatus } from "@/hooks/useDailyChallenge";
 import { DEFAULT_CHARACTERS } from "@/lib/database";
 import type {
   Character,
 } from "@/lib/types";
 import {
   BrainIcon,
+  CalendarBlankIcon,
   ChartBarIcon,
   ClipboardTextIcon,
   FlaskIcon,
@@ -36,6 +39,9 @@ interface WelcomeScreenProps {
   showDevTools: boolean;
   navigate: (phase: GamePhase, character?: Character) => void;
   characters: Character[] | null;
+  globalStats: GlobalStats | null;
+  dailyStatus: DailyChallengeStatus | null;
+  startDailyChallenge: () => void;
 }
 
 export function WelcomeScreen({
@@ -51,6 +57,9 @@ export function WelcomeScreen({
   showDevTools,
   navigate,
   characters,
+  globalStats,
+  dailyStatus,
+  startDailyChallenge,
 }: Readonly<WelcomeScreenProps>) {
   return (
     <motion.div
@@ -76,6 +85,36 @@ export function WelcomeScreen({
             thinking of.
           </p>
         </div>
+
+        {/* Daily Challenge */}
+        {dailyStatus && !hasSavedSession && (
+          <div className={`rounded-xl p-4 border flex items-center justify-between gap-4 ${dailyStatus.completed ? 'bg-secondary/30 border-border/50' : 'bg-accent/10 border-accent/40'}`}>
+            <div className="min-w-0">
+              <p className="font-semibold text-foreground flex items-center gap-2">
+                <CalendarBlankIcon size={18} weight="fill" className="text-accent shrink-0" />
+                Daily Challenge
+              </p>
+              {dailyStatus.completed ? (
+                <p className="text-sm text-muted-foreground">
+                  {dailyStatus.won ? '✅' : '❌'} {dailyStatus.characterName} &middot; {dailyStatus.questionsAsked ?? '?'} questions
+                </p>
+              ) : (
+                <p className="text-sm text-muted-foreground truncate">
+                  Everyone's thinking of the same character today
+                </p>
+              )}
+            </div>
+            {!dailyStatus.completed && (
+              <Button
+                onClick={startDailyChallenge}
+                className="shrink-0 bg-accent hover:bg-accent/90 text-accent-foreground"
+                size="sm"
+              >
+                Play
+              </Button>
+            )}
+          </div>
+        )}
 
         {/* Resume saved session */}
         {hasSavedSession && (
@@ -190,6 +229,9 @@ export function WelcomeScreen({
           </Button>
           <p className="text-xs text-muted-foreground">
             {serverTotal || "500+"} characters · {maxQuestions} questions
+            {globalStats?.gameStats && globalStats.gameStats.totalGames >= 10 && (
+              <> · AI wins <strong>{Math.round(globalStats.gameStats.winRate)}%</strong> of {globalStats.gameStats.totalGames.toLocaleString()} games</>
+            )}
           </p>
         </div>
 

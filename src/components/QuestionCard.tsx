@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { CheckCircle, XCircle, Question as QuestionIcon } from '@phosphor-icons/react'
 import { Card } from '@/components/ui/card'
@@ -43,6 +43,26 @@ export function QuestionCard({
       inputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
     }, 300)
   }, [])
+
+  // Keyboard shortcuts: Y=yes, N=no, M=maybe, U=don't know
+  useEffect(() => {
+    const KEY_MAP: Record<string, AnswerValue> = {
+      y: 'yes',
+      n: 'no',
+      m: 'maybe',
+      u: 'unknown',
+    }
+    const handleKey = (e: KeyboardEvent) => {
+      if (isProcessing) return
+      // Don't fire when user is typing in an input/textarea
+      const tag = (e.target as HTMLElement).tagName.toLowerCase()
+      if (tag === 'input' || tag === 'textarea') return
+      const answer = KEY_MAP[e.key.toLowerCase()]
+      if (answer) onAnswer(answer)
+    }
+    window.addEventListener('keydown', handleKey)
+    return () => window.removeEventListener('keydown', handleKey)
+  }, [isProcessing, onAnswer])
 
   const handleFreeText = async () => {
     if (!freeText.trim()) return
@@ -159,6 +179,11 @@ export function QuestionCard({
                 </Button>
               ))}
             </div>
+
+            {/* Keyboard shortcut hint — hidden on touch devices */}
+            <p className="hidden md:block text-center text-xs text-muted-foreground/50 select-none">
+              <kbd className="font-mono">Y</kbd> Yes &middot; <kbd className="font-mono">N</kbd> No &middot; <kbd className="font-mono">M</kbd> Maybe &middot; <kbd className="font-mono">U</kbd> Don't know
+            </p>
 
             {/* Free-text answer input */}
             <div className="flex gap-2">
