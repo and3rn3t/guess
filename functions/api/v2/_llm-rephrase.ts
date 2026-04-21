@@ -95,3 +95,38 @@ Rephrase this question.`
     return null
   }
 }
+
+// ── KV-cached rephrase for first questions ───────────────────────────────────
+// The first question (answers.length === 0) has no game context, so the rephrased
+// text is safe to reuse across sessions. Storing it avoids LLM calls on cache hits.
+
+const REPHRASE_ATTR_PREFIX = 'rephrase:attr:'
+const REPHRASE_ATTR_TTL = 86400 // 24 hours
+
+/** Like rephraseQuestion but caches the result in KV when there are no answers yet
+ *  (context-free first question). On a cache hit the LLM call is skipped entirely. */
+export async function rephraseQuestionWithCache(
+  env: Env,
+  kv: KVNamespace,
+  question: ServerQuestion,
+  answers: Answer[],
+  reasoning: ReasoningExplanation,
+  questionNumber: number,
+  maxQuestions: number,
+): Promise<string | null> {
+  const isCacheable = answers.length === 0
+
+  if (isCacheable) {
+    const cached = await kv.get(`${REPHRASE_ATTR_PREFIX}${question.attribute}`)
+    if (cached) return cached
+  }
+
+  const rephrased = await rephraseQuestion(env, question, answers, reasoning, questionNumber, maxQuestions)
+
+  if (rephrased && isCacheable) {
+    // Fire-and-forget — not critical if it fails
+    kv.put(`${REPHRASE_ATTR_PREFIX}${question.attribute}`, rephrased, { expirationTtl: REPHRASE_ATTR_TTL }).catch(() => {})
+  }
+
+  return rephrased
+}

@@ -93,21 +93,20 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
   const reasoning = generateReasoning(nextQuestion, filtered, session.answers)
 
-  // Rephrase question via LLM for conversational feel (graceful fallback)
-  const rephrased = await rephraseQuestion(
-    context.env,
-    nextQuestion,
-    session.answers,
-    reasoning,
-    session.answers.length + 1,
-    session.maxQuestions,
-  )
-  if (rephrased) {
-    nextQuestion.displayText = rephrased
-  }
-
+  // Parallelize: rephrase next question + save session state
   session.currentQuestion = nextQuestion
-  await saveSessionState(kv, session)
+  const [rephrased] = await Promise.all([
+    rephraseQuestion(
+      context.env,
+      nextQuestion,
+      session.answers,
+      reasoning,
+      session.answers.length + 1,
+      session.maxQuestions,
+    ),
+    saveSessionState(kv, session),
+  ])
+  if (rephrased) nextQuestion.displayText = rephrased
 
   // Sync to D1 backup (non-blocking)
   const db = context.env.GUESS_DB

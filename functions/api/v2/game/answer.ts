@@ -13,6 +13,7 @@ import {
   getBestGuessResult,
   selectBestQuestion,
   generateReasoning,
+  calculateProbabilities,
   loadSession,
   saveSessionState,
   VALID_ANSWERS,
@@ -71,6 +72,10 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   }
   const scoring = { coverageMap }
 
+  // Pre-compute probabilities once — reused by evaluateGuessReadiness and selectBestQuestion
+  // to avoid redundant O(C×A) passes over the same data.
+  const probs = calculateProbabilities(filtered, session.answers, scoring)
+
   // Check for contradictions
   const { hasContradiction } = detectContradictions(filtered, session.answers)
   if (hasContradiction) {
@@ -90,6 +95,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   }
 
   const questionCount = session.answers.length
+  // Pass pre-computed probs to avoid recalculating inside evaluateGuessReadiness
   const readiness = evaluateGuessReadiness(
     filtered,
     session.answers,
@@ -97,6 +103,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     session.maxQuestions,
     session.guessCount,
     scoring,
+    probs,
   )
 
   const cooldownBeforeAnswer = session.postRejectCooldown
@@ -155,22 +162,22 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     }
   }
 
-  // Select next question (pass progress for dynamic top-K threshold)
+  // Select next question (pass progress + pre-computed probs for efficiency)
   const progress = questionCount / session.maxQuestions
   const recentCategories = session.answers.slice(-3)
     .map((a) => session.questions.find((q) => q.attribute === a.questionId)?.category)
     .filter((c): c is string => c != null)
-  const nextQuestion = selectBestQuestion(filtered, session.answers, session.questions, { progress, recentCategories, scoring })
+  const nextQuestion = selectBestQuestion(filtered, session.answers, session.questions, { progress, recentCategories, scoring, probs })
 
   if (!nextQuestion) {
     // No more questions — force a guess
-    const { character: guess, probs } = getBestGuessResult(filtered, session.answers, session.rejectedGuesses, scoring)
+    const { character: guess, probs: guessProbs } = getBestGuessResult(filtered, session.answers, session.rejectedGuesses, scoring)
     session.currentQuestion = null
     session.guessCount += 1
     await saveSessionState(kv, session)
 
     if (guess) {
-      const confidence = Math.round((probs.get(guess.id) || 0) * 100)
+      const confidence = Math.round((guessProbs.get(guess.id) || 0) * 100)
 
       return jsonResponse({
         type: 'guess',
@@ -192,20 +199,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
   const reasoning = generateReasoning(nextQuestion, filtered, session.answers)
 
-  // Rephrase question via LLM for conversational feel (graceful fallback)
-  const rephrased = await rephraseQuestion(
-    context.env,
-    nextQuestion,
-    session.answers,
-    reasoning,
-    questionCount + 1,
-    session.maxQuestions,
-  )
-  if (rephrased) {
-    nextQuestion.displayText = rephrased
-  }
-
-  // Count eliminated
+  // Count eliminated (sync, computed before the async parallel section)
   const previousFiltered = filterPossibleCharacters(
     session.characters,
     session.answers.slice(0, -1),
@@ -213,9 +207,20 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   )
   const eliminated = previousFiltered.length - filtered.length
 
-  // Save updated session
+  // Parallelize: rephrase next question + save session state
   session.currentQuestion = nextQuestion
-  await saveSessionState(kv, session)
+  const [rephrased] = await Promise.all([
+    rephraseQuestion(
+      context.env,
+      nextQuestion,
+      session.answers,
+      reasoning,
+      questionCount + 1,
+      session.maxQuestions,
+    ),
+    saveSessionState(kv, session),
+  ])
+  if (rephrased) nextQuestion.displayText = rephrased
 
   // Sync answers to D1 backup (non-blocking)
   const db = context.env.GUESS_DB

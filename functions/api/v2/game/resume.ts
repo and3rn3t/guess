@@ -17,11 +17,12 @@ import {
   loadSession,
   storeSession,
   saveSessionState,
+  loadCachedQuestions,
+  storeCachedQuestions,
 } from '../_game-engine'
-import { rephraseQuestion } from '../_llm-rephrase'
+import { rephraseQuestionWithCache } from '../_llm-rephrase'
 import type {
   CharactersRow,
-  CharacterAttributesRow,
   QuestionsRow,
   GameSessionsRow,
 } from '../../_db-types'
@@ -34,11 +35,25 @@ interface ResumeRequest {
 
 type D1SessionRow = Omit<GameSessionsRow, 'user_id' | 'completed_at'>
 
-type CharacterRow = Pick<CharactersRow, 'id' | 'name' | 'category' | 'image_url'>
-
-type AttributeRow = Pick<CharacterAttributesRow, 'character_id' | 'attribute_key' | 'value'>
+type CharacterRow = Pick<CharactersRow, 'id' | 'name' | 'category' | 'image_url'> & { attributes_json: string }
 
 type QuestionRow = Pick<QuestionsRow, 'id' | 'text' | 'attribute_key'>
+
+/** Parse the denormalized attributes_json column into a typed attribute map. */
+function parseAttrsJson(json: string): Record<string, boolean | null> {
+  try {
+    const raw = JSON.parse(json) as Record<string, number>
+    const result: Record<string, boolean | null> = {}
+    for (const [key, val] of Object.entries(raw)) {
+      if (val === 1) { result[key] = true }
+      else if (val === 0) { result[key] = false }
+      else { result[key] = null }
+    }
+    return result
+  } catch {
+    return {}
+  }
+}
 
 // ── D1 fallback: reconstruct session from backup ─────────────
 
@@ -60,48 +75,37 @@ async function reconstructFromD1(
 
   const placeholders = safeIds.map(() => '?').join(',')
 
-  // Re-fetch character data + attributes from D1
-  const [characters, attributes, questionRows] = await Promise.all([
+  // Check questions cache first (avoids a D1 round-trip for the questions query)
+  const cachedQuestions = await loadCachedQuestions(kv)
+
+  // Re-fetch characters (with denormalized attributes_json) and optionally questions from D1
+  const [characters, questionRows] = await Promise.all([
     d1Query<CharacterRow>(
       db,
-      `SELECT id, name, category, image_url FROM characters WHERE id IN (${placeholders})`,
+      `SELECT id, name, category, image_url, attributes_json FROM characters WHERE id IN (${placeholders})`,
       safeIds
     ),
-    d1Query<AttributeRow>(
-      db,
-      `SELECT character_id, attribute_key, value FROM character_attributes WHERE character_id IN (${placeholders}) AND value IS NOT NULL`,
-      safeIds
-    ),
-    d1Query<QuestionRow>(
-      db,
-      'SELECT id, text, attribute_key FROM questions ORDER BY priority DESC'
-    ),
+    cachedQuestions
+      ? Promise.resolve<QuestionRow[]>([])
+      : d1Query<QuestionRow>(db, 'SELECT id, text, attribute_key FROM questions ORDER BY priority DESC'),
   ])
-
-  // Build attribute maps
-  const attrMap = new Map<string, Record<string, boolean | null>>()
-  for (const a of attributes) {
-    let map = attrMap.get(a.character_id)
-    if (!map) {
-      map = {}
-      attrMap.set(a.character_id, map)
-    }
-    map[a.attribute_key] = a.value === 1 ? true : a.value === 0 ? false : null
-  }
 
   const serverChars: ServerCharacter[] = characters.map((c) => ({
     id: c.id,
     name: c.name,
     category: c.category,
     imageUrl: c.image_url,
-    attributes: attrMap.get(c.id) || {},
+    attributes: parseAttrsJson(c.attributes_json),
   }))
 
-  const serverQuestions: ServerQuestion[] = questionRows.map((q) => ({
+  const serverQuestions: ServerQuestion[] = cachedQuestions ?? questionRows.map((q) => ({
     id: q.id,
     text: q.text,
     attribute: q.attribute_key,
   }))
+  if (!cachedQuestions && serverQuestions.length > 0) {
+    storeCachedQuestions(kv, serverQuestions).catch(() => {})
+  }
 
   const answers: Answer[] = JSON.parse(row.answers)
 
@@ -162,9 +166,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     return jsonResponse({ expired: true }, 200)
   }
 
-  // Refresh TTL (only writes the lean session, not the pool)
-  await saveSessionState(kv, session)
-
   const filtered = filterPossibleCharacters(session.characters, session.answers, session.rejectedGuesses)
 
   // Rebuild current state for the client
@@ -172,19 +173,26 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     ? generateReasoning(session.currentQuestion, filtered, session.answers)
     : null
 
-  // Rephrase resumed question for conversational feel
+  // Parallelize: refresh session TTL + rephrase question (with cache for first questions)
+  let rephrased: string | null = null
   if (session.currentQuestion && reasoning) {
-    const rephrased = await rephraseQuestion(
-      context.env,
-      session.currentQuestion,
-      session.answers,
-      reasoning,
-      session.answers.length + 1,
-      session.maxQuestions,
-    )
-    if (rephrased) {
-      session.currentQuestion.displayText = rephrased
-    }
+    ;[rephrased] = await Promise.all([
+      rephraseQuestionWithCache(
+        context.env,
+        kv,
+        session.currentQuestion,
+        session.answers,
+        reasoning,
+        session.answers.length + 1,
+        session.maxQuestions,
+      ),
+      saveSessionState(kv, session),
+    ])
+  } else {
+    await saveSessionState(kv, session)
+  }
+  if (rephrased && session.currentQuestion) {
+    session.currentQuestion.displayText = rephrased
   }
 
   return jsonResponse({

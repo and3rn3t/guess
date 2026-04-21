@@ -17,13 +17,15 @@ import {
   selectBestQuestion,
   generateReasoning,
   storeSession,
+  loadCachedQuestions,
+  storeCachedQuestions,
   POOL_SIZE,
   MIN_ATTRIBUTES,
   DIFFICULTY_MAP,
 } from '../_game-engine'
-import { rephraseQuestion } from '../_llm-rephrase'
+import { rephraseQuestionWithCache } from '../_llm-rephrase'
 
-import type { CharactersRow, CharacterAttributesRow, QuestionsRow } from '../../_db-types'
+import type { CharactersRow, QuestionsRow } from '../../_db-types'
 
 // ── Types ────────────────────────────────────────────────────
 
@@ -34,11 +36,25 @@ interface StartRequest {
   characterId?: string
 }
 
-type CharacterRow = Pick<CharactersRow, 'id' | 'name' | 'category' | 'image_url'>
-
-type AttributeRow = Pick<CharacterAttributesRow, 'character_id' | 'attribute_key' | 'value'>
+type CharacterRow = Pick<CharactersRow, 'id' | 'name' | 'category' | 'image_url'> & { attributes_json: string }
 
 type QuestionRow = Pick<QuestionsRow, 'id' | 'text' | 'attribute_key'>
+
+/** Parse the denormalized attributes_json column into a typed attribute map. */
+function parseAttrsJson(json: string): Record<string, boolean | null> {
+  try {
+    const raw = JSON.parse(json) as Record<string, number>
+    const result: Record<string, boolean | null> = {}
+    for (const [key, val] of Object.entries(raw)) {
+      if (val === 1) { result[key] = true }
+      else if (val === 0) { result[key] = false }
+      else { result[key] = null }
+    }
+    return result
+  } catch {
+    return {}
+  }
+}
 
 // ── POST /api/v2/game/start ──────────────────────────────────
 // Creates a game session, selects character pool from D1, returns first question
@@ -76,19 +92,20 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
   const where = `WHERE ${conditions.join(' AND ')}`
 
-  // Start questions query immediately — it's independent of the character pool selection
-  const questionRowsPromise = d1Query<QuestionRow>(
-    db,
-    'SELECT id, text, attribute_key FROM questions ORDER BY priority DESC'
-  )
+  // Check questions KV cache first — questions are immutable at runtime, so a 24h
+  // cache eliminates the D1 round-trip on every game start after the first.
+  const cachedQuestions = await loadCachedQuestions(kv)
+  const questionRowsPromise = cachedQuestions
+    ? null
+    : d1Query<QuestionRow>(db, 'SELECT id, text, attribute_key FROM questions ORDER BY priority DESC')
 
-  // Query 1: Get character pool — top candidates by popularity, then randomize
+  // Query 1: Get character pool with denormalized attributes (no separate attribute query)
   //   Fetch 2× POOL_SIZE to get popular chars, then randomly pick POOL_SIZE
   //   This ensures variety across games while keeping the pool reasonably well-known
   const candidateLimit = POOL_SIZE * 2
   const candidates = await d1Query<CharacterRow>(
     db,
-    `SELECT c.id, c.name, c.category, c.image_url
+    `SELECT c.id, c.name, c.category, c.image_url, c.attributes_json
      FROM characters c
      ${where}
      ORDER BY c.popularity DESC
@@ -107,7 +124,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   if (pinnedCharId && !characters.some((c) => c.id === pinnedCharId)) {
     const pinned = await d1First<CharacterRow>(
       db,
-      'SELECT id, name, category, image_url FROM characters WHERE id = ?',
+      'SELECT id, name, category, image_url, attributes_json FROM characters WHERE id = ?',
       [pinnedCharId]
     )
     if (pinned) {
@@ -120,53 +137,32 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     return errorResponse('Not enough characters with attribute data for selected categories', 400)
   }
 
-  // Query 2 + 3 in parallel: attributes for the pool and all questions
+  // Build character objects from denormalized attributes_json (no separate D1 attribute query)
   const charIds = characters.map((c) => c.id)
-  const safeIds = charIds.filter((id) => /^[a-z0-9_-]+$/.test(id))
-  const placeholders = safeIds.map(() => '?').join(',')
-
-  const [attributes, questionRows] = await Promise.all([
-    d1Query<AttributeRow>(
-      db,
-      `SELECT ca.character_id, ca.attribute_key, ca.value
-       FROM character_attributes ca
-       WHERE ca.character_id IN (${placeholders})
-       AND ca.value IS NOT NULL`,
-      safeIds
-    ),
-    questionRowsPromise,
-  ])
-
-  // Assemble character objects with attribute maps
-  const attrMap = new Map<string, Record<string, boolean | null>>()
-  for (const a of attributes) {
-    let map = attrMap.get(a.character_id)
-    if (!map) {
-      map = {}
-      attrMap.set(a.character_id, map)
-    }
-    if (a.value === 1) {
-      map[a.attribute_key] = true
-    } else if (a.value === 0) {
-      map[a.attribute_key] = false
-    } else {
-      map[a.attribute_key] = null
-    }
-  }
-
   const serverChars: ServerCharacter[] = characters.map((c) => ({
     id: c.id,
     name: c.name,
     category: c.category,
     imageUrl: c.image_url,
-    attributes: attrMap.get(c.id) || {},
+    attributes: parseAttrsJson(c.attributes_json),
   }))
 
-  const serverQuestions: ServerQuestion[] = questionRows.map((q) => ({
-    id: q.id,
-    text: q.text,
-    attribute: q.attribute_key,
-  }))
+  // Resolve questions from KV cache or D1 result
+  let serverQuestions: ServerQuestion[]
+  if (cachedQuestions) {
+    serverQuestions = cachedQuestions
+  } else {
+    const questionRows = await questionRowsPromise
+    serverQuestions = (questionRows ?? []).map((q) => ({
+      id: q.id,
+      text: q.text,
+      attribute: q.attribute_key,
+    }))
+    // Cache for future games (non-blocking)
+    if (serverQuestions.length > 0) {
+      context.waitUntil(storeCachedQuestions(kv, serverQuestions))
+    }
+  }
 
   // Build coverage map: ratio of pool characters with each attribute filled.
   // Passed to selectBestQuestion so null-scoring is coverage-weighted from question 1.
@@ -185,20 +181,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
   const reasoning = generateReasoning(firstQuestion, serverChars, [])
 
-  // Rephrase question via LLM for conversational feel (non-blocking fallback)
-  const rephrased = await rephraseQuestion(
-    context.env,
-    firstQuestion,
-    [],
-    reasoning,
-    1,
-    maxQuestions,
-  )
-  if (rephrased) {
-    firstQuestion.displayText = rephrased
-  }
-
-  // Create session and store in KV
+  // Create session
   const sessionId = crypto.randomUUID()
   const session: GameSession = {
     id: sessionId,
@@ -215,28 +198,26 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     postRejectCooldown: 0,
   }
 
-  await storeSession(kv, session)
+  // Parallelize all three independent async ops before responding:
+  //   1. Rephrase first question via LLM (with KV cache for frequently-seen first questions)
+  //   2. Store session in KV (required before any answer can be processed)
+  //   3. Get/create user ID for D1 backup
+  const [rephrased, , { userId, setCookieHeader }] = await Promise.all([
+    rephraseQuestionWithCache(context.env, kv, firstQuestion, [], reasoning, 1, maxQuestions),
+    storeSession(kv, session),
+    getOrCreateUserId(context.request, context.env),
+  ])
+  if (rephrased) firstQuestion.displayText = rephrased
 
-  // D1 backup — survives KV expiration for session recovery
-  const { userId, setCookieHeader } = await getOrCreateUserId(context.request, context.env)
-  try {
-    await d1Run(
+  // D1 backup — fire-and-forget (game still works via KV if this fails)
+  context.waitUntil(
+    d1Run(
       db,
       `INSERT INTO game_sessions (id, user_id, character_ids, answers, current_question_attr, difficulty, max_questions, created_at)
        VALUES (?, ?, ?, '[]', ?, ?, ?, ?)`,
-      [
-        sessionId,
-        userId,
-        JSON.stringify(charIds),
-        firstQuestion.attribute,
-        difficulty,
-        maxQuestions,
-        session.createdAt,
-      ]
-    )
-  } catch {
-    // Non-critical — game still works via KV
-  }
+      [sessionId, userId, JSON.stringify(charIds), firstQuestion.attribute, difficulty, maxQuestions, session.createdAt]
+    ).catch(() => {})
+  )
 
   return withSetCookie(jsonResponse({
     sessionId,

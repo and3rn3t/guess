@@ -46,6 +46,8 @@ export interface QuestionSelectionOptions {
   progress?: number
   recentCategories?: string[]
   scoring?: ScoringOptions
+  /** Pre-computed probabilities — avoids a redundant calculateProbabilities call in the caller. */
+  probs?: Map<string, number>
 }
 
 export interface GuessAnalytics {
@@ -276,7 +278,8 @@ export function selectBestQuestion(
 
   if (availableQuestions.length === 0) return null
 
-  const probs = calculateProbabilities(characters, answers, options?.scoring)
+  // Use pre-computed probs if provided (avoids redundant calculateProbabilities call in callers)
+  const probs = options?.probs ?? calculateProbabilities(characters, answers, options?.scoring)
 
   const sortedProbs = Array.from(probs.entries())
     .filter(([, p]) => p > 0)
@@ -519,7 +522,8 @@ export function evaluateGuessReadiness(
   questionCount: number,
   maxQuestions: number,
   priorWrongGuesses: number = 0,
-  scoring?: ScoringOptions
+  scoring?: ScoringOptions,
+  preComputedProbs?: Map<string, number>
 ): GuessReadiness {
   // 0 characters = full contradiction; always trigger a forced guess to surface it
   if (characters.length === 0) {
@@ -581,7 +585,8 @@ export function evaluateGuessReadiness(
     }
   }
 
-  const probabilities = calculateProbabilities(characters, answers, scoring)
+  // Use pre-computed probs if available (avoids redundant calculateProbabilities call)
+  const probabilities = preComputedProbs ?? calculateProbabilities(characters, answers, scoring)
   const sorted = Array.from(probabilities.values()).sort((a, b) => b - a)
   const topProbability = sorted[0] ?? 0
   const secondProbability = sorted[1] ?? 0
@@ -854,4 +859,20 @@ export async function deleteSession(kv: KVNamespace, sessionId: string): Promise
     kv.delete(`game:${sessionId}`),
     kv.delete(`pool:${sessionId}`),
   ])
+}
+
+// ── Questions KV cache ───────────────────────────────────────────────────────
+// Questions are immutable at runtime — cache for 24h to skip the D1 round-trip.
+
+const QUESTIONS_CACHE_KEY = 'meta:questions'
+const QUESTIONS_CACHE_TTL = 86400 // 24 hours
+
+/** Load all questions from KV cache. Returns null on a cache miss. */
+export async function loadCachedQuestions(kv: KVNamespace): Promise<ServerQuestion[] | null> {
+  return kv.get<ServerQuestion[]>(QUESTIONS_CACHE_KEY, 'json')
+}
+
+/** Store questions in KV for QUESTIONS_CACHE_TTL seconds. */
+export async function storeCachedQuestions(kv: KVNamespace, questions: ServerQuestion[]): Promise<void> {
+  await kv.put(QUESTIONS_CACHE_KEY, JSON.stringify(questions), { expirationTtl: QUESTIONS_CACHE_TTL })
 }

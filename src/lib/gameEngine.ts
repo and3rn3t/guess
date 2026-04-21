@@ -20,6 +20,8 @@ export interface QuestionSelectionOptions {
   recentCategories?: string[]
   /** Scoring options passed through to calculateProbabilities. */
   scoring?: ScoringOptions
+  /** Pre-computed probabilities — avoids a redundant calculateProbabilities call in the caller. */
+  probs?: Map<string, number>
 }
 
 export type GuessTrigger =
@@ -180,7 +182,8 @@ export function selectBestQuestion(
 
   if (availableQuestions.length === 0) return null
 
-  const probs = calculateProbabilities(characters, answers, options?.scoring)
+  // Use pre-computed probs if provided (avoids redundant calculateProbabilities call in callers)
+  const probs = options?.probs ?? calculateProbabilities(characters, answers, options?.scoring)
 
   // Identify top-N candidates for differentiation boosting
   const sortedProbs = Array.from(probs.entries())
