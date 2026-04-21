@@ -193,6 +193,16 @@ export function selectBestQuestion(
   const recentAttrGroups = new Set(answers.slice(-3).map((a) => getAttributeGroup(a.questionId)))
   const scored: Array<{ question: Question; score: number; topTwoSplit: boolean }> = []
 
+  // Pre-compute null ratios for coverage penalty (avoids O(Q×C) re-scan inside the loop)
+  const nullRatioMap = new Map<string, number>()
+  for (const q of availableQuestions) {
+    let nullCount = 0
+    for (const c of characters) {
+      if (c.attributes[q.attribute] == null) nullCount++
+    }
+    nullRatioMap.set(q.attribute, nullCount / characters.length)
+  }
+
   for (const question of availableQuestions) {
     // Partition characters into yes/no/unknown buckets with their probabilities
     let pYes = 0
@@ -201,6 +211,8 @@ export function selectBestQuestion(
     const yesProbs: number[] = []
     const noProbs: number[] = []
     const unknownProbs: number[] = []
+    let maybeSum = 0
+    const maybeWeighted: number[] = []
 
     for (const c of characters) {
       const prob = probs.get(c.id) || 0
@@ -208,12 +220,18 @@ export function selectBestQuestion(
       if (attr === true) {
         pYes += prob
         yesProbs.push(prob)
+        maybeWeighted.push(prob * SCORE_MAYBE)
+        maybeSum += prob * SCORE_MAYBE
       } else if (attr === false) {
         pNo += prob
         noProbs.push(prob)
+        maybeWeighted.push(prob * SCORE_MAYBE_MISS)
+        maybeSum += prob * SCORE_MAYBE_MISS
       } else {
         pUnknown += prob
         unknownProbs.push(prob)
+        maybeWeighted.push(prob * SCORE_UNKNOWN)
+        maybeSum += prob * SCORE_UNKNOWN
       }
     }
 
@@ -243,17 +261,6 @@ export function selectBestQuestion(
       expectedEntropy += adjustedNo * entropy(noGroupProbs)
     }
 
-    // Maybe partition: all characters contribute with soft weights
-    let maybeSum = 0
-    const maybeWeighted: number[] = []
-    for (const c of characters) {
-      const prob = probs.get(c.id) || 0
-      const attr = c.attributes[question.attribute]
-      const w = attr === true ? SCORE_MAYBE : attr === false ? SCORE_MAYBE_MISS : SCORE_UNKNOWN
-      const wp = prob * w
-      maybeWeighted.push(wp)
-      maybeSum += wp
-    }
     if (maybeSum > 0) {
       const maybeGroupProbs = maybeWeighted.map((p) => p / maybeSum)
       expectedEntropy += MAYBE_ANSWER_PROB * entropy(maybeGroupProbs)
@@ -263,14 +270,14 @@ export function selectBestQuestion(
 
     // Smooth sigmoid coverage penalty (replaces discontinuous step at 60%)
     // Gradual penalty starting ~35%, full suppression above ~70%
-    const nullCount = characters.filter((c) => c.attributes[question.attribute] == null).length
-    const nullRatio = nullCount / characters.length
+    const nullRatio = nullRatioMap.get(question.attribute) ?? 0
     const coveragePenalty = 1 / (1 + Math.exp(10 * (nullRatio - 0.5)))
     infoGain *= coveragePenalty
 
     // Differentiation boost: when top-N candidates concentrate probability mass,
-    // boost questions that distinguish between them
-    if (topNMass > 0.6 && topNChars.length >= 2) {
+    // boost questions that distinguish between them (only before endgame; the endgame
+    // path applies a more precise separation-based boost that supersedes this)
+    if (!endgameFocus && topNMass > 0.6 && topNChars.length >= 2) {
       const topValues = topNChars.map((c) => c.attributes[question.attribute])
       const hasTrue = topValues.some((v) => v === true)
       const hasFalse = topValues.some((v) => v === false)
@@ -335,7 +342,9 @@ export function selectBestQuestion(
   }
 
   // Dynamic top-K threshold: more variety early, more optimal late
-  const thresholdFactor = 0.3 + 0.6 * progress // 0.3 early → 0.9 late
+  // When endgame focus is active, cap the pool to avoid wasting turns on suboptimal questions
+  const baseFactor = 0.3 + 0.6 * progress // 0.3 early → 0.9 late
+  const thresholdFactor = endgameFocus ? Math.max(baseFactor, 0.8) : baseFactor
   const threshold = scored[0].score * thresholdFactor
   const topK = scored.filter((s) => s.score >= threshold)
   const totalWeight = topK.reduce((sum, s) => sum + s.score, 0)
