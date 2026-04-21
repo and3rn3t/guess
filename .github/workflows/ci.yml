@@ -101,8 +101,11 @@ jobs:
         with:
           path: ~/.cache/ms-playwright
           key: playwright-chromium-${{ hashFiles('**/pnpm-lock.yaml') }}
-      - run: npx playwright install --with-deps chromium
+      - name: Install Playwright browsers
+        run: npx playwright install chromium
         if: steps.playwright-cache.outputs.cache-hit != 'true'
+      - name: Install Playwright system dependencies
+        run: npx playwright install-deps chromium
       - run: npx playwright test
       - uses: actions/upload-artifact@v4
         if: ${{ !cancelled() }}
