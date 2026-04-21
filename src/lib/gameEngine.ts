@@ -148,6 +148,19 @@ function calculateTopCandidateSeparation(
   }
 }
 
+/** Map an attribute key to a semantic group for diversity tracking. */
+function getAttributeGroup(attribute: string): string {
+  if (attribute.startsWith('can') || attribute === 'climbsWalls' || attribute === 'controlsWeather' || attribute === 'shootsLasers') return 'ability'
+  if (attribute.startsWith('has')) return 'possession'
+  if (attribute.startsWith('wears')) return 'appearance'
+  if (attribute.startsWith('isFrom') || attribute.startsWith('from') || attribute.startsWith('livesIn')) return 'origin'
+  if (/^is(Alien|Animal|Cyborg|Demon|Dwarf|Elf|Ghost|Giant|God|Human|Immortal|Mythical|Orc|Robot|Supernatural|Vampire|Wizard|Zombie|Bald|Blind|Deaf|Disabled|Mute|Invisible)$/.test(attribute)) return 'species'
+  if (/^is(Female|Male|GenderFluid|NonBinary|Transgender|Teenager)$/.test(attribute)) return 'identity'
+  if (/^is(Antagonist|Assassin|Detective|Hero|Knight|Leader|Mentor|Ninja|Pirate|Protagonist|Royalty|Samurai|Sidekick|Villain|Scientist|Engineer|Traitor)$/.test(attribute)) return 'role'
+  if (/^is(Adventurous|Brave|Charming|Clumsy|Cowardly|Creative|Cruel|Cunning|Curious|Devious|Energetic|Foolish|Funny|Greedy|Honest|Humorous|Impatient|Intelligent|Kind|Lazy|Loyal|Naive|Optimistic|Patient|Pessimistic|Rebellious|Sarcastic|Serious|Skeptical|Wise|Iconic)$/.test(attribute)) return 'personality'
+  return 'other'
+}
+
 /** Pick the question with the highest expected information gain from the remaining pool.
  *  Enhanced with: sigmoid coverage penalty, three-way entropy (yes/no/maybe),
  *  top-N differentiation, category diversity, and dynamic top-K variety. */
@@ -177,6 +190,7 @@ export function selectBestQuestion(
   const currentEntropy = entropy(currentProbs)
   const progress = options?.progress ?? 0
   const endgameFocus = progress >= 0.65 || topNMass >= 0.75
+  const recentAttrGroups = new Set(answers.slice(-3).map((a) => getAttributeGroup(a.questionId)))
   const scored: Array<{ question: Question; score: number; topTwoSplit: boolean }> = []
 
   for (const question of availableQuestions) {
@@ -298,6 +312,12 @@ export function selectBestQuestion(
       }
     }
 
+    // Attribute group diversity: penalise consecutive same-type questions (e.g. two ability questions in a row)
+    const attrGroup = getAttributeGroup(question.attribute)
+    if (attrGroup !== 'other' && recentAttrGroups.has(attrGroup)) {
+      infoGain *= 0.75
+    }
+
     scored.push({ question, score: infoGain, topTwoSplit })
   }
 
@@ -315,7 +335,7 @@ export function selectBestQuestion(
   }
 
   // Dynamic top-K threshold: more variety early, more optimal late
-  const thresholdFactor = 0.5 + 0.4 * progress // 0.5 early → 0.9 late
+  const thresholdFactor = 0.3 + 0.6 * progress // 0.3 early → 0.9 late
   const threshold = scored[0].score * thresholdFactor
   const topK = scored.filter((s) => s.score >= threshold)
   const totalWeight = topK.reduce((sum, s) => sum + s.score, 0)
@@ -507,8 +527,8 @@ export function evaluateGuessReadiness(
     requiredEntropy,
   }
 
-  // Ask a few questions before non-forced guesses, unless certainty is overwhelming.
-  if (questionCount < 3 && topProbability < 0.9) {
+  // Ask a minimum of questions before non-forced guesses; only overwhelming certainty overrides.
+  if (questionCount < 5 && topProbability < 0.95) {
     return {
       shouldGuess: false,
       trigger: 'insufficient_data',
@@ -517,7 +537,7 @@ export function evaluateGuessReadiness(
   }
 
   // Keep asking while budget remains and posterior is still broad.
-  if (questionsRemaining > 2 && topProbability < 0.78 && aliveCount > 2) {
+  if (questionsRemaining > 3 && topProbability < 0.82 && aliveCount > 2) {
     return {
       shouldGuess: false,
       trigger: 'insufficient_data',
@@ -525,7 +545,7 @@ export function evaluateGuessReadiness(
     }
   }
 
-  const highCertainty = topProbability >= 0.9 && gap >= 0.2 && competitiveCount <= 2
+  const highCertainty = topProbability >= 0.93 && gap >= 0.25 && competitiveCount <= 2
   if (highCertainty) {
     return {
       shouldGuess: true,

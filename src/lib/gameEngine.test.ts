@@ -558,3 +558,60 @@ describe('generateReasoning – topCandidates', () => {
     expect(result.why).toContain('split')
   })
 })
+
+// --- attribute group diversity ---
+
+describe('selectBestQuestion – attribute group diversity', () => {
+  it('penalises a question in the same attribute group as a recently asked one', () => {
+    // All 4 chars split 50/50 on both questions — equal information gain.
+    // canTeleport ('ability') is penalised because canFly ('ability') was recently answered.
+    // isLeader ('role') is not penalised.
+    const chars: Character[] = [
+      { id: 'a', name: 'A', category: 'movies', attributes: { canTeleport: true, isLeader: true } },
+      { id: 'b', name: 'B', category: 'movies', attributes: { canTeleport: true, isLeader: true } },
+      { id: 'c', name: 'C', category: 'movies', attributes: { canTeleport: false, isLeader: false } },
+      { id: 'd', name: 'D', category: 'movies', attributes: { canTeleport: false, isLeader: false } },
+    ]
+    const questions: Question[] = [
+      { id: 'q1', text: 'Can teleport?', attribute: 'canTeleport' },
+      { id: 'q2', text: 'Is a leader?', attribute: 'isLeader' },
+    ]
+    const answers: Answer[] = [{ questionId: 'canFly', value: 'yes' }]
+
+    const counts: Record<string, number> = { canTeleport: 0, isLeader: 0 }
+    for (let i = 0; i < 1000; i++) {
+      const q = selectBestQuestion(chars, answers, questions)
+      if (q) counts[q.attribute] = (counts[q.attribute] || 0) + 1
+    }
+    // isLeader should be selected more often than canTeleport
+    expect(counts['isLeader']).toBeGreaterThan(counts['canTeleport'])
+  })
+})
+
+// --- minimum question guard ---
+
+describe('evaluateGuessReadiness – minimum question guard', () => {
+  it('blocks a guess before 5 questions unless probability is overwhelming (≥95%)', () => {
+    // 3 chars: after isHuman=yes, topProb ≈ 71% — clear but below the 95% early override
+    const chars: Character[] = [
+      { id: 'x', name: 'X', category: 'movies', attributes: { isHuman: true } },
+      { id: 'y', name: 'Y', category: 'movies', attributes: { isHuman: false } },
+      { id: 'z', name: 'Z', category: 'movies', attributes: { isHuman: null } },
+    ]
+    const answers: Answer[] = [{ questionId: 'isHuman', value: 'yes' }]
+    const readiness = evaluateGuessReadiness(chars, answers, 4, 15)
+    expect(readiness.shouldGuess).toBe(false)
+    expect(readiness.trigger).toBe('insufficient_data')
+  })
+
+  it('allows an early guess when probability is overwhelmingly high (≥95%)', () => {
+    // 2-char pool: a=MATCH, b=MISMATCH → topProb ≈ 95.2%, bypasses the minimum-question guard
+    const chars: Character[] = [
+      { id: 'a', name: 'A', category: 'movies', attributes: { usesWeapons: false } },
+      { id: 'b', name: 'B', category: 'movies', attributes: { usesWeapons: true } },
+    ]
+    const answers: Answer[] = [{ questionId: 'usesWeapons', value: 'no' }]
+    const readiness = evaluateGuessReadiness(chars, answers, 3, 15)
+    expect(readiness.shouldGuess).toBe(true)
+  })
+})
