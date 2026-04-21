@@ -22,12 +22,14 @@ export async function rephraseQuestion(
       .map((a) => `Q: [${a.questionId}] → ${a.value}`)
       .join('\n')
 
+    // Only expose top suspects in the second half of the game to avoid biasing
+    // early questions toward whichever character floats to the top prematurely.
+    const progress = questionNumber / maxQuestions
     const candidateHint =
-      reasoning.topCandidates && reasoning.topCandidates.length > 0
+      progress >= 0.5 && reasoning.topCandidates && reasoning.topCandidates.length > 0
         ? `\nTop suspects: ${reasoning.topCandidates.map((c) => c.name).join(', ')}`
         : ''
 
-    const progress = questionNumber / maxQuestions
     let tone = 'curious and exploratory'
     if (progress > 0.7) tone = 'confident and closing in'
     else if (progress > 0.4) tone = 'strategic and focused'
@@ -64,7 +66,7 @@ Rephrase this question.`
           { role: 'user', content: userPrompt },
         ],
         max_tokens: 100,
-        temperature: 0.9,
+        temperature: 0.6,
       }),
       signal: controller.signal,
     })

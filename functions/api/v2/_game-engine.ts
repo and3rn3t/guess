@@ -4,7 +4,7 @@
 // ── Scoring constants (mirrored from src/lib/constants.ts) ──
 const SCORE_MATCH = 1
 const SCORE_MISMATCH = 0.05  // Non-zero: resilient to 1-2 bad attribute values or user errors
-const SCORE_UNKNOWN = 0.5
+const SCORE_UNKNOWN = 0.35  // lower than 0.5 to penalize characters with sparse attribute coverage
 const SCORE_MAYBE = 0.7
 const SCORE_MAYBE_MISS = 0.3
 const MAYBE_ANSWER_PROB = 0.15
@@ -468,9 +468,10 @@ export function shouldMakeGuess(
   answers: Answer[],
   questionCount: number,
   maxQuestions: number,
-  priorWrongGuesses: number = 0
+  priorWrongGuesses: number = 0,
+  scoring?: ScoringOptions
 ): boolean {
-  return evaluateGuessReadiness(characters, answers, questionCount, maxQuestions, priorWrongGuesses).shouldGuess
+  return evaluateGuessReadiness(characters, answers, questionCount, maxQuestions, priorWrongGuesses, scoring).shouldGuess
 }
 
 /** Determine whether the posterior is concentrated enough for a guess. */
@@ -479,7 +480,8 @@ export function evaluateGuessReadiness(
   answers: Answer[],
   questionCount: number,
   maxQuestions: number,
-  priorWrongGuesses: number = 0
+  priorWrongGuesses: number = 0,
+  scoring?: ScoringOptions
 ): GuessReadiness {
   // 0 characters = full contradiction; always trigger a forced guess to surface it
   if (characters.length === 0) {
@@ -541,7 +543,7 @@ export function evaluateGuessReadiness(
     }
   }
 
-  const probabilities = calculateProbabilities(characters, answers)
+  const probabilities = calculateProbabilities(characters, answers, scoring)
   const sorted = Array.from(probabilities.values()).sort((a, b) => b - a)
   const topProbability = sorted[0] ?? 0
   const secondProbability = sorted[1] ?? 0
@@ -628,7 +630,8 @@ export function evaluateGuessReadiness(
 export function getBestGuess(
   characters: ServerCharacter[],
   answers: Answer[],
-  rejectedGuesses: string[] = []
+  rejectedGuesses: string[] = [],
+  scoring?: ScoringOptions
 ): ServerCharacter | null {
   if (characters.length === 0) return null
 
@@ -636,7 +639,7 @@ export function getBestGuess(
   const eligible = characters.filter((c) => !rejectedSet.has(c.id))
   if (eligible.length === 0) return null
 
-  const probabilities = calculateProbabilities(eligible, answers)
+  const probabilities = calculateProbabilities(eligible, answers, scoring)
   const sorted = Array.from(probabilities.entries()).sort((a, b) => {
     if (b[1] !== a[1]) return b[1] - a[1]
     return a[0].localeCompare(b[0])

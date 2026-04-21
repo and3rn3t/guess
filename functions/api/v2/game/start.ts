@@ -143,8 +143,17 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     attribute: q.attribute_key,
   }))
 
+  // Build coverage map: ratio of pool characters with each attribute filled.
+  // Passed to selectBestQuestion so null-scoring is coverage-weighted from question 1.
+  const coverageMap = new Map<string, number>()
+  const charCount = serverChars.length
+  for (const q of serverQuestions) {
+    const known = serverChars.filter((c) => c.attributes[q.attribute] != null).length
+    coverageMap.set(q.attribute, known / charCount)
+  }
+
   // Select first question
-  const firstQuestion = selectBestQuestion(serverChars, [], serverQuestions)
+  const firstQuestion = selectBestQuestion(serverChars, [], serverQuestions, { scoring: { coverageMap } })
   if (!firstQuestion) {
     return errorResponse('No questions available', 500)
   }

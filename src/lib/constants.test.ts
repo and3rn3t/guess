@@ -24,8 +24,8 @@ describe('Bayesian scoring constants', () => {
     expect(SCORE_MISMATCH).toBe(0.05)
   })
 
-  it('SCORE_UNKNOWN is 0.5', () => {
-    expect(SCORE_UNKNOWN).toBe(0.5)
+  it('SCORE_UNKNOWN is 0.35', () => {
+    expect(SCORE_UNKNOWN).toBe(0.35)
   })
 
   it('SCORE_MAYBE > SCORE_MAYBE_MISS', () => {
