@@ -1,12 +1,18 @@
 import {
   type Env,
-  getUserId,
+  getOrCreateUserId,
+  withSetCookie,
   parseJsonBody,
   jsonResponse,
   errorResponse,
   kvGetObject,
   kvPut,
 } from './_helpers'
+
+const DEPRECATION_HEADERS = {
+  Deprecation: 'true',
+  Sunset: 'Wed, 01 Jan 2027 00:00:00 GMT',
+}
 
 interface UserData {
   userId: string
@@ -25,9 +31,11 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     if (!userId) return errorResponse('Missing userId parameter', 400)
 
     const data = await kvGetObject<UserData>(kv, `user:${userId}`)
-    if (!data) return jsonResponse({ userId, settings: {}, gameStats: {}, lastSync: 0 })
-
-    return jsonResponse(data)
+    const payload = data || { userId, settings: {}, gameStats: {}, lastSync: 0 }
+    const response = jsonResponse(payload)
+    const res = new Response(response.body, response)
+    Object.entries(DEPRECATION_HEADERS).forEach(([k, v]) => res.headers.set(k, v))
+    return res
   } catch (e) {
     console.error('sync GET error:', e)
     return errorResponse('Internal server error', 500)
@@ -46,7 +54,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
   if (!body) return errorResponse('Invalid JSON body', 400)
 
-  const userId = body.userId || getUserId(context.request)
+  const { userId: cookieUserId, setCookieHeader } = await getOrCreateUserId(context.request, context.env)
+  const userId = body.userId || cookieUserId
   if (!userId || userId === 'anonymous') {
     return errorResponse('Missing userId', 400)
   }
@@ -69,7 +78,10 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     await kvPut(kv, `user:${userId}`, updated)
 
-    return jsonResponse({ success: true, lastSync: updated.lastSync })
+    return withSetCookie(
+      jsonResponse({ success: true, lastSync: updated.lastSync }),
+      setCookieHeader
+    )
   } catch (e) {
     console.error('sync POST error:', e)
     return errorResponse('Internal server error', 500)

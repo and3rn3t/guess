@@ -17,7 +17,6 @@ import {
   loadSession,
   storeSession,
   saveSessionState,
-  DIFFICULTY_MAP,
 } from '../_game-engine'
 import { rephraseQuestion } from '../_llm-rephrase'
 import type {
@@ -59,17 +58,19 @@ async function reconstructFromD1(
   const safeIds = charIds.filter((id) => /^[a-z0-9_-]+$/i.test(id))
   if (safeIds.length === 0) return null
 
-  const charIdSet = safeIds.map((id) => `'${id}'`).join(',')
+  const placeholders = safeIds.map(() => '?').join(',')
 
   // Re-fetch character data + attributes from D1
   const [characters, attributes, questionRows] = await Promise.all([
     d1Query<CharacterRow>(
       db,
-      `SELECT id, name, category, image_url FROM characters WHERE id IN (${charIdSet})`
+      `SELECT id, name, category, image_url FROM characters WHERE id IN (${placeholders})`,
+      safeIds
     ),
     d1Query<AttributeRow>(
       db,
-      `SELECT character_id, attribute_key, value FROM character_attributes WHERE character_id IN (${charIdSet}) AND value IS NOT NULL`
+      `SELECT character_id, attribute_key, value FROM character_attributes WHERE character_id IN (${placeholders}) AND value IS NOT NULL`,
+      safeIds
     ),
     d1Query<QuestionRow>(
       db,

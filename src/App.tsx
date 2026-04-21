@@ -1,5 +1,7 @@
 import { AppHeader } from "@/components/AppHeader";
-import { GameOver, GuessReveal } from "@/components/GuessReveal";
+import { AdminRouter } from "@/components/AdminRouter";
+import { GameOver } from "@/components/GameOver";
+import { GuessReveal } from "@/components/GuessReveal";
 import { PlayingScreen } from "@/components/PlayingScreen";
 import { WelcomeScreen } from "@/components/WelcomeScreen";
 import {
@@ -38,11 +40,9 @@ import type {
   AnswerValue,
   Character,
   Difficulty,
-  GuessReadinessSnapshot,
   Question,
 } from "@/lib/types";
 import { DIFFICULTIES } from "@/lib/types";
-import { PlayIcon, SparkleIcon } from "@phosphor-icons/react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useTheme } from "next-themes";
 import {
@@ -69,11 +69,6 @@ const QuestionManager = lazy(() =>
     default: m.QuestionManager,
   })),
 );
-const QuestionGeneratorDemo = lazy(() =>
-  import("@/components/QuestionGeneratorDemo").then((m) => ({
-    default: m.QuestionGeneratorDemo,
-  })),
-);
 const StatsDashboard = lazy(() =>
   import("@/components/StatsDashboard").then((m) => ({
     default: m.StatsDashboard,
@@ -84,218 +79,12 @@ const CharacterComparison = lazy(() =>
     default: m.CharacterComparison,
   })),
 );
-const AttributeCoverageReport = lazy(() =>
-  import("@/components/AttributeCoverageReport").then((m) => ({
-    default: m.AttributeCoverageReport,
-  })),
-);
-const AttributeRecommender = lazy(() =>
-  import("@/components/AttributeRecommender").then((m) => ({
-    default: m.AttributeRecommender,
-  })),
-);
-const CategoryRecommender = lazy(() =>
-  import("@/components/CategoryRecommender").then((m) => ({
-    default: m.CategoryRecommender,
-  })),
-);
-const EnvironmentTest = lazy(() =>
-  import("@/components/EnvironmentTest").then((m) => ({
-    default: m.EnvironmentTest,
-  })),
-);
-const MultiCategoryEnhancer = lazy(() =>
-  import("@/components/MultiCategoryEnhancer").then((m) => ({
-    default: m.MultiCategoryEnhancer,
-  })),
-);
-const CostDashboard = lazy(() =>
-  import("@/components/CostDashboard").then((m) => ({
-    default: m.CostDashboard,
-  })),
-);
-const DataHygiene = lazy(() =>
-  import("@/components/DataHygiene").then((m) => ({
-    default: m.DataHygiene,
-  })),
-);
 const GameHistory = lazy(() =>
   import("@/components/GameHistory").then((m) => ({ default: m.GameHistory })),
 );
 
 // Lazy-loaded modules — fire-and-forget or async-only usage
 const analytics = () => import("@/lib/analytics");
-
-const ANSWER_EMOJI: Record<string, string> = {
-  yes: "🟢",
-  no: "🔴",
-  maybe: "🟡",
-};
-
-function renderAdminPhase({
-  gamePhase,
-  characters,
-  questions,
-  selectedCharacter,
-  challenge,
-  navigate,
-  handleUpdateCharacter,
-  handleUpdateCharacters,
-  handleUpdateQuestion,
-  setChallenge,
-}: {
-  gamePhase: string;
-  characters: Character[] | null;
-  questions: Question[] | null;
-  selectedCharacter: Character | null;
-  challenge: SharePayload | null;
-  navigate: (phase: "welcome") => void;
-  handleUpdateCharacter: (c: Character) => void;
-  handleUpdateCharacters: (c: Character[]) => void;
-  handleUpdateQuestion: (q: Question) => void;
-  setChallenge: (v: null) => void;
-}): React.JSX.Element | null {
-  const onBack = () => navigate("welcome");
-  const allChars = characters || DEFAULT_CHARACTERS;
-  const allQuestions = questions || DEFAULT_QUESTIONS;
-  const wrap = (children: React.ReactNode, maxW?: string) => (
-    <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-4 py-8">
-        {maxW ? <div className={maxW}>{children}</div> : children}
-      </div>
-    </div>
-  );
-
-  switch (gamePhase) {
-    case "bulkHabitat":
-      return wrap(
-        <Suspense fallback={<Skeleton className="h-96 w-full" />}>
-          <MultiCategoryEnhancer
-            characters={allChars}
-            onUpdateCharacters={handleUpdateCharacters}
-            onBack={onBack}
-          />
-        </Suspense>,
-      );
-    case "demo":
-      return (
-        <Suspense fallback={<Skeleton className="h-96 w-full" />}>
-          <QuestionGeneratorDemo onBack={onBack} />
-        </Suspense>
-      );
-    case "environmentTest":
-      if (!selectedCharacter) return null;
-      return wrap(
-        <Suspense fallback={<Skeleton className="h-96 w-full" />}>
-          <EnvironmentTest
-            character={selectedCharacter}
-            onUpdateCharacter={handleUpdateCharacter}
-            onBack={onBack}
-          />
-        </Suspense>,
-      );
-    case "coverage":
-      return wrap(
-        <Suspense fallback={<Skeleton className="h-96 w-full" />}>
-          <AttributeCoverageReport characters={allChars} onBack={onBack} />
-        </Suspense>,
-      );
-    case "categoryRecommender":
-      if (!selectedCharacter) return null;
-      return wrap(
-        <Suspense fallback={<Skeleton className="h-96 w-full" />}>
-          <CategoryRecommender
-            character={selectedCharacter}
-            onUpdateCharacter={handleUpdateCharacter}
-            onBack={onBack}
-          />
-        </Suspense>,
-      );
-    case "recommender":
-      if (!selectedCharacter) return null;
-      return wrap(
-        <Suspense fallback={<Skeleton className="h-96 w-full" />}>
-          <AttributeRecommender
-            character={selectedCharacter}
-            onUpdateCharacter={handleUpdateCharacter}
-            onBack={onBack}
-          />
-        </Suspense>,
-      );
-    case "costDashboard":
-      return wrap(
-        <Suspense fallback={<Skeleton className="h-96 w-full" />}>
-          <CostDashboard onBack={onBack} />
-        </Suspense>,
-        "max-w-4xl mx-auto",
-      );
-    case "dataHygiene":
-      return wrap(
-        <Suspense fallback={<Skeleton className="h-96 w-full" />}>
-          <DataHygiene
-            characters={allChars}
-            questions={allQuestions}
-            onUpdateCharacter={handleUpdateCharacter}
-            onUpdateQuestion={handleUpdateQuestion}
-            onBack={onBack}
-          />
-        </Suspense>,
-        "max-w-4xl mx-auto",
-      );
-    case "challenge": {
-      if (!challenge) return null;
-      const answerBar = challenge.steps
-        .map((s) => ANSWER_EMOJI[s.answer] ?? "⚪")
-        .join("");
-      return (
-        <>
-          <Toaster position="top-center" richColors />
-          <div className="min-h-screen bg-background flex items-center justify-center p-4">
-            <div className="max-w-md w-full space-y-6 text-center">
-              <SparkleIcon
-                size={64}
-                weight="fill"
-                className="mx-auto text-accent animate-float"
-              />
-              <h1 className="text-3xl font-bold text-foreground">Challenge!</h1>
-              <p className="text-muted-foreground text-lg">
-                {challenge.won
-                  ? `Andernator figured out ${challenge.characterName} in ${challenge.questionCount} questions!`
-                  : `Someone stumped Andernator thinking of ${challenge.characterName}!`}
-              </p>
-              <div className="text-2xl tracking-wider">{answerBar}</div>
-              <div className="flex flex-wrap gap-2 justify-center">
-                <span className="inline-flex items-center rounded-full bg-accent/20 px-3 py-1 text-sm font-medium text-accent">
-                  {challenge.difficulty.charAt(0).toUpperCase() +
-                    challenge.difficulty.slice(1)}
-                </span>
-                <span className="inline-flex items-center rounded-full bg-muted px-3 py-1 text-sm font-medium text-muted-foreground">
-                  {challenge.questionCount} questions
-                </span>
-              </div>
-              <p className="text-foreground font-semibold text-lg">
-                Can you do better?
-              </p>
-              <Button
-                onClick={() => {
-                  setChallenge(null);
-                  navigate("welcome");
-                }}
-                size="lg"
-                className="h-14 px-8 text-lg bg-accent hover:bg-accent/90 text-accent-foreground shadow-lg shadow-accent/20 hover:scale-105 transition-transform"
-              >
-                <PlayIcon size={24} weight="fill" className="mr-2" />
-                Play Now
-              </Button>
-            </div>
-          </div>
-        </>
-      );
-    }
-    default:
-      return null;
-  }
-}
 
 function App() {
   // ========== PERSISTENT STATE ==========
@@ -354,7 +143,6 @@ function App() {
   const {
     serverRemaining,
     serverTotal,
-    serverMaxQuestions: _serverMaxQuestions,
     serverReadiness,
     startServerGame,
     handleServerAnswer,
@@ -399,8 +187,6 @@ function App() {
   const activeCharacters = characters || DEFAULT_CHARACTERS;
 
   // ========== CONFIDENCE (server-provided) ==========
-  const probabilities = null;
-
   const confidence = reasoning?.confidence ?? 0;
 
   const effectiveRemaining = serverRemaining;
@@ -595,7 +381,7 @@ function App() {
     );
   };
 
-  const adminPhase = renderAdminPhase({
+  const adminPhase = AdminRouter({
     gamePhase,
     characters,
     questions,
@@ -688,8 +474,7 @@ function App() {
                   showOnboarding={showOnboarding}
                   setShowOnboarding={setShowOnboarding}
                   activeCharacters={activeCharacters}
-                  probabilities={probabilities}
-                  readiness={serverReadiness as GuessReadinessSnapshot | null}
+                  readiness={serverReadiness}
                   onRetry={retryAfterReject}
                 />
               )}

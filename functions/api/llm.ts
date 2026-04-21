@@ -21,15 +21,14 @@ interface CostRecord {
   calls: number;
 }
 
-/** Simple string hash for cache keys */
-function simpleHash(str: string): string {
-  let hash = 0;
-  for (let i = 0; i < str.length; i++) {
-    const char = str.codePointAt(i) ?? 0;
-    hash = (hash << 5) - hash + char;
-    hash = Math.trunc(hash);
-  }
-  return "cache:llm:" + Math.abs(hash).toString(36);
+/** SHA-256 hash for cache keys */
+async function sha256CacheKey(str: string): Promise<string> {
+  const encoded = new TextEncoder().encode(str);
+  const hashBuffer = await crypto.subtle.digest("SHA-256", encoded);
+  const hex = Array.from(new Uint8Array(hashBuffer))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+  return "cache:llm:" + hex;
 }
 
 /** Sleep utility for retry delays */
@@ -276,7 +275,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   }
 
   // Check edge cache
-  const cacheKey = simpleHash(
+  const cacheKey = await sha256CacheKey(
     `${model}:${systemPrompt || ""}:${prompt}:${jsonMode}`,
   );
   const cacheHit = await checkEdgeCache(

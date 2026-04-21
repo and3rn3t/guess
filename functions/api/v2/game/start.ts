@@ -115,17 +115,17 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     return errorResponse('Not enough characters with attribute data for selected categories', 400)
   }
 
-  // Query 2: Get attributes for pool characters
-  // IDs are from our own DB query above; validated to safe charset to avoid injection
+  // Query 2: Get attributes for pool characters using parameterized IN clause
   const charIds = characters.map((c) => c.id)
   const safeIds = charIds.filter((id) => /^[a-z0-9_-]+$/.test(id))
-  const charIdSet = safeIds.map((id) => `'${id}'`).join(',')
+  const placeholders = safeIds.map(() => '?').join(',')
   const attributes = await d1Query<AttributeRow>(
     db,
     `SELECT ca.character_id, ca.attribute_key, ca.value
      FROM character_attributes ca
-     WHERE ca.character_id IN (${charIdSet})
-     AND ca.value IS NOT NULL`
+     WHERE ca.character_id IN (${placeholders})
+     AND ca.value IS NOT NULL`,
+    safeIds
   )
 
   // Query 3: Get all questions

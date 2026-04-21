@@ -3,7 +3,8 @@ import {
   ValidationError,
   validateString,
   checkRateLimit,
-  getUserId,
+  getOrCreateUserId,
+  withSetCookie,
   parseJsonBody,
   jsonResponse,
   errorResponse,
@@ -11,6 +12,12 @@ import {
   kvPut,
   isValidCategory,
 } from './_helpers'
+
+const DEPRECATION_HEADERS = {
+  Deprecation: 'true',
+  Sunset: 'Wed, 01 Jan 2027 00:00:00 GMT',
+  Link: '</api/v2/characters>; rel="successor-version"',
+}
 
 interface StoredCharacter {
   id: string
@@ -31,7 +38,10 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
   }
 
   const characters = await kvGetArray<StoredCharacter>(kv, KV_KEY)
-  return jsonResponse(characters)
+  const response = jsonResponse(characters)
+  const res = new Response(response.body, response)
+  Object.entries(DEPRECATION_HEADERS).forEach(([k, v]) => res.headers.set(k, v))
+  return res
 }
 
 export const onRequestPost: PagesFunction<Env> = async (context) => {
@@ -68,7 +78,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     }
 
     // Rate limit
-    const userId = getUserId(context.request)
+    const { userId, setCookieHeader } = await getOrCreateUserId(context.request, context.env)
     const { allowed } = await checkRateLimit(kv, userId, 'characters', MAX_PER_HOUR)
     if (!allowed) {
       return errorResponse('Rate limit exceeded. Try again later.', 429)
@@ -96,7 +106,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     existing.push(character)
     await kvPut(kv, KV_KEY, existing)
 
-    return jsonResponse(character, 201)
+    return withSetCookie(jsonResponse(character, 201), setCookieHeader)
   } catch (err) {
     if (err instanceof ValidationError) {
       return errorResponse(err.message, 400)

@@ -9,6 +9,24 @@
  */
 import { type Env, jsonResponse, errorResponse, parseJsonBody } from '../_helpers'
 
+/** Constant-time string comparison to prevent timing attacks */
+async function timingSafeEqual(a: string, b: string): Promise<boolean> {
+  const enc = new TextEncoder()
+  const aBytes = enc.encode(a)
+  const bBytes = enc.encode(b)
+  // Use HMAC with a random key so both sides are hashed to the same length
+  const key = await crypto.subtle.generateKey({ name: 'HMAC', hash: 'SHA-256' }, false, ['sign'])
+  const [sigA, sigB] = await Promise.all([
+    crypto.subtle.sign('HMAC', key, aBytes),
+    crypto.subtle.sign('HMAC', key, bBytes),
+  ])
+  const a32 = new Uint8Array(sigA)
+  const b32 = new Uint8Array(sigB)
+  let diff = 0
+  for (let i = 0; i < a32.length; i++) diff |= a32[i] ^ b32[i]
+  return diff === 0
+}
+
 interface UploadRequest {
   secret: string
   attributes?: { c: string; k: string; v: number }[]
@@ -23,9 +41,9 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   const body = await parseJsonBody<UploadRequest>(context.request)
   if (!body?.secret) return errorResponse('Missing secret', 401)
 
-  // Verify admin secret from KV (set via wrangler kv:key put)
+  // Verify admin secret using constant-time comparison to prevent timing attacks
   const adminSecret = await kv?.get('admin:secret')
-  if (!adminSecret || body.secret !== adminSecret) {
+  if (!adminSecret || !(await timingSafeEqual(body.secret, adminSecret))) {
     return errorResponse('Unauthorized', 403)
   }
 

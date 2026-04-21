@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { memo, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Brain, Lightbulb, Sparkle, CaretDown, Trophy, UserCircle } from '@phosphor-icons/react'
 import { Card } from '@/components/ui/card'
@@ -13,7 +13,7 @@ interface ReasoningPanelProps {
   isThinking?: boolean
 }
 
-export function ReasoningPanel({ reasoning, readiness = null, isThinking = false }: Readonly<ReasoningPanelProps>) {
+function ReasoningPanelBase({ reasoning, readiness = null, isThinking = false }: Readonly<ReasoningPanelProps>) {
   const [expanded, setExpanded] = useState(false)
 
   if (!reasoning) {
@@ -194,3 +194,5 @@ export function ReasoningPanel({ reasoning, readiness = null, isThinking = false
     </motion.div>
   )
 }
+
+export const ReasoningPanel = memo(ReasoningPanelBase);

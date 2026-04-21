@@ -15,6 +15,7 @@ import type {
 } from "@/lib/types";
 import { ClockCounterClockwiseIcon } from "@phosphor-icons/react";
 import { AnimatePresence, motion } from "framer-motion";
+import { memo } from "react";
 
 interface PlayingScreenProps {
   answers: Answer[];
@@ -33,12 +34,11 @@ interface PlayingScreenProps {
   showOnboarding: boolean;
   setShowOnboarding: (show: boolean) => void;
   activeCharacters: Character[];
-  probabilities: Map<string, number> | null;
   readiness: GuessReadinessSnapshot | null;
   onRetry?: () => void;
 }
 
-export function PlayingScreen({
+function PlayingScreenBase({
   answers,
   maxQuestions,
   confidence,
@@ -55,7 +55,6 @@ export function PlayingScreen({
   showOnboarding,
   setShowOnboarding,
   activeCharacters: _activeCharacters,
-  probabilities: _probabilities,
   readiness,
   onRetry,
 }: Readonly<PlayingScreenProps>) {
@@ -236,3 +235,5 @@ export function PlayingScreen({
     </motion.div>
   );
 }
+
+export const PlayingScreen = memo(PlayingScreenBase);

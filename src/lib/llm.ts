@@ -1,17 +1,5 @@
-import { KV_USER_ID, LLM_MAX_RETRIES, LLM_NON_RETRYABLE_CODES, LLM_RETRYABLE_STATUSES, LLM_RETRY_BASE_MS } from './constants'
-
-function getUserId(): string {
-  try {
-    let id = localStorage.getItem(KV_USER_ID)
-    if (!id) {
-      id = crypto.randomUUID()
-      localStorage.setItem(KV_USER_ID, id)
-    }
-    return id
-  } catch {
-    return 'anonymous'
-  }
-}
+import { LLM_MAX_RETRIES, LLM_NON_RETRYABLE_CODES, LLM_RETRYABLE_STATUSES, LLM_RETRY_BASE_MS } from './constants'
+import { getUserId } from './utils'
 
 function commonHeaders(): Record<string, string> {
   return {

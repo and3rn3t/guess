@@ -1,22 +1,10 @@
-import { KV_CHARACTERS_CACHE, KV_QUESTIONS_CACHE, KV_USER_ID, SYNC_CACHE_TTL } from './constants'
+import { KV_CHARACTERS_CACHE, KV_QUESTIONS_CACHE, SYNC_CACHE_TTL } from './constants'
 import type { Character, Question, Difficulty } from './types'
+import { getUserId } from './utils'
 
 export type SyncStatus = 'synced' | 'pending' | 'error' | 'offline'
 
-// ===== User ID =====
-
-export function getUserId(): string {
-  try {
-    let id = localStorage.getItem(KV_USER_ID)
-    if (!id) {
-      id = crypto.randomUUID()
-      localStorage.setItem(KV_USER_ID, id)
-    }
-    return id
-  } catch {
-    return 'anonymous'
-  }
-}
+export { getUserId }
 
 function headers(): Record<string, string> {
   return {
@@ -31,9 +19,10 @@ export async function fetchGlobalCharacters(): Promise<Character[]> {
   if (cached) return cached
 
   try {
-    const res = await fetch('/api/characters', { headers: headers() })
+    const res = await fetch('/api/v2/characters', { headers: headers() })
     if (!res.ok) throw new Error(`HTTP ${res.status}`)
-    const characters = (await res.json()) as Character[]
+    const data = (await res.json()) as { characters: Character[] }
+    const characters = data.characters
     setCache(KV_CHARACTERS_CACHE, characters)
     return characters
   } catch {
@@ -82,7 +71,7 @@ export async function fetchGlobalQuestions(): Promise<Question[]> {
   if (cached) return cached
 
   try {
-    const res = await fetch('/api/questions', { headers: headers() })
+    const res = await fetch('/api/v2/questions', { headers: headers() })
     if (!res.ok) throw new Error(`HTTP ${res.status}`)
     const questions = (await res.json()) as Question[]
     setCache(KV_QUESTIONS_CACHE, questions)

@@ -19,6 +19,7 @@ import {
   UsersIcon,
   WrenchIcon,
 } from "@phosphor-icons/react";
+import { memo } from "react";
 
 const analytics = () => import("@/lib/analytics");
 
@@ -47,7 +48,7 @@ interface AppHeaderProps {
   setShowQuitDialog: (show: boolean) => void;
 }
 
-export function AppHeader({
+function AppHeaderBase({
   gamePhase,
   navigate,
   dispatch,
@@ -264,3 +265,5 @@ export function AppHeader({
     </header>
   );
 }
+
+export const AppHeader = memo(AppHeaderBase);

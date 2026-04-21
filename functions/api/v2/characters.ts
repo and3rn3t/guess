@@ -21,10 +21,6 @@ type CharacterRow = CharactersRow
 
 type AttributeRow = Pick<CharacterAttributesRow, 'attribute_key' | 'value' | 'confidence'>
 
-interface CharacterWithAttributes extends CharacterRow {
-  attributes: Record<string, boolean | null>
-}
-
 // ── GET /api/v2/characters ───────────────────────────────────
 // Paginated, filterable by category, searchable by name
 

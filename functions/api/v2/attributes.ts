@@ -3,7 +3,6 @@ import {
   jsonResponse,
   errorResponse,
   d1Query,
-  d1First,
 } from '../_helpers'
 import type { AttributeDefinitionsRow } from '../_db-types'
 

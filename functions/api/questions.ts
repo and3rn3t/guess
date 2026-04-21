@@ -3,13 +3,20 @@ import {
   ValidationError,
   validateString,
   checkRateLimit,
-  getUserId,
+  getOrCreateUserId,
+  withSetCookie,
   parseJsonBody,
   jsonResponse,
   errorResponse,
   kvGetArray,
   kvPut,
 } from './_helpers'
+
+const DEPRECATION_HEADERS = {
+  Deprecation: 'true',
+  Sunset: 'Wed, 01 Jan 2027 00:00:00 GMT',
+  Link: '</api/v2/questions>; rel="successor-version"',
+}
 
 interface StoredQuestion {
   id: string
@@ -27,7 +34,10 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
   if (!kv) return errorResponse('KV not configured', 503)
 
   const questions = await kvGetArray<StoredQuestion>(kv, KV_KEY)
-  return jsonResponse(questions)
+  const response = jsonResponse(questions)
+  const res = new Response(response.body, response)
+  Object.entries(DEPRECATION_HEADERS).forEach(([k, v]) => res.headers.set(k, v))
+  return res
 }
 
 export const onRequestPost: PagesFunction<Env> = async (context) => {
@@ -50,7 +60,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       return errorResponse('Attribute must be camelCase (letters only)', 400)
     }
 
-    const userId = getUserId(context.request)
+    const { userId, setCookieHeader } = await getOrCreateUserId(context.request, context.env)
     const { allowed } = await checkRateLimit(kv, userId, 'questions', MAX_PER_HOUR)
     if (!allowed) return errorResponse('Rate limit exceeded', 429)
 
@@ -71,7 +81,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     existing.push(question)
     await kvPut(kv, KV_KEY, existing)
 
-    return jsonResponse(question, 201)
+    return withSetCookie(jsonResponse(question, 201), setCookieHeader)
   } catch (err) {
     if (err instanceof ValidationError) return errorResponse(err.message, 400)
     console.error('Questions API error:', err)

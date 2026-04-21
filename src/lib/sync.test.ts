@@ -37,7 +37,7 @@ describe('getUserId', () => {
 describe('fetchGlobalCharacters', () => {
   it('fetches characters from API', async () => {
     mockFetch.mockResolvedValueOnce(new Response(
-      JSON.stringify([{ id: 'mario', name: 'Mario', category: 'video-games', attributes: { isHuman: true } }]),
+      JSON.stringify({ characters: [{ id: 'mario', name: 'Mario', category: 'video-games', attributes: { isHuman: true } }] }),
       { status: 200, headers: { 'Content-Type': 'application/json' } },
     ))
 
@@ -62,7 +62,7 @@ describe('fetchGlobalCharacters', () => {
     store['kv:characters-cache:ts'] = String(Date.now() - 11 * 60 * 1000) // 11 min old
 
     mockFetch.mockResolvedValueOnce(new Response(
-      JSON.stringify([{ id: 'mario', name: 'Mario' }]),
+      JSON.stringify({ characters: [{ id: 'mario', name: 'Mario' }] }),
       { status: 200, headers: { 'Content-Type': 'application/json' } },
     ))
 

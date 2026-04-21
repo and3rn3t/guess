@@ -7,7 +7,7 @@ import {
   withSetCookie,
   d1Run,
 } from '../../_helpers'
-import { type GameSession, loadSession, deleteSession } from '../_game-engine'
+import { loadSession, deleteSession } from '../_game-engine'
 
 // ── Types ────────────────────────────────────────────────────
 
