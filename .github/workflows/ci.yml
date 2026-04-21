@@ -5,18 +5,65 @@ on:
     branches: [main]
     paths-ignore:
       - "**/*.md"
+      - "docs/**"
+      - "migrations/**"
       - "LICENSE"
+      - ".gitignore"
+      - ".husky/**"
   pull_request:
     branches: [main]
     paths-ignore:
       - "**/*.md"
+      - "docs/**"
+      - "migrations/**"
       - "LICENSE"
+      - ".gitignore"
+      - ".husky/**"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
+  # ── Detect which parts of the codebase changed ─────────────
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      app: ${{ steps.filter.outputs.app }}
+      frontend: ${{ steps.filter.outputs.frontend }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            app:
+              - 'src/**'
+              - 'functions/**'
+              - 'public/**'
+              - 'index.html'
+              - 'package.json'
+              - 'pnpm-lock.yaml'
+              - 'vite.config.ts'
+              - 'tsconfig.json'
+              - 'tailwind.config.js'
+              - 'components.json'
+              - 'wrangler.toml'
+            frontend:
+              - 'src/**'
+              - 'e2e/**'
+              - 'playwright.config.ts'
+              - 'public/**'
+              - 'index.html'
+              - 'package.json'
+              - 'pnpm-lock.yaml'
+              - 'vite.config.ts'
+              - 'tsconfig.json'
+              - 'tailwind.config.js'
+              - 'components.json'
+
   # ── Lint + type-check + tests (merged to share install) ──────
   checks:
     runs-on: ubuntu-latest
@@ -33,7 +80,8 @@ jobs:
       - run: pnpm test
 
   test-e2e:
-    needs: [build]
+    needs: [changes, build]
+    if: needs.changes.outputs.frontend == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -64,6 +112,8 @@ jobs:
           retention-days: 7
 
   build:
+    needs: [changes]
+    if: needs.changes.outputs.app == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -94,7 +144,11 @@ jobs:
   # ── Deploy preview (PRs) ────────────────────────────────────
   deploy-preview:
     needs: [checks, build, test-e2e]
-    if: github.event_name == 'pull_request'
+    if: |
+      github.event_name == 'pull_request' &&
+      needs.checks.result == 'success' &&
+      needs.build.result == 'success' &&
+      (needs.test-e2e.result == 'success' || needs.test-e2e.result == 'skipped')
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -145,7 +199,12 @@ jobs:
   # ── Deploy production (push to main) ────────────────────────
   deploy-production:
     needs: [checks, build, test-e2e]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: |
+      github.event_name == 'push' &&
+      github.ref == 'refs/heads/main' &&
+      needs.checks.result == 'success' &&
+      needs.build.result == 'success' &&
+      (needs.test-e2e.result == 'success' || needs.test-e2e.result == 'skipped')
     runs-on: ubuntu-latest
     permissions:
       contents: read
