@@ -27,12 +27,14 @@ Think of a character. The AI asks strategic yes/no questions, uses Bayesian prob
 
 - **Bayesian Deduction Engine** — Probability scoring with information gain optimization picks the most strategic question every turn
 - **Reasoning Transparency** — See exactly why the AI asked each question and how your answers shift probabilities
+- **Daily Challenge** — Everyone thinks of the same character each day; completion state persists across sessions
 - **Teaching Mode** — When the AI guesses wrong, teach it the character; all answered attributes are saved automatically
 - **53K+ Character Database** — Server-side engine backed by D1 with 15 questions per game
 - **AI-Enhanced Answers** — Free-text answer parsing via GPT-4o understands natural language responses
 - **Statistics Dashboard** — Win/loss tracking, question performance metrics, attribute entropy analysis
 - **Character Comparison** — Side-by-side attribute diffs, similarity scoring, discrimination power analysis
 - **AI Attribute Recommendations** — GPT-4o suggests and fills in character attributes with detailed reasoning
+- **Keyboard Shortcuts** — Y / N / M / U answer the current question without lifting your hands off the keyboard
 - **Offline Support** — PWA with service worker caching for offline gameplay
 - **Sound Effects** — Web Audio API tone synthesis (no audio files needed)
 

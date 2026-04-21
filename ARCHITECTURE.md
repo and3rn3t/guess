@@ -61,8 +61,7 @@ src/
 ├── hooks/
 │   ├── useGameState.ts        # Reducer: phase, answers, characters, currentQuestion
 │   ├── useKV.ts               # localStorage + cross-tab sync
-│   ├── useServerGame.ts       # Server game via /api/v2/game/*
-│   ├── useOnlineStatus.ts     # navigator.onLine tracking
+│   ├── useServerGame.ts       # Server game via /api/v2/game/*│   ├── useDailyChallenge.ts   # Daily challenge status + completion recording│   ├── useOnlineStatus.ts     # navigator.onLine tracking
 │   ├── useSound.ts            # Mute state (external store)
 │   └── use-mobile.ts          # Responsive breakpoint (768px)
 ├── lib/
@@ -100,6 +99,7 @@ functions/api/                 # Cloudflare Workers
     ├── questions.ts           # Questions + attribute coverage stats
     ├── attributes.ts          # Attribute definitions + coverage %
     ├── stats.ts               # Database overview
+    ├── daily.ts               # Daily challenge — deterministic character selection + completion tracking
     └── game/
         ├── _game-engine.ts    # Server-side Bayesian engine (ported from client)
         ├── start.ts           # Initialize session → first question
@@ -216,6 +216,8 @@ Primary database for the server-side engine and character catalog.
 Key-value store for game sessions and user data.
 
 - `game:{sessionId}` — Active game session (character pool, questions, answers; 1hr TTL)
+- `daily:character:{date}` — Today's challenge character (cached until UTC midnight)
+- `daily:done:{date}:{userId}` — User's completion record for a given day (TTL: end of next day)
 - v1 API endpoints store characters, questions, stats, corrections
 
 ### R2
@@ -254,6 +256,8 @@ Object storage for character images.
 | `/api/v2/questions` | GET | Questions + attribute coverage stats |
 | `/api/v2/attributes` | GET | Attribute definitions + coverage % |
 | `/api/v2/stats` | GET | Database overview (counts, categories) |
+| `/api/v2/daily` | GET | Today's challenge character + user completion status |
+| `/api/v2/daily` | POST | Record daily challenge completion (idempotent) |
 
 ### v2 Game Engine
 

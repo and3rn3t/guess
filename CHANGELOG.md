@@ -8,6 +8,18 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased] — 2026-04-20
 
+### Added
+
+- **Daily challenge mode** — everyone thinks of the same deterministic character each UTC day
+  - `GET /api/v2/daily` returns today's character ID + user completion status (character name/image only revealed after completing)
+  - `POST /api/v2/daily` records completion outcome (idempotent; first write wins)
+  - Character selected via `dateHash(date) % eligibleCharacters`, stable across all users; cached in KV until UTC midnight
+  - `useDailyChallenge` hook — fetches status, exposes `recordCompletion(won, questionsAsked)`
+  - Welcome screen card shows play button (if not completed) or result with character name + question count (if completed)
+  - `POST /api/v2/game/start` accepts optional `characterId` to pin a specific character into the pool (used by daily challenge)
+- **Keyboard shortcuts** — Y / N / M / U answer the current question without clicking; ignored when focus is inside an input; desktop-only hint label shown below answer buttons
+- **AI win rate stat** — welcome screen footer now shows "AI wins X% of N games" once ≥10 games are recorded
+
 ### Changed
 
 - **Soft scoring resilience** — `SCORE_MISMATCH` raised from `0.0` → `0.05`; a single wrong/inconsistent answer no longer permanently zeros out the correct character
