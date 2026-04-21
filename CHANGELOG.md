@@ -6,10 +6,18 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
-## [Unreleased] — 2026-04-20
+## [Unreleased] — 2026-04-21
 
 ### Added
 
+- **Mobile UX polish** — comprehensive touch-optimised interface across all game phases
+  - `QuestionCard`: gradient answer buttons (yes=emerald, no=rose, maybe=amber, unknown=slate), `ThinkingCard` rebuilt with CSS shimmer animation (no `Skeleton` component), `motion.div` wrapping buttons with `whileTap` scale feedback
+  - `PlayingScreen`: custom `div` progress bar (`role="progressbar"`, smooth transition), answer history pills with Framer Motion stagger entrance, removed redundant badge/readiness box
+  - `GuessReveal`: animated concentric rings with radial pulse on guess reveal, gradient character name, spring-physics reveal animation
+  - `GameOver`: win heading gradient, increased confetti count (12/24 → 20/40), icon scale animation
+  - `StatsDashboard` / `GameHistory`: icon badges in stat rows, gradient win numbers, border-left accent stripes, semantic colours for answer history (emerald yes, rose no, amber maybe)
+  - Design tokens added to `index.css`: `animate-shimmer`, `@keyframes shimmer`, `animate-ring-pulse`, `animate-pulse-ring`, `animate-float`
+  - Respects `prefers-reduced-motion` throughout
 - **Daily challenge mode** — everyone thinks of the same deterministic character each UTC day
   - `GET /api/v2/daily` returns today's character ID + user completion status (character name/image only revealed after completing)
   - `POST /api/v2/daily` records completion outcome (idempotent; first write wins)
@@ -19,6 +27,14 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   - `POST /api/v2/game/start` accepts optional `characterId` to pin a specific character into the pool (used by daily challenge)
 - **Keyboard shortcuts** — Y / N / M / U answer the current question without clicking; ignored when focus is inside an input; desktop-only hint label shown below answer buttons
 - **AI win rate stat** — welcome screen footer now shows "AI wins X% of N games" once ≥10 games are recorded
+- **User answer reveal on loss** — when the AI fails to guess, `GameOver` now shows a "Who were you thinking of?" input field
+- `POST /api/v2/game/reveal` endpoint — accepts the character name + session Q&A answers:
+  - Fuzzy-matches the name against `characters` table (exact then LIKE)
+  - Backfills `null` attribute values with confidence 0.5 from confident yes/no answers
+  - Queues `system:reveal:` correction votes in KV for any contradicting attribute values
+  - Stores a `game_reveals` audit row regardless of whether the character was found
+- `game_reveals` D1 table — stores `actual_character_name`, `actual_character_id`, `answers` (JSON), `attributes_filled`, `discrepancies`, `created_at`
+- Migration `0016_game_reveals.sql` applied to both production and preview databases
 
 ### Changed
 
@@ -29,16 +45,9 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **`detectContradictions` accuracy** — fixed to use the hard-filter count rather than soft probability scores, so contradiction detection is consistent with filtering logic
 - Deleted 3 duplicate questions from production DB (`q176` isFromMovie, `q171` isVideoGameCharacter, `q177` isFromBook) that caused double-elimination when the same question appeared twice
 
-### Added
+### Fixed
 
-- **User answer reveal on loss** — when the AI fails to guess, `GameOver` now shows a "Who were you thinking of?" input field
-- `POST /api/v2/game/reveal` endpoint — accepts the character name + session Q&A answers:
-  - Fuzzy-matches the name against `characters` table (exact then LIKE)
-  - Backfills `null` attribute values with confidence 0.5 from confident yes/no answers
-  - Queues `system:reveal:` correction votes in KV for any contradicting attribute values
-  - Stores a `game_reveals` audit row regardless of whether the character was found
-- `game_reveals` D1 table — stores `actual_character_name`, `actual_character_id`, `answers` (JSON), `attributes_filled`, `discrepancies`, `created_at`
-- Migration `0016_game_reveals.sql` applied to both production and preview databases
+- **CI `test-e2e` job** — `npx playwright install --with-deps chromium` was skipped entirely on browser cache hits, leaving system dependencies (apt packages: libglib, libnss, etc.) uninstalled; separated into `npx playwright install chromium` (conditional on cache miss) + `npx playwright install-deps chromium` (always runs)
 
 ---
 
