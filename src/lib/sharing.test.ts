@@ -1,6 +1,6 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi, afterEach } from "vitest";
 import type { SharePayload } from "./sharing";
-import { decodeChallenge, encodeChallenge, generateShareText } from "./sharing";
+import { decodeChallenge, encodeChallenge, generateShareText, buildShareUrl, parseUrlChallenge } from "./sharing";
 
 const samplePayload: SharePayload = {
   characterId: "mario",
@@ -115,6 +115,102 @@ describe("encodeChallenge / decodeChallenge – question text", () => {
     const decoded = decodeChallenge(encoded);
     expect(decoded!.steps[0].attribute).toBe("hasCape");
     expect(decoded!.steps[0].answer).toBe("yes");
+  });
+});
+
+describe("decodeChallenge – edge cases", () => {
+  it("maps unknown step value to 'unknown'", () => {
+    // Encode with 'unknown' answer — should survive round-trip
+    const payload: SharePayload = {
+      ...samplePayload,
+      steps: [{ questionText: "", attribute: "attr", answer: "unknown" }],
+    };
+    const decoded = decodeChallenge(encodeChallenge(payload));
+    expect(decoded!.steps[0].answer).toBe("unknown");
+  });
+
+  it("returns null when difficulty letter is unrecognized", () => {
+    // Manually craft a compact object with bad difficulty
+    const compact = { c: "x", n: "X", w: 1, d: "z", q: 1, s: [] };
+    const encoded = btoa(JSON.stringify(compact)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+    expect(decodeChallenge(encoded)).toBeNull();
+  });
+
+  it("returns null when required fields are missing", () => {
+    const compact = { w: 1, d: "m", q: 1, s: [] }; // missing c and n
+    const encoded = btoa(JSON.stringify(compact)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+    expect(decodeChallenge(encoded)).toBeNull();
+  });
+
+  it("handles steps with missing v (answer) gracefully", () => {
+    const compact = { c: "id", n: "Name", w: 1, d: "m", q: 1, s: [{ a: "attr" }] };
+    const encoded = btoa(JSON.stringify(compact)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+    const decoded = decodeChallenge(encoded);
+    expect(decoded!.steps[0].answer).toBe("unknown"); // empty v maps to 'unknown'
+  });
+});
+
+describe("generateShareText – complete emoji coverage", () => {
+  it("includes ⚪ for 'unknown' steps", () => {
+    const payload: SharePayload = {
+      ...samplePayload,
+      steps: [{ questionText: "", attribute: "attr", answer: "unknown" }],
+    };
+    const text = generateShareText(payload);
+    expect(text).toContain("⚪");
+  });
+
+  it("uses 🤔 emoji for losses", () => {
+    const text = generateShareText({ ...samplePayload, won: false });
+    expect(text).toContain("🤔");
+  });
+});
+
+describe("buildShareUrl", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("builds a URL with the #c= hash fragment", () => {
+    vi.stubGlobal("window", { location: { origin: "https://example.com", pathname: "/" } });
+    const url = buildShareUrl(samplePayload);
+    expect(url).toMatch(/^https:\/\/example\.com\/#c=.+/);
+    // The encoded portion after "#c=" should be URL-safe base64 (no +, no = padding)
+    const encoded = url.split("#c=")[1];
+    expect(encoded).not.toContain("+");
+    expect(encoded).not.toContain("=");
+  });
+
+  it("produces a URL that decodes back to the original payload", () => {
+    vi.stubGlobal("window", { location: { origin: "https://example.com", pathname: "/" } });
+    const url = buildShareUrl(samplePayload);
+    const hash = new URL(url).hash.slice(3); // strip #c=
+    const decoded = decodeChallenge(hash);
+    expect(decoded!.characterId).toBe(samplePayload.characterId);
+  });
+});
+
+describe("parseUrlChallenge", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("returns null when hash does not start with #c=", () => {
+    vi.stubGlobal("window", { location: { hash: "#other=abc" } });
+    expect(parseUrlChallenge()).toBeNull();
+  });
+
+  it("returns null when hash is empty", () => {
+    vi.stubGlobal("window", { location: { hash: "" } });
+    expect(parseUrlChallenge()).toBeNull();
+  });
+
+  it("returns decoded payload when hash starts with #c=", () => {
+    const encoded = encodeChallenge(samplePayload);
+    vi.stubGlobal("window", { location: { hash: `#c=${encoded}` } });
+    const result = parseUrlChallenge();
+    expect(result).not.toBeNull();
+    expect(result!.characterId).toBe("mario");
   });
 });
 

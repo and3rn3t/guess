@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import {
   calculateProbabilities,
   selectBestQuestion,
@@ -7,6 +7,11 @@ import {
   generateReasoning,
   detectContradictions,
   filterPossibleCharacters,
+  evaluateGuessReadiness,
+  storeSession,
+  loadSession,
+  saveSessionState,
+  deleteSession,
   POOL_SIZE,
   MIN_ATTRIBUTES,
   SESSION_TTL,
@@ -15,6 +20,7 @@ import {
   type ServerCharacter,
   type ServerQuestion,
   type Answer,
+  type GameSession,
 } from './_game-engine'
 
 // ── Fixtures ──────────────────────────────────────────────────
@@ -477,5 +483,204 @@ describe('filterPossibleCharacters', () => {
     ]
     const result = filterPossibleCharacters(CHARS, answers)
     expect(result).toHaveLength(0)
+  })
+})
+
+// ── generateReasoning ─────────────────────────────────────────
+
+describe('generateReasoning', () => {
+  const question: ServerQuestion = { id: 'q1', text: 'Is this character human?', attribute: 'isHuman' }
+
+  it('describes an even split correctly', () => {
+    // isHuman: 2 yes (Mario, Link), 2 no (Pikachu, Kirby) — abs(2-2) < 4*0.2 = 0.8 → NO, 2-2=0 < 0.8 → even split
+    const reasoning = generateReasoning(question, CHARS, [])
+    expect(reasoning.why).toContain('splits the possibilities almost perfectly')
+    expect(reasoning.remaining).toBe(4)
+  })
+
+  it('describes a minority-yes attribute correctly', () => {
+    // usesWeapons: 1 yes (Link), 3 no → yesCount(1) < noCount(3) → minority branch
+    const weaponsQ: ServerQuestion = { id: 'q3', text: 'Does this character use weapons?', attribute: 'usesWeapons' }
+    const reasoning = generateReasoning(weaponsQ, CHARS, [])
+    expect(reasoning.why).toContain('Only')
+    expect(reasoning.why).toContain('dramatically narrows')
+  })
+
+  it('describes a majority-yes attribute correctly', () => {
+    // canFly: 1 yes (Kirby), 3 no → isHuman approach — actually yesCount=1,noCount=3 → minority
+    // For a majority-yes, we need more yes than no
+    // Use isMale: Mario(T), Link(T), Pikachu(null), Kirby(null) → yesCount=2, noCount=0
+    // abs(2-0)=2, total*0.2=0.8, 2 > 0.8 → not even split; yesCount(2) >= noCount(0) → majority branch
+    const maleQ: ServerQuestion = { id: 'q4', text: 'Is this character male?', attribute: 'isMale' }
+    const reasoning = generateReasoning(maleQ, CHARS, [])
+    expect(reasoning.why).toContain('About')
+    expect(reasoning.why).toContain('share this characteristic')
+  })
+
+  it('returns top candidates with correct structure', () => {
+    const reasoning = generateReasoning(question, CHARS, [])
+    expect(reasoning.topCandidates.length).toBeGreaterThan(0)
+    reasoning.topCandidates.forEach((c) => {
+      expect(c).toHaveProperty('name')
+      expect(c).toHaveProperty('probability')
+      expect(c.probability).toBeGreaterThanOrEqual(0)
+    })
+  })
+
+  it('reflects imageUrl for characters that have one', () => {
+    const reasoning = generateReasoning(question, CHARS, [])
+    const kirbyCandidate = reasoning.topCandidates.find((c) => c.name === 'Kirby')
+    if (kirbyCandidate) {
+      expect(kirbyCandidate.imageUrl).toBe('https://example.com/kirby.png')
+    }
+  })
+})
+
+// ── evaluateGuessReadiness extra branches ─────────────────────
+
+describe('evaluateGuessReadiness', () => {
+  it('fires high_certainty for a lone survivor even with < 5 questions asked', () => {
+    // 1 character → probability=1.0 → high_certainty threshold fires before singleton check
+    const result = evaluateGuessReadiness([CHARS[0]], [], 2, 15)
+    expect(result.shouldGuess).toBe(true)
+    expect(result.trigger).toBe('high_certainty')
+    expect(result.topProbability).toBe(1)
+  })
+
+  it('blocks guess when budget remains and posterior is still broad', () => {
+    const result = evaluateGuessReadiness(CHARS, [], 5, 15)
+    expect(result.shouldGuess).toBe(false)
+    expect(result.trigger).toBe('insufficient_data')
+  })
+
+  it('applies wrong guess penalty to required confidence', () => {
+    const baseline = evaluateGuessReadiness(CHARS, [], 8, 15, 0)
+    const penalized = evaluateGuessReadiness(CHARS, [], 8, 15, 3)
+    expect(penalized.requiredConfidence).toBeGreaterThan(baseline.requiredConfidence)
+  })
+
+  it('returns correct questionsRemaining', () => {
+    const result = evaluateGuessReadiness(CHARS, [], 5, 15)
+    expect(result.questionsRemaining).toBe(10)
+  })
+})
+
+// ── Session storage ───────────────────────────────────────────
+
+function makeMockKV(): { store: Map<string, string>; kv: KVNamespace } {
+  const store = new Map<string, string>()
+  const kv = {
+    get: vi.fn(async (key: string) => store.get(key) ?? null),
+    put: vi.fn(async (key: string, value: string) => { store.set(key, value) }),
+    delete: vi.fn(async (key: string) => { store.delete(key) }),
+    getWithMetadata: vi.fn(),
+    list: vi.fn(),
+  } as unknown as KVNamespace
+  return { store, kv }
+}
+
+const BASE_SESSION: GameSession = {
+  id: 'test-session',
+  characters: [
+    { id: 'mario', name: 'Mario', category: 'video-games', imageUrl: null, attributes: { isHuman: true } },
+  ],
+  questions: [{ id: 'q1', text: 'Is human?', attribute: 'isHuman' }],
+  answers: [],
+  currentQuestion: { id: 'q1', text: 'Is human?', attribute: 'isHuman' },
+  difficulty: 'medium',
+  maxQuestions: 15,
+  createdAt: 1000000,
+  rejectedGuesses: [],
+  guessCount: 0,
+  postRejectCooldown: 0,
+}
+
+describe('storeSession / loadSession', () => {
+  it('stores and retrieves a session in lean format', async () => {
+    const { kv } = makeMockKV()
+    await storeSession(kv, BASE_SESSION)
+    const loaded = await loadSession(kv, 'test-session')
+    expect(loaded).not.toBeNull()
+    expect(loaded!.id).toBe('test-session')
+    expect(loaded!.characters).toHaveLength(1)
+    expect(loaded!.characters[0].name).toBe('Mario')
+    expect(loaded!.difficulty).toBe('medium')
+    expect(loaded!.rejectedGuesses).toEqual([])
+  })
+
+  it('returns null when session key is missing', async () => {
+    const { kv } = makeMockKV()
+    const result = await loadSession(kv, 'nonexistent')
+    expect(result).toBeNull()
+  })
+
+  it('returns null when pool key is missing (lean format with missing pool)', async () => {
+    const { store, kv } = makeMockKV()
+    // Write only the lean session (no pool)
+    const lean = { id: 'test-session', poolKey: 'pool:test-session', answers: [], currentQuestion: null, difficulty: 'medium', maxQuestions: 15, createdAt: 1000, rejectedGuesses: [], guessCount: 0, postRejectCooldown: 0 }
+    store.set('game:test-session', JSON.stringify(lean))
+    const result = await loadSession(kv, 'test-session')
+    expect(result).toBeNull()
+  })
+
+  it('handles legacy full-session format (has characters array directly)', async () => {
+    const { store, kv } = makeMockKV()
+    // Legacy format stores full session under game: key with 'characters' field
+    store.set('game:test-session', JSON.stringify({ ...BASE_SESSION }))
+    const loaded = await loadSession(kv, 'test-session')
+    expect(loaded).not.toBeNull()
+    expect(loaded!.characters).toHaveLength(1)
+    expect(loaded!.guessCount).toBe(0)
+    expect(loaded!.postRejectCooldown).toBe(0)
+  })
+
+  it('defaults missing legacy fields to safe values', async () => {
+    const { store, kv } = makeMockKV()
+    // Simulate old session without guessCount / postRejectCooldown
+    const legacy = { ...BASE_SESSION, guessCount: undefined, postRejectCooldown: undefined, rejectedGuesses: undefined }
+    store.set('game:test-session', JSON.stringify(legacy))
+    const loaded = await loadSession(kv, 'test-session')
+    expect(loaded!.guessCount).toBe(0)
+    expect(loaded!.postRejectCooldown).toBe(0)
+    expect(loaded!.rejectedGuesses).toEqual([])
+  })
+
+  it('stores session with correct TTL', async () => {
+    const { kv } = makeMockKV()
+    await storeSession(kv, BASE_SESSION)
+    const putCalls = (kv.put as ReturnType<typeof vi.fn>).mock.calls
+    for (const call of putCalls) {
+      expect(call[2]).toMatchObject({ expirationTtl: SESSION_TTL })
+    }
+  })
+})
+
+describe('saveSessionState', () => {
+  it('updates mutable state without touching the pool', async () => {
+    const { kv, store } = makeMockKV()
+    await storeSession(kv, BASE_SESSION)
+    const poolSize = JSON.parse(store.get('pool:test-session')!).characters.length
+
+    const updated = { ...BASE_SESSION, answers: [{ questionId: 'isHuman', value: 'yes' as const }] }
+    await saveSessionState(kv, updated)
+
+    // Pool should be unchanged
+    expect(JSON.parse(store.get('pool:test-session')!).characters.length).toBe(poolSize)
+    // Game key should have the new answer
+    const lean = JSON.parse(store.get('game:test-session')!)
+    expect(lean.answers).toHaveLength(1)
+  })
+})
+
+describe('deleteSession', () => {
+  it('removes both game and pool keys', async () => {
+    const { kv, store } = makeMockKV()
+    await storeSession(kv, BASE_SESSION)
+    expect(store.has('game:test-session')).toBe(true)
+    expect(store.has('pool:test-session')).toBe(true)
+
+    await deleteSession(kv, 'test-session')
+    expect(store.has('game:test-session')).toBe(false)
+    expect(store.has('pool:test-session')).toBe(false)
   })
 })

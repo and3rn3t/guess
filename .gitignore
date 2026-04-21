@@ -36,6 +36,11 @@ data/
 # Wrangler local state
 .wrangler/
 
+# Test output
+coverage/
+playwright-report/
+test-results/
+
 # Generated migration chunks (too large for git)
 migrations/chunks/
 migrations/0005_ingest_characters.sql

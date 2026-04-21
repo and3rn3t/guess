@@ -198,6 +198,27 @@ describe('submitCorrection', () => {
     const result = await submitCorrection('mario', 'isHuman', true, false)
     expect(result.success).toBe(true)
   })
+
+  it('returns error object when server responds with non-ok status', async () => {
+    mockFetch.mockResolvedValueOnce(new Response(
+      JSON.stringify({ error: 'Attribute not found' }),
+      { status: 422, headers: { 'Content-Type': 'application/json' } },
+    ))
+
+    const { submitCorrection } = await import('./sync')
+    const result = await submitCorrection('mario', 'isHuman', true, false)
+    expect(result.success).toBe(false)
+    expect(result.error).toContain('Attribute not found')
+  })
+
+  it('returns network error when fetch throws', async () => {
+    mockFetch.mockRejectedValueOnce(new TypeError('Failed to fetch'))
+
+    const { submitCorrection } = await import('./sync')
+    const result = await submitCorrection('mario', 'isHuman', true, false)
+    expect(result.success).toBe(false)
+    expect(result.error).toBe('Network error')
+  })
 })
 
 describe('syncStatus', () => {
@@ -216,6 +237,37 @@ describe('syncStatus', () => {
     const statuses: string[] = []
     const unsub = onSyncStatusChange((s) => statuses.push(s))
 
+    await initialSync()
+    unsub()
+
+    expect(statuses).toContain('pending')
+    expect(statuses).toContain('synced')
+  })
+
+  it('unsubscribe removes listener so it is no longer called', async () => {
+    mockFetch
+      .mockResolvedValueOnce(new Response(JSON.stringify([]), { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify([]), { status: 200 }))
+
+    const { onSyncStatusChange, initialSync } = await import('./sync')
+    const statuses: string[] = []
+    const unsub = onSyncStatusChange((s) => statuses.push(s))
+
+    // Unsubscribe before any changes
+    unsub()
+    await initialSync()
+
+    expect(statuses).toHaveLength(0)
+  })
+
+  it('goes pending then synced even when fetch fails (internal fallback)', async () => {
+    // fetchGlobalCharacters / fetchGlobalQuestions swallow their own errors and
+    // return [] — so initialSync never throws and always emits 'synced'.
+    mockFetch.mockRejectedValue(new TypeError('fetch failed'))
+
+    const { onSyncStatusChange, initialSync } = await import('./sync')
+    const statuses: string[] = []
+    const unsub = onSyncStatusChange((s) => statuses.push(s))
     await initialSync()
     unsub()
 

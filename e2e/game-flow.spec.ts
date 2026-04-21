@@ -225,3 +225,142 @@ test.describe('Persistence', () => {
     await expect(page.getByRole('button', { name: /unmute sounds/i })).toBeVisible()
   })
 })
+
+test.describe('Game answer types', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.addInitScript(() => {
+      localStorage.clear()
+      localStorage.setItem('kv:onboarding-complete', 'true')
+    })
+    await setupApiMocks(page)
+
+    // Override answer route to return 'maybe' type on first answer
+    await page.route('**/api/v2/game/answer', (route) => {
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          type: 'question',
+          question: mockQuestion(2),
+          reasoning: { ...mockReasoning, remaining: 80 },
+          remaining: 80,
+          eliminated: 20,
+          questionCount: 2,
+        }),
+      })
+    })
+
+    await page.goto('/')
+    await page.getByRole('button', { name: /start game/i }).first().click()
+    await expect(page.getByRole('button', { name: /answer yes/i })).toBeVisible({ timeout: 5000 })
+  })
+
+  test('maybe/unknown button is present on question card', async ({ page }) => {
+    // The "Not sure" / "Maybe" button should be visible alongside Yes/No
+    const maybeButton = page.getByRole('button', { name: /not sure|maybe|unknown/i })
+    await expect(maybeButton).toBeVisible()
+  })
+
+  test('clicking "Not sure" advances to next question', async ({ page }) => {
+    const maybeButton = page.getByRole('button', { name: /not sure|maybe|unknown/i })
+    await maybeButton.click()
+    // Should still be in playing phase (next question loaded)
+    await expect(page.getByRole('button', { name: /answer yes/i })).toBeVisible({ timeout: 5000 })
+  })
+})
+
+test.describe('Guess confirmation flow', () => {
+  async function setupGuessRoute(page: Page) {
+    await page.addInitScript(() => {
+      localStorage.clear()
+      localStorage.setItem('kv:onboarding-complete', 'true')
+    })
+
+    await page.route('**/api/v2/game/start', (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          sessionId: MOCK_SESSION_ID,
+          question: mockQuestion(1),
+          reasoning: mockReasoning,
+          totalCharacters: 100,
+        }),
+      }),
+    )
+
+    // Immediately return a guess on first answer
+    await page.route('**/api/v2/game/answer', (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          type: 'guess',
+          character: { id: 'mario', name: 'Mario', category: 'video-games', imageUrl: null },
+          confidence: 92,
+          questionCount: 1,
+          remaining: 1,
+        }),
+      }),
+    )
+
+    await page.route('**/api/v2/game/result', (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: true }),
+      }),
+    )
+
+    await page.route('**/api/v2/game/reject-guess', (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          type: 'question',
+          question: mockQuestion(2),
+          reasoning: { ...mockReasoning, remaining: 50 },
+          remaining: 50,
+          eliminated: 50,
+          questionCount: 2,
+        }),
+      }),
+    )
+
+    await page.route('**/api/v2/game/resume', (route) =>
+      route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ expired: true }) }),
+    )
+  }
+
+  test('correct guess flow shows game-over/win screen', async ({ page }) => {
+    await setupGuessRoute(page)
+    await page.goto('/')
+    await page.getByRole('button', { name: /start game/i }).first().click()
+    await expect(page.getByRole('button', { name: /answer yes/i })).toBeVisible({ timeout: 5000 })
+    await page.getByRole('button', { name: /answer yes/i }).click()
+
+    // Guess phase — confirm correct
+    const confirmButton = page.getByRole('button', { name: /yes.*correct|that'?s correct/i })
+    await expect(confirmButton).toBeVisible({ timeout: 5000 })
+    await confirmButton.click()
+
+    // Should reach game-over
+    await expect(page.getByRole('button', { name: /play again/i }).first()).toBeVisible({ timeout: 5000 })
+  })
+
+  test('wrong guess flow allows rejecting the guess', async ({ page }) => {
+    await setupGuessRoute(page)
+    await page.goto('/')
+    await page.getByRole('button', { name: /start game/i }).first().click()
+    await expect(page.getByRole('button', { name: /answer yes/i })).toBeVisible({ timeout: 5000 })
+    await page.getByRole('button', { name: /answer yes/i }).click()
+
+    // Guess phase — reject the guess
+    const wrongButton = page.getByRole('button', { name: /no.*wrong|that'?s wrong|wrong/i })
+    await expect(wrongButton).toBeVisible({ timeout: 5000 })
+    await wrongButton.click()
+
+    // After rejecting, should show the next question
+    await expect(page.getByRole('button', { name: /answer yes/i })).toBeVisible({ timeout: 5000 })
+  })
+})

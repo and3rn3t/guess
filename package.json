@@ -104,6 +104,7 @@
     "@types/react-dom": "^19.0.4",
     "@types/sharp": "^0.32.0",
     "@vitejs/plugin-react-swc": "^4.2.2",
+    "@vitest/coverage-v8": "^4.1.4",
     "better-sqlite3": "^12.9.0",
     "eslint": "^9.28.0",
     "eslint-plugin-react-hooks": "^5.2.0",
