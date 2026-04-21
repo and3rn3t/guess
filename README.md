@@ -73,13 +73,14 @@ pnpm dev
 | `pnpm test` | Run all Vitest tests |
 | `pnpm test:unit` | Unit tests only (excludes components) |
 | `pnpm test:components` | Component tests only |
-| `pnpm test:e2e` | Playwright E2E tests (requires `pnpm preview`) |
+| `pnpm test:e2e` | Playwright E2E tests (auto-starts preview server; requires a build) |
 | `pnpm test:coverage` | Tests with coverage report |
 | `pnpm deploy` | Build + deploy to Cloudflare Pages (production) |
 | `pnpm deploy:preview` | Build + deploy preview branch |
 | `pnpm cf:login` | Authenticate with Cloudflare |
 | `pnpm cf:dev` | Dev server with Cloudflare bindings (KV, D1, R2) |
 | `pnpm db:types` | Regenerate D1 row types from migrations |
+| `pnpm migrate:create` | Scaffold a new timestamped migration file |
 | `pnpm migrate:preview` | Apply pending D1 migrations to preview |
 | `pnpm migrate:prod` | Apply pending D1 migrations to production |
 | `pnpm analytics:readiness:preview` | Run guess-readiness calibration queries against preview D1 |
