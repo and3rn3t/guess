@@ -17,8 +17,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # ── All checks + build run in parallel ───────────────────────
-  lint:
+  # ── Lint + type-check + tests (merged to share install) ──────
+  checks:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -29,42 +29,8 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm lint
-
-  typecheck:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
       - run: tsc -b
-
-  test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
       - run: pnpm test
-
-  test-components:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm test:components
 
   test-e2e:
     needs: [build]
@@ -81,7 +47,14 @@ jobs:
         with:
           name: dist
           path: dist
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        id: playwright-cache
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-chromium-${{ hashFiles('**/pnpm-lock.yaml') }}
       - run: npx playwright install --with-deps chromium
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
       - run: npx playwright test
       - uses: actions/upload-artifact@v4
         if: ${{ !cancelled() }}
@@ -120,7 +93,7 @@ jobs:
 
   # ── Deploy preview (PRs) ────────────────────────────────────
   deploy-preview:
-    needs: [lint, typecheck, test, test-components, test-e2e, build]
+    needs: [checks, build, test-e2e]
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     permissions:
@@ -171,7 +144,7 @@ jobs:
 
   # ── Deploy production (push to main) ────────────────────────
   deploy-production:
-    needs: [lint, typecheck, test, test-components, test-e2e, build]
+    needs: [checks, build, test-e2e]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:
