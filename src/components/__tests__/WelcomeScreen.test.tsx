@@ -44,6 +44,8 @@ const defaultProps = () => ({
   globalStats: null,
   dailyStatus: null,
   startDailyChallenge: vi.fn(),
+  difficulty: 'medium' as const,
+  setDifficulty: vi.fn(),
 })
 
 describe('WelcomeScreen', () => {
@@ -109,5 +111,20 @@ describe('WelcomeScreen', () => {
     render(<WelcomeScreen {...defaultProps()} />)
     const matches = screen.getAllByText(/500\+/)
     expect(matches.length).toBeGreaterThanOrEqual(1)
+  })
+
+  it('renders difficulty picker with three options', () => {
+    render(<WelcomeScreen {...defaultProps()} />)
+    expect(screen.getByRole('button', { name: /easy/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /medium/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /hard/i })).toBeInTheDocument()
+  })
+
+  it('calls setDifficulty when a difficulty is clicked', async () => {
+    const user = userEvent.setup()
+    const props = defaultProps()
+    render(<WelcomeScreen {...props} />)
+    await user.click(screen.getByRole('button', { name: /hard/i }))
+    expect(props.setDifficulty).toHaveBeenCalledWith('hard')
   })
 })

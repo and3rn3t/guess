@@ -11,6 +11,8 @@ import { DEFAULT_CHARACTERS } from "@/lib/database";
 import type {
   Character,
 } from "@/lib/types";
+import { DIFFICULTIES } from "@/lib/types";
+import type { Difficulty } from "@/lib/types";
 import {
   BrainIcon,
   CalendarBlankIcon,
@@ -42,6 +44,8 @@ interface WelcomeScreenProps {
   globalStats: GlobalStats | null;
   dailyStatus: DailyChallengeStatus | null;
   startDailyChallenge: () => void;
+  difficulty: Difficulty;
+  setDifficulty: (d: Difficulty) => void;
 }
 
 export function WelcomeScreen({
@@ -60,6 +64,8 @@ export function WelcomeScreen({
   globalStats,
   dailyStatus,
   startDailyChallenge,
+  difficulty,
+  setDifficulty,
 }: Readonly<WelcomeScreenProps>) {
   return (
     <motion.div
@@ -219,6 +225,26 @@ export function WelcomeScreen({
 
         {/* Bottom CTA */}
         <div className="text-center space-y-2">
+          {/* Difficulty picker */}
+          <div className="flex justify-center mb-3" role="group" aria-label="Select difficulty">
+            <div className="inline-flex rounded-lg border border-border/60 bg-card/50 p-0.5 gap-0.5">
+              {(Object.entries(DIFFICULTIES) as [Difficulty, typeof DIFFICULTIES[Difficulty]][]).map(([key, cfg]) => (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => setDifficulty(key)}
+                  aria-pressed={difficulty === key}
+                  className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${
+                    difficulty === key
+                      ? "bg-accent text-accent-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {cfg.label}
+                </button>
+              ))}
+            </div>
+          </div>
           <Button
             onClick={startGame}
             size="lg"

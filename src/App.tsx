@@ -137,8 +137,8 @@ function App() {
     exhausted,
   } = game;
 
-  // ========== SETTINGS (hardcoded defaults) ==========
-  const difficulty: Difficulty = "medium";
+  // ========== SETTINGS ==========
+  const [difficulty, setDifficulty] = useState<Difficulty>("medium");
   const [challenge, setChallenge] = useState<SharePayload | null>(null);
   const {
     serverRemaining,
@@ -452,6 +452,8 @@ function App() {
                   globalStats={globalStats}
                   dailyStatus={dailyStatus}
                   startDailyChallenge={startDailyChallenge}
+                  difficulty={difficulty}
+                  setDifficulty={setDifficulty}
                 />
               )}
 
