@@ -46,6 +46,8 @@ const defaultProps = () => ({
   startDailyChallenge: vi.fn(),
   difficulty: 'medium' as const,
   setDifficulty: vi.fn(),
+  categories: [] as import('@/lib/types').CharacterCategory[],
+  setCategories: vi.fn(),
 })
 
 describe('WelcomeScreen', () => {
@@ -136,5 +138,30 @@ describe('WelcomeScreen', () => {
   it('shows difficulty label in footer text', () => {
     render(<WelcomeScreen {...defaultProps()} difficulty="easy" maxQuestions={20} />)
     expect(screen.getByText(/easy/i, { selector: 'p' })).toBeInTheDocument()
+  })
+
+  it('renders all 8 category chips', () => {
+    render(<WelcomeScreen {...defaultProps()} />)
+    expect(screen.getByRole('button', { name: /anime/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /movies/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /video games/i })).toBeInTheDocument()
+    expect(screen.getAllByRole('button', { name: /.*/ }).filter(
+      (b) => b.getAttribute('aria-pressed') !== null && !['Easy','Medium','Hard'].some(d => b.textContent?.includes(d))
+    ).length).toBe(8)
+  })
+
+  it('category chip toggles aria-pressed and calls setCategories', async () => {
+    const user = userEvent.setup()
+    const props = defaultProps()
+    render(<WelcomeScreen {...props} />)
+    const animeBtn = screen.getByRole('button', { name: /anime/i })
+    expect(animeBtn).toHaveAttribute('aria-pressed', 'false')
+    await user.click(animeBtn)
+    expect(props.setCategories).toHaveBeenCalledWith(['anime'])
+  })
+
+  it('active category chip shows aria-pressed true', () => {
+    render(<WelcomeScreen {...defaultProps()} categories={['movies']} />)
+    expect(screen.getByRole('button', { name: /movies/i })).toHaveAttribute('aria-pressed', 'true')
   })
 })

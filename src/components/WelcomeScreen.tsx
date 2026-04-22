@@ -10,8 +10,9 @@ import type { DailyChallengeStatus } from "@/hooks/useDailyChallenge";
 import { DEFAULT_CHARACTERS } from "@/lib/database";
 import type {
   Character,
+  CharacterCategory,
 } from "@/lib/types";
-import { DIFFICULTIES } from "@/lib/types";
+import { CATEGORY_LABELS, DIFFICULTIES } from "@/lib/types";
 import type { Difficulty } from "@/lib/types";
 import {
   BrainIcon,
@@ -46,6 +47,8 @@ interface WelcomeScreenProps {
   startDailyChallenge: () => void;
   difficulty: Difficulty;
   setDifficulty: (d: Difficulty) => void;
+  categories: CharacterCategory[];
+  setCategories: (c: CharacterCategory[]) => void;
 }
 
 export function WelcomeScreen({
@@ -66,6 +69,8 @@ export function WelcomeScreen({
   startDailyChallenge,
   difficulty,
   setDifficulty,
+  categories,
+  setCategories,
 }: Readonly<WelcomeScreenProps>) {
   return (
     <motion.div
@@ -248,6 +253,33 @@ export function WelcomeScreen({
               {DIFFICULTIES[difficulty].description}
             </p>
           </div>
+
+          {/* Category filter chips */}
+          <div className="flex flex-wrap justify-center gap-1.5 mb-3" role="group" aria-label="Filter by category">
+            {(Object.entries(CATEGORY_LABELS) as [CharacterCategory, string][]).map(([key, label]) => {
+              const active = categories.includes(key);
+              return (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() =>
+                    setCategories(
+                      active ? categories.filter((c) => c !== key) : [...categories, key],
+                    )
+                  }
+                  aria-pressed={active}
+                  className={`px-3 py-1 rounded-full text-xs font-medium border transition-all ${
+                    active
+                      ? "bg-accent text-accent-foreground border-accent shadow-sm"
+                      : "bg-card/50 text-muted-foreground border-border/60 hover:border-accent/50 hover:text-foreground"
+                  }`}
+                >
+                  {label}
+                </button>
+              );
+            })}
+          </div>
+
           <Button
             onClick={startGame}
             size="lg"

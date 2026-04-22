@@ -39,6 +39,7 @@ import { getSyncStatus, onSyncStatusChange } from "@/lib/sync";
 import type {
   AnswerValue,
   Character,
+  CharacterCategory,
   Difficulty,
   Question,
 } from "@/lib/types";
@@ -139,6 +140,7 @@ function App() {
 
   // ========== SETTINGS ==========
   const [difficulty, setDifficulty] = useState<Difficulty>("medium");
+  const [categories, setCategories] = useState<CharacterCategory[]>([]);
   const [challenge, setChallenge] = useState<SharePayload | null>(null);
   const {
     serverRemaining,
@@ -167,7 +169,7 @@ function App() {
     if (!dailyStatus) return
     setIsDailyGame(true)
     await startServerGame([], difficulty, dailyStatus.characterId)
-  }, [dailyStatus, startServerGame, difficulty])
+  }, [dailyStatus, startServerGame, difficulty])  // categories intentionally excluded — daily challenge plays from the full pool
 
   // Show onboarding when first game starts
   useEffect(() => {
@@ -223,7 +225,7 @@ function App() {
 
   // ========== GAME START ==========
   const startGame = async () => {
-    await startServerGame([], difficulty);
+    await startServerGame(categories, difficulty);
   };
 
   // ========== ANSWER HANDLER ==========
@@ -454,6 +456,8 @@ function App() {
                   startDailyChallenge={startDailyChallenge}
                   difficulty={difficulty}
                   setDifficulty={setDifficulty}
+                  categories={categories}
+                  setCategories={setCategories}
                 />
               )}
 
