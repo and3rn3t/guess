@@ -42,8 +42,6 @@ const defaultProps = () => ({
   navigate: vi.fn(),
   characters: CHARS,
   globalStats: null,
-  dailyStatus: null,
-  startDailyChallenge: vi.fn(),
   difficulty: 'medium' as const,
   setDifficulty: vi.fn(),
   categories: [] as import('@/lib/types').CharacterCategory[],
