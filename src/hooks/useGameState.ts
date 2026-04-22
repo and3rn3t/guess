@@ -39,6 +39,7 @@ export interface GameState {
   showDevTools: boolean
   guessCount: number
   exhausted: boolean
+  surrendered: boolean
 }
 
 // ========== ACTIONS ==========
@@ -51,6 +52,7 @@ export type GameAction =
   | { type: 'INCORRECT_GUESS' }
   | { type: 'REJECT_GUESS' }
   | { type: 'SET_EXHAUSTED' }
+  | { type: 'SURRENDER' }
   | { type: 'UNDO_LAST_ANSWER' }
   | { type: 'SET_THINKING'; isThinking: boolean }
   | { type: 'SET_POSSIBLE_CHARACTERS'; characters: Character[] }
@@ -74,6 +76,7 @@ export const initialState: GameState = {
   showDevTools: false,
   guessCount: 0,
   exhausted: false,
+  surrendered: false,
 }
 
 // ========== REDUCER ==========
@@ -137,6 +140,9 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
     case 'SET_EXHAUSTED':
       return { ...state, exhausted: true, gameWon: false, phase: 'gameOver' }
 
+    case 'SURRENDER':
+      return { ...state, surrendered: true, gameWon: false, phase: 'gameOver' }
+
     case 'UNDO_LAST_ANSWER':
       return {
         ...state,
@@ -155,7 +161,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         ...state,
         phase: action.phase,
         selectedCharacter: action.character ?? (action.phase === 'welcome' ? null : state.selectedCharacter),
-        ...(action.phase === 'welcome' ? { guessCount: 0, exhausted: false } : {}),
+        ...(action.phase === 'welcome' ? { guessCount: 0, exhausted: false, surrendered: false } : {}),
       }
 
     case 'TOGGLE_DEV_TOOLS':

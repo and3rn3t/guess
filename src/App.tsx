@@ -136,6 +136,7 @@ function App() {
     showDevTools,
     guessCount,
     exhausted,
+    surrendered,
   } = game;
 
   // ========== SETTINGS ==========
@@ -274,6 +275,14 @@ function App() {
     playIncorrectGuess();
     hapticMedium();
     rejectGuess(finalGuess.id);
+  };
+
+  const handleSurrender = () => {
+    analytics().then((m) => m.trackGameEnd(false, difficulty, gameSteps.length, guessCount));
+    postServerResult(false);
+    refreshStats();
+    setShowQuitDialog(false);
+    dispatch({ type: "SURRENDER" });
   };
 
   // ========== SHARE HANDLERS ==========
@@ -433,6 +442,8 @@ function App() {
               {gamePhase === "gameOver" &&
                 (gameWon
                   ? "Correct! I got it right!"
+                  : surrendered
+                  ? "Game ended early."
                   : "Wrong guess. You stumped me!")}
             </div>
 
@@ -517,6 +528,7 @@ function App() {
                     <GameOver
                       won={gameWon}
                       exhausted={exhausted}
+                      surrendered={surrendered}
                       character={finalGuess}
                       questionsAsked={gameSteps.length}
                       guessesUsed={guessCount}
@@ -660,15 +672,26 @@ function App() {
       <AlertDialog open={showQuitDialog} onOpenChange={setShowQuitDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Quit this game?</AlertDialogTitle>
+            <AlertDialogTitle>End this game?</AlertDialogTitle>
             <AlertDialogDescription>
-              Your progress will be lost. You'll return to the home screen.
+              <strong>Give Up</strong> records your session and asks what you were thinking of — same as a regular loss.
+              <br />
+              <strong>Quit</strong> abandons the game without saving anything.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Keep Playing</AlertDialogCancel>
-            <AlertDialogAction onClick={() => navigate("welcome")}>
-              Quit Game
+          <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+            <AlertDialogCancel className="sm:mr-auto">Keep Playing</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleSurrender}
+              className="bg-amber-500 hover:bg-amber-600 text-white border-0"
+            >
+              Give Up
+            </AlertDialogAction>
+            <AlertDialogAction
+              onClick={() => navigate("welcome")}
+              className="bg-destructive hover:bg-destructive/90 text-destructive-foreground border-0"
+            >
+              Quit Without Saving
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

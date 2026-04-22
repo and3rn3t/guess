@@ -8,6 +8,7 @@ import {
   ArrowClockwise,
   ChartBar,
   ClockCounterClockwise,
+  Flag,
   House,
   Link as LinkIcon,
   ShareNetwork,
@@ -77,6 +78,7 @@ interface GameOverProps {
   onCopyLink?: () => void;
   answeredQuestions?: Array<{ question: string; answer: string }>;
   onReveal?: (characterName: string) => Promise<RevealResult>;
+  surrendered?: boolean;
 }
 
 export function GameOver({
@@ -96,6 +98,7 @@ export function GameOver({
   onCopyLink,
   answeredQuestions,
   onReveal,
+  surrendered,
 }: Readonly<GameOverProps>) {
   const [narrative, setNarrative] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
@@ -203,6 +206,32 @@ export function GameOver({
               <p className="text-foreground/80">
                 Thanks for playing! The more games we play, the smarter I
                 become.
+              </p>
+            </>
+          ) : surrendered ? (
+            <>
+              <motion.div
+                animate={{ rotate: [0, -8, 8, -4, 0] }}
+                transition={{ duration: 0.5, delay: 0.15 }}
+              >
+                <Flag
+                  size={64}
+                  weight="fill"
+                  className="mx-auto text-amber-400"
+                />
+              </motion.div>
+              <div>
+                <h2 className="text-4xl font-bold text-foreground mb-2">
+                  You Called It
+                </h2>
+                <p className="text-xl text-muted-foreground">
+                  You ended the game after{" "}
+                  {questionsAsked ?? 0} question
+                  {questionsAsked === 1 ? "" : "s"}.
+                </p>
+              </div>
+              <p className="text-foreground/80">
+                No worries — tell me who you were thinking of and I&apos;ll learn for next time.
               </p>
             </>
           ) : exhausted ? (
