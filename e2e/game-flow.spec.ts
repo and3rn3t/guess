@@ -199,9 +199,9 @@ test.describe('Game flow', () => {
     // Click quit button (text is just "Quit")
     await page.getByRole('button', { name: /^quit$/i }).click()
 
-    // Confirm quit in the alert dialog (button text is "Quit Game")
-    await expect(page.getByText('Quit this game?')).toBeVisible()
-    await page.getByRole('button', { name: /quit game/i }).click()
+    // Confirm quit in the alert dialog (button text is "Quit Without Saving")
+    await expect(page.getByText('End this game?')).toBeVisible()
+    await page.getByRole('button', { name: /quit without saving/i }).click()
 
     // Should be back at welcome
     await expect(page.getByText('Andernator')).toBeVisible({ timeout: 5000 })
