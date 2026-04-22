@@ -200,12 +200,12 @@ function App() {
 
   // ========== ELIMINATION FEEDBACK ==========
   useEffect(() => {
-    if (prevPossibleCount.current === 0) return;
     const eliminated = prevPossibleCount.current - serverRemaining;
-    if (eliminated > 0) {
+    if (prevPossibleCount.current > 0 && eliminated > 0) {
       setEliminatedCount(eliminated);
       setTimeout(() => setEliminatedCount(null), 2000);
     }
+    prevPossibleCount.current = serverRemaining;
   }, [serverRemaining]);
 
   // ========== PARSE URL CHALLENGE ON MOUNT ==========
@@ -228,12 +228,11 @@ function App() {
 
   // ========== ANSWER HANDLER ==========
   const handleAnswer = async (value: AnswerValue) => {
-    prevPossibleCount.current = serverRemaining;
     dispatch({ type: "ANSWER", value });
     playAnswer();
     hapticLight();
 
-    await handleServerAnswer(value, prevPossibleCount.current);
+    await handleServerAnswer(value);
   };
 
   // ========== GAME OUTCOME HANDLERS ==========

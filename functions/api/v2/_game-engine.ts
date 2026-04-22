@@ -384,7 +384,7 @@ export async function deleteSession(kv: KVNamespace, sessionId: string): Promise
 // Questions are immutable at runtime — cache for 24h to skip the D1 round-trip.
 
 const QUESTIONS_CACHE_KEY = 'meta:questions'
-const QUESTIONS_CACHE_TTL = 86400 // 24 hours
+const QUESTIONS_CACHE_TTL = 3600 // 1 hour
 
 /** Load all questions from KV cache. Returns null on a cache miss. */
 export async function loadCachedQuestions(kv: KVNamespace): Promise<ServerQuestion[] | null> {

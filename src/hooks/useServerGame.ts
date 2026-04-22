@@ -1,6 +1,5 @@
-import { useCallback, useEffect, useRef, useState } from "react";
-import { toast } from "sonner";
 import type { GameAction } from "@/hooks/useGameState";
+import { playSuspense, playThinking } from "@/lib/sounds";
 import type {
   AnswerValue,
   Character,
@@ -10,7 +9,8 @@ import type {
   Question,
   ReasoningExplanation,
 } from "@/lib/types";
-import { playThinking, playSuspense } from "@/lib/sounds";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
 
 const analytics = () => import("@/lib/analytics");
 
@@ -101,15 +101,22 @@ function normalizeReadiness(
  * server API calls.  Receives the shared game-state `dispatch` so
  * the main reducer stays the single source of truth.
  */
-export function useServerGame(
-  dispatch: React.Dispatch<GameAction>,
-) {
+export function useServerGame(dispatch: React.Dispatch<GameAction>) {
   const [serverSessionId, setServerSessionId] = useState<string | null>(null);
   const [serverRemaining, setServerRemaining] = useState(0);
+  const serverRemainingRef = useRef(0);
   const [serverTotal, setServerTotal] = useState(0);
   const [serverMaxQuestions, setServerMaxQuestions] = useState(0);
-  const [serverReadiness, setServerReadiness] = useState<GuessReadinessSnapshot | null>(null);
+  const [serverReadiness, setServerReadiness] =
+    useState<GuessReadinessSnapshot | null>(null);
   const resumeAttempted = useRef(false);
+  const isSubmittingAnswer = useRef(false);
+
+  // Keep ref in sync with state for stable closure access
+  const setServerRemainingSync = useCallback((n: number) => {
+    serverRemainingRef.current = n;
+    setServerRemaining(n);
+  }, []);
 
   // Persist session ID to sessionStorage
   const persistSessionId = useCallback((id: string | null) => {
@@ -157,10 +164,14 @@ export function useServerGame(
 
         // Restore game state
         persistSessionId(savedId);
-        setServerRemaining(data.remaining ?? 0);
+        setServerRemainingSync(data.remaining ?? 0);
         setServerTotal(data.totalCharacters ?? 0);
         setServerReadiness(null);
-        dispatch({ type: "START_GAME", characters: [], guessCount: data.guessCount ?? 0 });
+        dispatch({
+          type: "START_GAME",
+          characters: [],
+          guessCount: data.guessCount ?? 0,
+        });
 
         // Replay answers into reducer so step count is correct
         if (data.answers) {
@@ -187,15 +198,19 @@ export function useServerGame(
           reasoning: data.reasoning,
         });
 
-        toast.info("Server game resumed");
+        toast.success("Previous session restored");
       } catch {
         persistSessionId(null);
       }
     })();
-  }, [dispatch, persistSessionId]);
+  }, [dispatch, persistSessionId, setServerRemainingSync]);
 
   const startServerGame = useCallback(
-    async (categories: CharacterCategory[], difficulty: Difficulty, characterId?: string) => {
+    async (
+      categories: CharacterCategory[],
+      difficulty: Difficulty,
+      characterId?: string,
+    ) => {
       dispatch({ type: "SET_THINKING", isThinking: true });
       playThinking();
       try {
@@ -211,7 +226,7 @@ export function useServerGame(
         if (!res.ok) throw new Error("Failed to start");
         const data = (await res.json()) as StartResponse;
         persistSessionId(data.sessionId);
-        setServerRemaining(data.totalCharacters);
+        setServerRemainingSync(data.totalCharacters);
         setServerTotal(data.totalCharacters);
         setServerReadiness(null);
         if (data.maxQuestions) setServerMaxQuestions(data.maxQuestions);
@@ -233,11 +248,13 @@ export function useServerGame(
         dispatch({ type: "SET_THINKING", isThinking: false });
       }
     },
-    [dispatch, persistSessionId],
+    [dispatch, persistSessionId, setServerRemainingSync],
   );
 
   const handleServerAnswer = useCallback(
-    async (value: AnswerValue, prevCount: number) => {
+    async (value: AnswerValue) => {
+      if (isSubmittingAnswer.current) return;
+      isSubmittingAnswer.current = true;
       dispatch({ type: "SET_THINKING", isThinking: true });
       try {
         const res = await fetch("/api/v2/game/answer", {
@@ -264,8 +281,7 @@ export function useServerGame(
           const guessChar: Character = {
             id: data.character.id,
             name: data.character.name,
-            category: (data.character.category ||
-              "other") as CharacterCategory,
+            category: (data.character.category || "other") as CharacterCategory,
             attributes: {},
             imageUrl: data.character.imageUrl ?? undefined,
           };
@@ -283,11 +299,12 @@ export function useServerGame(
             question: data.question,
             reasoning: data.reasoning,
           });
-          setServerRemaining(data.remaining ?? prevCount);
+          setServerRemainingSync(data.remaining ?? serverRemainingRef.current);
           setServerReadiness(normalizeReadiness(data.readiness));
           if (data.readiness?.blockedByRejectCooldown) {
             const remaining = data.readiness.rejectCooldownRemaining ?? 0;
-            const suffix = remaining > 0 ? ` (${remaining} more before next guess)` : "";
+            const suffix =
+              remaining > 0 ? ` (${remaining} more before next guess)` : "";
             toast.info(`Collecting more evidence before guessing${suffix}`);
           } else {
             toast.success(`Answer recorded: ${value}`);
@@ -297,20 +314,26 @@ export function useServerGame(
         toast.error("Failed to process answer — try again");
         dispatch({ type: "UNDO_LAST_ANSWER" });
       } finally {
+        isSubmittingAnswer.current = false;
         dispatch({ type: "SET_THINKING", isThinking: false });
       }
     },
-    [dispatch, serverSessionId],
+    [dispatch, serverSessionId, setServerRemainingSync],
   );
 
   const postServerResult = useCallback(
     (correct: boolean) => {
       if (!serverSessionId) return;
-      fetch("/api/v2/game/result", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sessionId: serverSessionId, correct }),
-      }).catch(() => {});
+      const body = JSON.stringify({ sessionId: serverSessionId, correct });
+      const attempt = () =>
+        fetch("/api/v2/game/result", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body,
+        });
+      attempt()
+        .catch(() => attempt())
+        .catch(() => {});
       persistSessionId(null);
     },
     [serverSessionId, persistSessionId],
@@ -336,15 +359,25 @@ export function useServerGame(
           dispatch({ type: "SET_EXHAUSTED" });
           postServerResult(false);
           analytics().then((m) =>
-            m.trackGameEnd(false, "medium", data.questionCount ?? 0, data.guessCount ?? 0, true),
+            m.trackGameEnd(
+              false,
+              "medium",
+              data.questionCount ?? 0,
+              data.guessCount ?? 0,
+              true,
+            ),
           );
-        } else if (data.type === "question" && data.question && data.reasoning) {
+        } else if (
+          data.type === "question" &&
+          data.question &&
+          data.reasoning
+        ) {
           dispatch({
             type: "SET_QUESTION",
             question: data.question,
             reasoning: data.reasoning,
           });
-          setServerRemaining(data.remaining ?? 0);
+          setServerRemainingSync(data.remaining ?? 0);
           setServerReadiness({
             trigger: "insufficient_data",
             blockedByRejectCooldown: (data.rejectCooldownRemaining ?? 0) > 0,
@@ -352,7 +385,8 @@ export function useServerGame(
           });
           if (data.maxQuestions) setServerMaxQuestions(data.maxQuestions);
           const cooldown = data.rejectCooldownRemaining ?? 0;
-          const suffix = cooldown > 0 ? ` (${cooldown} more before next guess)` : "";
+          const suffix =
+            cooldown > 0 ? ` (${cooldown} more before next guess)` : "";
           toast.info(`I'll keep trying — let me ask more questions${suffix}!`);
         } else {
           // Unexpected response shape — treat as error so user can retry
@@ -364,7 +398,7 @@ export function useServerGame(
         dispatch({ type: "SET_THINKING", isThinking: false });
       }
     },
-    [dispatch, serverSessionId, postServerResult],
+    [dispatch, serverSessionId, postServerResult, setServerRemainingSync],
   );
 
   const retryAfterReject = useCallback(() => {
@@ -380,7 +414,7 @@ export function useServerGame(
     serverTotal,
     serverMaxQuestions,
     serverReadiness,
-    setServerRemaining,
+    setServerRemaining: setServerRemainingSync,
     startServerGame,
     handleServerAnswer,
     postServerResult,

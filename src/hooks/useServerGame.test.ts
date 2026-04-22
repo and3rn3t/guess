@@ -125,7 +125,7 @@ describe('useServerGame', () => {
       ))
 
       await act(async () => {
-        await result.current.handleServerAnswer('yes', 10)
+        await result.current.handleServerAnswer('yes')
       })
 
       expect(dispatch).toHaveBeenCalledWith(
@@ -169,7 +169,7 @@ describe('useServerGame', () => {
       ))
 
       await act(async () => {
-        await result.current.handleServerAnswer('yes', 10)
+        await result.current.handleServerAnswer('yes')
       })
 
       expect(dispatch).toHaveBeenCalledWith(
@@ -205,7 +205,7 @@ describe('useServerGame', () => {
       ))
 
       await act(async () => {
-        await result.current.handleServerAnswer('yes', 10)
+        await result.current.handleServerAnswer('yes')
       })
 
       expect(dispatch).toHaveBeenCalledWith({ type: 'UNDO_LAST_ANSWER' })
@@ -233,7 +233,7 @@ describe('useServerGame', () => {
       mockFetch.mockRejectedValueOnce(new TypeError('fetch failed'))
 
       await act(async () => {
-        await result.current.handleServerAnswer('yes', 10)
+        await result.current.handleServerAnswer('yes')
       })
 
       expect(toast.error).toHaveBeenCalled()

@@ -173,10 +173,19 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
 const ACTIVE_PHASES: ReadonlySet<string> = new Set(['playing', 'guessing'])
 
 function saveSession(state: GameState): void {
+  const serialized = JSON.stringify(state)
   try {
-    localStorage.setItem(SESSION_KEY, JSON.stringify(state))
-  } catch {
-    // Storage full — ignore
+    localStorage.setItem(SESSION_KEY, serialized)
+  } catch (e) {
+    // On QuotaExceededError, evict the stale entry and retry once
+    if (e instanceof DOMException && (e.name === 'QuotaExceededError' || e.name === 'NS_ERROR_DOM_QUOTA_REACHED')) {
+      localStorage.removeItem(SESSION_KEY)
+      try {
+        localStorage.setItem(SESSION_KEY, serialized)
+      } catch {
+        // Storage unavailable — silently skip
+      }
+    }
   }
 }
 
@@ -222,10 +231,6 @@ export function useGameState() {
   const resumeSession = useCallback(() => {
     const session = savedSession.current
     if (!session) return
-    // Dispatch individual actions to rebuild state from saved session
-    dispatch({ type: 'START_GAME', characters: session.possibleCharacters })
-    // Restore answers by replaying — but since we saved full state, we need a restore action
-    // Add a RESTORE_SESSION action type for this
     dispatch({ type: 'RESTORE_SESSION', state: session })
     savedSession.current = null
   }, [])
