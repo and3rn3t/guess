@@ -34,8 +34,8 @@ export default defineConfig({
         'functions/api/v2/stats.ts',
       ],
       thresholds: {
-        lines: 65,
-        branches: 54,
+        lines: 70,
+        branches: 60,
         functions: 65,
       },
     },

@@ -54,14 +54,17 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   // Rarity factor: smaller remaining pool → fewer bonus questions
   const filtered = filterPossibleCharacters(session.characters, session.answers, session.rejectedGuesses)
   const effectiveBonus = filtered.length < 10 ? Math.max(1, Math.floor(bonus / 2)) : bonus
-  const hardCap = baseBudget * 2
+  // Cap at baseBudget+10 to prevent runaway serial-rejection games on easy mode
+  const hardCap = baseBudget + 10
 
   session.maxQuestions = Math.min(session.maxQuestions + effectiveBonus, hardCap)
 
   // Require extra evidence after a wrong guess: ask 1-2 more answers before allowing another guess.
+  // Cooldown is capped at effectiveBonus-1 so at least one bonus question is always "free"
+  // (otherwise the entire bonus is locked in cooldown, providing no real benefit).
   const questionsRemaining = Math.max(0, session.maxQuestions - session.answers.length)
   const desiredCooldown = filtered.length > 12 ? 2 : 1
-  session.postRejectCooldown = Math.min(desiredCooldown, questionsRemaining)
+  session.postRejectCooldown = Math.min(desiredCooldown, effectiveBonus - 1, questionsRemaining)
 
   // Check if any viable candidates remain
   if (filtered.length === 0) {
@@ -77,7 +80,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
   // Select next question (pass progress for dynamic top-K threshold)
   const progress = session.answers.length / session.maxQuestions
-  const nextQuestion = selectBestQuestion(filtered, session.answers, session.questions, { progress })
+  const scoring = { coverageMap: session.coverageMap, popularityMap: session.popularityMap }
+  const nextQuestion = selectBestQuestion(filtered, session.answers, session.questions, { progress, scoring })
 
   if (!nextQuestion) {
     // No more unanswered questions but candidates remain — exhausted

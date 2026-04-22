@@ -329,21 +329,22 @@ describe('detectContradictions', () => {
     const answers: Answer[] = [{ questionId: 'isHuman', value: 'yes' }]
     const result = detectContradictions(CHARS, answers)
     expect(result.hasContradiction).toBe(false)
-    // With MAX_MISMATCHES=1, isHuman mismatch on Pikachu/Kirby = 1 → all 4 kept
+    // With MAX_MISMATCHES=2, isHuman mismatch on Pikachu/Kirby = 1 → all 4 kept
     expect(result.remainingCount).toBe(4)
   })
 
   it('detects contradiction when all characters are eliminated', () => {
-    // 4 answers needed to give ALL 4 chars 2+ mismatches with MAX_MISMATCHES=1:
-    // Mario: canFly(1)+usesWeapons(2)→out; Link: canFly(1)+isMale(2)→out
-    // Pikachu: isHuman(1)+canFly(2)→out; Kirby: isHuman(1)+usesWeapons(2)→out
-    const answers: Answer[] = [
-      { questionId: 'isHuman', value: 'yes' },
-      { questionId: 'canFly', value: 'yes' },
-      { questionId: 'usesWeapons', value: 'yes' },
-      { questionId: 'isMale', value: 'no' },
+    // Use a focused fixture: a single character with 3 attributes all true.
+    // Answering 'no' to all three gives 3 mismatches > MAX_MISMATCHES=2 → eliminated.
+    const strictChar: Character[] = [
+      { id: 'x', name: 'X', category: 'video-games', attributes: { a: true, b: true, c: true } },
     ]
-    const result = detectContradictions(CHARS, answers)
+    const answers: Answer[] = [
+      { questionId: 'a', value: 'no' },
+      { questionId: 'b', value: 'no' },
+      { questionId: 'c', value: 'no' },
+    ]
+    const result = detectContradictions(strictChar, answers)
     expect(result.hasContradiction).toBe(true)
     expect(result.remainingCount).toBe(0)
   })
@@ -419,16 +420,17 @@ describe('detectContradictions', () => {
   })
 
   it('detects contradiction when all characters eliminated', () => {
-    // 4 answers to give all chars 2+ mismatches (MAX_MISMATCHES=1):
-    // Mario: canFly(1)+usesWeapons(2)→out; Link: canFly(1)+isMale(2)→out
-    // Pikachu: isHuman(1)+canFly(2)→out; Kirby: isHuman(1)+usesWeapons(2)→out
-    const answers: Answer[] = [
-      { questionId: 'isHuman', value: 'yes' },
-      { questionId: 'canFly', value: 'yes' },
-      { questionId: 'usesWeapons', value: 'yes' },
-      { questionId: 'isMale', value: 'no' },
+    // Use a focused fixture: a single character with 3 attributes all true.
+    // Answering 'no' to all three gives 3 mismatches > MAX_MISMATCHES=2 → eliminated.
+    const strictChar: Character[] = [
+      { id: 'x', name: 'X', category: 'video-games', attributes: { a: true, b: true, c: true } },
     ]
-    const result = detectContradictions(CHARS, answers)
+    const answers: Answer[] = [
+      { questionId: 'a', value: 'no' },
+      { questionId: 'b', value: 'no' },
+      { questionId: 'c', value: 'no' },
+    ]
+    const result = detectContradictions(strictChar, answers)
     expect(result.hasContradiction).toBe(true)
     expect(result.remainingCount).toBe(0)
   })
@@ -437,7 +439,7 @@ describe('detectContradictions', () => {
     const answers: Answer[] = [{ questionId: 'isHuman', value: 'yes' }]
     const result = detectContradictions(CHARS, answers)
     expect(result.hasContradiction).toBe(false)
-    // All 4 kept: isHuman mismatch on Pikachu/Kirby = 1 ≤ MAX_MISMATCHES
+    // All 4 kept: isHuman mismatch on Pikachu/Kirby = 1 ≤ MAX_MISMATCHES=2
     expect(result.remainingCount).toBe(4)
   })
 })

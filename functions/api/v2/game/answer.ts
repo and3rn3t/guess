@@ -70,7 +70,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       coverageMap.set(q.attribute, known / charCount)
     }
   }
-  const scoring = { coverageMap }
+  const scoring = { coverageMap, popularityMap: session.popularityMap }
 
   // Pre-compute probabilities once — reused by evaluateGuessReadiness and selectBestQuestion
   // to avoid redundant O(C×A) passes over the same data.

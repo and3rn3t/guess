@@ -67,6 +67,8 @@ export interface GameSession {
   questions: ServerQuestion[]
   /** Pre-computed at game start (immutable for pool lifetime). Avoids recomputation per answer. */
   coverageMap?: Map<string, number>
+  /** Popularity prior: character id → normalized [0,1] score. Decays with game progress. */
+  popularityMap?: Map<string, number>
   answers: Answer[]
   currentQuestion: ServerQuestion | null
   difficulty: string
@@ -226,8 +228,8 @@ export function detectContradictions(
 
 /** Hard-filter characters based on definitive answers and rejected guesses.
  *  Allows up to MAX_MISMATCHES contradictions to tolerate bad attribute data
- *  or occasional user errors. Characters beyond this threshold are eliminated. */
-const MAX_MISMATCHES = 1
+ *  or occasional user errors (e.g. enrichment error + one mis-tap). */
+const MAX_MISMATCHES = 2
 
 export function filterPossibleCharacters(
   characters: ServerCharacter[],
@@ -271,6 +273,8 @@ interface GamePool {
   questions: ServerQuestion[]
   /** Serialized coverage map (Map → plain object for JSON storage). */
   coverageMap?: Record<string, number>
+  /** Serialized popularity map (Map → plain object for JSON storage). */
+  popularityMap?: Record<string, number>
 }
 
 /** Store a new session — writes both pool (immutable) and lean session (mutable). */
@@ -280,10 +284,14 @@ export async function storeSession(kv: KVNamespace, session: GameSession): Promi
   const coverageRecord: Record<string, number> | undefined = session.coverageMap
     ? Object.fromEntries(session.coverageMap)
     : undefined
+  const popularityRecord: Record<string, number> | undefined = session.popularityMap
+    ? Object.fromEntries(session.popularityMap)
+    : undefined
   const pool: GamePool = {
     characters: session.characters,
     questions: session.questions,
     coverageMap: coverageRecord,
+    popularityMap: popularityRecord,
   }
   const lean: LeanSession = {
     id: session.id,
@@ -329,12 +337,14 @@ export async function loadSession(kv: KVNamespace, sessionId: string): Promise<G
 
   // Deserialize coverage map plain object → Map
   const coverageMap = pool.coverageMap ? new Map(Object.entries(pool.coverageMap)) : undefined
+  const popularityMap = pool.popularityMap ? new Map(Object.entries(pool.popularityMap)) : undefined
 
   return {
     id: data.id,
     characters: pool.characters,
     questions: pool.questions,
     coverageMap,
+    popularityMap,
     answers: data.answers,
     currentQuestion: data.currentQuestion,
     difficulty: data.difficulty,

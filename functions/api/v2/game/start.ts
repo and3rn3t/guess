@@ -36,7 +36,7 @@ interface StartRequest {
   characterId?: string
 }
 
-type CharacterRow = Pick<CharactersRow, 'id' | 'name' | 'category' | 'image_url'> & { attributes_json: string }
+type CharacterRow = Pick<CharactersRow, 'id' | 'name' | 'category' | 'image_url' | 'popularity'> & { attributes_json: string }
 
 type QuestionRow = Pick<QuestionsRow, 'id' | 'text' | 'attribute_key'>
 
@@ -105,7 +105,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   const candidateLimit = POOL_SIZE * 2
   const candidates = await d1Query<CharacterRow>(
     db,
-    `SELECT c.id, c.name, c.category, c.image_url, c.attributes_json
+    `SELECT c.id, c.name, c.category, c.image_url, c.popularity, c.attributes_json
      FROM characters c
      ${where}
      ORDER BY c.popularity DESC
@@ -173,8 +173,15 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     coverageMap.set(q.attribute, known / charCount)
   }
 
+  // Build popularity prior: normalize raw DB scores to [0,1] within pool.
+  // Max-normalised so the most popular character in the pool scores 1.0.
+  const maxPop = Math.max(...characters.map((c) => c.popularity ?? 0), 1)
+  const popularityMap = new Map(
+    characters.map((c) => [c.id, (c.popularity ?? 0) / maxPop])
+  )
+
   // Select first question
-  const firstQuestion = selectBestQuestion(serverChars, [], serverQuestions, { scoring: { coverageMap } })
+  const firstQuestion = selectBestQuestion(serverChars, [], serverQuestions, { scoring: { coverageMap, popularityMap } })
   if (!firstQuestion) {
     return errorResponse('No questions available', 500)
   }
@@ -188,6 +195,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     characters: serverChars,
     questions: serverQuestions,
     coverageMap,
+    popularityMap,
     answers: [],
     currentQuestion: firstQuestion,
     difficulty,
