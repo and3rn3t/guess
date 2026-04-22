@@ -72,6 +72,13 @@ export function WelcomeScreen({
   categories,
   setCategories,
 }: Readonly<WelcomeScreenProps>) {
+  const filteredTotal =
+    categories.length === 0
+      ? null
+      : globalStats?.byCategory
+          ?.filter((c) => categories.includes(c.category as CharacterCategory))
+          .reduce((sum, c) => sum + c.count, 0) ?? null;
+
   return (
     <motion.div
       key="welcome"
@@ -289,7 +296,10 @@ export function WelcomeScreen({
             Start Game
           </Button>
           <p className="text-xs text-muted-foreground">
-            {serverTotal || "500+"} characters · {DIFFICULTIES[difficulty].label} · {maxQuestions} questions
+            {filteredTotal != null
+              ? <><span className="text-accent font-medium">~{filteredTotal}</span> of {serverTotal || "500+"} characters</>
+              : <>{serverTotal || "500+"} characters</>
+            } · {DIFFICULTIES[difficulty].label} · {maxQuestions} questions
             {globalStats?.gameStats && globalStats.gameStats.totalGames >= 10 && (
               <> · AI wins <strong>{Math.round(globalStats.gameStats.winRate)}%</strong> of {globalStats.gameStats.totalGames.toLocaleString()} games</>
             )}

@@ -139,8 +139,8 @@ function App() {
   } = game;
 
   // ========== SETTINGS ==========
-  const [difficulty, setDifficulty] = useState<Difficulty>("medium");
-  const [categories, setCategories] = useState<CharacterCategory[]>([]);
+  const [difficulty, setDifficulty] = useKV<Difficulty>("pref:difficulty", "medium");
+  const [categories, setCategories] = useKV<CharacterCategory[]>("pref:categories", []);
   const [challenge, setChallenge] = useState<SharePayload | null>(null);
   const {
     serverRemaining,

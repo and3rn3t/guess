@@ -164,4 +164,29 @@ describe('WelcomeScreen', () => {
     render(<WelcomeScreen {...defaultProps()} categories={['movies']} />)
     expect(screen.getByRole('button', { name: /movies/i })).toHaveAttribute('aria-pressed', 'true')
   })
+
+  it('shows filtered pool size when categories are selected and globalStats has byCategory', () => {
+    const globalStats = {
+      characters: 500,
+      attributes: 10,
+      questions: 100,
+      characterAttributes: { total: 5000, filled: 4000, fillRate: 0.8 },
+      byCategory: [
+        { category: 'anime', count: 150 },
+        { category: 'movies', count: 200 },
+        { category: 'video-games', count: 100 },
+      ],
+      bySource: [],
+      gameStats: null,
+    }
+    render(<WelcomeScreen {...defaultProps()} categories={['anime', 'movies']} globalStats={globalStats} serverTotal={500} />)
+    expect(screen.getByText('~350')).toBeInTheDocument()
+  })
+
+  it('shows full pool size when no categories are selected', () => {
+    render(<WelcomeScreen {...defaultProps()} serverTotal={500} />)
+    // footer paragraph contains "500 characters"
+    const footer = screen.getAllByText(/500/, { selector: 'p' })
+    expect(footer.length).toBeGreaterThanOrEqual(1)
+  })
 })
