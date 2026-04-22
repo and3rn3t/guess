@@ -10,6 +10,11 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- **Difficulty selector** — Easy (20q) / Medium (15q) / Hard (10q) picker on welcome screen; selection is passed to `POST /api/v2/game/start`; description hint shown below picker with `aria-live="polite"`; active difficulty label shown in footer
+- **Category filter chips** — 8 multi-select chips on welcome screen (Video Games, Movies, Anime, Comics, Books, Cartoons, TV Shows, Pop Culture); selected categories are passed to `POST /api/v2/game/start` to narrow the candidate pool; daily challenge always uses the full pool regardless of filter
+- **Persistent preferences** — difficulty and category selections are stored in `localStorage` via `useKV` (`kv:pref:difficulty`, `kv:pref:categories`) and restored on next visit; synced across tabs
+- **Filtered pool size estimate** — welcome screen footer shows `~N of 500+ characters` (accent-coloured, `~` prefix signals estimate) when categories are filtered, computed from `globalStats.byCategory`; shows `500+ characters` when no filter is active
+- **Questions-remaining counter** — `{N} left` badge shown beside the confidence percentage in `PlayingScreen`'s sticky header
 - **Mobile UX polish** — comprehensive touch-optimised interface across all game phases
   - `QuestionCard`: gradient answer buttons (yes=emerald, no=rose, maybe=amber, unknown=slate), `ThinkingCard` rebuilt with CSS shimmer animation (no `Skeleton` component), `motion.div` wrapping buttons with `whileTap` scale feedback
   - `PlayingScreen`: custom `div` progress bar (`role="progressbar"`, smooth transition), answer history pills with Framer Motion stagger entrance, removed redundant badge/readiness box
