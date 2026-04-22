@@ -374,7 +374,7 @@ describe('generateReasoning', () => {
   it('describes even split for isHuman (2 vs 2)', () => {
     const r = generateReasoning(QUESTIONS[0], CHARS, [])
     expect(r.why).toContain('splits')
-    expect(r.impact).toContain('eliminates')
+    expect(r.impact).toContain('eliminate')
   })
 
   it('describes minority trait for canFly (1 vs 3)', () => {
@@ -503,7 +503,7 @@ describe('generateReasoning', () => {
     const weaponsQ: ServerQuestion = { id: 'q3', text: 'Does this character use weapons?', attribute: 'usesWeapons' }
     const reasoning = generateReasoning(weaponsQ, CHARS, [])
     expect(reasoning.why).toContain('Only')
-    expect(reasoning.why).toContain('dramatically narrows')
+    expect(reasoning.why).toContain('dramatically narrow')
   })
 
   it('describes a majority-yes attribute correctly', () => {

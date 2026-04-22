@@ -5,6 +5,7 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': resolve(import.meta.dirname, 'src'),
+      '@guess/game-engine': resolve(import.meta.dirname, 'packages/game-engine/src/index.ts'),
     },
   },
   test: {
@@ -12,12 +13,13 @@ export default defineConfig({
       'src/**/*.test.ts',
       'src/**/*.test.tsx',
       'functions/**/*.test.ts',
+      'packages/**/*.test.ts',
     ],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'lcov'],
       // Focus coverage on business logic; React components are covered by Playwright e2e
-      include: ['src/lib/**', 'src/hooks/**', 'functions/api/v2/_*.ts'],
+      include: ['src/lib/**', 'src/hooks/**', 'functions/api/v2/_*.ts', 'packages/game-engine/src/**'],
       exclude: [
         'src/components/ui/**',
         // Cloudflare Workers route handlers require the Workers runtime and cannot be unit tested

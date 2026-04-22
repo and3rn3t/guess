@@ -13,7 +13,8 @@ export default defineConfig({
   ],
   resolve: {
     alias: {
-      '@': resolve(projectRoot, 'src')
+      '@': resolve(projectRoot, 'src'),
+      '@guess/game-engine': resolve(projectRoot, 'packages/game-engine/src/index.ts'),
     }
   },
   build: {

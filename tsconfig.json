@@ -24,10 +24,14 @@
     "paths": {
       "@/*": [
         "./src/*"
+      ],
+      "@guess/game-engine": [
+        "./packages/game-engine/src/index.ts"
       ]
     },
   },
   "include": [
-    "src"
+    "src",
+    "packages"
   ]
 }
