@@ -100,6 +100,9 @@ function PlayingScreenBase({
             <span className="text-sm font-semibold text-accent whitespace-nowrap tabular-nums">
               {confidence}% confident
             </span>
+            <span className="text-xs text-muted-foreground whitespace-nowrap tabular-nums">
+              {maxQuestions - answers.length} left
+            </span>
           </div>
         </div>
 

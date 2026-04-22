@@ -127,4 +127,14 @@ describe('WelcomeScreen', () => {
     await user.click(screen.getByRole('button', { name: /hard/i }))
     expect(props.setDifficulty).toHaveBeenCalledWith('hard')
   })
+
+  it('shows description hint for active difficulty', () => {
+    render(<WelcomeScreen {...defaultProps()} difficulty="hard" />)
+    expect(screen.getByText('10 questions, challenging')).toBeInTheDocument()
+  })
+
+  it('shows difficulty label in footer text', () => {
+    render(<WelcomeScreen {...defaultProps()} difficulty="easy" maxQuestions={20} />)
+    expect(screen.getByText(/easy/i, { selector: 'p' })).toBeInTheDocument()
+  })
 })

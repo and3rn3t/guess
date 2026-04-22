@@ -226,8 +226,8 @@ export function WelcomeScreen({
         {/* Bottom CTA */}
         <div className="text-center space-y-2">
           {/* Difficulty picker */}
-          <div className="flex justify-center mb-3" role="group" aria-label="Select difficulty">
-            <div className="inline-flex rounded-lg border border-border/60 bg-card/50 p-0.5 gap-0.5">
+          <div className="flex flex-col items-center gap-1.5 mb-3">
+            <div className="inline-flex rounded-lg border border-border/60 bg-card/50 p-0.5 gap-0.5" role="group" aria-label="Select difficulty">
               {(Object.entries(DIFFICULTIES) as [Difficulty, typeof DIFFICULTIES[Difficulty]][]).map(([key, cfg]) => (
                 <button
                   key={key}
@@ -244,6 +244,9 @@ export function WelcomeScreen({
                 </button>
               ))}
             </div>
+            <p className="text-xs text-muted-foreground/70" aria-live="polite">
+              {DIFFICULTIES[difficulty].description}
+            </p>
           </div>
           <Button
             onClick={startGame}
@@ -254,7 +257,7 @@ export function WelcomeScreen({
             Start Game
           </Button>
           <p className="text-xs text-muted-foreground">
-            {serverTotal || "500+"} characters · {maxQuestions} questions
+            {serverTotal || "500+"} characters · {DIFFICULTIES[difficulty].label} · {maxQuestions} questions
             {globalStats?.gameStats && globalStats.gameStats.totalGames >= 10 && (
               <> · AI wins <strong>{Math.round(globalStats.gameStats.winRate)}%</strong> of {globalStats.gameStats.totalGames.toLocaleString()} games</>
             )}
