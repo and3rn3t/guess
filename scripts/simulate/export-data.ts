@@ -60,7 +60,7 @@ function parseAttrsJson(json: string): Record<string, boolean | null> {
 // ── Export characters ─────────────────────────────────────────────────────────
 
 console.log('Fetching characters...')
-const MIN_ATTRIBUTES = 5
+const MIN_ATTRIBUTES = 20
 const characterRows = d1Query(
   `SELECT id, name, popularity, attributes_json FROM characters WHERE attributes_json IS NOT NULL AND attribute_count >= ${MIN_ATTRIBUTES} ORDER BY popularity DESC`
 ) as Array<{ id: string; name: string; popularity: number | null; attributes_json: string }>

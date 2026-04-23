@@ -83,7 +83,7 @@ export interface GameSession {
 // ── Server-specific constants ─────────────────────────────────────────────────
 
 export const POOL_SIZE = 500
-export const MIN_ATTRIBUTES = 5
+export const MIN_ATTRIBUTES = 20
 export const SESSION_TTL = 3600 // 1 hour
 
 export const DIFFICULTY_MAP: Record<string, number> = {

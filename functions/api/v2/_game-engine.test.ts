@@ -71,7 +71,7 @@ describe('constants', () => {
   })
 
   it('has expected MIN_ATTRIBUTES', () => {
-    expect(MIN_ATTRIBUTES).toBe(5)
+    expect(MIN_ATTRIBUTES).toBe(20)
   })
 
   it('has expected SESSION_TTL', () => {
