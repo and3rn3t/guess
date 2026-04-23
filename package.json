@@ -26,6 +26,7 @@
     "migrate:create": "tsx scripts/create-migration.ts",
     "migrate:preview": "wrangler d1 migrations apply guess-db-preview --env preview --remote",
     "migrate:prod": "wrangler d1 migrations apply guess-db --env production --remote",
+    "db:clone-to-preview": "zsh scripts/clone-prod-to-preview.sh",
     "analytics:readiness:preview": "wrangler d1 execute guess-db-preview --env preview --remote --file docs/guess-readiness-queries.sql",
     "analytics:readiness:prod": "wrangler d1 execute guess-db --env production --remote --file docs/guess-readiness-queries.sql",
     "ingest": "tsx scripts/ingest/run.ts",

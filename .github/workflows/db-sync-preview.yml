@@ -1,0 +1,36 @@
+name: Sync prod → preview DB
+
+on:
+  # First day of every month at 02:00 UTC
+  schedule:
+    - cron: "0 2 1 * *"
+  # Allow manual trigger from the Actions tab
+  workflow_dispatch:
+
+concurrency:
+  group: db-sync-preview
+  cancel-in-progress: true
+
+jobs:
+  sync:
+    name: Clone production content to preview
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Clone production → preview
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: zsh scripts/clone-prod-to-preview.sh
