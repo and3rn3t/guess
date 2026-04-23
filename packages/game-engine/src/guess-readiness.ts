@@ -287,11 +287,15 @@ export function evaluateGuessReadiness(
   // Only fires in large pools (≥100 chars): in small pools each remaining question is
   // valuable enough to use fully. competitiveCount ≤ 5 ensures at least some posterior
   // concentration (blocks when 100s of characters are equally likely).
+  // topProbability ≥ 0.15 prevents spurious triggers when topP is very low (≤1%) — in
+  // that regime the p > 0.01 floor in competitiveCount produces 0 competitive chars even
+  // though the posterior is actually nearly uniform across many candidates.
   if (
     questionsRemaining <= 3 &&
     questionCount >= 5 &&
     characters.length >= 100 &&
-    competitiveCount <= 5
+    competitiveCount <= 5 &&
+    topProbability >= 0.15
   ) {
     return { shouldGuess: true, trigger: 'time_pressure', ...resultBase }
   }

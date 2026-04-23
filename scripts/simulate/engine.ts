@@ -217,6 +217,7 @@ export function simulateGame(
 
   let guessesUsed = 0;
   let postRejectCooldown = 0;
+  const hardCapMaxQuestions = maxQuestions + 10; // mirrors reject-guess.ts cap
   let won = false;
   let guessTrigger: GuessTrigger | null = null;
   let forcedGuess = false;
@@ -287,11 +288,23 @@ export function simulateGame(
 
       // Wrong guess — simulate rejection and continue with bonus questions
       rejectedIds.add(guess.id);
-      const bonus = Math.min(bonusPerReject, maxQuestions * 2 - maxQuestions);
-      maxQuestions = Math.min(
-        maxQuestions + bonusPerReject,
-        maxQuestions + bonus,
-      );
+      // Mirror reject-guess.ts: effectiveBonus halved when < 10 chars remain; cap at base+10
+      const effectiveBonus = filtered.length < 10 ? Math.max(1, Math.floor(bonusPerReject / 2)) : bonusPerReject;
+      const prevMaxQ = maxQuestions;
+      maxQuestions = Math.min(maxQuestions + effectiveBonus, hardCapMaxQuestions);
+
+      // If the budget is already capped and this was a forced guess, the game is exhausted.
+      // Break to avoid an infinite loop (forced wrong guesses bypass postRejectCooldown,
+      // so without this guard the loop never exits once questionCount >= hardCapMaxQuestions).
+      if (readiness.forced && maxQuestions === prevMaxQ) break;
+
+      maxQuestions = Math.min(maxQuestions + effectiveBonus, hardCapMaxQuestions);
+
+      // If the budget is already capped and this was a forced guess, the game is exhausted.
+      // Break to avoid an infinite loop (forced wrong guesses bypass postRejectCooldown,
+      // so without this guard the loop never exits once questionCount >= hardCapMaxQuestions).
+      if (readiness.forced && maxQuestions === prevMaxQ) break;
+
       postRejectCooldown = 1;
 
       // Re-filter without rejected character
