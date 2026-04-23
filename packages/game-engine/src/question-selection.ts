@@ -139,6 +139,18 @@ export function selectBestQuestion(
   const endgameFocus = progress >= 0.65 || topNMass >= 0.75
   const recentAttrGroups = new Set(answers.slice(-3).map((a) => getAttributeGroup(a.questionId)))
 
+  // Early-game taxonomy forcing: if no species/origin question has been asked yet and we
+  // are still in the first 30% of the game, boost those attribute groups so the AI
+  // establishes the fundamental character type (human / animal / robot / alien …) before
+  // diving into specific ability or appearance questions.  Without this boost, very rare
+  // types (e.g. robots, ~0.2% of the pool) produce near-zero info-gain and are never asked
+  // directly — leaving null-attributed characters alive far too long.
+  const earlyGame = progress < 0.3
+  const needsSpecies =
+    earlyGame && !answers.some((a) => getAttributeGroup(a.questionId) === 'species')
+  const needsOrigin =
+    earlyGame && !answers.some((a) => getAttributeGroup(a.questionId) === 'origin')
+
   // Pre-compute null ratios for coverage penalty (avoids O(Q×C) re-scan inside the loop)
   const nullRatioMap = new Map<string, number>()
   for (const q of availableQuestions) {
@@ -268,6 +280,16 @@ export function selectBestQuestion(
     const attrGroup = getAttributeGroup(question.attribute)
     if (attrGroup !== 'other' && recentAttrGroups.has(attrGroup)) {
       infoGain *= 0.75
+    }
+
+    // Early-game taxonomy boost: applied after all other adjustments so it can
+    // override the diversity penalty.  Species gets a 2× lift to ensure the AI
+    // asks "is it human / animal / robot?" before narrowing into specifics.
+    // Origin gets a 1.3× lift to anchor the franchise early.
+    if (needsSpecies && attrGroup === 'species') {
+      infoGain *= 2.0
+    } else if (needsOrigin && attrGroup === 'origin') {
+      infoGain *= 1.3
     }
 
     scored.push({ question, score: infoGain, topTwoSplit })
