@@ -43,6 +43,12 @@ npx wrangler d1 export guess-db \
 ROW_COUNT=$(grep -c "^INSERT" "$DUMP_FILE" 2>/dev/null || echo 0)
 echo "  → Exported $ROW_COUNT INSERT statements"
 
+# Wrap dump with FK checks disabled so table insertion order doesn't matter.
+# wrangler d1 export does not guarantee dependency order across tables.
+PATCHED_FILE="$(mktemp /tmp/prod-content-patched-XXXXXX.sql)"
+{ echo "PRAGMA foreign_keys = OFF;"; cat "$DUMP_FILE"; echo "PRAGMA foreign_keys = ON;"; } > "$PATCHED_FILE"
+mv "$PATCHED_FILE" "$DUMP_FILE"
+
 # ── 2. Build clear script for preview (reverse dependency order) ──────────────
 echo "\n[2/3] Clearing preview content tables..."
 cat > "$CLEAR_FILE" <<'SQL'
