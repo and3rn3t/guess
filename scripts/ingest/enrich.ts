@@ -523,7 +523,7 @@ export function getEnrichStats(): EnrichStats {
   const db = getDb();
 
   const total = (db.prepare(
-    `SELECT COUNT(*) as c FROM dedup_map`
+    `SELECT COUNT(DISTINCT canonical_id) as c FROM dedup_map`
   ).get() as { c: number }).c;
 
   const enriched = (db.prepare(
