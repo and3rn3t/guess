@@ -617,3 +617,158 @@ describe('evaluateGuessReadiness – minimum question guard', () => {
     expect(readiness.shouldGuess).toBe(true)
   })
 })
+
+// ========== scoreForAnswer null attribute branches ==========
+
+describe('calculateProbabilities – null attribute scoring', () => {
+  it("applies effectiveUnknown for 'no' answer when attribute is null", () => {
+    // isMale is null for Pikachu and Kirby.
+    // 'no' to isMale: Mario/Link (true) → MISMATCH(0.05), Pikachu/Kirby (null) → SCORE_UNKNOWN(0.35)
+    const answers: Answer[] = [{ questionId: 'isMale', value: 'no' }]
+    const probs = calculateProbabilities(CHARS, answers)
+
+    // Null chars score higher than the mismatched chars
+    expect(probs.get('pikachu')!).toBeGreaterThan(probs.get('mario')!)
+    expect(probs.get('kirby')!).toBeGreaterThan(probs.get('link')!)
+    // Both should still have some probability
+    expect(probs.get('pikachu')!).toBeGreaterThan(0)
+    expect(probs.get('mario')!).toBeGreaterThan(0)
+  })
+
+  it("applies effectiveUnknown for 'maybe' answer when attribute is null", () => {
+    // 'maybe' to isMale: Mario/Link (true) → SCORE_MAYBE(0.7), Pikachu/Kirby (null) → SCORE_UNKNOWN(0.35)
+    const answers: Answer[] = [{ questionId: 'isMale', value: 'maybe' }]
+    const probs = calculateProbabilities(CHARS, answers)
+
+    // SCORE_MAYBE(0.7) > SCORE_UNKNOWN(0.35), so Mario/Link rank above Pikachu/Kirby
+    expect(probs.get('mario')!).toBeGreaterThan(probs.get('pikachu')!)
+    expect(probs.get('link')!).toBeGreaterThan(probs.get('kirby')!)
+    // All should still have nonzero probability
+    CHARS.forEach((c) => expect(probs.get(c.id)!).toBeGreaterThan(0))
+  })
+})
+
+// ========== calculateProbabilities with ScoringOptions ==========
+
+describe('calculateProbabilities – coverageMap', () => {
+  it('gives higher score to null-attribute chars when coverage is high', () => {
+    // Pikachu/Kirby have null for isMale.
+    // effectiveUnknown = 0.3 + 0.25 * coverage.
+    // High coverage → effectiveUnknown = 0.525 (less penalty)
+    // Low coverage  → effectiveUnknown = 0.325 (more penalty)
+    const answersYes: Answer[] = [{ questionId: 'isMale', value: 'yes' }]
+    const highCov = calculateProbabilities(CHARS, answersYes, { coverageMap: new Map([['isMale', 0.9]]) })
+    const lowCov  = calculateProbabilities(CHARS, answersYes, { coverageMap: new Map([['isMale', 0.1]]) })
+
+    expect(highCov.get('pikachu')!).toBeGreaterThan(lowCov.get('pikachu')!)
+    expect(highCov.get('kirby')!).toBeGreaterThan(lowCov.get('kirby')!)
+  })
+})
+
+describe('calculateProbabilities – popularityMap', () => {
+  it('boosts popular characters early in the game', () => {
+    // With no answers (uniform Bayesian), Mario (popularity=1.0) should rank above
+    // Kirby (popularity=0.2) due to the popularity prior at progress=0.
+    const popularityMap = new Map([['mario', 1.0], ['link', 0.5], ['pikachu', 0.8], ['kirby', 0.2]])
+    const probs = calculateProbabilities(CHARS, [], { popularityMap, progress: 0.0 })
+
+    expect(probs.get('mario')!).toBeGreaterThan(probs.get('kirby')!)
+    expect(probs.get('pikachu')!).toBeGreaterThan(probs.get('kirby')!)
+  })
+
+  it('decays popularity influence as game progresses toward end', () => {
+    // At progress=0 popularity prior is at full strength; at progress=1 it vanishes.
+    // The gap between mario (high pop) and kirby (low pop) should shrink over progress.
+    const popularityMap = new Map([['mario', 1.0], ['link', 0.5], ['pikachu', 0.8], ['kirby', 0.2]])
+
+    const earlyProbs = calculateProbabilities(CHARS, [], { popularityMap, progress: 0.0 })
+    const lateProbs  = calculateProbabilities(CHARS, [], { popularityMap, progress: 1.0 })
+
+    const earlyGap = earlyProbs.get('mario')! - earlyProbs.get('kirby')!
+    const lateGap  = lateProbs.get('mario')!  - lateProbs.get('kirby')!
+
+    expect(earlyGap).toBeGreaterThan(lateGap)
+  })
+})
+
+// ========== calculateProbabilities early-exit branch ==========
+
+describe('calculateProbabilities – early exit', () => {
+  it('zeroes a character whose score falls below 1e-8 after 7+ definite mismatches', () => {
+    // SCORE_MISMATCH = 0.05 → 0.05^7 ≈ 7.8e-10 < 1e-8; the early-exit fires.
+    const chars: Character[] = [
+      {
+        id: 'all-true',
+        name: 'AllTrue',
+        category: 'movies',
+        attributes: { a: true, b: true, c: true, d: true, e: true, f: true, g: true },
+      },
+      {
+        id: 'all-false',
+        name: 'AllFalse',
+        category: 'movies',
+        attributes: { a: false, b: false, c: false, d: false, e: false, f: false, g: false },
+      },
+    ]
+    // Answering 'no' to every attribute → 'all-true' gets 7 definite mismatches
+    const answers: Answer[] = ['a', 'b', 'c', 'd', 'e', 'f', 'g'].map((attr) => ({
+      questionId: attr,
+      value: 'no' as const,
+    }))
+    const probs = calculateProbabilities(chars, answers)
+
+    // 'all-true' should be zeroed out; 'all-false' takes all probability
+    expect(probs.get('all-true')!).toBe(0)
+    expect(probs.get('all-false')!).toBeCloseTo(1)
+  })
+})
+
+// ========== evaluateGuessReadiness – singleton with < 5 questions ==========
+
+describe('evaluateGuessReadiness – singleton with fewer than 5 questions', () => {
+  it('falls through to high_certainty when 1 char remains but questionCount < 5', () => {
+    // The singleton guard requires questionCount >= 5.
+    // With questionCount=3 it doesn't fire; instead highCertainty fires (topProb=1.0).
+    const chars: Character[] = [
+      { id: 'only', name: 'Only', category: 'movies', attributes: {} },
+    ]
+    const readiness = evaluateGuessReadiness(chars, [], 3, 15)
+
+    expect(readiness.shouldGuess).toBe(true)
+    expect(readiness.trigger).toBe('high_certainty')
+  })
+})
+
+// ========== evaluateGuessReadiness – strict_readiness ==========
+
+describe('evaluateGuessReadiness – strict_readiness trigger', () => {
+  it('fires strict_readiness when confidence meets threshold but topProb is below highCertainty cutoff', () => {
+    // topProb=0.92 is below highCertainty(0.93); entropy([0.92,0.08]) ≈ 0.40
+    // At questionCount=10 (progress=0.667): requiredConfidence≈0.74, requiredEntropy≈0.42
+    // 0.92 ≥ 0.74 AND 0.40 ≤ 0.42 → strictReady=true
+    const chars: Character[] = [
+      { id: 'a', name: 'A', category: 'movies', attributes: {} },
+      { id: 'b', name: 'B', category: 'movies', attributes: {} },
+    ]
+    const preComputedProbs = new Map([['a', 0.92], ['b', 0.08]])
+    const readiness = evaluateGuessReadiness(chars, [], 10, 15, 0, undefined, preComputedProbs)
+
+    expect(readiness.shouldGuess).toBe(true)
+    expect(readiness.trigger).toBe('strict_readiness')
+  })
+
+  it('returns insufficient_data from the final return when entropy is too high for strictReady', () => {
+    // topProb=0.85 (below highCertainty); entropy([0.85,0.10,0.05]) ≈ 0.75
+    // At questionCount=6: requiredEntropy≈0.47; 0.75 > 0.47 → strictReady=false
+    const chars: Character[] = [
+      { id: 'a', name: 'A', category: 'movies', attributes: {} },
+      { id: 'b', name: 'B', category: 'movies', attributes: {} },
+      { id: 'c', name: 'C', category: 'movies', attributes: {} },
+    ]
+    const preComputedProbs = new Map([['a', 0.85], ['b', 0.10], ['c', 0.05]])
+    const readiness = evaluateGuessReadiness(chars, [], 6, 15, 0, undefined, preComputedProbs)
+
+    expect(readiness.shouldGuess).toBe(false)
+    expect(readiness.trigger).toBe('insufficient_data')
+  })
+})

@@ -32,11 +32,24 @@ export default defineConfig({
         'functions/api/v2/history.ts',
         'functions/api/v2/questions.ts',
         'functions/api/v2/stats.ts',
+        // Admin-only LLM tools — require live AI API, not unit testable
+        'src/lib/attributeRecommender.ts',
+        'src/lib/categoryRecommender.ts',
+        'src/lib/dataCleanup.ts',
+        // Browser-only APIs with no jest-dom equivalent
+        'src/lib/sounds.ts',
+        'src/hooks/use-mobile.ts',
+        'src/hooks/useGlobalStats.ts',
+        // Complex game-lifecycle hook — covered by Playwright e2e
+        'src/hooks/useGameState.ts',
+        // Barrel re-exports and pure type declarations — no runtime logic
+        'packages/game-engine/src/index.ts',
+        'packages/game-engine/src/types.ts',
       ],
       thresholds: {
-        lines: 70,
-        branches: 60,
-        functions: 65,
+        lines: 80,
+        branches: 65,
+        functions: 75,
       },
     },
     // Component tests use jsdom, unit tests use node

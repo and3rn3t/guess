@@ -261,3 +261,108 @@ describe("unknown action", () => {
     expect(next.showDevTools).toBe(!initialState.showDevTools);
   });
 });
+
+// ========== REJECT_GUESS ==========
+
+describe("REJECT_GUESS", () => {
+  it("returns to playing, clears finalGuess, increments guessCount, starts thinking", () => {
+    const guessing: GameState = {
+      ...initialState,
+      phase: "guessing",
+      finalGuess: CHARS[0],
+      guessCount: 1,
+    };
+    const next = gameReducer(guessing, { type: "REJECT_GUESS" });
+    expect(next.phase).toBe("playing");
+    expect(next.finalGuess).toBeNull();
+    expect(next.guessCount).toBe(2);
+    expect(next.isThinking).toBe(true);
+  });
+});
+
+// ========== SET_EXHAUSTED ==========
+
+describe("SET_EXHAUSTED", () => {
+  it("sets exhausted=true, gameWon=false, phase=gameOver", () => {
+    const playing: GameState = { ...initialState, phase: "playing" };
+    const next = gameReducer(playing, { type: "SET_EXHAUSTED" });
+    expect(next.exhausted).toBe(true);
+    expect(next.gameWon).toBe(false);
+    expect(next.phase).toBe("gameOver");
+  });
+});
+
+// ========== SURRENDER ==========
+
+describe("SURRENDER", () => {
+  it("sets surrendered=true, gameWon=false, phase=gameOver", () => {
+    const playing: GameState = { ...initialState, phase: "playing" };
+    const next = gameReducer(playing, { type: "SURRENDER" });
+    expect(next.surrendered).toBe(true);
+    expect(next.gameWon).toBe(false);
+    expect(next.phase).toBe("gameOver");
+  });
+});
+
+// ========== SET_THINKING ==========
+
+describe("SET_THINKING", () => {
+  it("sets isThinking to true", () => {
+    const next = gameReducer(initialState, { type: "SET_THINKING", isThinking: true });
+    expect(next.isThinking).toBe(true);
+  });
+
+  it("sets isThinking to false", () => {
+    const thinking: GameState = { ...initialState, isThinking: true };
+    const next = gameReducer(thinking, { type: "SET_THINKING", isThinking: false });
+    expect(next.isThinking).toBe(false);
+  });
+});
+
+// ========== SET_POSSIBLE_CHARACTERS ==========
+
+describe("SET_POSSIBLE_CHARACTERS", () => {
+  it("replaces possibleCharacters array", () => {
+    const playing: GameState = {
+      ...initialState,
+      phase: "playing",
+      possibleCharacters: CHARS,
+    };
+    const subset = [CHARS[0]];
+    const next = gameReducer(playing, { type: "SET_POSSIBLE_CHARACTERS", characters: subset });
+    expect(next.possibleCharacters).toBe(subset);
+  });
+});
+
+// ========== NAVIGATE additional branches ==========
+
+describe("NAVIGATE – additional branches", () => {
+  it("sets selectedCharacter when navigating to a non-welcome phase with character", () => {
+    const next = gameReducer(initialState, {
+      type: "NAVIGATE",
+      phase: "history",
+      character: CHARS[0],
+    });
+    expect(next.phase).toBe("history");
+    expect(next.selectedCharacter).toBe(CHARS[0]);
+  });
+
+  it("resets guessCount, exhausted, and surrendered when navigating to welcome", () => {
+    const dirty: GameState = {
+      ...initialState,
+      guessCount: 3,
+      exhausted: true,
+      surrendered: true,
+    };
+    const next = gameReducer(dirty, { type: "NAVIGATE", phase: "welcome" });
+    expect(next.guessCount).toBe(0);
+    expect(next.exhausted).toBe(false);
+    expect(next.surrendered).toBe(false);
+  });
+
+  it("preserves selectedCharacter when navigating to non-welcome phase without character arg", () => {
+    const withChar: GameState = { ...initialState, selectedCharacter: CHARS[1] };
+    const next = gameReducer(withChar, { type: "NAVIGATE", phase: "stats" });
+    expect(next.selectedCharacter).toBe(CHARS[1]);
+  });
+});
