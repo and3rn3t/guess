@@ -757,9 +757,10 @@ describe('evaluateGuessReadiness – strict_readiness trigger', () => {
     expect(readiness.trigger).toBe('strict_readiness')
   })
 
-  it('returns insufficient_data from the final return when entropy is too high for strictReady', () => {
-    // topProb=0.75 (below highCertainty(0.87)); entropy([0.75,0.10,0.08,0.04,0.03]) ≈ 1.27 bits.
-    // At questionCount=10 (progress=0.667): requiredEntropy=1.10 bits. 1.27 > 1.10 → strictReady=false.
+  it('returns insufficient_data when topProbability is below requiredConfidence', () => {
+    // topProb=0.50 is below requiredConfidence at questionCount=7/15 (progress≈0.47).
+    // requiredConfidence ≈ 0.85 − 0.25×0.47² ≈ 0.795.  0.50 < 0.795 → strictReady=false.
+    // gap (0.30) ≥ holdThreshold: hold also passes → falls through to insufficient_data.
     const chars: Character[] = [
       { id: 'a', name: 'A', category: 'movies', attributes: {} },
       { id: 'b', name: 'B', category: 'movies', attributes: {} },
@@ -767,8 +768,8 @@ describe('evaluateGuessReadiness – strict_readiness trigger', () => {
       { id: 'd', name: 'D', category: 'movies', attributes: {} },
       { id: 'e', name: 'E', category: 'movies', attributes: {} },
     ]
-    const preComputedProbs = new Map([['a', 0.75], ['b', 0.10], ['c', 0.08], ['d', 0.04], ['e', 0.03]])
-    const readiness = evaluateGuessReadiness(chars, [], 10, 15, 0, undefined, preComputedProbs)
+    const preComputedProbs = new Map([['a', 0.50], ['b', 0.20], ['c', 0.15], ['d', 0.10], ['e', 0.05]])
+    const readiness = evaluateGuessReadiness(chars, [], 7, 15, 0, undefined, preComputedProbs)
 
     expect(readiness.shouldGuess).toBe(false)
     expect(readiness.trigger).toBe('insufficient_data')

@@ -137,7 +137,8 @@ export function selectBestQuestion(
   const currentEntropy = entropy(currentProbs)
   const progress = options?.progress ?? 0
   const endgameFocus = progress >= 0.65 || topNMass >= 0.75
-  const recentAttrGroups = new Set(answers.slice(-3).map((a) => getAttributeGroup(a.questionId)))
+  // Widen diversity window from 3 → 5 to reduce repetitive same-group questions
+  const recentAttrGroups = new Set(answers.slice(-5).map((a) => getAttributeGroup(a.questionId)))
 
   // Early-game taxonomy forcing: if no species/origin question has been asked yet and we
   // are still in the first 40% of the game, boost those attribute groups so the AI

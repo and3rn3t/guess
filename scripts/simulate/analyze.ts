@@ -1,11 +1,16 @@
 #!/usr/bin/env -S npx tsx
 /**
- * Simulation analytics — reads a JSONL file of SimGameResult records
+ * Simulation analytics — reads one or more JSONL files of SimGameResult records
  * and prints a detailed diagnostic report.
  *
- * Usage:
- *   pnpm simulate --sample 300 --output scripts/simulate/data/results.jsonl
- *   npx tsx scripts/simulate/analyze.ts scripts/simulate/data/results.jsonl
+ * Single-file usage:
+ *   npx tsx scripts/simulate/analyze.ts scripts/simulate/data/results-medium.jsonl
+ *
+ * Multi-file cross-difficulty usage (pass easy / medium / hard in any order):
+ *   npx tsx scripts/simulate/analyze.ts \
+ *     scripts/simulate/data/results-v4-easy.jsonl \
+ *     scripts/simulate/data/results-v4-medium.jsonl \
+ *     scripts/simulate/data/results-v4-hard.jsonl
  */
 
 import * as fs from "fs";
@@ -138,6 +143,9 @@ function analyzeResults(games: SimGameResult[]): void {
   console.log(`  Median conf   : ${fmt(median(confValues))}%`);
   console.log(`  Avg gap       : ${fmt(avg(gapValues) * 100)}%`);
   console.log(`  Avg alive@guess: ${fmt(avg(aliveAtGuess))}`);
+
+  // ── 1.5. Per-character difficulty clustering ──────────────────────────────────
+  characterDifficultyClustering(games);
 
   // ── 2. Trigger breakdown ─────────────────────────────────────────────────────
   section("2. GUESS TRIGGER BREAKDOWN");
@@ -283,6 +291,9 @@ function analyzeResults(games: SimGameResult[]): void {
       `  ${attr.padEnd(40)} ${fmt(avgGain, 4).padStart(8)} ${String(count).padStart(6)}`
     );
   }
+
+  // ── 6.5. Question selection quality by slot ───────────────────────────────────
+  questionSelectionQuality(games);
 
   // ── 7. Answer distribution ───────────────────────────────────────────────────
   section("7. ANSWER DISTRIBUTION");
@@ -444,61 +455,454 @@ function analyzeResults(games: SimGameResult[]): void {
   }
 
   // ── 13. Recommendations ───────────────────────────────────────────────────────
-  section("13. RECOMMENDATIONS");
+  recommendations(games, qCounts);
+}
 
-  // Compute key metrics for recommendations
-  const avgQ = avg(qCounts);
-  void avgQ;
-  const strictCount = triggers.get("strict_readiness")?.count ?? 0;
-  const highCertCount = triggers.get("high_certainty")?.count ?? 0;
-  const maxQCount = triggers.get("max_questions")?.count ?? 0;
-  const lowConfCount = lowConfWins.length;
-  const unknownRate = totalDist.unknown / Math.max(totalAnswers, 1);
 
-  console.log(`  Key metrics:`);
-  console.log(`    strict_readiness trigger : ${strictCount}/${total} (${pct(strictCount, total)})`);
-  console.log(`    high_certainty trigger   : ${highCertCount}/${total} (${pct(highCertCount, total)})`);
-  console.log(`    max_questions trigger    : ${maxQCount}/${total} (${pct(maxQCount, total)})`);
-  console.log(`    low-conf wins (<20%)     : ${lowConfCount}/${wins.length} (${pct(lowConfCount, wins.length)})`);
-  console.log(`    unknown answer rate      : ${pct(totalDist.unknown, totalAnswers)}`);
+// ── Cross-difficulty comparison ───────────────────────────────────────────────
+
+function crossDifficultyTable(byDifficulty: Map<string, SimGameResult[]>): void {
+  section("0. CROSS-DIFFICULTY COMPARISON");
+
+  // Calibration targets from docs/guess-readiness-calibration.md
+  const targets: Record<string, { label: string; target: string; dir: "gte" | "lte" }> = {
+    win_pct:                 { label: "Win %",                target: "—",    dir: "gte" },
+    strict_readiness_win_pct:{ label: "strict_readiness win%", target: "≥75%", dir: "gte" },
+    high_certainty_win_pct:  { label: "high_certainty win%",   target: "≥90%", dir: "gte" },
+    time_pressure_win_pct:   { label: "time_pressure win%",    target: "≥85%", dir: "gte" },
+    forced_guess_rate:       { label: "Forced guess rate",      target: "<8%",  dir: "lte" },
+    max_q_rate:              { label: "Max-questions rate",      target: "<5%",  dir: "lte" },
+    avg_questions:           { label: "Avg questions",           target: "—",    dir: "lte" },
+    avg_confidence:          { label: "Avg confidence",          target: "—",    dir: "gte" },
+    singleton_rate:          { label: "Singleton rate",          target: "—",    dir: "gte" },
+  };
+
+  const difficulties = ["easy", "medium", "hard", "all"];
+  const allGames = [...byDifficulty.values()].flat();
+  const dataMap = new Map<string, SimGameResult[]>([...byDifficulty, ["all", allGames]]);
+
+  // Build metric rows
+  const rows: Record<string, Record<string, string>> = {};
+  for (const [key, meta] of Object.entries(targets)) {
+    rows[key] = { label: meta.label, target: meta.target };
+  }
+
+  for (const diff of difficulties) {
+    const games = dataMap.get(diff);
+    if (!games || games.length === 0) {
+      for (const key of Object.keys(targets)) rows[key][diff] = "—";
+      continue;
+    }
+    const total = games.length;
+    const winCount = games.filter((g) => g.won).length;
+    const strictWins = games.filter((g) => g.guessTrigger === "strict_readiness" && g.won).length;
+    const strictTotal = games.filter((g) => g.guessTrigger === "strict_readiness").length;
+    const highWins = games.filter((g) => g.guessTrigger === "high_certainty" && g.won).length;
+    const highTotal = games.filter((g) => g.guessTrigger === "high_certainty").length;
+    const timePressureWins = games.filter((g) => g.guessTrigger === "time_pressure" && g.won).length;
+    const timePressureTotal = games.filter((g) => g.guessTrigger === "time_pressure").length;
+    const forcedCount = games.filter((g) => g.forcedGuess).length;
+    const maxQCount = games.filter((g) => g.guessTrigger === "max_questions").length;
+    const singletonCount = games.filter((g) => g.guessTrigger === "singleton").length;
+    const confVals = games.map((g) => g.confidenceAtGuess ?? 0).filter((c) => c > 0);
+
+    rows["win_pct"][diff] = `${((winCount / total) * 100).toFixed(1)}%`;
+    rows["strict_readiness_win_pct"][diff] = strictTotal > 0 ? `${((strictWins / strictTotal) * 100).toFixed(1)}%` : "—";
+    rows["high_certainty_win_pct"][diff] = highTotal > 0 ? `${((highWins / highTotal) * 100).toFixed(1)}%` : "—";
+    rows["time_pressure_win_pct"][diff] = timePressureTotal > 0 ? `${((timePressureWins / timePressureTotal) * 100).toFixed(1)}%` : "—";
+    rows["forced_guess_rate"][diff] = `${((forcedCount / total) * 100).toFixed(1)}%`;
+    rows["max_q_rate"][diff] = `${((maxQCount / total) * 100).toFixed(1)}%`;
+    rows["avg_questions"][diff] = avg(games.map((g) => g.questionsAsked)).toFixed(1);
+    rows["avg_confidence"][diff] = confVals.length > 0 ? `${(avg(confVals) * 100).toFixed(1)}%` : "—";
+    rows["singleton_rate"][diff] = `${((singletonCount / total) * 100).toFixed(1)}%`;
+  }
+
+  const colW = 12;
+  const header = `  ${"Metric".padEnd(28)} ${"Target".padEnd(8)}` +
+    difficulties.map((d) => d.padStart(colW)).join("");
+  console.log(header);
+  console.log("  " + "─".repeat(28 + 8 + 1 + difficulties.length * colW));
+
+  for (const [key, row] of Object.entries(rows)) {
+    const meta = targets[key];
+    let line = `  ${row["label"].padEnd(28)} ${row["target"].padEnd(8)}`;
+    for (const diff of difficulties) {
+      const val = row[diff] ?? "—";
+      line += val.padStart(colW);
+    }
+    // Flag KPI misses with ✗
+    const flags: string[] = [];
+    for (const diff of ["easy", "medium", "hard", "all"]) {
+      const val = row[diff] ?? "—";
+      if (val === "—" || meta.target === "—") continue;
+      const num = parseFloat(val);
+      const tNum = parseFloat(meta.target.replace(/[^0-9.]/g, ""));
+      if (meta.dir === "gte" && num < tNum) flags.push(diff);
+      if (meta.dir === "lte" && num > tNum) flags.push(diff);
+    }
+    console.log(line + (flags.length > 0 ? `  ✗ [${flags.join(",")}]` : ""));
+  }
+}
+
+// ── Character difficulty clustering ──────────────────────────────────────────
+
+function characterDifficultyClustering(games: SimGameResult[]): void {
+  section("1.5. PER-CHARACTER DIFFICULTY CLUSTERING");
+
+  const qCounts = games.map((g) => g.questionsAsked).sort((a, b) => a - b);
+  const q1 = qCounts[Math.floor(qCounts.length * 0.25)];
+  const q3 = qCounts[Math.floor(qCounts.length * 0.75)];
+
+  console.log(`  Quartile thresholds: Q1=${q1}q  Q3=${q3}q  (maxQ varies by difficulty)`);
+  console.log(`  Tiers: easy(≤Q1) / medium(Q1–Q3) / hard(Q3–maxQ) / exhausted(hit maxQ)`);
   console.log();
 
-  if (strictCount / total < 0.1) {
-    console.log(`  ⚠  strict_readiness barely fires (${pct(strictCount, total)}). Consider:`);
-    console.log(`       - Lowering requiredEntropy floor (currently max(0.55 - 0.2*progress, 0.3))`);
-    console.log(`       - Adding a "dueling" trigger: if competitiveCount ≤ 2 && gap ≥ 0.20`);
+  type Tier = "easy" | "medium" | "hard" | "exhausted";
+  const tierOrder: Tier[] = ["easy", "medium", "hard", "exhausted"];
+  const tiers = new Map<Tier, SimGameResult[]>([
+    ["easy", []],
+    ["medium", []],
+    ["hard", []],
+    ["exhausted", []],
+  ]);
+
+  for (const g of games) {
+    const tier: Tier =
+      g.questionsAsked >= g.maxQuestions ? "exhausted"
+      : g.questionsAsked <= q1 ? "easy"
+      : g.questionsAsked <= q3 ? "medium"
+      : "hard";
+    tiers.get(tier)!.push(g);
   }
 
-  if (maxQCount / total > 0.80) {
-    console.log(`  ⚠  ${pct(maxQCount, total)} of games hit max_questions before guessing.`);
-    console.log(`       - Engine is conservative; consider relaxing early-guess guards.`);
+  console.log(
+    `  ${"Tier".padEnd(12)} ${"Count".padStart(6)} ${"Win%".padStart(7)} ${"AvgQ".padStart(6)} ${"AvgAlive".padStart(9)} ${"AvgConf".padStart(8)} ${"Top trigger".padStart(18)}`
+  );
+  console.log("  " + "─".repeat(72));
+
+  for (const tier of tierOrder) {
+    const g = tiers.get(tier)!;
+    if (g.length === 0) continue;
+    const winPct = ((g.filter((x) => x.won).length / g.length) * 100).toFixed(1) + "%";
+    const avgQ = avg(g.map((x) => x.questionsAsked)).toFixed(1);
+    const avgAlive = avg(g.map((x) => x.aliveCountAtGuess ?? 0).filter((a) => a > 0)).toFixed(1);
+    const avgConf = (avg(g.map((x) => (x.confidenceAtGuess ?? 0) * 100).filter((c) => c > 0))).toFixed(1) + "%";
+    const triggerCounts = new Map<string, number>();
+    for (const x of g) {
+      const t = x.guessTrigger ?? "none";
+      triggerCounts.set(t, (triggerCounts.get(t) ?? 0) + 1);
+    }
+    const topTrigger = [...triggerCounts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? "—";
+    console.log(
+      `  ${tier.padEnd(12)} ${String(g.length).padStart(6)} ${winPct.padStart(7)} ${avgQ.padStart(6)} ${avgAlive.padStart(9)} ${avgConf.padStart(8)} ${topTrigger.padStart(18)}`
+    );
   }
 
-  if (lowConfCount / wins.length > 0.15) {
-    console.log(`  ⚠  ${pct(lowConfCount, wins.length)} of wins at <20% confidence.`);
-    console.log(`       - Many wins are lucky forced guesses after question exhaustion.`);
-    console.log(`       - Better question coverage for obscure characters would help.`);
+  // Show top 10 hardest non-exhausted characters
+  const hardChars = [...tiers.get("hard")!]
+    .sort((a, b) => b.questionsAsked - a.questionsAsked)
+    .slice(0, 10);
+
+  if (hardChars.length > 0) {
+    subsection("Top 10 hardest characters (hard tier, not exhausted)");
+    console.log(
+      `  ${"Character".padEnd(40)} ${"Q#".padStart(4)} ${"Alive".padStart(6)} ${"Conf".padStart(7)} ${"Won".padStart(4)}`
+    );
+    console.log("  " + "─".repeat(65));
+    for (const g of hardChars) {
+      const conf = g.confidenceAtGuess !== null ? fmt(g.confidenceAtGuess * 100) + "%" : "—";
+      const alive = g.aliveCountAtGuess !== null ? String(g.aliveCountAtGuess) : "—";
+      console.log(
+        `  ${g.targetCharacterName.padEnd(40)} ${String(g.questionsAsked).padStart(4)} ${alive.padStart(6)} ${conf.padStart(7)} ${(g.won ? "✓" : "✗").padStart(4)}`
+      );
+    }
+  }
+}
+
+// ── Question selection quality by slot ───────────────────────────────────────
+
+function questionSelectionQuality(games: SimGameResult[]): void {
+  section("6.5. QUESTION SELECTION QUALITY BY SLOT");
+
+  const slotBuckets = [
+    { label: "Q1–3",   min: 1,  max: 4  },
+    { label: "Q4–6",   min: 4,  max: 7  },
+    { label: "Q7–9",   min: 7,  max: 10 },
+    { label: "Q10–12", min: 10, max: 13 },
+    { label: "Q13–15", min: 13, max: 16 },
+    { label: "Q16–20", min: 16, max: 21 },
+    { label: "Q21–30", min: 21, max: 31 },
+    { label: "Q31+",   min: 31, max: Infinity },
+  ];
+
+  const slotData = slotBuckets.map((b) => ({ ...b, gains: [] as number[] }));
+
+  for (const game of games) {
+    game.questionsSequence.forEach((step, idx) => {
+      const pos = idx + 1;
+      const bucket = slotData.find((b) => pos >= b.min && pos < b.max);
+      if (bucket && step.infoGain != null) {
+        bucket.gains.push(step.infoGain);
+      }
+    });
   }
 
-  if (unknownRate > 0.30) {
-    console.log(`  ⚠  ${pct(totalDist.unknown, totalAnswers)} unknown answers.`);
-    console.log(`       - Data coverage gaps remain significant; enrichment needed.`);
+  console.log(`  Average information gain at each question slot.`);
+  console.log(`  Plateau (gain not decreasing) signals repetitive or low-value question selection.`);
+  console.log();
+  console.log(
+    `  ${"Slot".padEnd(10)} ${"Observations".padStart(13)} ${"AvgGain".padStart(9)} ${"MinGain".padStart(9)} ${"MaxGain".padStart(9)} Visual`
+  );
+  console.log("  " + "─".repeat(70));
+
+  let prevAvg: number | null = null;
+  const maxGainOverall = Math.max(...slotData.filter((b) => b.gains.length > 0).map((b) => avg(b.gains)));
+
+  for (const bucket of slotData) {
+    if (bucket.gains.length === 0) continue;
+    const a = avg(bucket.gains);
+    const mn = Math.min(...bucket.gains);
+    const mx = Math.max(...bucket.gains);
+    const visualLen = 20;
+    const barFill = maxGainOverall > 0 ? Math.round((a / maxGainOverall) * visualLen) : 0;
+    const visual = "█".repeat(barFill) + "░".repeat(visualLen - barFill);
+    const plateau = prevAvg !== null && a > prevAvg * 0.85 && prevAvg < a * 1.15 ? " ⚠ plateau?" : "";
+    console.log(
+      `  ${bucket.label.padEnd(10)} ${String(bucket.gains.length).padStart(13)} ${fmt(a, 5).padStart(9)} ${fmt(mn, 5).padStart(9)} ${fmt(mx, 5).padStart(9)} ${visual}${plateau}`
+    );
+    prevAvg = a;
+  }
+}
+
+// ── Recommendations (actionable) ─────────────────────────────────────────────
+
+function recommendations(games: SimGameResult[], qCounts: number[]): void {
+  section("13. RECOMMENDATIONS");
+
+  const total = games.length;
+  const wins = games.filter((g) => g.won);
+  const losses = games.filter((g) => !g.won);
+
+  const triggers = new Map<string, { count: number; wins: number }>();
+  for (const g of games) {
+    const t = g.guessTrigger ?? "none";
+    const e = triggers.get(t) ?? { count: 0, wins: 0 };
+    e.count++;
+    if (g.won) e.wins++;
+    triggers.set(t, e);
   }
 
-  if (losses.length > 0) {
-    const lossRate = losses.length / total;
-    console.log(`  ⚠  ${losses.length} losses (${fmt(lossRate * 100)}%).`);
-    if (losses.every((g) => g.questionsAsked >= 200)) {
-      console.log(`       - All losses exhausted full question bank.`);
-      console.log(`       - These characters are likely indistinguishable from the pool.`);
-      console.log(`       - Consider: attribute enrichment, or allowing "I give up" for very obscure chars.`);
+  const strictCount = triggers.get("strict_readiness")?.count ?? 0;
+  const strictWins = triggers.get("strict_readiness")?.wins ?? 0;
+  const highCertCount = triggers.get("high_certainty")?.count ?? 0;
+  const highCertWins = triggers.get("high_certainty")?.wins ?? 0;
+  const maxQCount = triggers.get("max_questions")?.count ?? 0;
+  const forcedCount = games.filter((g) => g.forcedGuess).length;
+
+  const totalDist = { yes: 0, no: 0, maybe: 0, unknown: 0 };
+  for (const g of games) {
+    totalDist.yes += g.answerDistribution.yes ?? 0;
+    totalDist.no += g.answerDistribution.no ?? 0;
+    totalDist.maybe += g.answerDistribution.maybe ?? 0;
+    totalDist.unknown += g.answerDistribution.unknown ?? 0;
+  }
+  const totalAnswers = totalDist.yes + totalDist.no + totalDist.maybe + totalDist.unknown;
+  const unknownRate = totalAnswers > 0 ? totalDist.unknown / totalAnswers : 0;
+  const lowConfWins = wins.filter((g) => (g.confidenceAtGuess ?? 1) < 0.20);
+  const avgQ = avg(qCounts);
+
+  const strictWinPct = strictCount > 0 ? (strictWins / strictCount) * 100 : null;
+  const highCertWinPct = highCertCount > 0 ? (highCertWins / highCertCount) * 100 : null;
+  const forcedGuessPct = (forcedCount / total) * 100;
+  const maxQPct = (maxQCount / total) * 100;
+
+  console.log(`  KPIs vs. calibration targets:`);
+  console.log(`  ─────────────────────────────────────────────────────────────────────`);
+
+  function kpiLine(label: string, value: string, target: string, ok: boolean): void {
+    const status = ok ? "✓" : "✗";
+    console.log(`  ${status} ${label.padEnd(34)} ${value.padEnd(10)} (target: ${target})`);
+  }
+
+  kpiLine(
+    "strict_readiness win rate",
+    strictWinPct !== null ? `${strictWinPct.toFixed(1)}%` : "N/A (0 games)",
+    "≥75%",
+    strictWinPct === null || strictWinPct >= 75
+  );
+  kpiLine(
+    "high_certainty win rate",
+    highCertWinPct !== null ? `${highCertWinPct.toFixed(1)}%` : "N/A (0 games)",
+    "≥90%",
+    highCertWinPct === null || highCertWinPct >= 90
+  );
+  kpiLine(
+    "forced guess rate",
+    `${forcedGuessPct.toFixed(1)}%`,
+    "<8%",
+    forcedGuessPct < 8
+  );
+  kpiLine(
+    "max_questions trigger rate",
+    `${maxQPct.toFixed(1)}%`,
+    "<15%",
+    maxQPct < 15
+  );
+  kpiLine(
+    "low-confidence wins (<20%)",
+    `${pct(lowConfWins.length, wins.length)}`,
+    "<15% of wins",
+    wins.length === 0 || (lowConfWins.length / wins.length) < 0.15
+  );
+  kpiLine(
+    "unknown answer rate",
+    `${pct(totalDist.unknown, totalAnswers)}`,
+    "<30%",
+    unknownRate < 0.30
+  );
+
+  console.log();
+  console.log(`  Specific actions:`);
+  console.log(`  ─────────────────────────────────────────────────────────────────────`);
+
+  let anyAction = false;
+
+  // time_pressure fires frequently — check win rate
+  const timePressureCount = games.filter((g) => g.guessTrigger === "time_pressure").length;
+  const timePressureWins = games.filter((g) => g.guessTrigger === "time_pressure" && g.won).length;
+  const timePressureWinRate = timePressureCount > 0 ? timePressureWins / timePressureCount : null;
+
+  if (timePressureCount > 0) {
+    const winStr = timePressureWinRate !== null ? `${(timePressureWinRate * 100).toFixed(1)}%` : "—";
+    if (timePressureWinRate !== null && timePressureWinRate < 0.80) {
+      anyAction = true;
+      console.log(`
+  [guess-readiness.ts] time_pressure win rate is ${winStr} (target ≥80%).
+    → Engine is guessing too early at endgame — competitiveCount ≤ 5 may be too loose.
+    → Try tightening: competitiveCount ≤ 3 or raise questionsRemaining threshold from 3 → 2.`);
     }
   }
 
-  if (avgQ > 40) {
-    console.log(`  ⚠  Average ${fmt(avgQ)} questions per game is high.`);
-    console.log(`       - Medium difficulty (15q target) is not being achieved.`);
-    console.log(`       - Review BONUS_QUESTIONS_PER_REJECT and early-guess thresholds.`);
+  // strict_readiness barely fires
+  if (strictCount / total < 0.10) {
+    anyAction = true;
+    console.log(`
+  [guess-readiness.ts] strict_readiness fires in only ${pct(strictCount, total)} of games (want ≥10%).
+    → requiredEntropy formula currently starts at 1.5. Try lowering to 1.2:
+        requiredEntropy = Math.max(1.2 - 0.6 * progress - priorWrongGuesses * 0.05, 0.6)
+    → Alternatively, add a "dueling" fast-path: if competitiveCount ≤ 2 && gap ≥ 0.20,
+      trigger before entropy check.`);
+  }
+
+  // strict_readiness win rate below target
+  if (strictWinPct !== null && strictWinPct < 75) {
+    anyAction = true;
+    console.log(`
+  [guess-readiness.ts] strict_readiness win rate is ${strictWinPct.toFixed(1)}% (target ≥75%).
+    → Gate is too loose — engine guesses via strict_readiness before it's confident enough.
+    → Raise requiredConfidence base: try 0.88 instead of 0.85:
+        requiredConfidence = Math.min(0.88 - 0.25 * progress² + wrongGuessPenalty, 0.94)
+    → Tighten requiredGap floor: try 0.10 → 0.12 minimum.`);
+  }
+
+  // high_certainty win rate below target
+  if (highCertWinPct !== null && highCertWinPct < 90) {
+    anyAction = true;
+    console.log(`
+  [guess-readiness.ts] high_certainty win rate is ${highCertWinPct.toFixed(1)}% (target ≥90%).
+    → Raise topProbability threshold from 0.87 → 0.90 or require gap ≥ 0.25:
+        topProbability >= 0.90 && gap >= 0.25 && competitiveCount <= 2
+    → Current threshold of 0.87 may be firing on ambiguous cases.`);
+  }
+
+  // Too many forced / max_questions games
+  if (maxQPct > 5) {
+    anyAction = true;
+    console.log(`
+  [guess-readiness.ts] ${maxQPct.toFixed(1)}% of games exhaust max_questions (target <5%).
+    → time_pressure trigger should catch most games before max_questions fires.
+    → If max_questions is still high: competitiveCount threshold in time_pressure may be too strict
+      (competitiveCount ≤ 5 blocks when too many equal candidates remain).
+    → Also check: question selection may be wasting budget on low-coverage attributes.`);
+  }
+
+  if (forcedGuessPct > 8) {
+    anyAction = true;
+    console.log(`
+  [guess-readiness.ts] Forced guess rate is ${forcedGuessPct.toFixed(1)}% (target <8%).
+    → Many games end with no good guess available. Combined with high max_questions rate,
+      the engine is not converging. Review question selection diversity: consecutive same-group
+      questions may be wasting the question budget.`);
+  }
+
+  // Low-confidence wins (lucky guesses)
+  if (wins.length > 0 && (lowConfWins.length / wins.length) > 0.15) {
+    anyAction = true;
+    console.log(`
+  [guess-readiness.ts] ${pct(lowConfWins.length, wins.length)} of wins at <20% confidence — likely lucky forced guesses.
+    → Engine is guessing before converging. To fix:
+      1. Strengthen the insufficient_data hold (raise topProbability floor from 0.70 → 0.75).
+      2. Confirm question selection is covering discriminating attributes early.`);
+  }
+
+  // Repetitive / low-info-gain questions
+  const gainsBySlot: number[][] = Array.from({ length: 5 }, () => []);
+  for (const game of games) {
+    game.questionsSequence.forEach((step, idx) => {
+      const slot = Math.min(idx, 4);
+      if (step.infoGain != null) gainsBySlot[slot].push(step.infoGain);
+    });
+  }
+  const earlyAvg = avg(gainsBySlot[0]);
+  const midAvg = avg(gainsBySlot[2]);
+  if (earlyAvg > 0 && midAvg > 0 && midAvg > earlyAvg * 0.90) {
+    anyAction = true;
+    console.log(`
+  [question-selection.ts] Info gain is not decreasing between Q1 (${fmt(earlyAvg, 4)}) and Q3 (${fmt(midAvg, 4)}).
+    → Questions may be repetitive or the diversity penalty window is too narrow.
+    → Widen same-group diversity window from last 3 to last 5 questions:
+        const DIVERSITY_WINDOW = 5; (currently 3)
+    → Check that species/origin early-game forcing (2×/1.3×) is conditional on pool composition.`);
+  }
+
+  // High unknown rate
+  if (unknownRate > 0.30) {
+    anyAction = true;
+    console.log(`
+  [data] Unknown answer rate is ${pct(totalDist.unknown, totalAnswers)} (target <30%).
+    → Significant attribute gaps remain. Run enrichment pipeline on characters
+      with high question-exhaustion rates.
+    → Consider raising SCORE_UNKNOWN penalty: reduce coverage cap from 0.55 → 0.45
+      so sparse unknowns stop lingering in the alive set.`);
+  }
+
+  // Losses
+  if (losses.length > 0) {
+    anyAction = true;
+    const lossRate = (losses.length / total) * 100;
+    console.log(`
+  [engine] ${losses.length} losses (${lossRate.toFixed(1)}%).`);
+    if (losses.every((g) => g.questionsAsked >= g.maxQuestions)) {
+      console.log(`    → All losses exhausted full question budget — these characters are likely
+      indistinguishable in the current pool. Options:
+        1. Enrich attributes for the specific characters that always lose.
+        2. Adjust SCORE_MISMATCH from 0.05 → 0.03 to reduce residual probability
+           of contradicted characters polluting the alive set.`);
+    }
+  }
+
+  // Average question count high
+  if (avgQ > 15) {
+    anyAction = true;
+    console.log(`
+  [engine] Average ${fmt(avgQ)} questions — medium difficulty target of 15q is not being met.
+    → Check BONUS_QUESTIONS_PER_REJECT: bonus questions after wrong guesses may be inflating totals.
+    → Review early-guess guards: if insufficient_data is holding too conservatively, games drag on.`);
+  }
+
+  if (!anyAction) {
+    console.log(`  All KPIs within targets. No immediate changes recommended.`);
+    console.log(`  Consider reviewing question selection quality (section 6.5) for further refinement.`);
   }
 
   console.log(`\n${"═".repeat(70)}\n`);
@@ -506,25 +910,46 @@ function analyzeResults(games: SimGameResult[]): void {
 
 // ── Main ───────────────────────────────────────────────────────────────────────
 
-const filePath = process.argv[2];
-if (!filePath) {
-  console.error("Usage: npx tsx scripts/simulate/analyze.ts <results.jsonl>");
+const filePaths = process.argv.slice(2);
+if (filePaths.length === 0) {
+  console.error("Usage: npx tsx scripts/simulate/analyze.ts <results.jsonl> [results2.jsonl ...]");
   process.exit(1);
 }
 
-const resolved = path.resolve(filePath);
-if (!fs.existsSync(resolved)) {
-  console.error(`File not found: ${resolved}`);
+const byDifficulty = new Map<string, SimGameResult[]>();
+const allResults: SimGameResult[] = [];
+
+for (const filePath of filePaths) {
+  const resolved = path.resolve(filePath);
+  if (!fs.existsSync(resolved)) {
+    console.error(`File not found: ${resolved}`);
+    process.exit(1);
+  }
+  console.log(`\nLoading: ${resolved}`);
+  const results = await loadResults(resolved);
+  console.log(`  → ${results.length} records`);
+  if (results.length === 0) {
+    console.warn(`  ⚠ No valid records in ${resolved}, skipping.`);
+    continue;
+  }
+  allResults.push(...results);
+  for (const r of results) {
+    const diff = r.difficulty ?? "unknown";
+    if (!byDifficulty.has(diff)) byDifficulty.set(diff, []);
+    byDifficulty.get(diff)!.push(r);
+  }
+}
+
+if (allResults.length === 0) {
+  console.error("No valid records found in any file.");
   process.exit(1);
 }
 
-console.log(`\nLoading results from: ${resolved}`);
-const results = await loadResults(resolved);
-console.log(`Loaded ${results.length} game records.`);
-
-if (results.length === 0) {
-  console.error("No valid records found.");
-  process.exit(1);
+console.log(`\nTotal records loaded: ${allResults.length}`);
+if (byDifficulty.size > 1) {
+  crossDifficultyTable(byDifficulty);
 }
 
-analyzeResults(results);
+// If multiple difficulties, analyze the combined set (most useful for recommendations)
+// Also note per-difficulty breakdown is in the cross-difficulty table above
+analyzeResults(allResults);

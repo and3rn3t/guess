@@ -236,24 +236,31 @@ export function evaluateGuessReadiness(
   const aliveProbs = sorted.filter((p) => p > ALIVE_THRESHOLD)
   const aliveCount = aliveProbs.length
   const currentEntropy = entropy(aliveProbs)
-  // With SCORE_MISMATCH=0.05, tolerated 1-mismatch chars have residual probability that inflates
-  // aliveCount. Use competitiveCount (chars with ≥15% of top probability) for readiness gates.
-  // Hard floor of 0.01 prevents inflated competitiveCount in uniform low-probability pools
+  // Use competitiveCount (chars with ≥15% of top probability) rather than aliveCount for
+  // readiness gates. Hard floor 0.01 prevents inflation in uniform low-probability pools.
   const competitiveCount = aliveProbs.filter(
     (p) => p >= topProbability * 0.15 && p > 0.01
   ).length
   const questionsRemaining = Math.max(0, maxQuestions - questionCount)
   const progress = maxQuestions > 0 ? questionCount / maxQuestions : 1
 
-  // Wrong guesses make future guesses stricter, not more aggressive.
+  // Pool-size scale: large pools (e.g. 18k chars) structurally cap achievable confidence lower
+  // than small pools (200 chars) because probability mass is spread across more candidates.
+  // poolScale = 1.0 at ≤200 chars, ≈0.54 at 18k chars (log10 interpolation).
+  const poolScale = Math.min(1.0, Math.log10(200) / Math.log10(Math.max(characters.length, 200)))
+
+  // Wrong guesses raise the bar for future guesses (stricter, not more aggressive).
   const wrongGuessPenalty = Math.min(priorWrongGuesses * 0.04, 0.12)
-  const requiredConfidence = Math.min(0.85 - 0.25 * progress * progress + wrongGuessPenalty, 0.94)
+  // requiredConfidence scales down with pool size and relaxes as progress increases
+  const requiredConfidence = Math.min(
+    (0.85 * poolScale) - 0.25 * progress * progress + wrongGuessPenalty,
+    0.94 * poolScale
+  )
   const requiredGap = Math.max(0.12 - 0.05 * progress + wrongGuessPenalty, 0.08)
-  // Entropy threshold: allows strict_readiness to fire with a dominant leader vs 1-2 weak
-  // competitors. Previous floor of 0.3 bits required near-singleton concentration (same as
-  // high_certainty), making strict_readiness effectively dead code. The new formula targets
-  // ~0.9-1.5 bits — concentrated enough to guess with confidence, not so strict it never fires.
-  const requiredEntropy = Math.max(1.5 - 0.6 * progress - priorWrongGuesses * 0.05, 0.6)
+  // requiredEntropy is exported for diagnostics but NOT used in decisions (see below).
+  // In large sparse pools (418 alive chars) entropy is 6-8 bits and never reaches sub-1-bit
+  // thresholds, making any entropy gate permanently blocking. We rely on competitiveCount instead.
+  const requiredEntropy = Math.max(1.2 - 0.6 * progress - priorWrongGuesses * 0.05, 0.5)
 
   const resultBase = {
     forced: false,
@@ -268,35 +275,54 @@ export function evaluateGuessReadiness(
     requiredEntropy,
   }
 
-  // Ask a minimum of questions before non-forced guesses;
-  // only overwhelming certainty overrides.
-  if (questionCount < 5 && topProbability < 0.95) {
+  // ── Gate 1: minimum question floor ──────────────────────────────────────────
+  // Always ask at least 5 questions; only near-certainty overrides.
+  if (questionCount < 5 && topProbability < 0.95 * poolScale) {
     return { shouldGuess: false, trigger: 'insufficient_data', ...resultBase }
   }
 
+  // ── Gate 2: time pressure (early endgame trigger) ──────────────────────────
+  // Near the budget limit, voluntarily guess if a leader has emerged — avoids the hard
+  // forced max_questions trigger and saves 3+ questions per game.
+  // Only fires in large pools (≥100 chars): in small pools each remaining question is
+  // valuable enough to use fully. competitiveCount ≤ 5 ensures at least some posterior
+  // concentration (blocks when 100s of characters are equally likely).
+  if (
+    questionsRemaining <= 3 &&
+    questionCount >= 5 &&
+    characters.length >= 100 &&
+    competitiveCount <= 5
+  ) {
+    return { shouldGuess: true, trigger: 'time_pressure', ...resultBase }
+  }
+
+  // ── Gate 3: broad posterior hold ────────────────────────────────────────────
   // Keep asking while budget remains and posterior is still broad.
-  // Use competitiveCount (≥15% of top) rather than aliveCount to avoid inflation
-  // from residual SCORE_MISMATCH probabilities on eliminated-but-not-zeroed characters.
-  // Threshold lowered from 0.82 → 0.70 so the engine doesn't unnecessarily keep asking
-  // when it already has ≥70% confidence — high_certainty or strict_readiness will decide.
-  if (questionsRemaining > 3 && topProbability < 0.70 && competitiveCount > 2) {
+  // Pool-scaled threshold: with 18k chars, topP rarely exceeds 40% → use ~38% as the hold line.
+  // Gap condition releases the hold early when a clear leader emerges (topP ≫ secondP).
+  const holdThreshold = 0.70 * poolScale // ≈ 0.38 for 18k-char pool
+  if (questionsRemaining > 3 && topProbability < holdThreshold && gap < 0.15) {
     return { shouldGuess: false, trigger: 'insufficient_data', ...resultBase }
   }
 
-  // high_certainty: strong single leader with a clear gap. Threshold lowered from 0.93 to 0.87
-  // so the trigger fires in realistic 2000-character pools where reaching 93% before question
-  // exhaustion is very rare.
-  const highCertainty = topProbability >= 0.87 && gap >= 0.20 && competitiveCount <= 2
+  // ── Gate 4: high_certainty ──────────────────────────────────────────────────
+  // Strong single leader with a clear absolute gap. Threshold scales with pool size:
+  // in an 18k pool, achieving 47% is as conclusive as 87% in a 200-char pool.
+  const highCertaintyThreshold = Math.max(0.87 * poolScale, 0.35)
+  const highCertainty =
+    topProbability >= highCertaintyThreshold && gap >= 0.20 && competitiveCount <= 3
   if (highCertainty) {
     return { shouldGuess: true, trigger: 'high_certainty', ...resultBase }
   }
 
-  // questionCount >= 3 is always satisfied here (min-guard above blocks q < 5)
+  // ── Gate 5: strict_readiness ─────────────────────────────────────────────────
+  // Confidence + gap scaled to pool and progress. Entropy deliberately NOT used here:
+  // in large sparse pools (418 alive chars) entropy is always 6-8 bits and would block
+  // this trigger permanently. competitiveCount ≤ 8 is the concentration gate instead.
   const strictReady =
     topProbability >= requiredConfidence &&
     gap >= requiredGap &&
-    competitiveCount <= 3 &&
-    currentEntropy <= requiredEntropy
+    competitiveCount <= 8
 
   return {
     shouldGuess: strictReady,

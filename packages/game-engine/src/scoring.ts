@@ -56,10 +56,11 @@ export function calculateProbabilities(
     for (const answer of answers) {
       const characterValue = character.attributes[answer.questionId]
       // Coverage-weighted unknown score: sparse attributes score lower, well-covered
-      // attributes are capped at 0.55 (down from 0.70) so characters with null on
-      // high-coverage species/origin attributes don't linger until late game.
+      // attributes are capped at 0.45 (reduced from 0.55) so characters with null on
+      // high-coverage species/origin attributes are penalized more aggressively in large pools,
+      // reducing the 400+ alive-count problem in 18k-character simulations.
       const effectiveUnknown = coverageMap
-        ? 0.3 + 0.25 * (coverageMap.get(answer.questionId) ?? 0.5)
+        ? 0.3 + 0.15 * (coverageMap.get(answer.questionId) ?? 0.5)
         : SCORE_UNKNOWN
       score *= scoreForAnswer(answer.value, characterValue, effectiveUnknown)
       // Early exit: once negligibly probable, skip remaining answers

@@ -7,6 +7,7 @@ export type GuessTrigger =
   | 'max_questions'
   | 'high_certainty'
   | 'strict_readiness'
+  | 'time_pressure'
   | 'insufficient_data'
 
 // ── Minimal interfaces the engine needs ──────────────────────────────────────
