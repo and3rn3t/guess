@@ -32,6 +32,8 @@
     "ingest:stats": "tsx scripts/ingest/run.ts stats",
     "ingest:dedup": "tsx scripts/ingest/run.ts dedup",
     "ingest:upload": "tsx scripts/ingest/run.ts upload",
+    "simulate:export": "tsx scripts/simulate/export-data.ts",
+    "simulate": "tsx scripts/simulate/run.ts",
     "prepare": "husky"
   },
   "dependencies": {

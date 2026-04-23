@@ -33,6 +33,9 @@ dist-ssr
 # Staging data (local ingestion DB)
 data/
 
+# Simulation exported data (regenerate with pnpm simulate:export)
+scripts/simulate/data/
+
 # Wrangler local state
 .wrangler/
 
