@@ -743,14 +743,14 @@ describe('evaluateGuessReadiness – singleton with fewer than 5 questions', () 
 
 describe('evaluateGuessReadiness – strict_readiness trigger', () => {
   it('fires strict_readiness when confidence meets threshold but topProb is below highCertainty cutoff', () => {
-    // topProb=0.92 is below highCertainty(0.93); entropy([0.92,0.08]) ≈ 0.40
-    // At questionCount=10 (progress=0.667): requiredConfidence≈0.74, requiredEntropy≈0.42
-    // 0.92 ≥ 0.74 AND 0.40 ≤ 0.42 → strictReady=true
+    // topProb=0.86 is below highCertainty(0.87); entropy([0.86,0.14]) ≈ 0.58 bits.
+    // At questionCount=10 (progress=0.667): requiredConfidence≈0.74, requiredEntropy=1.10 bits.
+    // 0.86 ≥ 0.74 AND 0.58 ≤ 1.10 → strictReady=true
     const chars: Character[] = [
       { id: 'a', name: 'A', category: 'movies', attributes: {} },
       { id: 'b', name: 'B', category: 'movies', attributes: {} },
     ]
-    const preComputedProbs = new Map([['a', 0.92], ['b', 0.08]])
+    const preComputedProbs = new Map([['a', 0.86], ['b', 0.14]])
     const readiness = evaluateGuessReadiness(chars, [], 10, 15, 0, undefined, preComputedProbs)
 
     expect(readiness.shouldGuess).toBe(true)
@@ -758,15 +758,17 @@ describe('evaluateGuessReadiness – strict_readiness trigger', () => {
   })
 
   it('returns insufficient_data from the final return when entropy is too high for strictReady', () => {
-    // topProb=0.85 (below highCertainty); entropy([0.85,0.10,0.05]) ≈ 0.75
-    // At questionCount=6: requiredEntropy≈0.47; 0.75 > 0.47 → strictReady=false
+    // topProb=0.75 (below highCertainty(0.87)); entropy([0.75,0.10,0.08,0.04,0.03]) ≈ 1.27 bits.
+    // At questionCount=10 (progress=0.667): requiredEntropy=1.10 bits. 1.27 > 1.10 → strictReady=false.
     const chars: Character[] = [
       { id: 'a', name: 'A', category: 'movies', attributes: {} },
       { id: 'b', name: 'B', category: 'movies', attributes: {} },
       { id: 'c', name: 'C', category: 'movies', attributes: {} },
+      { id: 'd', name: 'D', category: 'movies', attributes: {} },
+      { id: 'e', name: 'E', category: 'movies', attributes: {} },
     ]
-    const preComputedProbs = new Map([['a', 0.85], ['b', 0.10], ['c', 0.05]])
-    const readiness = evaluateGuessReadiness(chars, [], 6, 15, 0, undefined, preComputedProbs)
+    const preComputedProbs = new Map([['a', 0.75], ['b', 0.10], ['c', 0.08], ['d', 0.04], ['e', 0.03]])
+    const readiness = evaluateGuessReadiness(chars, [], 10, 15, 0, undefined, preComputedProbs)
 
     expect(readiness.shouldGuess).toBe(false)
     expect(readiness.trigger).toBe('insufficient_data')

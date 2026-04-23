@@ -249,7 +249,11 @@ export function evaluateGuessReadiness(
   const wrongGuessPenalty = Math.min(priorWrongGuesses * 0.04, 0.12)
   const requiredConfidence = Math.min(0.85 - 0.25 * progress * progress + wrongGuessPenalty, 0.94)
   const requiredGap = Math.max(0.12 - 0.05 * progress + wrongGuessPenalty, 0.08)
-  const requiredEntropy = Math.max(0.55 - 0.2 * progress - priorWrongGuesses * 0.04, 0.3)
+  // Entropy threshold: allows strict_readiness to fire with a dominant leader vs 1-2 weak
+  // competitors. Previous floor of 0.3 bits required near-singleton concentration (same as
+  // high_certainty), making strict_readiness effectively dead code. The new formula targets
+  // ~0.9-1.5 bits — concentrated enough to guess with confidence, not so strict it never fires.
+  const requiredEntropy = Math.max(1.5 - 0.6 * progress - priorWrongGuesses * 0.05, 0.6)
 
   const resultBase = {
     forced: false,
@@ -273,11 +277,16 @@ export function evaluateGuessReadiness(
   // Keep asking while budget remains and posterior is still broad.
   // Use competitiveCount (≥15% of top) rather than aliveCount to avoid inflation
   // from residual SCORE_MISMATCH probabilities on eliminated-but-not-zeroed characters.
-  if (questionsRemaining > 3 && topProbability < 0.82 && competitiveCount > 2) {
+  // Threshold lowered from 0.82 → 0.70 so the engine doesn't unnecessarily keep asking
+  // when it already has ≥70% confidence — high_certainty or strict_readiness will decide.
+  if (questionsRemaining > 3 && topProbability < 0.70 && competitiveCount > 2) {
     return { shouldGuess: false, trigger: 'insufficient_data', ...resultBase }
   }
 
-  const highCertainty = topProbability >= 0.93 && gap >= 0.25 && competitiveCount <= 2
+  // high_certainty: strong single leader with a clear gap. Threshold lowered from 0.93 to 0.87
+  // so the trigger fires in realistic 2000-character pools where reaching 93% before question
+  // exhaustion is very rare.
+  const highCertainty = topProbability >= 0.87 && gap >= 0.20 && competitiveCount <= 2
   if (highCertainty) {
     return { shouldGuess: true, trigger: 'high_certainty', ...resultBase }
   }

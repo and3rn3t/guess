@@ -34,7 +34,7 @@ console.log(`Exporting from ${DB_NAME} (${env})...`)
 function d1Query(sql: string): unknown[] {
   const escaped = sql.replace(/"/g, '\\"')
   const cmd = `npx wrangler d1 execute ${DB_NAME} ${ENV_FLAG} --remote --command "${escaped}" --json`
-  const raw = execSync(cmd, { encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] })
+  const raw = execSync(cmd, { encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'], maxBuffer: 512 * 1024 * 1024 })
   // wrangler returns an array of result sets; take the first results
   const parsed = JSON.parse(raw) as Array<{ results?: unknown[] }>
   return parsed[0]?.results ?? []
@@ -78,14 +78,13 @@ console.log(`  → ${characters.length} characters`)
 
 console.log('Fetching questions...')
 const questionRows = d1Query(
-  'SELECT id, text, attribute_key, category FROM questions ORDER BY priority DESC'
-) as Array<{ id: string; text: string; attribute_key: string; category: string | null }>
+  'SELECT id, text, attribute_key FROM questions ORDER BY priority DESC'
+) as Array<{ id: string; text: string; attribute_key: string }>
 
 const questions = questionRows.map((row) => ({
   id: row.id,
   text: row.text,
   attribute: row.attribute_key,
-  category: row.category ?? undefined,
 }))
 
 console.log(`  → ${questions.length} questions`)

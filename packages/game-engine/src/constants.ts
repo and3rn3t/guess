@@ -15,3 +15,13 @@ export const MAYBE_ANSWER_PROB = 0.15
 // ── Guess-readiness thresholds ────────────────────────────────────────────────
 /** Characters with probability below this value are considered eliminated. */
 export const ALIVE_THRESHOLD = 0.001
+
+// ── Question selection ────────────────────────────────────────────────────────
+/**
+ * Minimum absolute information gain (bits) for a question to enter the
+ * weighted-random selection pool. Questions scoring below this floor are
+ * still available as a last-resort fallback but are excluded from the pool
+ * when better alternatives exist. Prevents wasting turns on near-zero-gain
+ * attributes (e.g. 100% unknown attrs, or globally unimportant questions).
+ */
+export const MIN_INFO_GAIN = 0.01

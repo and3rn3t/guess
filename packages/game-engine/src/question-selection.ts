@@ -1,4 +1,4 @@
-import { MAYBE_ANSWER_PROB, SCORE_MAYBE, SCORE_MAYBE_MISS, SCORE_UNKNOWN } from './constants.js'
+import { MAYBE_ANSWER_PROB, MIN_INFO_GAIN, SCORE_MAYBE, SCORE_MAYBE_MISS, SCORE_UNKNOWN } from './constants.js'
 import { calculateProbabilities } from './scoring.js'
 import type { GameAnswer, GameCharacter, GameQuestion, QuestionSelectionOptions } from './types.js'
 
@@ -317,14 +317,19 @@ export function selectBestQuestion(
   // When endgame focus is active, cap the pool to avoid wasting turns.
   const baseFactor = 0.3 + 0.6 * progress // 0.3 early → 0.9 late
   const thresholdFactor = endgameFocus ? Math.max(baseFactor, 0.8) : baseFactor
-  const threshold = scored[0].score * thresholdFactor
+  const relativeThreshold = scored[0].score * thresholdFactor
+  // Apply absolute floor so near-zero-gain questions (e.g. 100%-unknown attrs or
+  // globally uninformative ones) are excluded from the selection pool when better
+  // alternatives exist. Fall back to the full sorted list if all scores are sub-floor.
+  const threshold = Math.max(relativeThreshold, MIN_INFO_GAIN)
   const topK = scored.filter((s) => s.score >= threshold)
-  const totalWeight = topK.reduce((sum, s) => sum + s.score, 0)
+  const pool = topK.length > 0 ? topK : scored.slice(0, 1)
+  const totalWeight = pool.reduce((sum, s) => sum + s.score, 0)
   let random = Math.random() * totalWeight
-  for (const candidate of topK) {
+  for (const candidate of pool) {
     random -= candidate.score
     if (random <= 0) return candidate.question
   }
 
-  return topK[0].question
+  return pool[0].question
 }
