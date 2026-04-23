@@ -140,12 +140,12 @@ export function selectBestQuestion(
   const recentAttrGroups = new Set(answers.slice(-3).map((a) => getAttributeGroup(a.questionId)))
 
   // Early-game taxonomy forcing: if no species/origin question has been asked yet and we
-  // are still in the first 30% of the game, boost those attribute groups so the AI
+  // are still in the first 40% of the game, boost those attribute groups so the AI
   // establishes the fundamental character type (human / animal / robot / alien …) before
   // diving into specific ability or appearance questions.  Without this boost, very rare
   // types (e.g. robots, ~0.2% of the pool) produce near-zero info-gain and are never asked
   // directly — leaving null-attributed characters alive far too long.
-  const earlyGame = progress < 0.3
+  const earlyGame = progress < 0.4
   const needsSpecies =
     earlyGame && !answers.some((a) => getAttributeGroup(a.questionId) === 'species')
   const needsOrigin =

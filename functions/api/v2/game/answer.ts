@@ -197,15 +197,16 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     return errorResponse('No questions or candidates available', 500)
   }
 
-  const reasoning = generateReasoning(nextQuestion, filtered, session.answers)
-
-  // Count eliminated (sync, computed before the async parallel section)
+  const reasoning = generateReasoning(nextQuestion, filtered, session.answers, scoring)
   const previousFiltered = filterPossibleCharacters(
     session.characters,
     session.answers.slice(0, -1),
     session.rejectedGuesses
   )
   const eliminated = previousFiltered.length - filtered.length
+
+  // Build a lookup so rephraseQuestion can reference question text in context
+  const questionLookup = new Map(session.questions.map((q) => [q.attribute, q.text]))
 
   // Parallelize: rephrase next question + save session state
   session.currentQuestion = nextQuestion
@@ -217,6 +218,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       reasoning,
       questionCount + 1,
       session.maxQuestions,
+      questionLookup,
     ),
     saveSessionState(kv, session),
   ])

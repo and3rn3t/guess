@@ -129,9 +129,10 @@ export function selectBestQuestion(
 export function generateReasoning(
   question: ServerQuestion,
   characters: ServerCharacter[],
-  answers: Answer[]
+  answers: Answer[],
+  scoring?: ScoringOptions
 ) {
-  return _generateReasoning(question, characters, answers)
+  return _generateReasoning(question, characters, answers, scoring)
 }
 
 /** Decide whether confidence is high enough to guess (thin wrapper). */

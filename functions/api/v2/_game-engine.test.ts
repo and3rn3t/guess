@@ -497,7 +497,7 @@ describe('generateReasoning', () => {
   it('describes an even split correctly', () => {
     // isHuman: 2 yes (Mario, Link), 2 no (Pikachu, Kirby) — abs(2-2) < 4*0.2 = 0.8 → NO, 2-2=0 < 0.8 → even split
     const reasoning = generateReasoning(question, CHARS, [])
-    expect(reasoning.why).toContain('splits the possibilities almost perfectly')
+    expect(reasoning.why).toContain('splits the possibilities almost evenly')
     expect(reasoning.remaining).toBe(4)
   })
 

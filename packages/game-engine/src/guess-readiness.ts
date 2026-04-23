@@ -17,14 +17,16 @@ import type {
 export function generateReasoning(
   question: GameQuestion,
   characters: GameCharacter[],
-  answers: GameAnswer[]
+  answers: GameAnswer[],
+  scoring?: ScoringOptions
 ): ReasoningExplanation {
   const total = characters.length
   const yesCount = characters.filter((c) => c.attributes[question.attribute] === true).length
   const noCount = characters.filter((c) => c.attributes[question.attribute] === false).length
   const unknownCount = total - yesCount - noCount
 
-  const probabilities = calculateProbabilities(characters, answers)
+  // Use scoring options for accurate probabilities (matches Bayesian ranking)
+  const probabilities = calculateProbabilities(characters, answers, scoring)
   const sorted = Array.from(probabilities.entries())
     .filter(([, p]) => p > 0)
     .sort((a, b) => b[1] - a[1])
@@ -54,7 +56,7 @@ export function generateReasoning(
 }
 
 function buildWhyExplanation(
-  _question: GameQuestion,
+  question: GameQuestion,
   yesCount: number,
   noCount: number,
   _unknownCount: number,
@@ -62,16 +64,21 @@ function buildWhyExplanation(
 ): string {
   const yesPercent = Math.round((yesCount / total) * 100)
   const noPercent = Math.round((noCount / total) * 100)
+  // Surface question text if available
+  const questionText =
+    'text' in question && typeof (question as { text?: unknown }).text === 'string'
+      ? `"${(question as { text: string }).text}" `
+      : ''
 
   if (Math.abs(yesCount - noCount) < total * 0.2) {
-    return `This question splits the possibilities almost perfectly: ${yesPercent}% could answer "yes" while ${noPercent}% would say "no". This is an optimal binary split that will eliminate roughly half the options regardless of your answer.`
+    return `${questionText}This splits the possibilities almost evenly: ${yesPercent}% could answer "yes" while ${noPercent}% would say "no". This is an optimal binary split that will eliminate roughly half the options regardless of your answer.`
   }
 
   if (yesCount < noCount) {
-    return `Only ${yesPercent}% of remaining possibilities have this trait. If you answer "yes", we can dramatically narrow down the options. If "no", we still eliminate a meaningful subset.`
+    return `${questionText}Only ${yesPercent}% of remaining possibilities have this trait. If you answer "yes", we can dramatically narrow down the options. If "no", we still eliminate a meaningful subset.`
   }
 
-  return `About ${yesPercent}% of remaining possibilities share this characteristic. This question targets a common trait that will help us understand the nature of what you're thinking.`
+  return `${questionText}About ${yesPercent}% of remaining possibilities share this characteristic. This question targets a common trait that will help us understand the nature of what you're thinking.`
 }
 
 function buildImpactExplanation(yesCount: number, noCount: number, total: number): string {

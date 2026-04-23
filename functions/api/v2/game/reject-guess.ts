@@ -95,7 +95,10 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     })
   }
 
-  const reasoning = generateReasoning(nextQuestion, filtered, session.answers)
+  const reasoning = generateReasoning(nextQuestion, filtered, session.answers, scoring)
+
+  // Build a lookup so rephraseQuestion can reference question text in context
+  const questionLookup = new Map(session.questions.map((q) => [q.attribute, q.text]))
 
   // Parallelize: rephrase next question + save session state
   session.currentQuestion = nextQuestion
@@ -107,6 +110,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       reasoning,
       session.answers.length + 1,
       session.maxQuestions,
+      questionLookup,
     ),
     saveSessionState(kv, session),
   ])

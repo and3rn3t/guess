@@ -5,6 +5,10 @@ import type { Answer, ServerQuestion, ReasoningExplanation } from './_game-engin
  * Rephrase a static question into a conversational, context-aware version
  * using gpt-4o-mini. Returns null on any failure so callers can fall back
  * to the original question text.
+ *
+ * @param questionLookup - Optional map of attribute → question text so that the
+ *   rephrasing prompt can reference recent questions by their human-readable text
+ *   rather than raw camelCase attribute keys.
  */
 export async function rephraseQuestion(
   env: Env,
@@ -13,13 +17,17 @@ export async function rephraseQuestion(
   reasoning: ReasoningExplanation,
   questionNumber: number,
   maxQuestions: number,
+  questionLookup?: Map<string, string>,
 ): Promise<string | null> {
   if (!env.OPENAI_API_KEY) return null
 
   try {
     const recentContext = answers
       .slice(-5)
-      .map((a) => `Q: [${a.questionId}] → ${a.value}`)
+      .map((a) => {
+        const text = questionLookup?.get(a.questionId) ?? a.questionId
+        return `Q: "${text}" → ${a.value}`
+      })
       .join('\n')
 
     // Only expose top suspects in the second half of the game to avoid biasing
@@ -113,6 +121,7 @@ export async function rephraseQuestionWithCache(
   reasoning: ReasoningExplanation,
   questionNumber: number,
   maxQuestions: number,
+  questionLookup?: Map<string, string>,
 ): Promise<string | null> {
   const isCacheable = answers.length === 0
 
@@ -121,7 +130,7 @@ export async function rephraseQuestionWithCache(
     if (cached) return cached
   }
 
-  const rephrased = await rephraseQuestion(env, question, answers, reasoning, questionNumber, maxQuestions)
+  const rephrased = await rephraseQuestion(env, question, answers, reasoning, questionNumber, maxQuestions, questionLookup)
 
   if (rephrased && isCacheable) {
     // Fire-and-forget — not critical if it fails
