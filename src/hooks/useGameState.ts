@@ -1,6 +1,5 @@
-import { useReducer, useCallback, useRef, useEffect, startTransition } from 'react'
+import { useReducer, useCallback, useRef, useEffect } from 'react'
 import type { Character, Question, Answer, AnswerValue, ReasoningExplanation, GameHistoryStep } from '@/lib/types'
-import { startViewTransition } from '@/lib/view-transitions'
 
 const SESSION_KEY = 'kv:game-session'
 
@@ -233,9 +232,7 @@ function clearSavedSession(): void {
 /** Main game state hook — wraps useReducer with session persistence, navigation helper, and resume/clear callbacks. */
 export function useGameState() {
   const savedSession = useRef(loadSession())
-  const [state, baseDispatch] = useReducer(gameReducer, initialState)
-  const stateRef = useRef(state)
-  stateRef.current = state
+  const [state, dispatch] = useReducer(gameReducer, initialState)
 
   // Persist session for active games
   useEffect(() => {
@@ -246,26 +243,9 @@ export function useGameState() {
     }
   }, [state])
 
-  /**
-   * Dispatch wrapper that animates phase changes via the View Transitions API
-   * and marks them as React 19 transitions so the UI stays interactive.
-   * Non-phase-changing actions dispatch immediately to avoid animating routine
-   * state churn (e.g. probability updates, thinking flag).
-   */
-  const dispatch = useCallback((action: GameAction) => {
-    const next = gameReducer(stateRef.current, action)
-    if (next.phase === stateRef.current.phase) {
-      baseDispatch(action)
-    } else {
-      startViewTransition(() => {
-        startTransition(() => baseDispatch(action))
-      })
-    }
-  }, [])
-
   const navigate = useCallback(
     (phase: GamePhase, character?: Character) => dispatch({ type: 'NAVIGATE', phase, character }),
-    [dispatch],
+    [],
   )
 
   const resumeSession = useCallback(() => {
