@@ -44,6 +44,8 @@ jobs:
               - 'functions/**'
               - 'packages/**'
               - 'public/**'
+              - 'e2e/**'
+              - 'playwright.config.ts'
               - 'index.html'
               - 'package.json'
               - 'pnpm-lock.yaml'

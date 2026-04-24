@@ -99,10 +99,11 @@ function AppHeaderBase({
                   }}
                   variant="outline"
                   size="sm"
+                  aria-label="Statistics"
                   className="flex items-center gap-2 bg-accent/10 hover:bg-accent/20 border-accent/30 touch-target"
                 >
                   <ChartBarIcon size={20} />
-                  <span className="hidden sm:inline">Statistics</span>
+                  <span className="hidden sm:inline" aria-hidden="true">Statistics</span>
                 </Button>
                 <Button
                   onClick={() => {
