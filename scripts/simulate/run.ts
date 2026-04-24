@@ -44,6 +44,7 @@ const OUTPUT_FILE = arg('output')
 const WRITE_DB = flag('write-db')
 const ENV = arg('env') ?? 'production'
 const POOL_SIZE_OVERRIDE = arg('pool-size') ? parseInt(arg('pool-size')!, 10) : undefined
+const MIN_ATTRS_OVERRIDE = arg('min-attrs') ? parseInt(arg('min-attrs')!, 10) : null
 
 if (!DIFFICULTY_MAP[DIFFICULTY]) {
   console.error(`Unknown difficulty: "${DIFFICULTY}". Choose easy, medium, or hard.`)
@@ -68,22 +69,34 @@ if (allCharacters.length === 0 || questions.length === 0) {
   process.exit(1)
 }
 
+// Apply minimum attribute count filter if requested (mirrors MIN_ATTRIBUTES in _game-engine.ts)
+const eligibleCharacters = MIN_ATTRS_OVERRIDE != null
+  ? allCharacters.filter((c) => {
+      const knownCount = Object.values(c.attributes).filter((v) => v !== null).length
+      return knownCount >= MIN_ATTRS_OVERRIDE
+    })
+  : allCharacters
+
+if (MIN_ATTRS_OVERRIDE != null) {
+  console.log(`Min-attrs filter: ${MIN_ATTRS_OVERRIDE} — pool ${allCharacters.length} → ${eligibleCharacters.length} chars`)
+}
+
 // ── Select targets ────────────────────────────────────────────────────────────
 
 let targets: SimCharacter[]
 
 if (TARGET_ID) {
-  const found = allCharacters.find((c) => c.id === TARGET_ID)
+  const found = eligibleCharacters.find((c) => c.id === TARGET_ID)
   if (!found) {
     console.error(`Character not found: "${TARGET_ID}"`)
     process.exit(1)
   }
   targets = [found]
 } else if (ALL) {
-  targets = allCharacters
+  targets = eligibleCharacters
 } else {
   // Random sample without replacement
-  const shuffled = allCharacters.slice().sort(() => Math.random() - 0.5)
+  const shuffled = eligibleCharacters.slice().sort(() => Math.random() - 0.5)
   targets = shuffled.slice(0, SAMPLE!)
 }
 
@@ -94,12 +107,12 @@ const results: SimGameResult[] = []
 const startTime = Date.now()
 
 console.log(`\nSimulation run: ${runId}`)
-console.log(`Targets: ${targets.length} | Pool: ${allCharacters.length} characters | Difficulty: ${DIFFICULTY}`)
+console.log(`Targets: ${targets.length} | Pool: ${eligibleCharacters.length} characters | Difficulty: ${DIFFICULTY}`)
 console.log(`Questions: ${questions.length}\n`)
 
 for (let i = 0; i < targets.length; i++) {
   const target = targets[i]!
-  const result = simulateGame(target, allCharacters, questions, runId, {
+  const result = simulateGame(target, eligibleCharacters, questions, runId, {
     difficulty: DIFFICULTY,
     poolSize: POOL_SIZE_OVERRIDE,
   })

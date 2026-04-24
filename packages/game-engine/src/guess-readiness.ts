@@ -300,6 +300,20 @@ export function evaluateGuessReadiness(
     return { shouldGuess: true, trigger: 'time_pressure', ...resultBase }
   }
 
+  // ── Gate 2b: last-resort time pressure ────────────────────────────────────
+  // On the final question, prefer a low-confidence voluntary guess over a zero-confidence
+  // forced max_questions guess. Skips the competitiveCount guard — at 1 question left,
+  // even a spread posterior is better addressed by guessing the leader than exhausting
+  // the budget. Requires any signal (≥8%) to avoid pure-noise guesses.
+  if (
+    questionsRemaining <= 1 &&
+    questionCount >= 5 &&
+    characters.length >= 100 &&
+    topProbability >= 0.08
+  ) {
+    return { shouldGuess: true, trigger: 'time_pressure', ...resultBase }
+  }
+
   // ── Gate 3: broad posterior hold ────────────────────────────────────────────
   // Keep asking while budget remains and posterior is still broad.
   // Pool-scaled threshold: with 18k chars, topP rarely exceeds 40% → use ~38% as the hold line.
