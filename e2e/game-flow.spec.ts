@@ -23,10 +23,8 @@ function mockQuestion(id: number) {
   }
 }
 
-let answerCount = 0
-
 async function setupApiMocks(page: Page) {
-  answerCount = 0
+  let answerCount = 0
 
   await page.route('**/api/v2/game/start', (route) =>
     route.fulfill({
@@ -127,42 +125,16 @@ test.describe('Game flow', () => {
   })
 
   test('full game flow: answer questions until guess', async ({ page }) => {
-    test.setTimeout(60000)
     await page.getByRole('button', { name: /start game/i }).first().click()
 
-    // Answer questions until the mock API returns a guess (after 3 answers)
-    for (let i = 0; i < 20; i++) {
-      const correctButton = page.getByRole('button', { name: /yes.*correct/i })
-      const wrongButton = page.getByRole('button', { name: /no.*wrong/i })
-      const playAgainButton = page.getByRole('button', { name: /play again/i }).first()
-
-      if (await correctButton.isVisible().catch(() => false)) {
-        await correctButton.click()
-        break
-      }
-
-      if (await wrongButton.isVisible().catch(() => false)) {
-        await wrongButton.click()
-        break
-      }
-
-      if (await playAgainButton.isVisible().catch(() => false)) {
-        break
-      }
-
-      const yesButton = page.getByRole('button', { name: /answer yes/i })
-      if (await yesButton.isVisible().catch(() => false)) {
-        await yesButton.click()
-        await page.waitForTimeout(500)
-      } else {
-        await page.waitForTimeout(1000)
-      }
+    // Mock returns a guess after 3 answers — click Yes 3 times
+    for (let i = 0; i < 3; i++) {
+      await expect(page.getByRole('button', { name: /answer yes/i })).toBeVisible()
+      await page.getByRole('button', { name: /answer yes/i }).click()
     }
 
-    // Should end up in guess or gameOver phase
-    const gameOverVisible = await page.getByRole('button', { name: /play again/i }).first().isVisible().catch(() => false)
-    const guessVisible = await page.getByText(/was i correct/i).isVisible().catch(() => false)
-    expect(gameOverVisible || guessVisible).toBe(true)
+    // Should reach the guess confirmation screen
+    await expect(page.getByText(/was i correct/i)).toBeVisible({ timeout: 5000 })
   })
 
   test('can mute/unmute sounds', async ({ page }) => {
@@ -210,15 +182,19 @@ test.describe('Game flow', () => {
 
 test.describe('Persistence', () => {
   test('remembers mute preference across reload', async ({ page }) => {
+    // addInitScript runs on every navigation — only set onboarding, don't clear,
+    // so the mute state written by the app persists across the reload check.
+    await setupApiMocks(page)
+    await page.addInitScript(() => {
+      localStorage.setItem('kv:onboarding-complete', 'true')
+    })
     await page.goto('/')
-    await page.evaluate(() => localStorage.clear())
-    await page.reload()
 
     // Mute
     await page.getByRole('button', { name: /mute sounds/i }).click()
     await expect(page.getByRole('button', { name: /unmute sounds/i })).toBeVisible()
 
-    // Reload
+    // Reload — addInitScript sets onboarding key again but leaves mute key intact
     await page.reload()
 
     // Should still be muted
