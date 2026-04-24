@@ -25,6 +25,18 @@ export interface AttributeDefinitionsRow {
   display_text: string
   question_text: string | null
   categories: string | null
+  is_active: number
+  created_at: number
+}
+
+export interface PipelineRunsRow {
+  id: number
+  run_batch: string
+  character_id: string
+  step: 'fetch' | 'dedup' | 'enrich' | 'image' | 'upload'
+  status: 'pending' | 'running' | 'success' | 'error'
+  error: string | null
+  duration_ms: number | null
   created_at: number
 }
 
