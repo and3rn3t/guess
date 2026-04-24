@@ -59,23 +59,64 @@ function calculateTopCandidateSeparation(
 
 /** Map an attribute key to a semantic group for diversity tracking. */
 export function getAttributeGroup(attribute: string): string {
+  // Ability: things the character can do (powers, technology use, vehicles)
   if (
     attribute.startsWith('can') ||
     attribute === 'climbsWalls' ||
     attribute === 'controlsWeather' ||
-    attribute === 'shootsLasers'
+    attribute === 'shootsLasers' ||
+    attribute === 'usesTechnology' ||
+    attribute === 'usesVehicle'
   )
     return 'ability'
   if (attribute.startsWith('has')) return 'possession'
+  // Appearance: wears* + physical traits (bald, blind, etc.)
   if (attribute.startsWith('wears')) return 'appearance'
+  if (/^is(Bald|Blind|Deaf|Disabled|Invisible|Mute)$/.test(attribute)) return 'appearance'
+
+  // ── Origin family: three non-overlapping sub-groups ──
+
+  // Medium: what format/platform the character comes from.
+  // Lowercase from* is always a media type (fromBook, fromMovie, fromVideoGame).
+  if (attribute.startsWith('from')) return 'medium'
+  // isFrom* media-format sub-types
   if (
-    attribute.startsWith('isFrom') ||
-    attribute.startsWith('from') ||
-    attribute.startsWith('livesIn')
+    /^isFrom(TVShow|Anime|LiveAction|ComicBook|IndieSource|AnimatedSeries|Cartoon|Sitcom|Movie|Book|Documentary|GameShow|RealityShow|PopCulture)$/.test(
+      attribute
+    )
   )
-    return 'origin'
+    return 'medium'
+
+  // Genre: what genre/theme the source material belongs to (ends with Genre, Novel, or Fiction)
+  if (attribute.endsWith('Genre') || attribute.endsWith('Novel') || attribute.endsWith('Fiction'))
+    return 'genre'
+
+  // Geography: physical or fictional setting, world, location, or era
+  if (attribute.startsWith('livesIn')) return 'geography'
   if (
-    /^is(Alien|Animal|Cyborg|Demon|Dwarf|Elf|Ghost|Giant|God|Human|Immortal|Mythical|Orc|Robot|Supernatural|Vampire|Wizard|Zombie|Bald|Blind|Deaf|Disabled|Mute|Invisible)$/.test(
+    /^isFrom(Earth|Japan|City|SmallTown|Village|Countryside|Island|Forest|Jungle|Swamp|Desert|Mountains|Ocean|Castle|Underground|FantasyWorld|Dystopia|Utopia|Future|ModernEra|MedievalTimes|Space)$/.test(
+      attribute
+    )
+  )
+    return 'geography'
+
+  // Narrative: meta questions about source material and production
+  if (
+    /^(isPartOfFranchise|isPartOfEnsembleCast|appearsInSequel|appearsInPrequel|isBasedOnRealPerson)$/.test(
+      attribute
+    )
+  )
+    return 'narrative'
+  // Status: relationship, socioeconomic state, and family background
+  if (
+    /^(isSingle|isMarried|isRich|isPoor|isFromMiddleClass|isFromNobleFamily|isFromPoorFamily|isFromRoyalFamily|isFromWealthyFamily|isFromMilitary)$/.test(
+      attribute
+    )
+  )
+    return 'status'
+  // Species: fundamental character type (biological/ontological)
+  if (
+    /^is(Alien|Animal|Cyborg|Demon|Dwarf|Elf|Ghost|Giant|God|Human|Immortal|Mythical|Orc|Robot|Supernatural|Vampire|Wizard|Zombie)$/.test(
       attribute
     )
   )
@@ -94,6 +135,8 @@ export function getAttributeGroup(attribute: string): string {
     )
   )
     return 'personality'
+  // Remaining isFrom*/livesIn* catch-all → geography
+  if (attribute.startsWith('isFrom') || attribute.startsWith('livesIn')) return 'geography'
   return 'other'
 }
 
@@ -150,7 +193,11 @@ export function selectBestQuestion(
   const needsSpecies =
     earlyGame && !answers.some((a) => getAttributeGroup(a.questionId) === 'species')
   const needsOrigin =
-    earlyGame && !answers.some((a) => getAttributeGroup(a.questionId) === 'origin')
+    earlyGame &&
+    !answers.some((a) => {
+      const g = getAttributeGroup(a.questionId)
+      return g === 'medium' || g === 'geography' || g === 'genre'
+    })
 
   // Pre-compute null ratios for coverage penalty (avoids O(Q×C) re-scan inside the loop)
   const nullRatioMap = new Map<string, number>()
@@ -289,7 +336,7 @@ export function selectBestQuestion(
     // Origin gets a 1.3× lift to anchor the franchise early.
     if (needsSpecies && attrGroup === 'species') {
       infoGain *= 2.0
-    } else if (needsOrigin && attrGroup === 'origin') {
+    } else if (needsOrigin && (attrGroup === 'medium' || attrGroup === 'geography' || attrGroup === 'genre')) {
       infoGain *= 1.3
     }
 

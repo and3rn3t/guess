@@ -298,13 +298,6 @@ export function simulateGame(
       // so without this guard the loop never exits once questionCount >= hardCapMaxQuestions).
       if (readiness.forced && maxQuestions === prevMaxQ) break;
 
-      maxQuestions = Math.min(maxQuestions + effectiveBonus, hardCapMaxQuestions);
-
-      // If the budget is already capped and this was a forced guess, the game is exhausted.
-      // Break to avoid an infinite loop (forced wrong guesses bypass postRejectCooldown,
-      // so without this guard the loop never exits once questionCount >= hardCapMaxQuestions).
-      if (readiness.forced && maxQuestions === prevMaxQ) break;
-
       postRejectCooldown = 1;
 
       // Re-filter without rejected character
