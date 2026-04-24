@@ -1,0 +1,2 @@
+# Serve the SPA shell for all /admin/* subroutes (React Router handles client-side routing)
+/admin/* /index.html 200

@@ -11,18 +11,10 @@ export type GamePhase =
   | 'gameOver'
   | 'teaching'
   | 'manage'
-  | 'demo'
   | 'stats'
   | 'compare'
-  | 'coverage'
-  | 'recommender'
-  | 'categoryRecommender'
-  | 'environmentTest'
-  | 'bulkHabitat'
   | 'history'
   | 'challenge'
-  | 'costDashboard'
-  | 'dataHygiene'
   | 'describeYourself'
 
 // ========== STATE ==========

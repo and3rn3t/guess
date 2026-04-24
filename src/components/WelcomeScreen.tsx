@@ -2,7 +2,6 @@ import { Button } from "@/components/ui/button";
 import { PersonaSelector } from "@/components/PersonaSelector";
 import type { GamePhase } from "@/hooks/useGameState";
 import type { GlobalStats } from "@/hooks/useGlobalStats";
-import { DEFAULT_CHARACTERS } from "@/lib/database";
 import type {
   Character,
   CharacterCategory,
@@ -56,7 +55,7 @@ export function WelcomeScreen({
   clearSession,
   showDevTools,
   navigate,
-  characters,
+  characters: _characters,
   globalStats,
   difficulty,
   setDifficulty,
@@ -232,7 +231,7 @@ export function WelcomeScreen({
             </h3>
             <div className="flex flex-wrap gap-3">
               <Button
-                onClick={() => navigate("coverage")}
+                onClick={() => { window.location.href = '/admin/coverage' }}
                 variant="outline"
                 size="sm"
                 className="flex items-center gap-2"
@@ -241,7 +240,7 @@ export function WelcomeScreen({
                 Coverage Report
               </Button>
               <Button
-                onClick={() => navigate("demo")}
+                onClick={() => { window.location.href = '/admin/demo' }}
                 variant="outline"
                 size="sm"
                 className="flex items-center gap-2"
@@ -259,12 +258,7 @@ export function WelcomeScreen({
                 Manage Questions
               </Button>
               <Button
-                onClick={() => {
-                  const spongebob = (
-                    characters || DEFAULT_CHARACTERS
-                  ).find((c) => c.id === "spongebob");
-                  if (spongebob) navigate("environmentTest", spongebob);
-                }}
+                onClick={() => { window.location.href = '/admin/env' }}
                 variant="outline"
                 size="sm"
                 className="flex items-center gap-2"
@@ -273,7 +267,7 @@ export function WelcomeScreen({
                 Test Environment
               </Button>
               <Button
-                onClick={() => navigate("bulkHabitat")}
+                onClick={() => { window.location.href = '/admin/bulk-habitat' }}
                 variant="outline"
                 size="sm"
                 className="flex items-center gap-2"
@@ -282,7 +276,7 @@ export function WelcomeScreen({
                 AI Enrichment
               </Button>
               <Button
-                onClick={() => navigate("costDashboard")}
+                onClick={() => { window.location.href = '/admin/cost' }}
                 variant="outline"
                 size="sm"
                 className="flex items-center gap-2"
@@ -291,13 +285,22 @@ export function WelcomeScreen({
                 Cost Dashboard
               </Button>
               <Button
-                onClick={() => navigate("dataHygiene")}
+                onClick={() => { window.location.href = '/admin/hygiene' }}
                 variant="outline"
                 size="sm"
                 className="flex items-center gap-2"
               >
                 <WrenchIcon size={18} />
                 Data Hygiene
+              </Button>
+              <Button
+                onClick={() => { window.location.href = '/admin' }}
+                variant="outline"
+                size="sm"
+                className="flex items-center gap-2"
+              >
+                <WrenchIcon size={18} />
+                Admin Panel
               </Button>
             </div>
           </div>
