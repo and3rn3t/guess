@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { CheckCircle, XCircle, Question as QuestionIcon } from '@phosphor-icons/react'
+import { CheckCircle, XCircle, Question as QuestionIcon, Keyboard } from '@phosphor-icons/react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -35,6 +35,8 @@ export function QuestionCard({
   const [freeText, setFreeText] = useState('')
   const [isInterpreting, setIsInterpreting] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
+  const firstAnswerRef = useRef<HTMLButtonElement>(null)
+  const shortcutPopoverRef = useRef<HTMLElement>(null)
 
   const handleInputFocus = useCallback(() => {
     // Wait for the iOS keyboard to animate into place before scrolling
@@ -43,7 +45,14 @@ export function QuestionCard({
     }, 300)
   }, [])
 
-  // Keyboard shortcuts: Y=yes, N=no, M=maybe, U=don't know
+  // Auto-focus first answer button on each new question (1.8)
+  useEffect(() => {
+    if (!isProcessing) {
+      firstAnswerRef.current?.focus()
+    }
+  }, [question.id, isProcessing])
+
+  // Keyboard shortcuts: Y=yes, N=no, M=maybe, U=don't know, ?=toggle shortcut overlay
   useEffect(() => {
     const KEY_MAP: Record<string, AnswerValue> = {
       y: 'yes',
@@ -56,6 +65,11 @@ export function QuestionCard({
       // Don't fire when user is typing in an input/textarea
       const tag = (e.target as HTMLElement).tagName.toLowerCase()
       if (tag === 'input' || tag === 'textarea') return
+      if (e.key === '?') {
+        const el = shortcutPopoverRef.current as HTMLElement & { togglePopover?: () => void }
+        el?.togglePopover?.()
+        return
+      }
       const answer = KEY_MAP[e.key.toLowerCase()]
       if (answer) onAnswer(answer)
     }
@@ -84,11 +98,14 @@ export function QuestionCard({
 
   const {
     dragX,
+    dragY,
     cardRotate,
     yesOverlayOpacity,
     noOverlayOpacity,
+    maybeOverlayOpacity,
     yesLabelOpacity,
     noLabelOpacity,
+    maybeLabelOpacity,
     handleDragEnd,
     isDragEnabled,
   } = useSwipeAnswer({ onAnswer, enabled: !isProcessing })
@@ -110,10 +127,10 @@ export function QuestionCard({
     >
       {/* Draggable layer — handles swipe-to-answer on mobile */}
       <motion.div
-        drag={isDragEnabled ? 'x' : false}
-        dragConstraints={{ left: 0, right: 0 }}
+        drag={isDragEnabled ? true : false}
+        dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
         dragElastic={0.15}
-        style={{ x: dragX, rotate: cardRotate }}
+        style={{ x: dragX, y: dragY, rotate: cardRotate }}
         onDragEnd={handleDragEnd}
         className="relative cursor-grab active:cursor-grabbing"
       >
@@ -137,6 +154,32 @@ export function QuestionCard({
             <XCircle size={72} weight="fill" className="text-white drop-shadow-lg" />
           </motion.div>
         </motion.div>
+        {/* MAYBE swipe overlay (amber gradient, up drag) */}
+        <motion.div
+          aria-hidden
+          className="absolute inset-0 rounded-xl pointer-events-none z-10 bg-gradient-to-br from-amber-400/80 to-yellow-600/60 flex items-center justify-center"
+          style={{ opacity: maybeOverlayOpacity }}
+        >
+          <motion.div style={{ scale: maybeOverlayOpacity }}>
+            <QuestionIcon size={72} weight="fill" className="text-white drop-shadow-lg" />
+          </motion.div>
+        </motion.div>
+        {/* MAYBE hint label */}
+        <motion.span
+          aria-hidden
+          className="absolute inset-x-0 top-4 z-20 pointer-events-none font-bold text-2xl text-amber-400 border-2 border-amber-400 rounded-lg px-3 py-1 mx-auto w-fit"
+          style={{ opacity: maybeLabelOpacity }}
+        >
+          MAYBE
+        </motion.span>
+        {/* MAYBE hint label */}
+        <motion.span
+          aria-hidden
+          className="absolute inset-x-0 top-4 z-20 pointer-events-none font-bold text-2xl text-amber-400 border-2 border-amber-400 rounded-lg px-3 py-1 mx-auto w-fit"
+          style={{ opacity: maybeLabelOpacity }}
+        >
+          MAYBE
+        </motion.span>
         {/* YES hint label */}
         <motion.span
           aria-hidden
@@ -172,9 +215,10 @@ export function QuestionCard({
             </div>
 
             <div className="grid grid-cols-2 gap-3">
-              {answerButtons.map(({ value, label, icon: Icon }) => (
+              {answerButtons.map(({ value, label, icon: Icon }, idx) => (
                 <motion.div key={value} whileTap={{ scale: 0.93 }} transition={{ type: 'spring', stiffness: 500, damping: 20 }}>
                   <Button
+                    ref={idx === 0 ? firstAnswerRef : undefined}
                     onClick={() => onAnswer(value)}
                     disabled={isProcessing}
                     size="lg"
@@ -189,9 +233,40 @@ export function QuestionCard({
             </div>
 
             {/* Keyboard shortcut hint — hidden on touch devices */}
-            <p className="hidden md:block text-center text-xs text-muted-foreground/50 select-none">
+            <p className="hidden md:flex items-center justify-center gap-1 text-xs text-muted-foreground/50 select-none">
               <kbd className="font-mono">Y</kbd> Yes &middot; <kbd className="font-mono">N</kbd> No &middot; <kbd className="font-mono">M</kbd> Maybe &middot; <kbd className="font-mono">U</kbd> Don't know
+              <button
+                aria-label="Show keyboard shortcuts"
+                className="ml-2 opacity-50 hover:opacity-100 transition-opacity"
+                onClick={() => {
+                  const el = shortcutPopoverRef.current as HTMLElement & { togglePopover?: () => void }
+                  el?.togglePopover?.()
+                }}
+              >
+                <Keyboard size={14} />
+              </button>
             </p>
+
+            {/* Keyboard shortcut popover — native Popover API, no JS state (1.6) */}
+            <div
+              ref={shortcutPopoverRef as React.Ref<HTMLDivElement>}
+              popover="auto"
+              className="m-auto p-5 rounded-xl bg-card border border-border shadow-2xl text-sm space-y-2 max-w-xs"
+            >
+              <p className="font-semibold text-foreground mb-3 flex items-center gap-2"><Keyboard size={16} /> Keyboard Shortcuts</p>
+              {[
+                { key: 'Y', label: 'Yes' },
+                { key: 'N', label: 'No' },
+                { key: 'M', label: 'Maybe' },
+                { key: 'U', label: "Don't know" },
+                { key: '?', label: 'Toggle this overlay' },
+              ].map(({ key, label }) => (
+                <div key={key} className="flex items-center justify-between gap-4">
+                  <kbd className="font-mono bg-secondary px-2 py-0.5 rounded text-xs">{key}</kbd>
+                  <span className="text-muted-foreground">{label}</span>
+                </div>
+              ))}
+            </div>
 
             {/* Free-text answer input */}
             <div className="flex gap-2">

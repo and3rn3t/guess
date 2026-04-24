@@ -93,13 +93,14 @@ export function getUserId(request: Request): string {
 
 const COOKIE_NAME = '__gu_id'
 const COOKIE_MAX_AGE = 31_536_000 // 365 days
-const DEV_SECRET = 'dev-insecure-secret-do-not-use-in-production'
 
 function getSigningKey(env: Env): Promise<CryptoKey> {
-  const secret = env.COOKIE_SECRET || DEV_SECRET
+  if (!env.COOKIE_SECRET) {
+    throw new Error('COOKIE_SECRET is not configured — set this secret in the Cloudflare dashboard')
+  }
   return crypto.subtle.importKey(
     'raw',
-    new TextEncoder().encode(secret),
+    new TextEncoder().encode(env.COOKIE_SECRET),
     { name: 'HMAC', hash: 'SHA-256' },
     false,
     ['sign', 'verify']
@@ -170,8 +171,10 @@ export function withSetCookie(response: Response, setCookieHeader?: string): Res
   return res
 }
 
-/** Parse JSON body safely, returning null on failure */
+/** Parse JSON body safely, returning null on failure. Rejects bodies over 64 KB. */
 export async function parseJsonBody<T = unknown>(request: Request): Promise<T | null> {
+  const contentLength = parseInt(request.headers.get('Content-Length') || '0', 10)
+  if (contentLength > 65_536) return null
   try {
     return (await request.json()) as T
   } catch {

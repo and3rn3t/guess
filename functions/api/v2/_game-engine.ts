@@ -318,20 +318,9 @@ export async function loadSession(kv: KVNamespace, sessionId: string): Promise<G
   const raw = await kv.get(`game:${sessionId}`)
   if (!raw) return null
 
-  const data = JSON.parse(raw) as LeanSession | GameSession
+  const data = JSON.parse(raw) as LeanSession
 
-  // Legacy full session (has 'characters' array directly)
-  if ('characters' in data) {
-    const legacy = data as GameSession
-    return {
-      ...legacy,
-      rejectedGuesses: legacy.rejectedGuesses ?? [],
-      guessCount: legacy.guessCount ?? 0,
-      postRejectCooldown: legacy.postRejectCooldown ?? 0,
-    }
-  }
-
-  // New lean format — load pool separately
+  // Load pool separately
   const poolStr = await kv.get(data.poolKey)
   if (!poolStr) return null
   const pool = JSON.parse(poolStr) as GamePool

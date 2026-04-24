@@ -18,7 +18,7 @@ vi.mock('@phosphor-icons/react', () => {
   const Icon = () => <span />
   return {
     BrainIcon: Icon, CalendarBlankIcon: Icon, ChartBarIcon: Icon, ClipboardTextIcon: Icon, CloudCheckIcon: Icon,
-    FlaskIcon: Icon, GearIcon: Icon, LightningIcon: Icon, PlayIcon: Icon, SparkleIcon: Icon,
+    FireSimpleIcon: Icon, FlaskIcon: Icon, GearIcon: Icon, LightningIcon: Icon, PlayIcon: Icon, SparkleIcon: Icon,
     TreeStructureIcon: Icon, WifiSlashIcon: Icon, WrenchIcon: Icon,
   }
 })
@@ -46,6 +46,7 @@ const defaultProps = () => ({
   setDifficulty: vi.fn(),
   categories: [] as import('@/lib/types').CharacterCategory[],
   setCategories: vi.fn(),
+  streak: 0,
 })
 
 describe('WelcomeScreen', () => {

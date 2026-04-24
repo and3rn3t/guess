@@ -16,6 +16,8 @@ interface QuestionWithCoverage extends QuestionRow {
   coverage_pct: number
 }
 
+const QUESTIONS_CACHE_HEADERS = 'public, max-age=60, stale-while-revalidate=300'
+
 // ── GET /api/v2/questions ────────────────────────────────────
 // Returns all questions with optional attribute coverage stats
 
@@ -48,12 +50,16 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
        ) cov ON cov.attribute_key = q.attribute_key
        ORDER BY q.priority DESC, q.id ASC`
     )
-    return jsonResponse(questions)
+    const res = jsonResponse(questions)
+    res.headers.set('Cache-Control', QUESTIONS_CACHE_HEADERS)
+    return res
   }
 
   const questions = await d1Query<QuestionRow>(
     db,
     'SELECT id, text, attribute_key, priority FROM questions ORDER BY priority DESC, id ASC'
   )
-  return jsonResponse(questions)
+  const res = jsonResponse(questions)
+  res.headers.set('Cache-Control', QUESTIONS_CACHE_HEADERS)
+  return res
 }

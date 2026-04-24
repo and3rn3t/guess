@@ -58,6 +58,7 @@ import { toast, Toaster } from "sonner";
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 import { useServerGame } from "@/hooks/useServerGame";
 import { useGlobalStats } from "@/hooks/useGlobalStats";
+import { useDailyStreak } from "@/hooks/useDailyStreak";
 
 const TeachingMode = lazy(() =>
   import("@/components/TeachingMode").then((m) => ({
@@ -105,6 +106,8 @@ function App() {
     loading: statsLoading,
     refresh: refreshStats,
   } = useGlobalStats();
+
+  const dailyStreak = useDailyStreak(gameHistory);
 
   // ========== GAME STATE (reducer) ==========
   const {
@@ -444,6 +447,7 @@ function App() {
                   setDifficulty={setDifficulty}
                   categories={categories}
                   setCategories={setCategories}
+                  streak={dailyStreak}
                 />
               )}
 

@@ -352,9 +352,9 @@ export function CharacterComparison({ characters, onBack }: CharacterComparisonP
 
               <div className="grid md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <label className="text-sm font-semibold text-foreground">
+                  <p className="text-sm font-semibold text-foreground">
                     First Character
-                  </label>
+                  </p>
                   <div className="max-h-48 overflow-y-auto space-y-1 border border-border rounded-lg p-2">
                     {filteredCharacters.map((char) => (
                       <Button
@@ -370,9 +370,9 @@ export function CharacterComparison({ characters, onBack }: CharacterComparisonP
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-sm font-semibold text-foreground">
+                  <p className="text-sm font-semibold text-foreground">
                     Second Character
-                  </label>
+                  </p>
                   <div className="max-h-48 overflow-y-auto space-y-1 border border-border rounded-lg p-2">
                     {filteredCharacters
                       .filter((char) => char.id !== selectedCharacter?.id)

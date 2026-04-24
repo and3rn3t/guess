@@ -20,6 +20,14 @@ export default defineConfig({
       name: 'firefox',
       use: { ...devices['Desktop Firefox'] },
     },
+    {
+      name: 'Mobile Safari',
+      use: { ...devices['iPhone 15'] },
+    },
+    {
+      name: 'Mobile Chrome',
+      use: { ...devices['Pixel 7'] },
+    },
   ],
   webServer: {
     command: 'pnpm preview',

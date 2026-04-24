@@ -1,10 +1,11 @@
 import { memo, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Brain, Lightbulb, Sparkle, CaretDown, Trophy, UserCircle } from '@phosphor-icons/react'
+import { Brain, Lightbulb, Sparkle, CaretDown, Trophy } from '@phosphor-icons/react'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { Progress } from '@/components/ui/progress'
+import { CharacterImage } from '@/components/CharacterImage'
 import type { GuessReadinessSnapshot, ReasoningExplanation } from '@/lib/types'
 
 interface ReasoningPanelProps {
@@ -53,11 +54,7 @@ function ReasoningPanelBase({ reasoning, readiness = null, isThinking = false }:
         {reasoning.topCandidates.slice(0, 5).map((candidate, i) => (
           <div key={candidate.name} className="flex items-center gap-2">
             <span className="text-xs text-muted-foreground w-4 text-right">{i + 1}.</span>
-            {candidate.imageUrl ? (
-              <img src={candidate.imageUrl} alt="" className="w-4 h-4 rounded-full object-cover shrink-0" />
-            ) : (
-              <UserCircle size={16} className="text-muted-foreground shrink-0" />
-            )}
+            <CharacterImage src={candidate.imageUrl} name={candidate.name} size={16} />
             <span className="text-sm text-foreground/90 flex-1 truncate">{candidate.name}</span>
             <Progress value={candidate.probability} className="w-16 h-1.5" />
             <span className="text-xs text-muted-foreground w-8 text-right">{candidate.probability}%</span>
@@ -153,15 +150,7 @@ function ReasoningPanelBase({ reasoning, readiness = null, isThinking = false }:
             <div className="flex items-center gap-2 py-0.5 lg:hidden">
               <Trophy className="text-accent shrink-0" size={14} weight="fill" />
               <span className="text-xs text-muted-foreground shrink-0">Most likely:</span>
-              {reasoning.topCandidates[0].imageUrl ? (
-                <img
-                  src={reasoning.topCandidates[0].imageUrl}
-                  alt=""
-                  className="w-4 h-4 rounded-full object-cover shrink-0"
-                />
-              ) : (
-                <UserCircle size={14} className="text-muted-foreground shrink-0" />
-              )}
+              <CharacterImage src={reasoning.topCandidates[0].imageUrl} name={reasoning.topCandidates[0].name} size={16} />
               <span className="text-sm font-medium text-foreground flex-1 truncate">
                 {reasoning.topCandidates[0].name}
               </span>

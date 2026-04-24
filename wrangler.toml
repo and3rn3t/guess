@@ -1,8 +1,11 @@
 #:schema node_modules/wrangler/config-schema.json
 
 name = "guess"
-compatibility_date = "2025-04-01"
+compatibility_date = "2026-04-01"
 pages_build_output_dir = "./dist"
+
+[observability]
+enabled = true
 
 # Custom domain: andernator.com (configured in Cloudflare Pages dashboard)
 # DNS: CNAME andernator.com → guess.pages.dev

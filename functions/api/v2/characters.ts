@@ -24,8 +24,12 @@ type AttributeRow = Pick<CharacterAttributesRow, 'attribute_key' | 'value' | 'co
 // ── GET /api/v2/characters ───────────────────────────────────
 // Paginated, filterable by category, searchable by name
 
+const CHARACTERS_CACHE_HEADERS = 'public, max-age=60, stale-while-revalidate=300'
+const CHARACTERS_CACHE_TTL = 300 // 5 minutes
+
 export const onRequestGet: PagesFunction<Env> = async (context) => {
   const db = context.env.GUESS_DB
+  const kv = context.env.GUESS_KV
   if (!db) return errorResponse('D1 not configured', 503)
 
   const url = new URL(context.request.url)
@@ -70,6 +74,21 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     params.push(`${search}*`)
   }
 
+  // KV cache: unfiltered default-pagination list only (most common request)
+  const isDefaultList = !category && !search && offset === 0 && limit === 50
+  const cacheKey = 'cache:characters:list'
+  if (isDefaultList && kv) {
+    const cached = await kv.get(cacheKey)
+    if (cached) {
+      return new Response(cached, {
+        headers: {
+          'Content-Type': 'application/json',
+          'Cache-Control': CHARACTERS_CACHE_HEADERS,
+        },
+      })
+    }
+  }
+
   const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : ''
 
   const countRow = await d1First<{ total: number }>(
@@ -85,10 +104,24 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     [...params, limit, offset]
   )
 
-  return jsonResponse({ characters, total, limit, offset })
+  const result = { characters, total, limit, offset }
+  const json = JSON.stringify(result)
+
+  // Store in KV cache (unfiltered default list only)
+  if (isDefaultList && kv) {
+    context.waitUntil(
+      kv.put(cacheKey, json, { expirationTtl: CHARACTERS_CACHE_TTL })
+    )
+  }
+
+  return new Response(json, {
+    headers: {
+      'Content-Type': 'application/json',
+      'Cache-Control': CHARACTERS_CACHE_HEADERS,
+    },
+  })
 }
 
-// ── POST /api/v2/characters ──────────────────────────────────
 // Create a new character with attributes
 
 export const onRequestPost: PagesFunction<Env> = async (context) => {

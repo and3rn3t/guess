@@ -24,6 +24,7 @@ vi.mock('@phosphor-icons/react', () => ({
   CheckCircle: () => <span data-testid="icon-check" />,
   XCircle: () => <span data-testid="icon-x" />,
   Question: () => <span data-testid="icon-question" />,
+  Keyboard: () => <span data-testid="icon-keyboard" />,
 }))
 
 vi.mock('@/lib/llm', () => ({
@@ -128,7 +129,12 @@ describe('QuestionCard', () => {
     )
 
     const buttons = screen.getAllByRole('button')
-    buttons.forEach((btn) => {
+    // All answer buttons should be disabled; the keyboard shortcut toggle is not an answer button
+    const answerButtons = buttons.filter((btn) => {
+      const label = btn.getAttribute('aria-label') ?? btn.textContent ?? ''
+      return ['Yes', 'No', 'Maybe', 'Skip'].some((ans) => label.includes(ans))
+    })
+    answerButtons.forEach((btn) => {
       expect(btn).toBeDisabled()
     })
   })

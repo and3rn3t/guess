@@ -626,22 +626,33 @@ describe('storeSession / loadSession', () => {
     expect(result).toBeNull()
   })
 
-  it('handles legacy full-session format (has characters array directly)', async () => {
+  it('returns null for old full-session format (no poolKey)', async () => {
     const { store, kv } = makeMockKV()
-    // Legacy format stores full session under game: key with 'characters' field
+    // Old format stored full GameSession (with characters) — no separate pool key
     store.set('game:test-session', JSON.stringify({ ...BASE_SESSION }))
+    // No pool:test-session stored → loadSession should return null
     const loaded = await loadSession(kv, 'test-session')
-    expect(loaded).not.toBeNull()
-    expect(loaded!.characters).toHaveLength(1)
-    expect(loaded!.guessCount).toBe(0)
-    expect(loaded!.postRejectCooldown).toBe(0)
+    expect(loaded).toBeNull()
   })
 
-  it('defaults missing legacy fields to safe values', async () => {
+  it('defaults missing optional fields to safe values', async () => {
     const { store, kv } = makeMockKV()
-    // Simulate old session without guessCount / postRejectCooldown
-    const legacy = { ...BASE_SESSION, guessCount: undefined, postRejectCooldown: undefined, rejectedGuesses: undefined }
-    store.set('game:test-session', JSON.stringify(legacy))
+    // Store pool separately (required for lean format)
+    store.set(
+      'pool:test-session',
+      JSON.stringify({ characters: BASE_SESSION.characters, questions: BASE_SESSION.questions }),
+    )
+    // Lean session without optional guessCount / postRejectCooldown / rejectedGuesses
+    const lean = {
+      id: 'test-session',
+      poolKey: 'pool:test-session',
+      answers: [],
+      currentQuestion: BASE_SESSION.currentQuestion,
+      difficulty: BASE_SESSION.difficulty,
+      maxQuestions: BASE_SESSION.maxQuestions,
+      createdAt: BASE_SESSION.createdAt,
+    }
+    store.set('game:test-session', JSON.stringify(lean))
     const loaded = await loadSession(kv, 'test-session')
     expect(loaded!.guessCount).toBe(0)
     expect(loaded!.postRejectCooldown).toBe(0)

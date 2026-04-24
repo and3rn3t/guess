@@ -1,8 +1,9 @@
 import { memo, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Crown, UserCircle } from '@phosphor-icons/react'
+import { Crown } from '@phosphor-icons/react'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { CharacterImage } from '@/components/CharacterImage'
 import type { Character, Answer } from '@/lib/types'
 import { calculateProbabilities } from '@/lib/gameEngine'
 
@@ -75,19 +76,12 @@ export const ProbabilityLeaderboard = memo(function ProbabilityLeaderboard({ cha
                   <span className="text-xs font-bold text-muted-foreground w-4 text-right shrink-0">
                     {index + 1}
                   </span>
-                  {candidate.imageUrl ? (
-                    <img
-                      src={candidate.imageUrl}
-                      alt=""
-                      className={`w-7 h-7 sm:w-5 sm:h-5 rounded-full object-cover shrink-0 ${index === 0 ? 'ring-1 ring-accent' : ''}`}
-                    />
-                  ) : (
-                    <UserCircle
-                      size={24}
-                      weight={index === 0 ? 'fill' : 'regular'}
-                      className={index === 0 ? 'text-accent' : 'text-muted-foreground'}
-                    />
-                  )}
+                  <CharacterImage
+                    src={candidate.imageUrl}
+                    name={candidate.name}
+                    size={index === 0 ? 28 : 20}
+                    className={index === 0 ? 'ring-1 ring-accent' : ''}
+                  />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between gap-2">
                       <span

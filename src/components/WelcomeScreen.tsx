@@ -17,6 +17,7 @@ import {
   BrainIcon,
   ChartBarIcon,
   ClipboardTextIcon,
+  FireSimpleIcon,
   FlaskIcon,
   GearIcon,
   LightningIcon,
@@ -45,6 +46,7 @@ interface WelcomeScreenProps {
   setDifficulty: (d: Difficulty) => void;
   categories: CharacterCategory[];
   setCategories: (c: CharacterCategory[]) => void;
+  streak: number;
 }
 
 export function WelcomeScreen({
@@ -65,6 +67,7 @@ export function WelcomeScreen({
   setDifficulty,
   categories,
   setCategories,
+  streak,
 }: Readonly<WelcomeScreenProps>) {
   const filteredTotal =
     categories.length === 0
@@ -96,6 +99,12 @@ export function WelcomeScreen({
             I'll ask strategic questions and try to guess who you're
             thinking of.
           </p>
+          {streak >= 2 && (
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-accent/10 border border-accent/30 text-accent text-sm font-semibold mx-auto">
+              <FireSimpleIcon size={16} weight="fill" />
+              {streak}-day streak
+            </div>
+          )}
         </div>
 
         {/* Resume saved session */}

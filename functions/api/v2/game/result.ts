@@ -7,7 +7,7 @@ import {
   withSetCookie,
   d1Run,
 } from '../../_helpers'
-import { loadSession, deleteSession } from '../_game-engine'
+import { loadSession, deleteSession, getBestGuess } from '../_game-engine'
 
 // ── Types ────────────────────────────────────────────────────
 
@@ -52,8 +52,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   let characterId: string | null = null
   let characterName: string | null = null
   if (session.characters.length > 0) {
-    // Import scoring to find the best guess
-    const { getBestGuess } = await import('../_game-engine')
     const guess = getBestGuess(session.characters, session.answers, session.rejectedGuesses)
     if (guess) {
       characterId = guess.id

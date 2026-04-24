@@ -214,6 +214,7 @@ export function TeachingMode({ answers, existingCharacters, onAddCharacter: _onA
                     onChange={(e) => { setCharacterName(e.target.value); setError(null) }}
                     onKeyDown={(e) => { if (e.key === 'Enter' && characterName.trim()) handleNameSubmit() }}
                     className={`h-12 text-lg ${error ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
+                    // eslint-disable-next-line jsx-a11y/no-autofocus
                     autoFocus
                   />
                   {error && <p className="text-sm text-red-500">{error}</p>}
