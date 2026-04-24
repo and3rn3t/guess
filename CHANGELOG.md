@@ -6,6 +6,36 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [1.3.0] — 2026-04-24
+
+### Added
+
+- **Swipe-up for Maybe** — `useSwipeAnswer` now detects upward drag (dragY < −80px) and returns `'maybe'`; amber MAYBE overlay with opacity animation in `QuestionCard` (`dragY`, `maybeOverlayOpacity`, `maybeLabelOpacity`)
+- **Daily streak counter** — new `useDailyStreak` hook reads consecutive-day wins from game history; `WelcomeScreen` shows a flame badge (Phosphor `FireSimpleIcon`) when streak ≥ 2; `App.tsx` wires hook and passes `streak` prop
+- **`CharacterImage` component** — shimmer skeleton while loading, initial-letter avatar fallback on error; replaces raw `<img>` + `UserCircle` conditionals in `ReasoningPanel`, `ProbabilityLeaderboard`, and `GuessReveal`
+- **Keyboard shortcut overlay** — pressing `?` or clicking the Keyboard icon in `QuestionCard`'s hint bar toggles a native Popover API cheatsheet listing all shortcuts; no React state required
+- **Auto-focus answer buttons** — `QuestionCard` focuses the first answer button on every question render via `firstAnswerRef` + `useEffect`, so keyboard users can answer immediately
+- **Detective persona** — `SYSTEM_PREAMBLE` in `src/lib/prompts.ts` replaced with a unified Sherlock Holmes–style detective character applied across all LLM prompt functions
+- **Workers Observability** — `[observability] enabled = true` added to `wrangler.toml`; tail logs now visible in the Cloudflare dashboard
+- **Mobile Playwright projects** — Mobile Safari (iPhone 15) and Mobile Chrome (Pixel 7) added to `playwright.config.ts`; swipe gestures and touch layout now exercised in CI
+- **`eslint-plugin-jsx-a11y`** — `recommended` rule set added to `eslint.config.js`; `src/components/ui/`, Workers files, and `coverage/` exempted; pre-existing a11y issues fixed (`CharacterComparison`, `TeachingMode`)
+
+### Changed
+
+- **`@typescript-eslint/no-explicit-any`** — elevated to `"error"` in `eslint.config.js`; existing escape hatches annotated with `// eslint-disable-next-line`
+- **`compatibility_date`** — updated from `"2025-04-01"` to `"2026-04-01"` in `wrangler.toml`
+- **Static import for `getBestGuess`** — moved from dynamic `await import('../_game-engine')` inside the handler to a top-level static import in `functions/api/v2/game/result.ts`
+- **`Cache-Control` headers** — `public, max-age=60, stale-while-revalidate=300` added to `GET /api/v2/questions` and `GET /api/v2/characters` responses
+- **KV cache for characters list** — unfiltered character list in `characters.ts` cached for 5 minutes in KV; write via `waitUntil` to avoid blocking the response
+
+### Fixed
+
+- **Request body size guard** — `parseJsonBody` in `functions/api/_helpers.ts` checks `Content-Length` and rejects bodies over 64 KB with a `413` before calling `.json()`
+- **`COOKIE_SECRET` startup guard** — `getSigningKey()` throws immediately if `env.COOKIE_SECRET` is falsy; the silent `DEV_SECRET` fallback is removed
+- **Legacy session format branch removed** — `loadSession()` in `_game-engine.ts` simplified to lean+pool only; expired `'characters' in data` branch removed; tests rewritten
+
+---
+
 ## [1.2.0] — 2026-04-21
 
 ### Added

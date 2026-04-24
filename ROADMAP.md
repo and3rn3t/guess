@@ -2,7 +2,7 @@
 
 > Portfolio project — the goal is a delightful, frictionless experience and a showcase of creative AI integration. Not monetized; not mass-scale. Every item here should make the game *more fun* or *less annoying*, not more complex.
 
-**Current version**: 1.2.0 — See [CHANGELOG.md](CHANGELOG.md) for what's shipped.
+**Current version**: 1.3.0 — See [CHANGELOG.md](CHANGELOG.md) for what's shipped.
 
 ---
 
@@ -51,6 +51,23 @@ These were scoped in the initial roadmap but are already implemented — listed 
 | ~~Daily challenge~~ | Full daily mode with streak-eligible completion recording |
 | ~~Touch-optimized UI~~ | `whileTap` scale, gradient buttons, shimmer skeleton |
 | ~~Sound effects~~ | `useSound`, `playAnswer`, `playCorrectGuess`, `playIncorrectGuess` |
+| ~~Swipe-up = Maybe~~ | `useSwipeAnswer` up-swipe (dragY < −80px) → `'maybe'`; amber MAYBE overlay + label in `QuestionCard` |
+| ~~Daily streak counter~~ | `useDailyStreak` hook — consecutive-day win streak from game history; flame badge on welcome screen (≥2 days) |
+| ~~Image fallback + skeleton~~ | `CharacterImage` component — shimmer skeleton while loading, initial-letter avatar on error; used in `ReasoningPanel`, `ProbabilityLeaderboard`, `GuessReveal` |
+| ~~Keyboard shortcut overlay~~ | `?` key + Keyboard icon toggles native Popover API cheatsheet in `QuestionCard`; no JS state needed |
+| ~~Auto-focus answer buttons~~ | `useEffect` auto-focuses first answer button on each question render via `firstAnswerRef` |
+| ~~Unified detective persona~~ | `SYSTEM_PREAMBLE` in `prompts.ts` — Sherlock Holmes–style detective character applied across all prompts |
+| ~~Workers Observability~~ | `[observability] enabled = true` in `wrangler.toml`; tail logs visible in Cloudflare dashboard |
+| ~~Cache-Control on API responses~~ | `public, max-age=60, stale-while-revalidate=300` on `/api/v2/questions` and `/api/v2/characters` |
+| ~~KV cache for characters list~~ | 5-min KV cache on unfiltered character list in `characters.ts`; `waitUntil` write |
+| ~~Request body size guard~~ | `parseJsonBody` checks `Content-Length`; rejects bodies > 64 KB with 413 before calling `.json()` |
+| ~~`COOKIE_SECRET` startup guard~~ | `getSigningKey()` throws if `env.COOKIE_SECRET` is falsy; `DEV_SECRET` fallback removed |
+| ~~Static import `getBestGuess`~~ | Moved from dynamic `await import(...)` to static top-level import in `result.ts` |
+| ~~Remove legacy session format check~~ | `loadSession()` in `_game-engine.ts` simplified to lean+pool only; expired `'characters' in data` branch removed |
+| ~~Update `compatibility_date`~~ | `wrangler.toml` updated from `"2025-04-01"` to `"2026-04-01"` |
+| ~~`eslint-plugin-jsx-a11y`~~ | Added to `eslint.config.js` with `recommended` rules; `src/components/ui/` and Workers files exempted |
+| ~~`@typescript-eslint/no-explicit-any`~~ | Rule set to `"error"` in `eslint.config.js` |
+| ~~Mobile viewports in Playwright~~ | Mobile Safari (iPhone 15) and Mobile Chrome (Pixel 7) projects added to `playwright.config.ts` |
 
 ---
 
@@ -60,14 +77,14 @@ These are real gaps or rough edges that exist today.
 
 | # | Item | Why |
 |---|------|-----|
-| 1.1 | **Swipe-up = Maybe** | `useSwipeAnswer` only handles left/right. Adding up-swipe for "Maybe" makes the full answer set gesture-accessible. |
+| ~~1.1~~ | ~~**Swipe-up = Maybe**~~ | ~~`useSwipeAnswer` only handles left/right. Adding up-swipe for "Maybe" makes the full answer set gesture-accessible.~~ |
 | 1.2 | **Web Share API on mobile** | Sharing currently copies to clipboard only. `navigator.share()` triggers the OS native share sheet on mobile — one tap instead of copy-paste. |
-| 1.3 | **Daily challenge streak counter** | Track consecutive daily completions in `localStorage`. Flame icon + streak count on welcome screen. Zero server cost. |
+| ~~1.3~~ | ~~**Daily challenge streak counter**~~ | ~~Track consecutive daily completions in `localStorage`. Flame icon + streak count on welcome screen. Zero server cost.~~ |
 | 1.4 | **Wordle-style share card** | Emoji grid (🟩🟥🟨) + result text generated from answer history. Pure text — works anywhere. Pair with item 1.2. |
-| 1.5 | **Image fallback + skeleton** | When the R2 image is missing or slow, show a stylised character-initial avatar rather than a broken `<img>`. |
-| 1.6 | **Keyboard shortcut overlay** | Press `?` to toggle a cheat-sheet popover listing Y/N/M/U + Undo. The shortcuts exist; they just aren't discoverable. Use the native [Popover API](https://developer.mozilla.org/en-US/docs/Web/API/Popover_API) — no JS state needed. |
+| ~~1.5~~ | ~~**Image fallback + skeleton**~~ | ~~When the R2 image is missing or slow, show a stylised character-initial avatar rather than a broken `<img>`.~~ |
+| ~~1.6~~ | ~~**Keyboard shortcut overlay**~~ | ~~Press `?` to toggle a cheat-sheet popover listing Y/N/M/U + Undo. The shortcuts exist; they just aren't discoverable. Use the native [Popover API](https://developer.mozilla.org/en-US/docs/Web/API/Popover_API) — no JS state needed.~~ |
 | 1.7 | **"Skip this question" action** | Player can skip a confusing question. Rerolls to the next highest-entropy question; doesn't count against the budget. Reduces rage-quits on ambiguous questions. |
-| 1.8 | **Auto-focus answer buttons** | On every question render, focus the first answer button via `useEffect` so keyboard users can answer immediately without tabbing. |
+| ~~1.8~~ | ~~**Auto-focus answer buttons**~~ | ~~On every question render, focus the first answer button via `useEffect` so keyboard users can answer immediately without tabbing.~~ |
 | 1.9 | **"Give up" graceful exit** | A subtle "I give up — reveal the answer" option after ≥5 questions. Shows the character, records as a loss. Removes the frustration of being stuck forever. |
 
 ---
@@ -82,7 +99,7 @@ The current `SYSTEM_PREAMBLE` is: *"You are a helpful assistant for a character 
 
 | # | Item | Files touched | Notes |
 |---|------|--------------|-------|
-| A.1 | **Unified detective persona** | `prompts.ts` | Replace the flat `SYSTEM_PREAMBLE` with a character: "You are a sharp, witty detective who treats every guessing game like a Sherlock Holmes case. You're confident but never arrogant, and you make the player feel like your partner, not your subject." Apply consistently across *all* prompt functions. |
+| ~~A.1~~ | ~~**Unified detective persona**~~ | ~~`prompts.ts`~~ | ~~Replace the flat `SYSTEM_PREAMBLE` with a character: "You are a sharp, witty detective who treats every guessing game like a Sherlock Holmes case. You're confident but never arrogant, and you make the player feel like your partner, not your subject." Apply consistently across *all* prompt functions.~~ |
 | A.2 | **Confidence-based tone shift** | `dynamicQuestion_v1` | Pass `confidence` into the system message, not just the user message. At `<30%`: speculative ("*I'm still casting a wide net...*"), `30–70%`: focused ("*The clues are narrowing things down...*"), `>70%`: intense ("*I'm very close — this one matters*"). The rephrased question should reflect the AI's emotional state. |
 | A.3 | **Difficulty personalities** | `prompts.ts`, `llm.ts` | Three named personas passed as a `persona` param to each prompt builder: **Sherlock** (Hard — terse, deductive, no hand-holding), **Watson** (Medium — friendly, explains each step), **Poirot** (Easy — theatrical, drops hints, uses "mon ami"). Same engine, three system prompts. Selector on welcome screen uses character portraits. |
 | A.4 | **In-game dramatic escalation** | `dynamicQuestion_v1` | At ≥80% confidence, allow the AI to break format slightly: "I think I know who you are. But indulge me — one more question to be certain." This mirrors real deduction drama and primes the player for the reveal. Single flag: `isCloseToGuess: boolean` added to the prompt payload. *Ship alongside C.1 — they form one suspense sequence: aside → prose description → reveal.* |
@@ -270,21 +287,21 @@ Issues found in the current implementation.
 | # | Item | Files touched | What's wrong / fix |
 |---|------|--------------|---------------------|
 | BX.1 | **Offload D1 `game_stats` write to `waitUntil`** | `functions/api/v2/game/result.ts` | The `INSERT INTO game_stats` is awaited synchronously before the response returns — adds ~20–50ms latency to every game end. Non-critical write; use `context.waitUntil(d1Run(...).catch(() => {}))` as already done for the `UPDATE game_sessions` call directly below it. |
-| BX.2 | **Convert dynamic import to static** | `functions/api/v2/game/result.ts` | `getBestGuess` is dynamically imported inside the handler (`await import('../_game-engine')`). Cloudflare Workers re-resolve dynamic imports on each invocation. Move it to a static top-level import — one line change. |
+| ~~BX.2~~ | ~~**Convert dynamic import to static**~~ | ~~`functions/api/v2/game/result.ts`~~ | ~~`getBestGuess` is dynamically imported inside the handler (`await import('../_game-engine')`). Cloudflare Workers re-resolve dynamic imports on each invocation. Move it to a static top-level import — one line change.~~ |
 | BX.3 | **Cookie-based user ID in LLM rate limiter** | `functions/api/llm.ts` | Uses the deprecated `getUserId()` (IP + header fallback) for rate limiting. Users behind NAT share a rate limit bucket and can be unfairly throttled. Swap to `getOrCreateUserId()` (cookie-based, already used in all v2 routes). |
-| BX.4 | **Remove dead legacy session format check** | `functions/api/v2/_game-engine.ts` | `loadSession()` checks `'characters' in data` to detect the old full-session format on every load. `SESSION_TTL = 3600` — all legacy sessions expired at least a year ago. Remove the branch; simplify to lean+pool format only. |
+| ~~BX.4~~ | ~~**Remove dead legacy session format check**~~ | ~~`functions/api/v2/_game-engine.ts`~~ | ~~`loadSession()` checks `'characters' in data` to detect the old full-session format on every load. `SESSION_TTL = 3600` — all legacy sessions expired at least a year ago. Remove the branch; simplify to lean+pool format only.~~ |
 | BX.5 | **Separate AI Gateway for preview vs. production** | `wrangler.toml` | Both `env.production` and `env.preview` point to the same `CLOUDFLARE_AI_GATEWAY` URL. Preview LLM calls appear in production cost dashboards and share rate limits. Create a dedicated preview gateway in the Cloudflare AI Gateway dashboard and reference it in `env.preview.vars`. |
-| BX.6 | **Update `compatibility_date`** | `wrangler.toml` | Set to `"2025-04-01"` — a full year behind. Update to `"2026-04-01"` to pick up Workers runtime improvements, V8 updates, and platform bug fixes shipped in the past year. |
-| BX.7 | **KV cache for questions and characters list endpoints** | `functions/api/v2/questions.ts`, `characters.ts` | `GET /api/v2/questions` and the unfiltered `GET /api/v2/characters` list hit D1 on every request. Neither changes frequently. Apply the same KV cache pattern already used in `stats.ts` (5-min TTL, `waitUntil` for the write) to eliminate redundant D1 reads. |
+| ~~BX.6~~ | ~~**Update `compatibility_date`**~~ | ~~`wrangler.toml`~~ | ~~Set to `"2025-04-01"` — a full year behind. Update to `"2026-04-01"` to pick up Workers runtime improvements, V8 updates, and platform bug fixes shipped in the past year.~~ |
+| ~~BX.7~~ | ~~**KV cache for questions and characters list endpoints**~~ | ~~`functions/api/v2/questions.ts`, `characters.ts`~~ | ~~`GET /api/v2/questions` and the unfiltered `GET /api/v2/characters` list hit D1 on every request. Neither changes frequently. Apply the same KV cache pattern already used in `stats.ts` (5-min TTL, `waitUntil` for the write) to eliminate redundant D1 reads.~~ |
 
 ### BI — Infrastructure Improvements (config/architecture)
 
 | # | Item | Effort | Notes |
 |---|------|--------|-------|
-| BI.1 | **Enable Workers Observability** | Low | Add `[observability]` `enabled = true` to `wrangler.toml`. Current `catch {}` blocks silently swallow all production errors — no visibility into LLM failures, D1 errors, or KV misses. Tail logs appear in the Cloudflare dashboard with zero code changes. |
-| BI.2 | **Add `Cache-Control` to API responses** | Low | Workers responses aren't covered by `public/_headers`. Stable GET endpoints (`/api/v2/questions`, `/api/v2/characters`) should return `Cache-Control: public, max-age=60, stale-while-revalidate=300` — lets the Cloudflare edge serve repeat requests without Worker invocations. |
-| BI.3 | **Request body size guard** | Low | `parseJsonBody` reads the full body with no size cap. A request with a large body consumes Worker CPU. Add a `Content-Length` check in `parseJsonBody`: reject requests over 64 KB with a `413` before calling `.json()`. |
-| BI.4 | **Deployment checklist: verify `COOKIE_SECRET`** | Low | `_helpers.ts` falls back to `DEV_SECRET = 'dev-insecure-secret-do-not-use-in-production'` if `COOKIE_SECRET` is unset. There's no production guard that fails loudly. Add a startup assertion in `getSigningKey`: if `env.COOKIE_SECRET` is falsy, throw — don't silently use the dev secret. |
+| ~~BI.1~~ | ~~**Enable Workers Observability**~~ | ~~Low~~ | ~~Add `[observability]` `enabled = true` to `wrangler.toml`. Current `catch {}` blocks silently swallow all production errors — no visibility into LLM failures, D1 errors, or KV misses. Tail logs appear in the Cloudflare dashboard with zero code changes.~~ |
+| ~~BI.2~~ | ~~**Add `Cache-Control` to API responses**~~ | ~~Low~~ | ~~Workers responses aren't covered by `public/_headers`. Stable GET endpoints (`/api/v2/questions`, `/api/v2/characters`) should return `Cache-Control: public, max-age=60, stale-while-revalidate=300` — lets the Cloudflare edge serve repeat requests without Worker invocations.~~ |
+| ~~BI.3~~ | ~~**Request body size guard**~~ | ~~Low~~ | ~~`parseJsonBody` reads the full body with no size cap. A request with a large body consumes Worker CPU. Add a `Content-Length` check in `parseJsonBody`: reject requests over 64 KB with a `413` before calling `.json()`.~~ |
+| ~~BI.4~~ | ~~**Deployment checklist: verify `COOKIE_SECRET`**~~ | ~~Low~~ | ~~`_helpers.ts` falls back to `DEV_SECRET = 'dev-insecure-secret-do-not-use-in-production'` if `COOKIE_SECRET` is unset. There's no production guard that fails loudly. Add a startup assertion in `getSigningKey`: if `env.COOKIE_SECRET` is falsy, throw — don't silently use the dev secret.~~ |
 | BI.5 | **Atomic rate limiting via Durable Objects** | Medium | `checkRateLimit` does KV read → write (non-atomic). Concurrent requests see the same count before any write lands — the limit can be exceeded. Replace with a Durable Object per `{action}:{userId}` — atomic counters via `state.storage`. The canonical Cloudflare solution; teaches DO lifecycle and state management. |
 
 ### BE — Backend Explorations
@@ -396,10 +413,10 @@ The development loop is already solid — Husky pre-commit, lint-staged, CI with
 | DX.3 | **`@cloudflare/vitest-pool-workers` for Workers handler tests** | Medium | Every file in `functions/api/v2/game/**`, `questions.ts`, `characters.ts`, etc. is explicitly excluded from coverage because they require the CF Workers runtime. `@cloudflare/vitest-pool-workers` runs Vitest inside Miniflare — real Workers runtime, local KV + D1 bindings, no mocking required. Route handlers become testable without a deployed environment, and a currently dark coverage zone gets light. |
 | DX.4 | **MSW for API-dependent component tests** | Medium | Components that call `/api/v2/*` can't be unit-tested without a running server, so they're skipped. Add [MSW](https://mswjs.io/) (`msw/node` in Vitest): intercept `fetch` at the network layer and return fixture responses. Component tests for `ReasoningPanel`, `QuestionCard`, and game hooks become self-contained and fast, with no server dependency. Fixtures can be generated from the Zod schemas in DP "Zod API Contract Layer". |
 | DX.5 | **Bundle size budget in CI** | Low | The `vendor-radix` chunk grows silently every time a new shadcn/ui component is added — there's no alarm. Add [size-limit](https://github.com/ai/size-limit) with per-chunk budgets in CI: `vendor-radix ≤ 130 KB gzip`, `vendor-motion ≤ 50 KB gzip`, `vendor-charts ≤ 65 KB gzip`. A chunk that exceeds its budget fails CI. Chunk bloat becomes a deliberate choice, not a surprise on deploy. |
-| DX.6 | **WebKit + mobile viewport in Playwright** | Low | `playwright.config.ts` runs Desktop Chromium and Desktop Firefox only. The game has swipe gestures (`useSwipeAnswer`) and a fully touch-optimized layout — neither is exercised in CI. Add a `Mobile Safari` project (`devices['iPhone 15']`) and a `Mobile Chrome` project (`devices['Pixel 7']`). Move swipe gesture specs into a group that only runs on mobile projects. Safari rendering bugs and touch interaction failures are caught before deploy. |
+| ~~DX.6~~ | ~~**WebKit + mobile viewport in Playwright**~~ | ~~Low~~ | ~~`playwright.config.ts` runs Desktop Chromium and Desktop Firefox only. The game has swipe gestures (`useSwipeAnswer`) and a fully touch-optimized layout — neither is exercised in CI. Add a `Mobile Safari` project (`devices['iPhone 15']`) and a `Mobile Chrome` project (`devices['Pixel 7']`). Move swipe gesture specs into a group that only runs on mobile projects. Safari rendering bugs and touch interaction failures are caught before deploy.~~ |
 | DX.7 | **Coverage thresholds in CI** | Low | `pnpm test:coverage` generates `lcov.info` but no threshold is enforced — coverage can drop to 0% without a CI failure. Add `coverage.thresholds` in `vitest.config.ts`: `{ lines: 70, functions: 70, branches: 60 }` as a baseline (calibrated to actual current coverage). The number exists to catch accidental regression, not to demand perfection. |
-| DX.8 | **`eslint-plugin-jsx-a11y`** | Low | The Modern Web section identifies four accessibility gaps. None are caught automatically — there's no a11y linting in `eslint.config.js`. Add `eslint-plugin-jsx-a11y` with the `recommended` rule set. `aria-live`, focus management, and interactive element labelling issues get flagged at lint time instead of discovered during a manual audit. |
-| DX.9 | **`@typescript-eslint/no-explicit-any` enforcement** | Low | The copilot instructions say "avoid `any`" in function signatures. ESLint enforces `no-unused-vars` but not `no-explicit-any`. Add the rule at `"error"` with `ignoreRestArgs: false`. The few legitimate escape hatches get `// eslint-disable-next-line` comments explaining why — making implicit `any` a deliberate, documented exception rather than invisible drift. |
+| ~~DX.8~~ | ~~**`eslint-plugin-jsx-a11y`**~~ | ~~Low~~ | ~~The Modern Web section identifies four accessibility gaps. None are caught automatically — there's no a11y linting in `eslint.config.js`. Add `eslint-plugin-jsx-a11y` with the `recommended` rule set. `aria-live`, focus management, and interactive element labelling issues get flagged at lint time instead of discovered during a manual audit.~~ |
+| ~~DX.9~~ | ~~**`@typescript-eslint/no-explicit-any` enforcement**~~ | ~~Low~~ | ~~The copilot instructions say "avoid `any`" in function signatures. ESLint enforces `no-unused-vars` but not `no-explicit-any`. Add the rule at `"error"` with `ignoreRestArgs: false`. The few legitimate escape hatches get `// eslint-disable-next-line` comments explaining why — making implicit `any` a deliberate, documented exception rather than invisible drift.~~ |
 | DX.10 | **Automated CHANGELOG + release tagging** | Low | `CHANGELOG.md` is maintained by hand. Add [changesets](https://github.com/changesets/changesets): PR authors drop a changeset file; on merge to `main`, a GitHub Action commits the changelog entry and creates a semantic version tag. The git history gets clean `v1.x.y` tags and the CHANGELOG stays accurate automatically — no manual "what did I ship this week?" archaeology. |
 | DX.11 | **DB types CI drift check** | Medium | `pnpm db:types` runs `scripts/generate-db-types.ts` to produce `functions/api/_db-types.ts` from the D1 schema. This is a manual step — types can silently drift from the schema after any migration lands. Add a CI step that re-runs the generator and runs `git diff --exit-code`; if the output changed, the job fails with the diff. Untracked schema drift becomes a CI failure rather than a runtime surprise. |
 
