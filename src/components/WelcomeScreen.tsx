@@ -1,9 +1,4 @@
 import { Button } from "@/components/ui/button";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
 import { PersonaSelector } from "@/components/PersonaSelector";
 import type { GamePhase } from "@/hooks/useGameState";
 import type { GlobalStats } from "@/hooks/useGlobalStats";
@@ -21,7 +16,6 @@ import {
   FireSimpleIcon,
   FlaskIcon,
   GearIcon,
-  LightningIcon,
   PlayIcon,
   SparkleIcon,
   TreeStructureIcon,
@@ -56,7 +50,7 @@ export function WelcomeScreen({
   online: _online,
   maxQuestions,
   gameHistory,
-  gamesPlayed,
+  gamesPlayed: _gamesPlayed,
   hasSavedSession,
   resumeSession,
   clearSession,
@@ -130,120 +124,50 @@ export function WelcomeScreen({
               >
                 Resume
               </Button>
-              <Button
-                onClick={clearSession}
-                variant="outline"
-              >
+              <Button onClick={clearSession} variant="outline">
                 Dismiss
               </Button>
             </div>
           </div>
         )}
 
-        {/* Last game + Quick Play for returning players */}
-        {gameHistory &&
-          gameHistory.length > 0 &&
-          !hasSavedSession &&
-          (() => {
-            const last = gameHistory[gameHistory.length - 1];
+        {/* Detective persona / difficulty */}
+        <PersonaSelector difficulty={difficulty} setDifficulty={setDifficulty} />
+
+        {/* Category filter chips */}
+        <div
+          className="flex flex-wrap justify-center gap-1.5"
+          role="group"
+          aria-label="Filter by category"
+        >
+          {(Object.entries(CATEGORY_LABELS) as [CharacterCategory, string][]).map(([key, label]) => {
+            const active = categories.includes(key);
             return (
-              <div className="space-y-3">
-                <Button
-                  onClick={startGame}
-                  size="lg"
-                  className="w-full h-14 text-lg gap-3 bg-accent hover:bg-accent/90 text-accent-foreground shadow-lg shadow-accent/20 hover:scale-[1.02] transition-transform"
-                >
-                  <LightningIcon size={22} weight="fill" />
-                  Quick Play
-                </Button>
-                <p className="text-center text-xs text-muted-foreground">
-                  Last: {last.won ? "Won" : "Lost"} in{" "}
-                  {last.steps.length} Qs — {last.characterName}
-                  {" · "}
-                  {serverTotal || "500+"} characters
-                </p>
-              </div>
-            );
-          })()}
-
-        {/* Primary CTA for new players */}
-        {gamesPlayed === 0 && !hasSavedSession && (
-          <div className="text-center">
-            <Button
-              onClick={startGame}
-              size="lg"
-              className="h-14 px-8 text-xl bg-accent hover:bg-accent/90 text-accent-foreground shadow-lg shadow-accent/20 hover:scale-105 transition-transform"
-            >
-              <PlayIcon size={28} weight="fill" className="mr-3" />
-              Start Game
-            </Button>
-          </div>
-        )}
-
-        {/* How It Works — expanded for new users, collapsed for returning */}
-        <Collapsible defaultOpen={gamesPlayed === 0}>
-          <div className="bg-card/50 backdrop-blur-sm border border-border/50 rounded-xl p-5">
-            <CollapsibleTrigger className="flex items-center justify-between w-full text-left">
-              <h3 className="text-base font-semibold text-foreground">
-                How It Works
-              </h3>
-              <span className="text-xs text-muted-foreground">
-                {gamesPlayed > 0
-                  ? "Tap to expand"
-                  : ""}
-              </span>
-            </CollapsibleTrigger>
-            <CollapsibleContent className="mt-4 space-y-3 text-foreground/90">
-              {[
-                ["1", "Strategic Questioning", "I ask questions that split possibilities optimally."],
-                ["2", "Real-Time Reasoning", "See exactly why I chose each question."],
-                ["3", "Confidence Building", "Watch my confidence grow until the final guess!"],
-              ].map(([num, title, desc]) => (
-                <div key={num} className="flex gap-3 items-start">
-                  <div className="shrink-0 w-6 h-6 rounded-full bg-accent/20 text-accent flex items-center justify-center text-xs font-bold">
-                    {num}
-                  </div>
-                  <div>
-                    <span className="font-medium text-sm">{title}</span>
-                    <span className="text-sm text-muted-foreground ml-1">— {desc}</span>
-                  </div>
-                </div>
-              ))}
-            </CollapsibleContent>
-          </div>
-        </Collapsible>
-
-        {/* Bottom CTA */}
-        <div className="text-center space-y-2">
-          {/* Persona / difficulty picker */}
-          <PersonaSelector difficulty={difficulty} setDifficulty={setDifficulty} />
-
-          {/* Category filter chips */}
-          <div className="flex flex-wrap justify-center gap-1.5 mb-3" role="group" aria-label="Filter by category">
-            {(Object.entries(CATEGORY_LABELS) as [CharacterCategory, string][]).map(([key, label]) => {
-              const active = categories.includes(key);
-              return (
-                <button
-                  key={key}
-                  type="button"
-                  onClick={() =>
-                    setCategories(
-                      active ? categories.filter((c) => c !== key) : [...categories, key],
-                    )
-                  }
-                  aria-pressed={active}
-                  className={`px-3 py-1 rounded-full text-xs font-medium border transition-all ${
+              <button
+                key={key}
+                type="button"
+                onClick={() =>
+                  setCategories(
                     active
-                      ? "bg-accent text-accent-foreground border-accent shadow-sm"
-                      : "bg-card/50 text-muted-foreground border-border/60 hover:border-accent/50 hover:text-foreground"
-                  }`}
-                >
-                  {label}
-                </button>
-              );
-            })}
-          </div>
+                      ? categories.filter((c) => c !== key)
+                      : [...categories, key],
+                  )
+                }
+                aria-pressed={active}
+                className={`px-3 py-1 rounded-full text-xs font-medium border transition-all ${
+                  active
+                    ? "bg-accent text-accent-foreground border-accent shadow-sm"
+                    : "bg-card/50 text-muted-foreground border-border/60 hover:border-accent/50 hover:text-foreground"
+                }`}
+              >
+                {label}
+              </button>
+            );
+          })}
+        </div>
 
+        {/* Primary CTA */}
+        <div className="text-center space-y-2">
           <Button
             onClick={startGame}
             size="lg"
@@ -253,7 +177,6 @@ export function WelcomeScreen({
             Start Game
           </Button>
 
-          {/* Describe Yourself — secondary CTA */}
           <Button
             onClick={() => navigate("describeYourself")}
             variant="ghost"
@@ -262,15 +185,43 @@ export function WelcomeScreen({
           >
             Or: which character are <em>you</em>? →
           </Button>
+
           <p className="text-xs text-muted-foreground">
-            {filteredTotal != null
-              ? <><span className="text-accent font-medium">~{filteredTotal}</span> of {serverTotal || "500+"} characters</>
-              : <>{serverTotal || "500+"} characters</>
-            } · {maxQuestions} questions
-            {globalStats?.gameStats && globalStats.gameStats.totalGames >= 10 && (
-              <> · AI wins <strong>{Math.round(globalStats.gameStats.winRate)}%</strong> of {globalStats.gameStats.totalGames.toLocaleString()} games</>
-            )}
+            {filteredTotal != null ? (
+              <>
+                <span className="text-accent font-medium">
+                  ~{filteredTotal}
+                </span>{" "}
+                of {serverTotal || "500+"} characters
+              </>
+            ) : (
+              <>{serverTotal || "500+"} characters</>
+            )}{" "}
+            · {maxQuestions} questions
+            {globalStats?.gameStats &&
+              globalStats.gameStats.totalGames >= 10 && (
+                <>
+                  {" "}
+                  · AI wins{" "}
+                  <strong>
+                    {Math.round(globalStats.gameStats.winRate)}%
+                  </strong>{" "}
+                  of{" "}
+                  {globalStats.gameStats.totalGames.toLocaleString()}{" "}
+                  games
+                </>
+              )}
           </p>
+
+          {gameHistory && gameHistory.length > 0 && !hasSavedSession && (() => {
+            const last = gameHistory[gameHistory.length - 1];
+            return (
+              <p className="text-xs text-muted-foreground/60">
+                Last: {last.won ? "Won" : "Lost"} in {last.steps.length}{" "}
+                Qs — {last.characterName}
+              </p>
+            );
+          })()}
         </div>
 
         {import.meta.env.DEV && showDevTools && (

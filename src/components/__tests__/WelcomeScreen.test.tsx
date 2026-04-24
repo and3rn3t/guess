@@ -70,7 +70,7 @@ describe('WelcomeScreen', () => {
     expect(props.startGame).toHaveBeenCalledOnce()
   })
 
-  it('shows Quick Play for returning players', () => {
+  it('shows last game summary for returning players', () => {
     const history: GameHistoryEntry[] = [{
       id: '1',
       timestamp: Date.now(),
@@ -82,7 +82,7 @@ describe('WelcomeScreen', () => {
       totalQuestions: 10,
     }]
     render(<WelcomeScreen {...defaultProps()} gameHistory={history} gamesPlayed={1} />)
-    expect(screen.getByRole('button', { name: /quick play/i })).toBeInTheDocument()
+    expect(screen.getByText(/last: won in 1 qs — mario/i)).toBeInTheDocument()
   })
 
   it('shows resume banner when saved session exists', () => {
