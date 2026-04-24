@@ -30,8 +30,11 @@ Think of a character. The AI asks strategic yes/no questions, uses Bayesian prob
 - **Difficulty Selector** — Easy (20q) / Medium (15q) / Hard (10q); selection persists across sessions via localStorage
 - **Category Filters** — 8 multi-select chips (Video Games, Movies, Anime, Comics, Books, Cartoons, TV Shows, Pop Culture) narrow the candidate pool; daily challenge always uses the full pool
 - **Daily Challenge** — Everyone thinks of the same character each day; completion state persists across sessions
+- **Skip Question** — Skip a confusing question; the engine selects the next highest-entropy alternative without counting against the budget
+- **Give Up** — Graceful exit after ≥5 questions; shows the character and records as a loss
 - **Teaching Mode** — When the AI guesses wrong, teach it the character; all answered attributes are saved automatically
 - **User Answer Reveal** — On a loss, disclose who you were thinking of; the AI backfills null attributes from your answers and queues correction votes
+- **Emoji Share Card** — Wordle-style 🟩🟥🟨⬜ grid generated from answer history; taps the OS native share sheet on mobile, falls back to clipboard on desktop
 - **53K+ Character Database** — Server-side engine backed by D1 with 224 enriched attributes per character
 - **AI-Enhanced Answers** — Free-text answer parsing via GPT-4o understands natural language responses
 - **Statistics Dashboard** — Win/loss tracking, question performance metrics, attribute entropy analysis
