@@ -1,3 +1,10 @@
+// ── Detective persona ─────────────────────────────────────────────────────────
+/**
+ * Controls the AI's voice and phrasing across all prompts.
+ * Maps 1:1 to difficulty: sherlock = hard, watson = medium, poirot = easy.
+ */
+export type Persona = 'sherlock' | 'watson' | 'poirot'
+
 // ── Primitive answer type ─────────────────────────────────────────────────────
 export type AnswerValue = 'yes' | 'no' | 'maybe' | 'unknown'
 

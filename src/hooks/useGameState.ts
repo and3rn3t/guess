@@ -23,6 +23,7 @@ export type GamePhase =
   | 'challenge'
   | 'costDashboard'
   | 'dataHygiene'
+  | 'describeYourself'
 
 // ========== STATE ==========
 export interface GameState {

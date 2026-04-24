@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { llmStream, LlmError } from "@/lib/llm";
 import { narrativeExplanation_v1 } from "@/lib/prompts";
 import { buildShareEmoji } from "@/lib/sharing";
-import type { Character } from "@/lib/types";
+import type { Character, Persona } from "@/lib/types";
 import {
   ArrowClockwise,
   ChartBar,
@@ -80,6 +80,7 @@ interface GameOverProps {
   answeredQuestions?: Array<{ question: string; answer: string }>;
   onReveal?: (characterName: string) => Promise<RevealResult>;
   surrendered?: boolean;
+  persona?: Persona;
 }
 
 export function GameOver({
@@ -100,6 +101,7 @@ export function GameOver({
   answeredQuestions,
   onReveal,
   surrendered,
+  persona,
 }: Readonly<GameOverProps>) {
   const [narrative, setNarrative] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
@@ -160,6 +162,7 @@ export function GameOver({
       won,
       qaList,
       remainingCharacters || 0,
+      persona,
     );
 
     setIsStreaming(true);

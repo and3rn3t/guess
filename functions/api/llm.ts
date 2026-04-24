@@ -182,6 +182,7 @@ function buildOpenAIPayload(
   prompt: string,
   systemPrompt: string | undefined,
   jsonMode: boolean | undefined,
+  jsonSchema: Record<string, unknown> | undefined,
 ): Record<string, unknown> {
   const messages: Array<{ role: string; content: string }> = [];
   if (systemPrompt) {
@@ -190,7 +191,13 @@ function buildOpenAIPayload(
   messages.push({ role: "user", content: prompt });
 
   const body: Record<string, unknown> = { model, messages };
-  if (jsonMode) {
+  if (jsonSchema) {
+    // Structured Outputs (stricter than json_object — guaranteed schema conformance)
+    body.response_format = {
+      type: "json_schema",
+      json_schema: jsonSchema,
+    };
+  } else if (jsonMode) {
     body.response_format = { type: "json_object" };
   }
   return body;
@@ -254,6 +261,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     prompt?: string;
     model?: string;
     jsonMode?: boolean;
+    jsonSchema?: Record<string, unknown>;
     systemPrompt?: string;
   };
   try {
@@ -265,10 +273,11 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   const validationError = validateBody(body);
   if (validationError) return validationError;
 
-  const { prompt, model, jsonMode, systemPrompt } = body as {
+  const { prompt, model, jsonMode, jsonSchema, systemPrompt } = body as {
     prompt: string;
     model: string;
     jsonMode?: boolean;
+    jsonSchema?: Record<string, unknown>;
     systemPrompt?: string;
   };
 
@@ -280,7 +289,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
   // Check edge cache
   const cacheKey = await sha256CacheKey(
-    `${model}:${systemPrompt || ""}:${prompt}:${jsonMode}`,
+    `${model}:${systemPrompt || ""}:${prompt}:${jsonMode}:${jsonSchema ? JSON.stringify(jsonSchema) : ""}`,
   );
   const cacheHit = await checkEdgeCache(
     cacheKey,
@@ -291,7 +300,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   // Build request & call OpenAI (via AI Gateway if configured)
   const endpoint = getCompletionsEndpoint(context.env);
   const headers = getLlmHeaders(context.env);
-  const openaiBody = buildOpenAIPayload(model, prompt, systemPrompt, jsonMode);
+  const openaiBody = buildOpenAIPayload(model, prompt, systemPrompt, jsonMode, jsonSchema);
 
   try {
     const openaiResponse = await callOpenAIWithRetry(endpoint, headers, openaiBody);

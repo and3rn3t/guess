@@ -114,29 +114,29 @@ describe('WelcomeScreen', () => {
     expect(matches.length).toBeGreaterThanOrEqual(1)
   })
 
-  it('renders difficulty picker with three options', () => {
+  it('renders persona selector with three detective options', () => {
     render(<WelcomeScreen {...defaultProps()} />)
-    expect(screen.getByRole('button', { name: /easy/i })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /medium/i })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /hard/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /poirot/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /watson/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /sherlock/i })).toBeInTheDocument()
   })
 
-  it('calls setDifficulty when a difficulty is clicked', async () => {
+  it('calls setDifficulty when a persona is clicked', async () => {
     const user = userEvent.setup()
     const props = defaultProps()
     render(<WelcomeScreen {...props} />)
-    await user.click(screen.getByRole('button', { name: /hard/i }))
+    await user.click(screen.getByRole('button', { name: /sherlock/i }))
     expect(props.setDifficulty).toHaveBeenCalledWith('hard')
   })
 
-  it('shows description hint for active difficulty', () => {
+  it('shows active persona as pressed', () => {
     render(<WelcomeScreen {...defaultProps()} difficulty="hard" />)
-    expect(screen.getByText('10 questions, challenging')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /sherlock/i })).toHaveAttribute('aria-pressed', 'true')
   })
 
-  it('shows difficulty label in footer text', () => {
+  it('shows question count in footer text', () => {
     render(<WelcomeScreen {...defaultProps()} difficulty="easy" maxQuestions={20} />)
-    expect(screen.getByText(/easy/i, { selector: 'p' })).toBeInTheDocument()
+    expect(screen.getAllByText(/20 questions/i).length).toBeGreaterThanOrEqual(1)
   })
 
   it('renders all 8 category chips', () => {
@@ -145,7 +145,7 @@ describe('WelcomeScreen', () => {
     expect(screen.getByRole('button', { name: /movies/i })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /video games/i })).toBeInTheDocument()
     expect(screen.getAllByRole('button', { name: /.*/ }).filter(
-      (b) => b.getAttribute('aria-pressed') !== null && !['Easy','Medium','Hard'].some(d => b.textContent?.includes(d))
+      (b) => b.getAttribute('aria-pressed') !== null && !['Poirot','Watson','Sherlock'].some(d => b.textContent?.includes(d))
     ).length).toBe(8)
   })
 

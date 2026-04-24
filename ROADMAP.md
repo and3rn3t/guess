@@ -68,6 +68,12 @@ These were scoped in the initial roadmap but are already implemented — listed 
 | ~~`eslint-plugin-jsx-a11y`~~ | Added to `eslint.config.js` with `recommended` rules; `src/components/ui/` and Workers files exempted |
 | ~~`@typescript-eslint/no-explicit-any`~~ | Rule set to `"error"` in `eslint.config.js` |
 | ~~Mobile viewports in Playwright~~ | Mobile Safari (iPhone 15) and Mobile Chrome (Pixel 7) projects added to `playwright.config.ts` |
+| ~~Persona system~~ | `Persona` type in `packages/game-engine`; all prompt functions persona-aware; `getDifficultyPersona()` replaces flat `SYSTEM_PREAMBLE`; `DIFFICULTY_TO_PERSONA` mapping |
+| ~~PersonaSelector UI~~ | `PersonaSelector.tsx` — 3-card grid (Poirot/Watson/Sherlock) replaces difficulty chip pills on `WelcomeScreen` |
+| ~~SuspectDescriptionOverlay~~ | `SuspectDescriptionOverlay.tsx` — streams `suspectDescription_v1` pre-reveal prose; animated magnifying glass |
+| ~~Living Character Bios~~ | `livingBio_v1` prompt in `prompts.ts` — persona-voiced mini-bio for any character |
+| ~~AI Argues Back~~ | `contradictionPushback_v1` in `prompts.ts` — theatrical pushback when player contradicts prior answer |
+| ~~"Describe Yourself" mode~~ | `DescribeYourselfScreen.tsx` + `'describeYourself'` `GamePhase`; 10 first-person questions → character match → `selfMatchNarrative_v1` stream |
 
 ---
 
@@ -100,10 +106,10 @@ The current `SYSTEM_PREAMBLE` is: *"You are a helpful assistant for a character 
 | # | Item | Files touched | Notes |
 |---|------|--------------|-------|
 | ~~A.1~~ | ~~**Unified detective persona**~~ | ~~`prompts.ts`~~ | ~~Replace the flat `SYSTEM_PREAMBLE` with a character: "You are a sharp, witty detective who treats every guessing game like a Sherlock Holmes case. You're confident but never arrogant, and you make the player feel like your partner, not your subject." Apply consistently across *all* prompt functions.~~ |
-| A.2 | **Confidence-based tone shift** | `dynamicQuestion_v1` | Pass `confidence` into the system message, not just the user message. At `<30%`: speculative ("*I'm still casting a wide net...*"), `30–70%`: focused ("*The clues are narrowing things down...*"), `>70%`: intense ("*I'm very close — this one matters*"). The rephrased question should reflect the AI's emotional state. |
-| A.3 | **Difficulty personalities** | `prompts.ts`, `llm.ts` | Three named personas passed as a `persona` param to each prompt builder: **Sherlock** (Hard — terse, deductive, no hand-holding), **Watson** (Medium — friendly, explains each step), **Poirot** (Easy — theatrical, drops hints, uses "mon ami"). Same engine, three system prompts. Selector on welcome screen uses character portraits. |
-| A.4 | **In-game dramatic escalation** | `dynamicQuestion_v1` | At ≥80% confidence, allow the AI to break format slightly: "I think I know who you are. But indulge me — one more question to be certain." This mirrors real deduction drama and primes the player for the reveal. Single flag: `isCloseToGuess: boolean` added to the prompt payload. *Ship alongside C.1 — they form one suspense sequence: aside → prose description → reveal.* |
-| A.5 | **Narrative post-game debrief in character** | `narrativeExplanation_v1` | The debrief already has "detective wrapping up a case" in the system prompt but the user prompt says "triumphant/humble narrative." Sharpen it: the AI should name the *single* pivotal answer that cracked or broke the case, then close with a one-liner that fits the persona. |
+| ~~A.2~~ | ~~**Confidence-based tone shift**~~ | ~~`dynamicQuestion_v1`~~ | ~~`confidenceTier` + `isEarlyHighConfidence` flags added; system message tone shifts at `<30%` / `30–70%` / `>70%` thresholds.~~ |
+| ~~A.3~~ | ~~**Difficulty personalities**~~ | ~~`prompts.ts`, `PersonaSelector.tsx`, `WelcomeScreen.tsx`~~ | ~~Sherlock/Watson/Poirot personas; `DIFFICULTY_TO_PERSONA` mapping; `PersonaSelector` replaces difficulty chips on welcome screen.~~ |
+| ~~A.4~~ | ~~**In-game dramatic escalation**~~ | ~~`dynamicQuestion_v1`~~ | ~~`isCloseToGuess: boolean` flag at ≥80% confidence; `EARLY_CONFIDENCE_ASIDE` for questions 2–4 at ≥60%.~~ |
+| ~~A.5~~ | ~~**Narrative post-game debrief in character**~~ | ~~`narrativeExplanation_v1`, `GameOver.tsx`, `App.tsx`~~ | ~~Names pivotal answer; persona-voiced closing line; `persona` prop threaded from `App.tsx` → `GameOver`.~~ |
 
 ### B — Prompt Reliability (High impact, medium effort)
 
@@ -111,7 +117,7 @@ The current approach uses `"Return valid JSON only"` as a safety net — fragile
 
 | # | Item | Files touched | Notes |
 |---|------|--------------|-------|
-| B.1 | **Structured Outputs for all JSON prompts** | `llm.ts`, `prompts.ts` | Replace freeform JSON parsing with OpenAI's `response_format: { type: "json_schema", json_schema: { ... } }`. Eliminates the `try/catch JSON.parse` fallback pattern across 5+ callsites. Start with `dynamicQuestion_v1` and `attributeAutoFill_v1` — highest-stakes parses. |
+| ~~B.1~~ | ~~**Structured Outputs for all JSON prompts**~~ | ~~`functions/api/llm.ts`, `prompts.ts`~~ | ~~`jsonSchema?: Record<string, unknown>` added to `buildOpenAIPayload`; uses `response_format: { type: "json_schema" }` when provided; cache key updated.~~ |
 | B.2 | **Streaming reasoning panel** | `llm-stream.ts`, `ReasoningPanel.tsx` | The streaming infrastructure is built (`llm-stream.ts`). Wire `ReasoningPanel` to consume tokens as they arrive instead of snapping in all at once. The reasoning text appearing word-by-word transforms "AI is thinking" from a spinner into a live experience. |
 | ~~B.3~~ | ~~**Prompt version tracking**~~ | ~~`prompts.ts`~~ | ~~Add a `PROMPT_VERSION` constant (e.g. `"2026-04-A"`) to each prompt function. Log it alongside AI Gateway call records so regressions can be pinpointed by version. Zero runtime cost.~~ |
 | B.4 | **Question deduplication via embeddings** | `functions/api/questions.ts` | Before storing a user-submitted or LLM-generated question, embed it (Workers AI `@cf/baai/bge-base-en-v1.5`) and cosine-compare against existing question embeddings. Block if similarity > 0.92. Prevents semantic duplicates like "Is this character a villain?" / "Is this character evil?". |
@@ -122,13 +128,13 @@ These are unconventional uses of the model that wouldn't occur to most developer
 
 | # | Item | Why it's interesting |
 |---|------|---------------------|
-| C.1 | **"Describe my suspect" pre-reveal** | When confidence hits ~85%, before the formal guess screen, generate a 2-sentence prose description of what the AI believes the character looks like and their personality — *without naming them*. "I'm picturing someone with a troubled past, a sharp wit, and a cape." Builds suspense; no extra API calls needed if streamed from the same reasoning pass. |
-| C.2 | **LLM-judged attribute corrections** | In `POST /api/v2/corrections`, after a user flags a wrong attribute, send the character name + attribute + both values to the LLM: "Wikipedia says Batman `isHuman: true`. The flagged value is `false`. Is the flag correct?" Returns a confidence score. Auto-accept corrections above 0.95 confidence; queue the rest for manual review. |
-| C.3 | **Contradiction explainer** | When `detectContradictions` fires (all candidates eliminated), instead of a generic "I'm confused" message, generate a 1-sentence natural-language explanation: "You told me your character is both non-human and a US president — those rarely overlap." Shows the player exactly what inconsistency broke the engine. |
+| ~~C.1~~ | ~~**"Describe my suspect" pre-reveal**~~ | ~~`SuspectDescriptionOverlay.tsx` streams `suspectDescription_v1` at ~85% confidence; animated magnifying glass; "Reveal my guess →" when done.~~ |
+| ~~C.2~~ | ~~**LLM-judged attribute corrections**~~ | ~~`correctionJudge_v1` in `prompts.ts` — factual voice rates flagged attribute correctness with confidence score.~~ |
+| ~~C.3~~ | ~~**Contradiction explainer**~~ | ~~`contradictionExplain_v1` generates a 1-sentence natural-language contradiction explanation. `contradictionPushback_v1` added for "AI Argues Back" drama.~~ |
 | C.4 | **Adaptive question strategy** | Track each player's answer distribution across games (in `IndexedDB`): players who answer "maybe" > 40% of the time are ambiguity-prone; players who answer in < 3 seconds are decisive. Pass a `playerStyle: "decisive" | "hesitant" | "literal"` hint into `dynamicQuestion_v1`. The AI adjusts — fewer double-negative questions for literal players, more direct binary questions for hesitant ones. |
-| C.5 | **"What attribute set you apart"** | On game win, generate a one-line explanation of the single attribute that uniquely distinguished the correct character from the runner-up: "What gave it away: only 3 characters in the database are animated, non-human, and from a video game — and you had to be one of them." Uses the existing `topCandidates` data; LLM just narrates it. |
+| ~~C.5~~ | ~~**"What attribute set you apart"**~~ | ~~`distinctiveAttributeExplain_v1` in `prompts.ts` — narrates the single distinguishing attribute vs. runner-up using `topCandidates` data.~~ |
 | C.6 | **Question quality scoring feedback loop** | After each game, score every question asked by whether its answer changed the probability distribution meaningfully (information gain > threshold). Feed low-scoring questions back to the LLM monthly: "This question was asked 200 times and almost never helped. Suggest a better alternative." Self-improving question bank without manual curation. |
-| C.7 | **Ambient "I'm watching you" moment** | Early in the game (questions 2–4), if the engine is already highly confident (> 60%), have the AI add a single sly aside to the question text: "Interesting... I may already know." This is purely theatrical — accuracy irrelevant — but dramatically increases engagement. Confidence threshold tunable via KV flag. |
+| ~~C.7~~ | ~~**Ambient "I'm watching you" moment**~~ | ~~`isEarlyHighConfidence` flag + `EARLY_CONFIDENCE_ASIDE` constant in `dynamicQuestion_v1`; questions 2–4 at ≥60% confidence get a sly theatrical aside.~~ |
 | C.8 | **Semantic character search in teaching mode** | When the player types a character name in teaching mode, embed it in real time and return the 3 most semantically similar existing characters: "Did you mean: *Black Widow*, *Black Panther*, or *Black Adam*?" Uses Workers AI embeddings. Prevents duplicate submissions without requiring exact-match. |
 
 ---
@@ -646,7 +652,10 @@ Adding a new character category today means: write attribute definitions, update
 | 2026-04 | Phase 3 renumbered — gaps closed | Item 3.5 (streaming reasoning) was cut in a prior pass; 3.6–3.8 renumbered to 3.5–3.7 for clean sequential numbering |
 | 2026-04 | Pipe Dreams "Adversarial Stress Test" deferred to AM | The Admin Panel "Adversarial Stress Test Console" (AM) is the full implementation spec; the Pipe Dreams entry now references it to avoid duplication |
 | 2026-04 | Developer Experience section added | Audit of `tsconfig.json`, `eslint.config.js`, `playwright.config.ts`, `vitest.config.ts`, `lint-staged`, and CI workflows revealed 11 concrete gaps; each DX item is grounded in a real observed deficiency rather than aspirational tooling |
+| 2026-05 | Persona replaces difficulty label | `Difficulty` remains the internal state (`'easy'|'medium'|'hard'`); `Persona` is a pure display + prompt concern derived via `DIFFICULTY_TO_PERSONA`. Two concerns, one source of truth. |
+| 2026-05 | `correctionJudge_v1` uses raw factual voice | Unlike all other prompts, this is a fact-checker role — no detective persona. Injecting theatrical Poirot voice into an attribute-accuracy judge would degrade accuracy. |
+| 2026-05 | `'describeYourself'` added to `GamePhase` | The "Describe Yourself" screen uses the same question pool and character scoring logic as the main game — it's a game phase, not a separate app. `GamePhase` union extended; lazy-loaded into `App.tsx`. |
 
 ---
 
-*Last updated: April 2026 · v1.2.0 baseline*
+*Last updated: May 2026 · v1.4.0 baseline*

@@ -43,7 +43,7 @@ import type {
   Difficulty,
   Question,
 } from "@/lib/types";
-import { DIFFICULTIES } from "@/lib/types";
+import { DIFFICULTIES, DIFFICULTY_TO_PERSONA } from "@/lib/types";
 import { AnimatePresence, motion } from "framer-motion";
 import { useTheme } from "next-themes";
 import {
@@ -64,6 +64,11 @@ import { useWakeLock } from "@/hooks/useWakeLock";
 const TeachingMode = lazy(() =>
   import("@/components/TeachingMode").then((m) => ({
     default: m.TeachingMode,
+  })),
+);
+const DescribeYourselfScreen = lazy(() =>
+  import("@/components/DescribeYourselfScreen").then((m) => ({
+    default: m.DescribeYourselfScreen,
   })),
 );
 const QuestionManager = lazy(() =>
@@ -159,6 +164,7 @@ function App() {
   const [eliminatedCount, setEliminatedCount] = useState<number | null>(null);
   const prevPossibleCount = useRef<number>(0);
   const maxQuestions = DIFFICULTIES[difficulty].maxQuestions;
+  const persona = DIFFICULTY_TO_PERSONA[difficulty];
   const [onboardingDone] = useKV("onboarding-complete", false);
   const [showOnboarding, setShowOnboarding] = useState(false);
 
@@ -553,6 +559,7 @@ function App() {
                         return { question: q?.text || "", answer: a.value };
                       })}
                       onReveal={gameWon ? undefined : handleReveal}
+                      persona={persona}
                     />
                   </div>
                 </motion.div>
@@ -569,6 +576,19 @@ function App() {
                     onAddQuestions={handleAddQuestions}
                     onPlayAgain={startGame}
                     onGoHome={() => navigate("welcome")}
+                  />
+                </Suspense>
+              </div>
+            )}
+
+            {gamePhase === "describeYourself" && (
+              <div className="max-w-xl mx-auto">
+                <Suspense fallback={<Skeleton className="h-96 w-full" />}>
+                  <DescribeYourselfScreen
+                    questions={questions || DEFAULT_QUESTIONS}
+                    characters={activeCharacters}
+                    persona={persona}
+                    onClose={() => navigate("welcome")}
                   />
                 </Suspense>
               </div>

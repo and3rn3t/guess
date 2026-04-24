@@ -4,6 +4,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+import { PersonaSelector } from "@/components/PersonaSelector";
 import type { GamePhase } from "@/hooks/useGameState";
 import type { GlobalStats } from "@/hooks/useGlobalStats";
 import { DEFAULT_CHARACTERS } from "@/lib/database";
@@ -11,7 +12,7 @@ import type {
   Character,
   CharacterCategory,
 } from "@/lib/types";
-import { CATEGORY_LABELS, DIFFICULTIES } from "@/lib/types";
+import { CATEGORY_LABELS } from "@/lib/types";
 import type { Difficulty } from "@/lib/types";
 import {
   BrainIcon,
@@ -214,29 +215,8 @@ export function WelcomeScreen({
 
         {/* Bottom CTA */}
         <div className="text-center space-y-2">
-          {/* Difficulty picker */}
-          <div className="flex flex-col items-center gap-1.5 mb-3">
-            <div className="inline-flex rounded-lg border border-border/60 bg-card/50 p-0.5 gap-0.5" role="group" aria-label="Select difficulty">
-              {(Object.entries(DIFFICULTIES) as [Difficulty, typeof DIFFICULTIES[Difficulty]][]).map(([key, cfg]) => (
-                <button
-                  key={key}
-                  type="button"
-                  onClick={() => setDifficulty(key)}
-                  aria-pressed={difficulty === key}
-                  className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${
-                    difficulty === key
-                      ? "bg-accent text-accent-foreground shadow-sm"
-                      : "text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  {cfg.label}
-                </button>
-              ))}
-            </div>
-            <p className="text-xs text-muted-foreground/70" aria-live="polite">
-              {DIFFICULTIES[difficulty].description}
-            </p>
-          </div>
+          {/* Persona / difficulty picker */}
+          <PersonaSelector difficulty={difficulty} setDifficulty={setDifficulty} />
 
           {/* Category filter chips */}
           <div className="flex flex-wrap justify-center gap-1.5 mb-3" role="group" aria-label="Filter by category">
@@ -272,11 +252,21 @@ export function WelcomeScreen({
             <PlayIcon size={24} weight="fill" className="mr-2" />
             Start Game
           </Button>
+
+          {/* Describe Yourself — secondary CTA */}
+          <Button
+            onClick={() => navigate("describeYourself")}
+            variant="ghost"
+            size="sm"
+            className="text-muted-foreground hover:text-foreground text-xs"
+          >
+            Or: which character are <em>you</em>? →
+          </Button>
           <p className="text-xs text-muted-foreground">
             {filteredTotal != null
               ? <><span className="text-accent font-medium">~{filteredTotal}</span> of {serverTotal || "500+"} characters</>
               : <>{serverTotal || "500+"} characters</>
-            } · {DIFFICULTIES[difficulty].label} · {maxQuestions} questions
+            } · {maxQuestions} questions
             {globalStats?.gameStats && globalStats.gameStats.totalGames >= 10 && (
               <> · AI wins <strong>{Math.round(globalStats.gameStats.winRate)}%</strong> of {globalStats.gameStats.totalGames.toLocaleString()} games</>
             )}

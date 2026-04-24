@@ -1,3 +1,6 @@
+export type { Persona } from '@guess/game-engine'
+import type { Persona } from '@guess/game-engine'
+
 export type CharacterCategory =
   | "video-games"
   | "movies"
@@ -21,6 +24,13 @@ export const DIFFICULTIES: Record<Difficulty, DifficultyConfig> = {
   easy: { maxQuestions: 20, label: "Easy", description: "20 questions, relaxed" },
   medium: { maxQuestions: 15, label: "Medium", description: "15 questions, balanced" },
   hard: { maxQuestions: 10, label: "Hard", description: "10 questions, challenging" },
+};
+
+/** Maps game difficulty to the corresponding detective persona. */
+export const DIFFICULTY_TO_PERSONA: Record<Difficulty, Persona> = {
+  easy: 'poirot',
+  medium: 'watson',
+  hard: 'sherlock',
 };
 
 /** Human-readable labels for each character category. */
