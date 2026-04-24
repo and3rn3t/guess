@@ -47,6 +47,20 @@ export interface CharacterAttributesRow {
   confidence: number
 }
 
+export interface ProposedAttributesRow {
+  id: number
+  key: string
+  display_text: string
+  question_text: string
+  rationale: string | null
+  example_chars: string | null
+  proposed_by: string
+  status: 'pending' | 'approved' | 'rejected'
+  reviewed_by: string | null
+  reviewed_at: number | null
+  created_at: number
+}
+
 export interface QuestionsRow {
   id: string
   text: string
