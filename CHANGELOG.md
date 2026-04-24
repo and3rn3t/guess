@@ -6,6 +6,25 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [1.4.0] — 2026-04-24
+
+### Added
+
+- **Skip question** — `POST /api/v2/game/skip` returns the next best question without decrementing the budget; `skippedQuestions[]` tracked on the session; Skip link rendered below the question card in `PlayingScreen`; `SKIP_QUESTION` reducer action; `handleServerSkip` in `useServerGame`
+- **Give up** — subtle "I give up" link appears after ≥5 answers in `PlayingScreen`; dispatches `GIVE_UP` (alias for `SURRENDER`), posts result, and tracks analytics
+- **Wordle-style emoji share card** — `buildShareEmoji()` in `sharing.ts` generates a 🟩🟥🟨⬜ grid + result line + URL; displayed as a `<pre>` block in `GameOver` above the share buttons
+- **`navigator.share()` on mobile** — Share Result button in `GameOver` calls the OS native share sheet when available; falls back to clipboard copy on desktop
+- **`PROMPT_VERSION` constant** — `"2026-04-A"` exported from `prompts.ts` and prefixed into `SYSTEM_PREAMBLE`; all 8 prompt functions carry the version string automatically
+- **Bundle size CI gate** — `size-limit` with three chunk budgets (`vendor-radix ≤ 130 KB`, `vendor-motion ≤ 50 KB`, `vendor-charts ≤ 65 KB`); `pnpm size` step added to the `checks` CI job
+- **`tsc` in pre-commit** — `lint-staged.config.mjs` runs `tsc -b --noCheck` (via function wrapper to suppress file paths) alongside `eslint --fix` on every `*.ts`/`*.tsx` staged file
+
+### Changed
+
+- **Non-blocking `game_stats` write** — `INSERT INTO game_stats` in `result.ts` moved into `context.waitUntil(…)` matching the existing `UPDATE game_sessions` call; removes ~20–50ms from every game-end response
+- **Cookie-based LLM rate limiter** — `enforceRateLimit` in `llm.ts` now uses `getOrCreateUserId(request, env)` (cookie-based) instead of `getUserId()` (IP-only); 429 responses include `Set-Cookie` when a new cookie is issued; prevents unfair throttling for users behind shared NAT
+
+---
+
 ## [1.3.0] — 2026-04-24
 
 ### Added
