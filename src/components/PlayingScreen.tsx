@@ -14,7 +14,7 @@ import type {
 } from "@/lib/types";
 import { ClockCounterClockwiseIcon } from "@phosphor-icons/react";
 import { AnimatePresence, motion } from "framer-motion";
-import { memo } from "react";
+import { memo, useCallback, useState } from "react";
 
 interface PlayingScreenProps {
   answers: Answer[];
@@ -61,6 +61,17 @@ function PlayingScreenBase({
   onSkip,
   onGiveUp,
 }: Readonly<PlayingScreenProps>) {
+  const [isUndoing, setIsUndoing] = useState(false);
+
+  const handleUndo = useCallback(() => {
+    if (isUndoing) return;
+    setIsUndoing(true);
+    setTimeout(() => {
+      dispatch({ type: "UNDO_LAST_ANSWER" });
+      setIsUndoing(false);
+    }, 200);
+  }, [dispatch, isUndoing]);
+
   const readinessSummary = readiness?.blockedByRejectCooldown
     ? `Holding the next guess until I collect ${readiness.rejectCooldownRemaining} more answer${readiness.rejectCooldownRemaining === 1 ? "" : "s"}.`
     : readiness?.trigger === "high_certainty"
@@ -132,8 +143,9 @@ function PlayingScreenBase({
           <div className="flex items-center gap-2">
             {answers.length > 0 && (
               <button
-                onClick={() => dispatch({ type: "UNDO_LAST_ANSWER" })}
-                className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors min-h-[44px] px-2"
+                onClick={handleUndo}
+                disabled={isUndoing}
+                className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors min-h-[44px] px-2 disabled:opacity-50"
                 aria-label="Undo last answer"
               >
                 <ClockCounterClockwiseIcon size={14} />
@@ -172,14 +184,23 @@ function PlayingScreenBase({
                 maybe: 'bg-gradient-to-br from-amber-500/30 to-amber-600/20 text-amber-400 ring-amber-500/40',
               };
               const label: Record<string, string> = { yes: 'Y', no: 'N', maybe: 'M' };
+              const isLast = i === gameSteps.length - 1;
               return (
                 <motion.span
                   key={step.questionId ?? `step-${i}`}
                   initial={{ scale: 0, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  transition={{ type: 'spring', stiffness: 380, damping: 20, delay: i * 0.025 }}
+                  animate={
+                    isLast && isUndoing
+                      ? { scale: 0.85, opacity: 0.4, boxShadow: '0 0 0 3px rgba(239,68,68,0.7)' }
+                      : { scale: 1, opacity: 1, boxShadow: '0 0 0 0px rgba(0,0,0,0)' }
+                  }
+                  transition={
+                    isLast && isUndoing
+                      ? { duration: 0.15 }
+                      : { type: 'spring', stiffness: 380, damping: 20, delay: i * 0.025 }
+                  }
                   title={`Q${i + 1}: ${step.questionText} → ${step.answer}`}
-                  className={`inline-flex items-center justify-center w-8 h-8 sm:w-7 sm:h-7 rounded-full text-xs font-bold cursor-default transition-all hover:scale-110 ring-1 ring-offset-1 ring-offset-background hover:ring-2 ${
+                  className={`inline-flex items-center justify-center w-8 h-8 sm:w-7 sm:h-7 rounded-full text-xs font-bold cursor-default transition-colors hover:scale-110 ring-1 ring-offset-1 ring-offset-background hover:ring-2 ${
                     bgClass[step.answer] ?? 'bg-muted text-muted-foreground ring-muted-foreground/30'
                   }`}
                 >

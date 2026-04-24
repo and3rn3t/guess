@@ -315,16 +315,18 @@ export function ThinkingCard() {
             <div className="h-8 w-1/2 rounded-md bg-accent/8 animate-shimmer [animation-delay:0.15s]" />
           </div>
         </div>
-        <div className="grid grid-cols-2 gap-3">
-          {(['emerald', 'rose', 'amber', 'secondary'] as const).map((color, i) => (
-            <div
-              key={color}
-              className={`h-16 rounded-lg animate-shimmer [animation-delay:${i * 0.1}s] ${
-                color === 'emerald' ? 'bg-emerald-500/10' :
-                color === 'rose' ? 'bg-rose-500/10' :
-                color === 'amber' ? 'bg-amber-500/10' :
-                'bg-secondary/20'
-              }`}
+        <div className="grid grid-cols-8 gap-1.5 py-2">
+          {Array.from({ length: 32 }).map((_, i) => (
+            <motion.div
+              key={i}
+              className="aspect-square rounded-full bg-accent/25"
+              animate={{ opacity: [0.15, 0.9, 0.15], scale: [0.75, 1.1, 0.75] }}
+              transition={{
+                duration: 1.4,
+                repeat: Infinity,
+                delay: (i % 8) * 0.1 + Math.floor(i / 8) * 0.04,
+                ease: "easeInOut",
+              }}
             />
           ))}
         </div>

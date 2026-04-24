@@ -57,11 +57,14 @@ export function GuessReveal({
                 {/* Animated gradient ring — outer conic-gradient, inner clipped by background-colored ring */}
                 <div className="animate-spin-ring absolute inset-0 rounded-full" />
                 <div className="relative w-[88px] h-[88px] rounded-full overflow-hidden shadow-lg shadow-accent/20 animate-float border-[3px] border-background">
-                  <img
+                  <motion.img
                     src={character.imageUrl}
                     alt={character.name}
                     className="w-full h-full object-cover"
                     loading="eager"
+                    initial={{ filter: "blur(20px)", scale: 1.15 }}
+                    animate={{ filter: "blur(0px)", scale: 1 }}
+                    transition={{ duration: 1.5, ease: "easeOut", delay: 0.3 }}
                   />
                 </div>
               </div>
@@ -162,11 +165,14 @@ export function GuessReveal({
                       {/* Animated gradient ring */}
                       <div className="animate-spin-ring absolute inset-0 rounded-full" />
                       <div className="relative w-[128px] h-[128px] rounded-full overflow-hidden shadow-xl shadow-accent/30 border-[4px] border-background">
-                        <img
+                        <motion.img
                           src={character.imageUrl}
                           alt={character.name}
                           className="w-full h-full object-cover"
                           loading="eager"
+                          initial={{ filter: "blur(24px)", scale: 1.15 }}
+                          animate={{ filter: "blur(0px)", scale: 1 }}
+                          transition={{ duration: 1.5, ease: "easeOut", delay: 0.1 }}
                         />
                       </div>
                     </div>

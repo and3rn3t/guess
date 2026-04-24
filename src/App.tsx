@@ -543,6 +543,7 @@ function App() {
                       exhausted={exhausted}
                       surrendered={surrendered}
                       character={finalGuess}
+                      maxQuestions={maxQuestions}
                       questionsAsked={gameSteps.length}
                       guessesUsed={guessCount}
                       remainingCharacters={effectiveRemaining}

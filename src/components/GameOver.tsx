@@ -20,12 +20,16 @@ import { motion, useReducedMotion } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
 
-/** Lightweight confetti burst — reduces particle count on mobile & respects reduced-motion */
-function ConfettiBurst() {
+/** Lightweight confetti burst — scales intensity by questionsAsked, reduces on mobile & respects reduced-motion */
+function ConfettiBurst({ questionsAsked }: { questionsAsked?: number }) {
   const isMobile = useIsMobile();
   const reduced = useReducedMotion();
   if (reduced) return null;
-  const count = isMobile ? 20 : 40;
+  // Full burst ≤5 q, medium burst ≤10, minimal burst >10
+  const intensity = questionsAsked == null ? 1 : questionsAsked <= 5 ? 1 : questionsAsked <= 10 ? 0.6 : 0.2;
+  const baseCount = isMobile ? 20 : 50;
+  const count = Math.max(3, Math.round(baseCount * intensity));
+  const spread = isMobile ? 280 : 480;
   return (
     <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
       {Array.from({ length: count }).map((_, i) => (
@@ -39,14 +43,14 @@ function ConfettiBurst() {
           }}
           initial={{ x: 0, y: 0, opacity: 1, scale: 1, rotate: 0 }}
           animate={{
-            x: (Math.random() - 0.5) * (isMobile ? 280 : 460),
+            x: (Math.random() - 0.5) * spread,
             y: Math.random() * (isMobile ? 240 : 340) + 50,
             opacity: 0,
             scale: Math.random() * 1.5 + 0.5,
             rotate: Math.random() * 720 - 360,
           }}
           transition={{
-            duration: 1.5 + Math.random() * 0.8,
+            duration: (1.5 + Math.random() * 0.8) * intensity,
             ease: "easeOut",
             delay: Math.random() * 0.3,
           }}
@@ -66,6 +70,7 @@ interface GameOverProps {
   won: boolean;
   exhausted?: boolean;
   character: Character | null;
+  maxQuestions?: number;
   questionsAsked?: number;
   guessesUsed?: number;
   remainingCharacters?: number;
@@ -87,6 +92,7 @@ export function GameOver({
   won,
   exhausted,
   character,
+  maxQuestions,
   questionsAsked,
   guessesUsed,
   remainingCharacters,
@@ -195,9 +201,9 @@ export function GameOver({
       transition={{ duration: 0.3 }}
     >
       <Card className="p-5 sm:p-8 bg-linear-to-br from-card/80 to-card/40 backdrop-blur-sm border-2 border-primary/30 relative overflow-hidden">
-        {/* CSS confetti burst on win */}
+        {/* CSS confetti burst on win — intensity scales with how quickly the player won */}
         {won && (
-          <ConfettiBurst />
+          <ConfettiBurst questionsAsked={questionsAsked} />
         )}
 
         <div
@@ -230,7 +236,11 @@ export function GameOver({
               </motion.div>
               <div>
                 <h2 className="text-4xl font-bold text-gradient-win mb-2">
-                  I Got It Right!
+                  {questionsAsked != null && questionsAsked <= 5
+                    ? "Uncanny!"
+                    : maxQuestions != null && questionsAsked != null && questionsAsked >= maxQuestions - 1
+                      ? "Just in time."
+                      : "I Got It Right!"}
                 </h2>
                 {character && (
                   <p className="text-xl text-muted-foreground">
