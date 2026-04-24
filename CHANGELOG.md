@@ -6,6 +6,20 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [Unreleased]
+
+### Added
+
+- **Blur-to-reveal on GuessReveal (U.6)** — both character images in `GuessReveal` now animate from `blur(20–24px) scale(1.15)` to sharp over 1.5s using Framer Motion, paired with the existing spring-physics scale entrance
+- **Thinking animation search pulse (U.9)** — `ThinkingCard` in `QuestionCard.tsx` replaces the 4 generic shimmer blocks with a 4×8 dot grid that pulses in left-to-right waves, visually suggesting the engine sweeping through candidates
+- **Undo ripple (U.10)** — when the player clicks Undo in `PlayingScreen`, the last answer pill flashes a 200ms red glow before `UNDO_LAST_ANSWER` dispatches; undo button is disabled during the flash to prevent double-undos
+
+### Changed
+
+- **Win intensity celebration (U.7)** — `ConfettiBurst` in `GameOver` now scales particle count and spread by `questionsAsked`: ≤5 questions → full burst (50 desktop particles, wider spread) + **"Uncanny!"** heading; ≤10 questions → medium burst + "I Got It Right!"; >10 / last question → 3 particles + **"Just in time."** heading; `maxQuestions` prop added to `GameOverProps` and wired from `App.tsx`
+
+---
+
 ## [1.4.0] — 2026-04-24
 
 ### Added

@@ -74,6 +74,11 @@ These were scoped in the initial roadmap but are already implemented — listed 
 | ~~Living Character Bios~~ | `livingBio_v1` prompt in `prompts.ts` — persona-voiced mini-bio for any character |
 | ~~AI Argues Back~~ | `contradictionPushback_v1` in `prompts.ts` — theatrical pushback when player contradicts prior answer |
 | ~~"Describe Yourself" mode~~ | `DescribeYourselfScreen.tsx` + `'describeYourself'` `GamePhase`; 10 first-person questions → character match → `selfMatchNarrative_v1` stream |
+| ~~Answer impact flash (U.1)~~ | `PlayingScreen` — animated `−N eliminated` badge slides up after each answer; auto-dismisses after 2s |
+| ~~Blur-to-reveal on GuessReveal (U.6)~~ | `GuessReveal` — both character images animate from `blur(20–24px) scale(1.15)` to sharp over 1.5s via Framer Motion |
+| ~~Win intensity celebration (U.7)~~ | `GameOver` — `ConfettiBurst` scales particle count/spread by `questionsAsked` (≤5q full burst, ≤10q medium, >10q minimal 3 particles); heading becomes "Uncanny!" / "I Got It Right!" / "Just in time." |
+| ~~Thinking animation search pulse (U.9)~~ | `QuestionCard` `ThinkingCard` — 4×8 dot grid with left-to-right wave animation replaces generic shimmer blocks |
+| ~~Undo ripple (U.10)~~ | `PlayingScreen` — 200ms red-glow flash on the last answer pill before `UNDO_LAST_ANSWER` dispatch; button disabled during flash to prevent double-undo |
 
 ---
 
@@ -196,16 +201,16 @@ Things that are missing or under-realised in the current implementation.
 
 | # | Item | Files touched | Notes |
 |---|------|--------------|-------|
-| U.1 | **Answer impact flash** | `QuestionCard`, `PlayingScreen` | After the player answers, briefly show "−47 characters" (or "+0") in a colour-coded badge that slides up and fades. The count is already computed — it just isn't surfaced. This is the single clearest way to make the Bayesian engine feel tangible without any explanation. |
+| ~~U.1~~ | ~~**Answer impact flash**~~ | ~~`QuestionCard`, `PlayingScreen`~~ | ~~After the player answers, briefly show "−47 characters" (or "+0") in a colour-coded badge that slides up and fades. The count is already computed — it just isn't surfaced. This is the single clearest way to make the Bayesian engine feel tangible without any explanation.~~ |
 | U.2 | **Probability-weighted possibility grid** | `PossibilityGrid` | Dots are currently binary — alive (bright) or dead (faded). Instead, scale each dot's opacity and size proportionally to its probability score. The top candidate becomes visibly dominant; the field shrinks around it. Hover shows name + probability %. |
 | U.3 | **Character image dots in possibility grid** | `PossibilityGrid` | Replace coloured dots with tiny circular character portraits (from R2). When the engine zeros in, the grid shifts from a field of faces to a handful. The "give away" image fallback (U.6) covers missing images. |
 | U.4 | **Answer history weight** | `PlayingScreen` | High-impact answers (info gain > threshold) get a visually larger or accent-bordered pill in the answer history. Low-impact answers shrink. Players start to intuit which questions actually mattered — reinforces the AI's strategy. |
 | U.5 | **Top-3 probability trace in chart** | `PossibilitySpaceChart` | The chart currently shows aggregate "remaining" and a naive confidence line. Replace with 3 stacked lines: the top 3 candidates' individual probability scores over the game. Watching the winner pull away is the Bayesian story told visually. |
-| U.6 | **Blur-to-reveal on GuessReveal** | `GuessReveal` | The character image currently appears instantly. Start it heavily blurred and clear over 1.5 seconds — like a photograph developing. Pairs perfectly with the typewriter name reveal (2.6). The image and name arrive together as the "case closes." |
-| U.7 | **Win intensity celebration** | `GameOver` | Confetti count and duration currently don't scale with performance. Win in ≤5 questions → full particle burst + "Uncanny!" heading. Win on the last question → 3 particles, "Just in time." The celebration matches how impressive the win actually was. |
+| ~~U.6~~ | ~~**Blur-to-reveal on GuessReveal**~~ | ~~`GuessReveal`~~ | ~~The character image currently appears instantly. Start it heavily blurred and clear over 1.5 seconds — like a photograph developing. Pairs perfectly with the typewriter name reveal (2.6). The image and name arrive together as the "case closes."~~ |
+| ~~U.7~~ | ~~**Win intensity celebration**~~ | ~~`GameOver`~~ | ~~Confetti count and duration currently don't scale with performance. Win in ≤5 questions → full particle burst + "Uncanny!" heading. Win on the last question → 3 particles, "Just in time." The celebration matches how impressive the win actually was.~~ |
 | U.8 | **Desktop sidebar layout** | `PlayingScreen` | On screens ≥1280px, render `ReasoningPanel` and `PossibilityGrid` as a fixed right sidebar (already `max-w-7xl mx-auto` grid). Currently they stack below the question on all sizes — on desktop they have room to coexist. |
-| U.9 | **Thinking animation with search pulse** | `QuestionCard` (ThinkingCard) | The shimmer skeleton is generic. Replace with a custom animation: the possibility grid dots pulse in waves from left to right — visually suggesting the engine is sweeping through candidates. One CSS animation, no JS. |
-| U.10 | **Undo ripple** | `PlayingScreen` | When the player hits Undo, the most recent answer pill briefly glows red before removing. Currently it just disappears. A 200ms flash gives the action tactile feedback and prevents accidental double-undos. |
+| ~~U.9~~ | ~~**Thinking animation with search pulse**~~ | ~~`QuestionCard` (ThinkingCard)~~ | ~~The shimmer skeleton is generic. Replace with a custom animation: the possibility grid dots pulse in waves from left to right — visually suggesting the engine is sweeping through candidates. One CSS animation, no JS.~~ |
+| ~~U.10~~ | ~~**Undo ripple**~~ | ~~`PlayingScreen`~~ | ~~When the player hits Undo, the most recent answer pill briefly glows red before removing. Currently it just disappears. A 200ms flash gives the action tactile feedback and prevents accidental double-undos.~~ |
 
 ### U-EX — UI Explorations & Pipe Dreams
 
