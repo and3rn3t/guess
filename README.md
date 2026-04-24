@@ -27,15 +27,18 @@ Think of a character. The AI asks strategic yes/no questions, uses Bayesian prob
 
 - **Bayesian Deduction Engine** — Probability scoring with information gain optimization picks the most strategic question every turn
 - **Reasoning Transparency** — See exactly why the AI asked each question and how your answers shift probabilities
+- **Difficulty Selector** — Easy (20q) / Medium (15q) / Hard (10q); selection persists across sessions via localStorage
+- **Category Filters** — 8 multi-select chips (Video Games, Movies, Anime, Comics, Books, Cartoons, TV Shows, Pop Culture) narrow the candidate pool; daily challenge always uses the full pool
 - **Daily Challenge** — Everyone thinks of the same character each day; completion state persists across sessions
 - **Teaching Mode** — When the AI guesses wrong, teach it the character; all answered attributes are saved automatically
-- **53K+ Character Database** — Server-side engine backed by D1 with 15 questions per game
+- **User Answer Reveal** — On a loss, disclose who you were thinking of; the AI backfills null attributes from your answers and queues correction votes
+- **53K+ Character Database** — Server-side engine backed by D1 with 224 enriched attributes per character
 - **AI-Enhanced Answers** — Free-text answer parsing via GPT-4o understands natural language responses
 - **Statistics Dashboard** — Win/loss tracking, question performance metrics, attribute entropy analysis
 - **Character Comparison** — Side-by-side attribute diffs, similarity scoring, discrimination power analysis
 - **AI Attribute Recommendations** — GPT-4o suggests and fills in character attributes with detailed reasoning
 - **Keyboard Shortcuts** — Y / N / M / U answer the current question without lifting your hands off the keyboard
-- **Touch-Optimized UI** — Gradient answer buttons with haptic-style `whileTap` feedback, animated guess reveal, confetti win screen, answer history pills
+- **Touch-Optimized UI** — Gradient answer buttons (emerald/rose/amber/slate), spring-physics guess reveal with animated rings, confetti win screen, answer history pills with stagger animation
 - **Offline Support** — PWA with service worker caching for offline gameplay
 - **Sound Effects** — Web Audio API tone synthesis (no audio files needed)
 

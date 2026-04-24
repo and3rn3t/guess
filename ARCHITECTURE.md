@@ -120,11 +120,26 @@ scripts/                       # Build & data tools
     ├── dedup.ts               # Character deduplication
     └── sources/               # Per-source adapter modules
 
+packages/
+└── game-engine/               # @guess/game-engine — shared game logic workspace package
+    └── src/
+        ├── index.ts           # Public exports
+        ├── types.ts           # Shared type definitions (Character, Question, Answer, Difficulty, etc.)
+        ├── constants.ts       # Scoring weights, readiness thresholds, difficulty configs
+        ├── scoring.ts         # Bayesian probability calculation & hard filters
+        ├── question-selection.ts # Information gain optimization, best-question algorithm
+        └── guess-readiness.ts # Guess decision logic (confidence gates, entropy, forced-guess fallback)
+
 migrations/                    # D1 SQLite migrations
 ├── 0001_initial.sql           # Schema: characters, attributes, questions, stats
 ├── 0002_seed.sql              # Seed DEFAULT_CHARACTERS & DEFAULT_QUESTIONS
 ├── 0003–0015_*.sql            # Expanded attributes, backfills, images, game stats, guess analytics
 ├── 0016_game_reveals.sql      # game_reveals table for user-disclosed answers
+├── 0017_attribute_count.sql   # Attribute count denormalization
+├── 0018_fts_search.sql        # Full-text search index
+├── 0019_attributes_json.sql   # Attributes JSON column
+├── 0020_sim_game_stats.sql    # Simulation game stats
+├── 0021_remove_duplicate_has_glasses.sql  # Data cleanup
 └── chunks/                    # Split data imports (chunk_001–053.sql)
 ```
 
@@ -242,6 +257,8 @@ Object storage for character images.
 ### Client-Side Storage
 
 - **localStorage** (`useKV` hook): Characters, questions, game history, settings
+  - `kv:pref:difficulty` — persisted difficulty selection (Easy/Medium/Hard)
+  - `kv:pref:categories` — persisted category filter array
 - **IndexedDB** (`db.ts`): Game history, analytics events (structured data)
 
 ---
@@ -334,7 +351,7 @@ External sources (AniList, WikiData, TMDB, IGDB, ComicVine)
   → scripts/ingest/run.ts (orchestrator)
     → Source adapters → raw_characters (staging SQLite)
     → dedup.ts → merge duplicates
-    → enrich.ts → LLM classifies 150+ boolean attributes
+    → enrich.ts → LLM classifies 224 boolean attributes
     → images.ts → download → sharp → WebP → R2
     → upload.ts → generate SQL → apply to D1
 ```

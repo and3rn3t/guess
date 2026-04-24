@@ -19,6 +19,7 @@ AI-powered guessing game deployed on **Cloudflare Pages**. The AI asks strategic
 - Use explicit types for function signatures — avoid `any`
 - Character attributes are `Record<string, boolean | null>` (null = unknown/not set)
 - Game phases are a union type: `GamePhase` in App.tsx
+- Game difficulty is a union type: `Difficulty` in `packages/game-engine/src/types.ts`
 - Prefer `const` over `let`; never use `var`
 - Use early returns to reduce nesting
 
@@ -36,6 +37,7 @@ AI-powered guessing game deployed on **Cloudflare Pages**. The AI asks strategic
 - UI primitives: `src/components/ui/` (shadcn/ui — do not manually edit)
 - Business logic: `src/lib/`
 - Hooks: `src/hooks/`
+- Shared engine: `packages/game-engine/` (`@guess/game-engine`) — shared types, scoring, and question selection used by both client and server
 
 ## Commands
 ```bash

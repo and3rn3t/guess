@@ -2,6 +2,27 @@
 
 An intelligent guessing game that asks strategic questions to identify what character, object, or concept the user is thinking of, while providing real-time explanations of the AI's reasoning process and decision-making strategy.
 
+## Implementation Status
+
+| Feature | Status |
+|---|---|
+| Question Generation & Asking | Implemented |
+| Answer Processing | Implemented |
+| Reasoning Explanation Panel | Implemented |
+| Final Guess & Resolution | Implemented |
+| Learning System (Teaching Mode) | Implemented |
+| Enhanced Attribute System (224 attrs, 53K+ characters) | Implemented |
+| Statistics Dashboard | Implemented |
+| Character Comparison Tool | Implemented |
+| AI-Powered Attribute Recommendations | Implemented |
+| Difficulty Selector | Implemented |
+| Category Filters | Implemented |
+| Daily Challenge | Implemented |
+| Keyboard Shortcuts | Implemented |
+| User Answer Reveal on Loss | Implemented |
+| Touch-Optimized UI | Implemented |
+| PWA / Offline Support | Implemented |
+
 **Experience Qualities**:
 
 1. **Intriguing** - The game should feel mysterious and intelligent, with the AI appearing to read the user's mind through clever deduction
@@ -55,7 +76,7 @@ This is a focused game experience with question-answer flow, character database 
 
 **Enhanced Attribute System**
 
-- Functionality: Characters now have 57 unique attributes covering physical traits, abilities, relationships, origins, and personality
+- Functionality: Characters now have 224 unique attributes covering physical traits, abilities, relationships, origins, and personality
 - Purpose: Enables much deeper character differentiation and more strategic question selection
 - Categories:
   - Basic identity (isHuman, isAnimal, isRobot)
@@ -119,7 +140,29 @@ This is a focused game experience with question-answer flow, character database 
   - Fallback to rule-based if AI fails
 - Success criteria: AI generates accurate character-specific recommendations, reasoning demonstrates real character knowledge, focused categories provide relevant attributes, applying attributes is smooth with instant feedback, changes persist when saved
 
-## Edge Case Handling
+**Difficulty Selector**
+
+- Functionality: Easy (20q) / Medium (15q) / Hard (10q) picker shown on the welcome screen before starting a game
+- Purpose: Lets players control how many questions the AI gets, balancing accessibility vs challenge
+- Trigger: User selects difficulty before clicking Start; selection passed to `POST /api/v2/game/start`
+- Progression: Welcome screen loads → Difficulty picker visible → User selects → Hint text updates → User starts game with chosen budget
+- Success criteria: Selection persists across sessions via `kv:pref:difficulty`; active difficulty shown in game footer; daily challenge unaffected
+
+**Category Filters**
+
+- Functionality: 8 multi-select chips on the welcome screen (Video Games, Movies, Anime, Comics, Books, Cartoons, TV Shows, Pop Culture) that narrow the candidate pool
+- Purpose: Lets players focus on a domain they know, improving game enjoyment and relevance
+- Trigger: User toggles chips before starting; selections passed to `POST /api/v2/game/start`
+- Progression: Welcome screen → chips visible → user selects → pool estimate updates (`~N of 500+ characters`) → game starts with filtered pool
+- Success criteria: Selections persist via `kv:pref:categories`; daily challenge always uses the full unfiltered pool; estimate uses `globalStats.byCategory`
+
+**User Answer Reveal on Loss**
+
+- Functionality: When the AI fails to guess correctly, `GameOver` shows a "Who were you thinking of?" text input; the submitted name is fuzzy-matched against the `characters` table and used to backfill `null` attributes
+- Purpose: Recovers signal from lost games and improves the database over time without requiring a full Teaching Mode session
+- Trigger: User loses (AI exhausts questions without a correct guess)
+- Progression: AI fails → GameOver screen → input field appears → user types character name → `POST /api/v2/game/reveal` → null attributes backfilled (confidence 0.5), contradicting attributes queued as correction votes, `game_reveals` audit row written
+- Success criteria: Fuzzy match works for common name variants; backfill only touches null attributes; contradictions queued, not applied immediately; audit row written regardless of match result
 
 - **Obscure Subjects**: If user thinks of something too niche, AI gracefully admits uncertainty after reasonable attempts and invites them to teach it
 - **Contradictory Answers**: System detects logical conflicts (e.g., "has fur" + "is a robot") and politely asks for clarification
