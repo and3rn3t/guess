@@ -35,6 +35,8 @@ interface PlayingScreenProps {
   activeCharacters: Character[];
   readiness: GuessReadinessSnapshot | null;
   onRetry?: () => void;
+  onSkip?: () => void;
+  onGiveUp?: () => void;
 }
 
 function PlayingScreenBase({
@@ -56,6 +58,8 @@ function PlayingScreenBase({
   activeCharacters: _activeCharacters,
   readiness,
   onRetry,
+  onSkip,
+  onGiveUp,
 }: Readonly<PlayingScreenProps>) {
   const readinessSummary = readiness?.blockedByRejectCooldown
     ? `Holding the next guess until I collect ${readiness.rejectCooldownRemaining} more answer${readiness.rejectCooldownRemaining === 1 ? "" : "s"}.`
@@ -238,6 +242,26 @@ function PlayingScreenBase({
                 </motion.div>
               )}
             </AnimatePresence>
+            {currentQuestion && onSkip && (
+              <div className="text-center pt-1">
+                <button
+                  onClick={onSkip}
+                  className="text-xs text-muted-foreground hover:text-foreground transition-colors underline-offset-2 hover:underline"
+                >
+                  Skip this question
+                </button>
+              </div>
+            )}
+            {answers.length >= 5 && onGiveUp && (
+              <div className="text-center pt-2">
+                <button
+                  onClick={onGiveUp}
+                  className="text-xs text-muted-foreground/60 hover:text-destructive transition-colors underline-offset-2 hover:underline"
+                >
+                  Give up
+                </button>
+              </div>
+            )}
           </div>
 
           <div className="lg:sticky lg:top-8 lg:self-start space-y-4">

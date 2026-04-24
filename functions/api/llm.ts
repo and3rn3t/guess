@@ -3,6 +3,7 @@ import {
   type Env,
   getCompletionsEndpoint,
   getLlmHeaders,
+  getOrCreateUserId,
   getUserId,
   kvGetObject,
   kvPut,
@@ -121,20 +122,23 @@ async function trackTokenUsage(
   await kvPut(kv, costKey, existing);
 }
 
-/** Check per-user rate limit, returning 429 Response or null */
+/** Check per-user rate limit using cookie-based user ID, returning 429 Response or null */
 async function enforceRateLimit(
   kv: KVNamespace,
   request: Request,
+  env: Env,
 ): Promise<Response | null> {
-  const userId = getUserId(request);
+  const { userId, setCookieHeader } = await getOrCreateUserId(request, env);
   const { allowed } = await checkRateLimit(kv, userId, "llm", 60);
   if (!allowed) {
+    const headers: Record<string, string> = {
+      "Retry-After": "3600",
+      "X-RateLimit-Remaining": "0",
+    };
+    if (setCookieHeader) headers["Set-Cookie"] = setCookieHeader;
     return Response.json(
       { error: "Rate limit exceeded", retryAfter: 3600 },
-      {
-        status: 429,
-        headers: { "Retry-After": "3600", "X-RateLimit-Remaining": "0" },
-      },
+      { status: 429, headers },
     );
   }
   return null;
@@ -270,7 +274,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
   // Rate limiting
   if (kv) {
-    const rateLimited = await enforceRateLimit(kv, context.request);
+    const rateLimited = await enforceRateLimit(kv, context.request, context.env);
     if (rateLimited) return rateLimited;
   }
 

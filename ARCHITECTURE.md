@@ -292,6 +292,7 @@ Object storage for character images.
 |---|---|---|
 | `/api/v2/game/start` | POST | Initialize session → first question |
 | `/api/v2/game/answer` | POST | Process answer → next Q or guess |
+| `/api/v2/game/skip` | POST | Skip current question → return next-best question (free; no budget decrement) |
 | `/api/v2/game/resume` | GET | Restore interrupted session |
 | `/api/v2/game/result` | POST | Record outcome + stats |
 | `/api/v2/game/reveal` | POST | User-disclosed answer on loss → backfill null attributes, queue corrections |

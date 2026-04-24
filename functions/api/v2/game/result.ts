@@ -59,10 +59,10 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     }
   }
 
-  // Record stats in D1 if available
+  // Record stats in D1 if available (non-blocking — offloaded to waitUntil)
   if (db) {
-    try {
-      await d1Run(
+    context.waitUntil(
+      d1Run(
         db,
         `INSERT INTO game_stats (user_id, won, difficulty, questions_asked, character_pool_size, character_id, character_name, steps, guesses_used, confidence_at_guess, entropy_at_guess, remaining_at_guess, answer_distribution, guess_trigger, forced_guess, gap_at_guess, alive_count_at_guess, questions_remaining_at_guess, created_at)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -89,10 +89,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
           session.guessAnalytics?.questionsRemaining ?? null,
           Date.now(),
         ]
-      )
-    } catch {
-      // Stats table may not exist yet — non-critical
-    }
+      ).catch(() => { /* non-critical */ })
+    )
   }
 
   // Clean up session + pool from KV

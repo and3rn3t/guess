@@ -1,6 +1,6 @@
 import { describe, expect, it, vi, afterEach } from "vitest";
 import type { SharePayload } from "./sharing";
-import { decodeChallenge, encodeChallenge, generateShareText, buildShareUrl, parseUrlChallenge } from "./sharing";
+import { decodeChallenge, encodeChallenge, generateShareText, buildShareUrl, parseUrlChallenge, buildShareEmoji } from "./sharing";
 
 const samplePayload: SharePayload = {
   characterId: "mario",
@@ -262,3 +262,49 @@ describe("encodeChallenge / decodeChallenge – special characters", () => {
     expect(decoded!.characterId).toBe("héro-ñ");
   });
 });
+
+// ========== buildShareEmoji ==========
+
+describe("buildShareEmoji", () => {
+  const steps = [
+    { questionText: "Q1", attribute: "isHuman", answer: "yes" as const },
+    { questionText: "Q2", attribute: "isFemale", answer: "no" as const },
+    { questionText: "Q3", attribute: "hasPowers", answer: "maybe" as const },
+    { questionText: "Q4", attribute: "isVillain", answer: "unknown" as const },
+  ]
+
+  it("maps yes → 🟩, no → 🟥, maybe → 🟨, unknown → ⬜", () => {
+    const text = buildShareEmoji(steps, true, "Mario", 10)
+    expect(text).toContain("🟩")
+    expect(text).toContain("🟥")
+    expect(text).toContain("🟨")
+    expect(text).toContain("⬜")
+  })
+
+  it("win result line includes character name and count", () => {
+    const text = buildShareEmoji(steps, true, "Mario", 10)
+    expect(text).toContain("Mario")
+    expect(text).toContain("4/10")
+  })
+
+  it("loss result line says Couldn't guess with character name", () => {
+    const text = buildShareEmoji(steps, false, "Zelda", 10)
+    expect(text).toContain("Couldn't guess Zelda")
+    expect(text).not.toContain("Got it!")
+  })
+
+  it("includes the game URL", () => {
+    const text = buildShareEmoji(steps, true, "Mario", 5)
+    expect(text).toContain("https://guess.andernet.me")
+  })
+
+  it("starts with game title line", () => {
+    const text = buildShareEmoji(steps, true, "Mario", 5)
+    expect(text).toMatch(/^Guess the Character/)
+  })
+
+  it("handles empty answers array", () => {
+    const text = buildShareEmoji([], false, "Unknown", 20)
+    expect(text).toContain("Couldn't guess Unknown in 20 questions")
+  })
+})

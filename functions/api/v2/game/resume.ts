@@ -126,6 +126,7 @@ async function reconstructFromD1(
     maxQuestions: row.max_questions,
     createdAt: row.created_at,
     rejectedGuesses: [],
+    skippedQuestions: [],
     guessCount: 0,
     postRejectCooldown: 0,
   }

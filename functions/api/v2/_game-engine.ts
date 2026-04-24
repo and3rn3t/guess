@@ -75,6 +75,8 @@ export interface GameSession {
   maxQuestions: number
   createdAt: number
   rejectedGuesses: string[]
+  /** Question attribute keys the user has explicitly skipped (excluded from future selection). */
+  skippedQuestions: string[]
   guessCount: number
   postRejectCooldown: number
   guessAnalytics?: GuessAnalytics
@@ -264,6 +266,7 @@ interface LeanSession {
   maxQuestions: number
   createdAt: number
   rejectedGuesses?: string[]
+  skippedQuestions?: string[]
   guessCount?: number
   postRejectCooldown?: number
   guessAnalytics?: GuessAnalytics
@@ -303,6 +306,7 @@ export async function storeSession(kv: KVNamespace, session: GameSession): Promi
     maxQuestions: session.maxQuestions,
     createdAt: session.createdAt,
     rejectedGuesses: session.rejectedGuesses,
+    skippedQuestions: session.skippedQuestions,
     guessCount: session.guessCount,
     postRejectCooldown: session.postRejectCooldown,
     guessAnalytics: session.guessAnalytics,
@@ -341,6 +345,7 @@ export async function loadSession(kv: KVNamespace, sessionId: string): Promise<G
     maxQuestions: data.maxQuestions,
     createdAt: data.createdAt,
     rejectedGuesses: data.rejectedGuesses ?? [],
+    skippedQuestions: data.skippedQuestions ?? [],
     guessCount: data.guessCount ?? 0,
     postRejectCooldown: data.postRejectCooldown ?? 0,
     guessAnalytics: data.guessAnalytics,
@@ -358,6 +363,7 @@ export async function saveSessionState(kv: KVNamespace, session: GameSession): P
     maxQuestions: session.maxQuestions,
     createdAt: session.createdAt,
     rejectedGuesses: session.rejectedGuesses,
+    skippedQuestions: session.skippedQuestions,
     guessCount: session.guessCount,
     postRejectCooldown: session.postRejectCooldown,
     guessAnalytics: session.guessAnalytics,

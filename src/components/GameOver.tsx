@@ -3,6 +3,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { llmStream, LlmError } from "@/lib/llm";
 import { narrativeExplanation_v1 } from "@/lib/prompts";
+import { buildShareEmoji } from "@/lib/sharing";
 import type { Character } from "@/lib/types";
 import {
   ArrowClockwise,
@@ -108,6 +109,33 @@ export function GameOver({
   >("idle");
   const [revealResult, setRevealResult] = useState<RevealResult | null>(null);
   const revealInputRef = useRef<HTMLInputElement>(null);
+
+  const emojiText =
+    character && answeredQuestions
+      ? buildShareEmoji(
+          answeredQuestions.map((q) => ({
+            questionText: q.question,
+            attribute: "",
+            answer: q.answer as "yes" | "no" | "maybe" | "unknown",
+          })),
+          won,
+          character.name,
+          questionsAsked ?? answeredQuestions.length,
+        )
+      : null;
+
+  const handleShareEmoji = async () => {
+    if (!emojiText) return;
+    if (typeof navigator.share === "function") {
+      try {
+        await navigator.share({ title: "Andernator", text: emojiText });
+        return;
+      } catch {
+        /* fall through to clipboard */
+      }
+    }
+    await navigator.clipboard.writeText(emojiText);
+  };
 
   const handleRevealSubmit = async () => {
     if (!onReveal || revealInput.trim().length === 0 || revealStatus !== "idle")
@@ -443,29 +471,38 @@ export function GameOver({
           )}
 
           {(onShare || onCopyLink) && (
-            <div className="flex gap-3 justify-center">
-              {onShare && (
-                <Button
-                  onClick={onShare}
-                  variant="outline"
-                  className="gap-2 touch-target"
-                  aria-label="Share result"
-                >
-                  <ShareNetwork size={18} />
-                  Share Result
-                </Button>
+            <div className="flex flex-col gap-3">
+              {emojiText && (
+                <div className="rounded-xl border border-primary/20 bg-primary/5 p-4">
+                  <pre className="font-mono text-base leading-relaxed whitespace-pre-wrap text-center select-all">
+                    {emojiText}
+                  </pre>
+                </div>
               )}
-              {onCopyLink && (
-                <Button
-                  onClick={onCopyLink}
-                  variant="outline"
-                  className="gap-2 touch-target"
-                  aria-label="Copy share link"
-                >
-                  <LinkIcon size={18} />
-                  Copy Link
-                </Button>
-              )}
+              <div className="flex gap-3 justify-center">
+                {onShare && (
+                  <Button
+                    onClick={emojiText ? () => { void handleShareEmoji(); } : onShare}
+                    variant="outline"
+                    className="gap-2 touch-target"
+                    aria-label="Share result"
+                  >
+                    <ShareNetwork size={18} />
+                    Share Result
+                  </Button>
+                )}
+                {onCopyLink && (
+                  <Button
+                    onClick={onCopyLink}
+                    variant="outline"
+                    className="gap-2 touch-target"
+                    aria-label="Copy share link"
+                  >
+                    <LinkIcon size={18} />
+                    Copy Link
+                  </Button>
+                )}
+              </div>
             </div>
           )}
 

@@ -82,6 +82,9 @@ jobs:
       - run: pnpm lint
       - run: tsc -b
       - run: pnpm test
+      - run: pnpm build
+      - name: Check bundle size
+        run: pnpm size
 
   test-e2e:
     needs: [changes, build]

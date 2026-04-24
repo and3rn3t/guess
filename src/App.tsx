@@ -145,6 +145,7 @@ function App() {
     serverReadiness,
     startServerGame,
     handleServerAnswer,
+    handleServerSkip,
     postServerResult,
     rejectGuess,
     retryAfterReject,
@@ -263,6 +264,14 @@ function App() {
     refreshStats();
     setShowQuitDialog(false);
     dispatch({ type: "SURRENDER" });
+  };
+
+  const handleSkip = () => {
+    handleServerSkip();
+  };
+
+  const handleGiveUp = () => {
+    handleSurrender();
   };
 
   // ========== SHARE HANDLERS ==========
@@ -471,6 +480,8 @@ function App() {
                   activeCharacters={activeCharacters}
                   readiness={serverReadiness}
                   onRetry={retryAfterReject}
+                  onSkip={handleSkip}
+                  onGiveUp={handleGiveUp}
                 />
               )}
 

@@ -110,3 +110,31 @@ export function parseUrlChallenge(): SharePayload | null {
   if (!hash.startsWith('#c=')) return null
   return decodeChallenge(hash.slice(3))
 }
+
+/**
+ * Generates a Wordle-style emoji grid from a game's answer history.
+ * 🟩 = yes  🟥 = no  🟨 = maybe  ⬜ = unknown
+ */
+export function buildShareEmoji(
+  answers: GameHistoryStep[],
+  won: boolean,
+  characterName: string,
+  questionsTotal: number,
+): string {
+  const grid = answers
+    .map((step) => {
+      switch (step.answer) {
+        case 'yes': return '🟩'
+        case 'no': return '🟥'
+        case 'maybe': return '🟨'
+        default: return '⬜'
+      }
+    })
+    .join('')
+
+  const resultLine = won
+    ? `Got it! ${characterName} in ${answers.length}/${questionsTotal} questions`
+    : `Couldn't guess ${characterName} in ${questionsTotal} questions`
+
+  return `Guess the Character 🕵️\n${grid}\n${resultLine}\nhttps://guess.andernet.me`
+}

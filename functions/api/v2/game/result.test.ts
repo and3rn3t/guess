@@ -151,6 +151,6 @@ describe('POST /api/v2/game/result', () => {
       'UPDATE game_sessions SET completed_at = ? WHERE id = ?',
       [expect.any(Number), 'sess-123']
     )
-    expect(waitUntil).toHaveBeenCalledTimes(1)
+    expect(waitUntil).toHaveBeenCalledTimes(2)
   })
 })

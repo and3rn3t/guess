@@ -54,6 +54,15 @@ interface AnswerResponse {
   };
 }
 
+interface SkipResponse {
+  type: "question";
+  question: Question;
+  reasoning: ReasoningExplanation;
+  remaining: number;
+  questionCount: number;
+  skippedCount: number;
+}
+
 interface RejectGuessResponse {
   type: "question" | "exhausted";
   question?: Question;
@@ -408,6 +417,34 @@ export function useServerGame(dispatch: React.Dispatch<GameAction>) {
     rejectGuess(charId);
   }, [rejectGuess, serverSessionId, dispatch]);
 
+  const handleServerSkip = useCallback(async () => {
+    if (!serverSessionId) return;
+    dispatch({ type: "SKIP_QUESTION" });
+    try {
+      const res = await fetch("/api/v2/game/skip", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sessionId: serverSessionId }),
+      });
+      if (res.status === 409) {
+        toast.info("No more questions to skip to!");
+        dispatch({ type: "SET_EXHAUSTED" });
+        return;
+      }
+      if (!res.ok) throw new Error("Failed to skip question");
+      const data = (await res.json()) as SkipResponse;
+      dispatch({
+        type: "SET_QUESTION",
+        question: data.question,
+        reasoning: data.reasoning,
+      });
+      setServerRemainingSync(data.remaining ?? serverRemainingRef.current);
+    } catch {
+      toast.error("Failed to skip — try again");
+      dispatch({ type: "SET_THINKING", isThinking: false });
+    }
+  }, [dispatch, serverSessionId, setServerRemainingSync]);
+
   return {
     serverSessionId,
     serverRemaining,
@@ -417,6 +454,7 @@ export function useServerGame(dispatch: React.Dispatch<GameAction>) {
     setServerRemaining: setServerRemainingSync,
     startServerGame,
     handleServerAnswer,
+    handleServerSkip,
     postServerResult,
     rejectGuess,
     retryAfterReject,

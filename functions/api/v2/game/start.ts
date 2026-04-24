@@ -202,6 +202,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     maxQuestions,
     createdAt: Date.now(),
     rejectedGuesses: [],
+    skippedQuestions: [],
     guessCount: 0,
     postRejectCooldown: 0,
   }

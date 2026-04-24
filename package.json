@@ -22,6 +22,7 @@
     "test:coverage": "vitest run --coverage",
     "test:watch": "vitest",
     "validate": "tsc -b && eslint . && vitest run",
+    "size": "size-limit",
     "db:types": "tsx scripts/generate-db-types.ts",
     "migrate:create": "tsx scripts/create-migration.ts",
     "migrate:preview": "wrangler d1 migrations apply guess-db-preview --env preview --remote",
@@ -99,6 +100,7 @@
   "devDependencies": {
     "@aws-sdk/client-s3": "^3.1032.0",
     "@cloudflare/workers-types": "^4.20260416.2",
+    "@size-limit/preset-app": "^12.0.0",
     "@eslint/js": "^9.21.0",
     "@playwright/test": "^1.59.1",
     "@tailwindcss/postcss": "^4.1.8",
@@ -124,6 +126,7 @@
     "lint-staged": "^16.4.0",
     "msw": "^2.13.4",
     "sharp": "^0.34.5",
+    "size-limit": "^12.0.0",
     "tailwindcss": "^4.1.11",
     "tsx": "^4.21.0",
     "typescript": "~5.7.2",
@@ -132,6 +135,26 @@
     "vitest": "^4.1.4",
     "wrangler": "^4.83.0"
   },
+  "size-limit": [
+    {
+      "name": "vendor-radix",
+      "path": "dist/assets/vendor-radix-*.js",
+      "limit": "130 kB",
+      "gzip": true
+    },
+    {
+      "name": "vendor-motion",
+      "path": "dist/assets/vendor-motion-*.js",
+      "limit": "50 kB",
+      "gzip": true
+    },
+    {
+      "name": "vendor-charts",
+      "path": "dist/assets/vendor-charts-*.js",
+      "limit": "65 kB",
+      "gzip": true
+    }
+  ],
   "pnpm": {
     "onlyBuiltDependencies": [
       "better-sqlite3"

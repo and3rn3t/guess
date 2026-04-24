@@ -47,12 +47,14 @@ export type GameAction =
   | { type: 'START_GAME'; characters: Character[]; guessCount?: number }
   | { type: 'SET_QUESTION'; question: Question; reasoning: ReasoningExplanation }
   | { type: 'ANSWER'; value: AnswerValue }
+  | { type: 'SKIP_QUESTION' }
   | { type: 'MAKE_GUESS'; character: Character }
   | { type: 'CORRECT_GUESS' }
   | { type: 'INCORRECT_GUESS' }
   | { type: 'REJECT_GUESS' }
   | { type: 'SET_EXHAUSTED' }
   | { type: 'SURRENDER' }
+  | { type: 'GIVE_UP' }
   | { type: 'UNDO_LAST_ANSWER' }
   | { type: 'SET_THINKING'; isThinking: boolean }
   | { type: 'SET_POSSIBLE_CHARACTERS'; characters: Character[] }
@@ -98,6 +100,15 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         reasoning: action.reasoning,
       }
 
+    case 'SKIP_QUESTION':
+      // Replace currentQuestion with null so the next fetch can load a different one;
+      // questionsRemaining is NOT decremented (skip is free).
+      return {
+        ...state,
+        currentQuestion: null,
+        isThinking: true,
+      }
+
     case 'ANSWER': {
       if (!state.currentQuestion) return state
       const newAnswer: Answer = { questionId: state.currentQuestion.attribute, value: action.value }
@@ -141,6 +152,9 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       return { ...state, exhausted: true, gameWon: false, phase: 'gameOver' }
 
     case 'SURRENDER':
+      return { ...state, surrendered: true, gameWon: false, phase: 'gameOver' }
+
+    case 'GIVE_UP':
       return { ...state, surrendered: true, gameWon: false, phase: 'gameOver' }
 
     case 'UNDO_LAST_ANSWER':

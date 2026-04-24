@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   sanitizeForPrompt,
+  PROMPT_VERSION,
   questionGeneration_v1,
   attributeRecommendation_v1,
   categoryRecommendation_v1,
@@ -10,6 +11,35 @@ import {
   conversationalParse_v1,
   dataCleanup_v1,
 } from './prompts'
+
+// ========== PROMPT_VERSION ==========
+
+describe('PROMPT_VERSION', () => {
+  it('is exported and non-empty', () => {
+    expect(PROMPT_VERSION).toBeTruthy()
+    expect(typeof PROMPT_VERSION).toBe('string')
+  })
+
+  it('matches expected format YYYY-MM-X', () => {
+    expect(PROMPT_VERSION).toMatch(/^\d{4}-\d{2}-[A-Z]$/)
+  })
+
+  it('is present in every prompt system message', () => {
+    const prompts = [
+      questionGeneration_v1(['isHuman'], ['Mario']),
+      attributeRecommendation_v1('Mario', {}, ['isHuman']),
+      categoryRecommendation_v1('Mario', 'video-games', ['isHuman']),
+      attributeAutoFill_v1('Mario', 'video-games', {}, ['isHuman']),
+      dynamicQuestion_v1('Is this character human?', 'isHuman', [], [], 0.5),
+      narrativeExplanation_v1('Mario', true, [{ question: 'Q', answer: 'yes' }], 5),
+      conversationalParse_v1('yes', 'Is this human?', 'isHuman'),
+      dataCleanup_v1([{ name: 'Mario', id: 'mario' }], 'duplicates'),
+    ]
+    for (const p of prompts) {
+      expect(p.system).toContain(PROMPT_VERSION)
+    }
+  })
+})
 
 // ========== sanitizeForPrompt ==========
 
