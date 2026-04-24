@@ -1,4 +1,5 @@
 import { KV_ANALYTICS, MAX_ANALYTICS_EVENTS } from '@/lib/constants'
+import { runWhenIdle } from '@/lib/idle'
 import type { Difficulty } from '@/lib/types'
 
 interface AnalyticsEvent {
@@ -19,11 +20,15 @@ function loadEvents(): AnalyticsEvent[] {
 function saveEvents(events: AnalyticsEvent[]) {
   // Keep only the most recent events to avoid unbounded growth
   const trimmed = events.slice(-MAX_ANALYTICS_EVENTS)
-  try {
-    localStorage.setItem(KV_ANALYTICS, JSON.stringify(trimmed))
-  } catch {
-    // Storage full or unavailable — silently drop
-  }
+  // Defer the localStorage write to idle time so it doesn't compete with
+  // user interactions on the main thread (analytics is non-critical).
+  runWhenIdle(() => {
+    try {
+      localStorage.setItem(KV_ANALYTICS, JSON.stringify(trimmed))
+    } catch {
+      // Storage full or unavailable — silently drop
+    }
+  })
 }
 
 export function trackEvent(event: string, data?: Record<string, string | number | boolean>) {

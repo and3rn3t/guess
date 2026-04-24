@@ -59,6 +59,7 @@ import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 import { useServerGame } from "@/hooks/useServerGame";
 import { useGlobalStats } from "@/hooks/useGlobalStats";
 import { useDailyStreak } from "@/hooks/useDailyStreak";
+import { useWakeLock } from "@/hooks/useWakeLock";
 
 const TeachingMode = lazy(() =>
   import("@/components/TeachingMode").then((m) => ({
@@ -189,6 +190,18 @@ function App() {
     const unsubscribe = onSyncStatusChange(setSyncStatus);
     return unsubscribe;
   }, []);
+
+  // ========== KEEP SCREEN AWAKE DURING ACTIVE PLAY ==========
+  useWakeLock(gamePhase === "playing" || gamePhase === "guessing");
+
+  // ========== FOCUS MANAGEMENT ON PHASE CHANGE ==========
+  // Move focus to the new phase's primary heading/wrapper after transition,
+  // so screen readers announce context and keyboard users land in the right
+  // place. Components opt in by adding `data-phase-focus tabIndex={-1}`.
+  useEffect(() => {
+    const target = document.querySelector<HTMLElement>("[data-phase-focus]");
+    if (target) target.focus({ preventScroll: true });
+  }, [gamePhase]);
 
   // ========== ELIMINATION FEEDBACK ==========
   useEffect(() => {

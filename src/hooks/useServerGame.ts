@@ -1,5 +1,6 @@
 import type { GameAction } from "@/hooks/useGameState";
 import { playSuspense, playThinking } from "@/lib/sounds";
+import { runWhenIdle } from "@/lib/idle";
 import type {
   AnswerValue,
   Character,
@@ -340,9 +341,13 @@ export function useServerGame(dispatch: React.Dispatch<GameAction>) {
           headers: { "Content-Type": "application/json" },
           body,
         });
-      attempt()
-        .catch(() => attempt())
-        .catch(() => {});
+      // Defer the result POST to idle time so it doesn't compete with the
+      // reveal/confetti animation on the main thread.
+      runWhenIdle(() => {
+        attempt()
+          .catch(() => attempt())
+          .catch(() => {});
+      });
       persistSessionId(null);
     },
     [serverSessionId, persistSessionId],

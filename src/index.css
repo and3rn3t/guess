@@ -226,8 +226,30 @@
   color: transparent;
 }
 
+/* View Transitions API: cross-fade between game phases.
+   Browsers without support fall through to the existing AnimatePresence flow. */
+@keyframes vt-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes vt-fade-out {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}
+::view-transition-old(root) {
+  animation: vt-fade-out 180ms ease-out both;
+}
+::view-transition-new(root) {
+  animation: vt-fade-in 220ms ease-out both;
+}
+
 /* Accessibility: respect reduced motion preference */
 @media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation: none !important;
+  }
+
   *, *::before, *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;

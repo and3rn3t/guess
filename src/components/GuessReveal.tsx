@@ -41,8 +41,10 @@ export function GuessReveal({
       transition={{ duration: 0.5, type: "spring" }}
     >
       <Card
-        className="p-5 sm:p-8 bg-linear-to-br from-primary/20 to-accent/10 backdrop-blur-sm border-2 border-accent shadow-2xl"
+        className="p-5 sm:p-8 bg-linear-to-br from-primary/20 to-accent/10 backdrop-blur-sm border-2 border-accent shadow-2xl focus:outline-none"
         aria-live="assertive"
+        data-phase-focus
+        tabIndex={-1}
       >
         <div className="space-y-8 text-center">
           <motion.div

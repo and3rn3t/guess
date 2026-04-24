@@ -259,7 +259,11 @@ describe('useServerGame', () => {
       })
 
       mockFetch.mockResolvedValueOnce(new Response('{}', { status: 200 }))
-      act(() => { result.current.postServerResult(true) })
+      await act(async () => {
+        result.current.postServerResult(true)
+        // postServerResult defers the fetch via runWhenIdle (setTimeout fallback in jsdom)
+        await new Promise((r) => setTimeout(r, 0))
+      })
 
       expect(mockFetch).toHaveBeenLastCalledWith('/api/v2/game/result', expect.objectContaining({
         method: 'POST',

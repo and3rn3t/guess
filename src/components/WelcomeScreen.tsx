@@ -92,7 +92,11 @@ export function WelcomeScreen({
             weight="fill"
             className="mx-auto text-accent animate-float"
           />
-          <h2 className="text-3xl md:text-4xl font-bold text-foreground">
+          <h2
+            data-phase-focus
+            tabIndex={-1}
+            className="text-3xl md:text-4xl font-bold text-foreground focus:outline-none"
+          >
             Think of a Character
           </h2>
           <p className="text-base text-muted-foreground max-w-md mx-auto">

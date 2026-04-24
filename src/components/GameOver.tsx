@@ -197,7 +197,11 @@ export function GameOver({
           <ConfettiBurst />
         )}
 
-        <div className="space-y-6 text-center">
+        <div
+          data-phase-focus
+          tabIndex={-1}
+          className="space-y-6 text-center focus:outline-none"
+        >
           {won ? (
             <>
               <motion.div
