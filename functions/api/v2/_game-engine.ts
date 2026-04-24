@@ -80,6 +80,8 @@ export interface GameSession {
   guessCount: number
   postRejectCooldown: number
   guessAnalytics?: GuessAnalytics
+  /** Detective persona derived from difficulty: sherlock | watson | poirot */
+  persona?: string
 }
 
 // ── Server-specific constants ─────────────────────────────────────────────────

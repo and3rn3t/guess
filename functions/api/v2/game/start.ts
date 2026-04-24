@@ -56,6 +56,12 @@ function parseAttrsJson(json: string): Record<string, boolean | null> {
   }
 }
 
+export const DIFFICULTY_TO_PERSONA: Record<string, string> = {
+  easy: 'poirot',
+  medium: 'watson',
+  hard: 'sherlock',
+}
+
 // ── POST /api/v2/game/start ──────────────────────────────────
 // Creates a game session, selects character pool from D1, returns first question
 
@@ -70,6 +76,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   const difficulty =
     body?.difficulty && body.difficulty in DIFFICULTY_MAP ? body.difficulty : 'medium'
   const maxQuestions = DIFFICULTY_MAP[difficulty]
+  const persona = DIFFICULTY_TO_PERSONA[difficulty] ?? 'watson'
 
   // Validate optional pinned character ID (daily challenge)
   const pinnedCharId =
@@ -205,6 +212,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     skippedQuestions: [],
     guessCount: 0,
     postRejectCooldown: 0,
+    persona,
   }
 
   // Parallelize all three independent async ops before responding:
@@ -212,7 +220,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   //   2. Store session in KV (required before any answer can be processed)
   //   3. Get/create user ID for D1 backup
   const [rephrased, , { userId, setCookieHeader }] = await Promise.all([
-    rephraseQuestionWithCache(context.env, kv, firstQuestion, [], reasoning, 1, maxQuestions),
+    rephraseQuestionWithCache(context.env, kv, firstQuestion, [], reasoning, 1, maxQuestions, undefined, persona),
     storeSession(kv, session),
     getOrCreateUserId(context.request, context.env),
   ])

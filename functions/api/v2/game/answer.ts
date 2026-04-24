@@ -219,6 +219,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       questionCount + 1,
       session.maxQuestions,
       questionLookup,
+      session.persona,
     ),
     saveSessionState(kv, session),
   ])

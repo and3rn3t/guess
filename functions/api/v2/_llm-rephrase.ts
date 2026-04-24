@@ -1,6 +1,13 @@
 import { getCompletionsEndpoint, getLlmHeaders, type Env } from '../_helpers'
 import type { Answer, ServerQuestion, ReasoningExplanation } from './_game-engine'
 
+/** Persona-specific voice instructions for the rephrase system prompt. */
+const PERSONA_VOICE: Record<string, string> = {
+  sherlock: `Voice: Sherlock Holmes — razor-sharp, supremely confident, deductive. Use precise logical phrasing. Examples: "Observe:", "The evidence narrows to", "Eliminate the impossible". Never uncertain.`,
+  watson: `Voice: Dr. Watson — warm, curious, conversational. Think out loud as a friendly partner. Examples: "I wonder if...", "Could you tell me...", "Interesting—".`,
+  poirot: `Voice: Hercule Poirot — methodical, precise, slightly formal with continental flair. Examples: "Mon ami,", "The little grey cells require...", "One must be systematic—".`,
+}
+
 /**
  * Rephrase a static question into a conversational, context-aware version
  * using gpt-4o-mini. Returns null on any failure so callers can fall back
@@ -9,6 +16,7 @@ import type { Answer, ServerQuestion, ReasoningExplanation } from './_game-engin
  * @param questionLookup - Optional map of attribute → question text so that the
  *   rephrasing prompt can reference recent questions by their human-readable text
  *   rather than raw camelCase attribute keys.
+ * @param persona - Detective persona: 'sherlock' | 'watson' | 'poirot'. Defaults to 'watson'.
  */
 export async function rephraseQuestion(
   env: Env,
@@ -18,6 +26,7 @@ export async function rephraseQuestion(
   questionNumber: number,
   maxQuestions: number,
   questionLookup?: Map<string, string>,
+  persona?: string,
 ): Promise<string | null> {
   if (!env.OPENAI_API_KEY) return null
 
@@ -42,7 +51,11 @@ export async function rephraseQuestion(
     if (progress > 0.7) tone = 'confident and closing in'
     else if (progress > 0.4) tone = 'strategic and focused'
 
-    const systemPrompt = `You are the AI guesser in a 20-questions character guessing game. Rephrase the given yes/no question to sound natural, conversational, and engaging — like a curious detective narrowing down suspects.
+    const voiceInstruction = PERSONA_VOICE[persona ?? 'watson'] ?? PERSONA_VOICE.watson
+
+    const systemPrompt = `You are the AI guesser in a 20-questions character guessing game. Rephrase the given yes/no question to sound natural, conversational, and engaging.
+
+${voiceInstruction}
 
 Rules:
 - Keep the same yes/no intent targeting the same attribute
@@ -122,19 +135,21 @@ export async function rephraseQuestionWithCache(
   questionNumber: number,
   maxQuestions: number,
   questionLookup?: Map<string, string>,
+  persona?: string,
 ): Promise<string | null> {
   const isCacheable = answers.length === 0
+  const personaKey = persona ?? 'watson'
 
   if (isCacheable) {
-    const cached = await kv.get(`${REPHRASE_ATTR_PREFIX}${question.attribute}`)
+    const cached = await kv.get(`${REPHRASE_ATTR_PREFIX}${question.attribute}:${personaKey}`)
     if (cached) return cached
   }
 
-  const rephrased = await rephraseQuestion(env, question, answers, reasoning, questionNumber, maxQuestions, questionLookup)
+  const rephrased = await rephraseQuestion(env, question, answers, reasoning, questionNumber, maxQuestions, questionLookup, persona)
 
   if (rephrased && isCacheable) {
     // Fire-and-forget — not critical if it fails
-    kv.put(`${REPHRASE_ATTR_PREFIX}${question.attribute}`, rephrased, { expirationTtl: REPHRASE_ATTR_TTL }).catch(() => {})
+    kv.put(`${REPHRASE_ATTR_PREFIX}${question.attribute}:${personaKey}`, rephrased, { expirationTtl: REPHRASE_ATTR_TTL }).catch(() => {})
   }
 
   return rephrased

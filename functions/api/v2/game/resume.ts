@@ -186,6 +186,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         reasoning,
         session.answers.length + 1,
         session.maxQuestions,
+        undefined,
+        session.persona,
       ),
       saveSessionState(kv, session),
     ])

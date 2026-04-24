@@ -186,7 +186,7 @@ export function GameOver({
       }
     };
     run();
-  }, [character, won, answeredQuestions, remainingCharacters]);
+  }, [character, won, answeredQuestions, remainingCharacters, persona]);
 
   return (
     <motion.div
