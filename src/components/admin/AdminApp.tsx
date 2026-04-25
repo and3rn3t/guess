@@ -22,6 +22,7 @@ const PipelineRoute = lazy(() => import('./routes/PipelineRoute'))
 // Phase 3 — Pipeline/streaming (stubs until implemented)
 const EnrichDashboardRoute = lazy(() => import('./routes/EnrichDashboardRoute'))
 const ProposedAttrsRoute = lazy(() => import('./routes/ProposedAttrsRoute'))
+const DisputesRoute = lazy(() => import('./routes/DisputesRoute'))
 const CommunityRoute = lazy(() => import('./routes/CommunityRoute'))
 
 function AdminLanding(): React.JSX.Element {
@@ -68,6 +69,7 @@ export function AdminApp(): React.JSX.Element {
             <Route path="pipeline" element={<RouteWrapper><PipelineRoute /></RouteWrapper>} />
             <Route path="enrich" element={<RouteWrapper><EnrichDashboardRoute /></RouteWrapper>} />
             <Route path="proposed-attrs" element={<RouteWrapper><ProposedAttrsRoute /></RouteWrapper>} />
+            <Route path="disputes" element={<RouteWrapper><DisputesRoute /></RouteWrapper>} />
             <Route path="community" element={<RouteWrapper><CommunityRoute /></RouteWrapper>} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Route>

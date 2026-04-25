@@ -14,6 +14,7 @@ import {
   WrenchIcon,
   ChartLineIcon,
   BugIcon,
+  WarningOctagonIcon,
 } from '@phosphor-icons/react'
 
 interface NavItem {
@@ -43,6 +44,7 @@ const DATA_ITEMS: NavItem[] = [
 const PIPELINE_ITEMS: NavItem[] = [
   { to: 'enrich', label: 'Live Enrichment', icon: <LightningIcon size={16} weight="duotone" /> },
   { to: 'proposed-attrs', label: 'Proposed Attributes', icon: <QueueIcon size={16} weight="duotone" /> },
+  { to: 'disputes', label: 'Attribute Disputes', icon: <WarningOctagonIcon size={16} weight="duotone" /> },
   { to: 'community', label: 'Community Queue', icon: <UsersThreeIcon size={16} weight="duotone" /> },
 ]
 

@@ -15,8 +15,10 @@ import { showStats } from './upload.js';
 import { runDedup } from './dedup.js';
 import { generateUploadSQL, applyToD1 } from './upload.js';
 import { formatElapsed } from './utils.js';
-import { runEnrichment, showEnrichStats, generateEnrichUploadSQL, retryFailed } from './enrich.js';
+import { runEnrichment, showEnrichStats, generateEnrichUploadSQL, retryFailed, generateDisputeUploadSQL } from './enrich.js';
 import { processImages, showImageStats, generateImageUrlSQL, retryFailedImages } from './images.js';
+import { runSourceOverlap } from './source-overlap.js';
+import { runDiscoverAttributes } from './discover-attributes.js';
 import type { Category } from './types.js';
 
 import { ingestAniList } from './sources/anilist.js';
@@ -101,12 +103,31 @@ async function main() {
         ? parseFloat(process.argv[process.argv.indexOf('--min-pop') + 1])
         : undefined;
       const dryRun = process.argv.includes('--dry-run');
-      await runEnrichment({ batchSize, concurrency, limit, category, minPopularity: minPop, dryRun });
+      const newAttrsOnly = process.argv.includes('--new-attrs-only');
+      const validate = process.argv.includes('--validate');
+      const model2Idx = process.argv.indexOf('--model2');
+      const model2 = model2Idx >= 0 ? process.argv[model2Idx + 1] : undefined;
+      await runEnrichment({ batchSize, concurrency, limit, category, minPopularity: minPop, dryRun, newAttrsOnly, model2, validate });
     } else if (action === 'enrich-stats') {
       showEnrichStats();
     } else if (action === 'enrich-upload') {
       const outputFile = 'migrations/0006_character_attributes.sql';
       generateEnrichUploadSQL({ outputFile });
+      if (process.argv.includes('--apply')) {
+        const remote = process.argv.includes('--remote');
+        const envArg = process.argv.find(a => a === 'production' || a === 'preview');
+        const env = (envArg ?? 'production') as 'production' | 'preview';
+        await applyToD1(outputFile, env, remote);
+      }
+    } else if (action === 'disputes-upload') {
+      const disputeLimit = process.argv.includes('--limit')
+        ? parseInt(process.argv[process.argv.indexOf('--limit') + 1], 10)
+        : 1000;
+      const sql = generateDisputeUploadSQL(disputeLimit);
+      const outputFile = 'migrations/0026b_dispute_upload.sql';
+      const { writeFileSync } = await import('fs');
+      writeFileSync(outputFile, sql);
+      console.log(`Wrote ${outputFile}`);
       if (process.argv.includes('--apply')) {
         const remote = process.argv.includes('--remote');
         const envArg = process.argv.find(a => a === 'production' || a === 'preview');
@@ -144,6 +165,16 @@ async function main() {
       }
     } else if (action === 'images-retry') {
       retryFailedImages();
+    } else if (action === 'source-overlap') {
+      await runSourceOverlap();
+    } else if (action === 'discover-attrs') {
+      const sampleIdx = process.argv.indexOf('--sample');
+      const sampleSize = sampleIdx >= 0 ? parseInt(process.argv[sampleIdx + 1], 10) : 50;
+      const limitIdx = process.argv.indexOf('--limit');
+      const discoverLimit = limitIdx >= 0 ? parseInt(process.argv[limitIdx + 1], 10) : 50;
+      const dryRun = process.argv.includes('--dry-run');
+      const apply = process.argv.includes('--apply');
+      await runDiscoverAttributes({ sampleSize, limit: discoverLimit, dryRun, apply });
     } else if (action === 'all') {
       await runAll(param);
     } else if (action in SOURCES) {
@@ -165,7 +196,10 @@ Commands:
   enrich [batchSize]        AI attribute enrichment (needs OPENAI_API_KEY)
   enrich-stats              Show enrichment progress
   enrich-upload [--apply]   Generate + optionally apply attribute SQL to D1
+  disputes-upload [--apply] Upload staging disputes to D1 attribute_disputes table
   enrich-retry [batchSize]  Retry failed enrichments
+  source-overlap            Generate source overlap heatmap (data/overlap.html)
+  discover-attrs            AI-discover new attribute candidates (needs OPENAI_API_KEY)
   images                    Download, resize, upload images to R2
   images-stats              Show image pipeline progress
   images-update-urls        Generate SQL to update D1 image_url to R2
@@ -177,7 +211,16 @@ Enrich options:
   --concurrency N           Parallel API calls (default: 10)
   --category <cat>          Only enrich specific category
   --min-pop <float>         Minimum popularity (0-1)
+  --new-attrs-only          Only process chars missing attrs (new attribute scenario)
+  --model2 <model>          Second model via OpenRouter for consensus voting (needs OPENROUTER_API_KEY)
+  --validate                Run adversarial skeptic validation after enrichment
   --dry-run                 Preview without calling LLM
+
+Discover-attrs options:
+  --sample N                Characters to sample per call (default: 50)
+  --limit N                 Max new candidates to propose (default: 50)
+  --dry-run                 Print candidates without submitting
+  --apply                   Submit to D1 via admin API (needs ADMIN_URL + ADMIN_BASIC_AUTH)
 
 Image options:
   --limit N                 Max images to process

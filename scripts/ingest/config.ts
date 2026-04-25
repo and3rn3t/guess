@@ -10,6 +10,7 @@ export interface IngestConfig {
   igdbClientSecret: string;
   comicVineApiKey: string;
   openaiApiKey: string;
+  openrouterApiKey: string;
 }
 
 let _config: IngestConfig | null = null;
@@ -46,6 +47,7 @@ export function getConfig(): IngestConfig {
     igdbClientSecret: env.IGDB_CLIENT_SECRET ?? '',
     comicVineApiKey: env.COMIC_VINE_API_KEY ?? '',
     openaiApiKey: env.OPENAI_API_KEY ?? '',
+    openrouterApiKey: env.OPENROUTER_API_KEY ?? '',
   };
 
   return _config;

@@ -7,11 +7,12 @@
  *
  * Usage (via run.ts):
  *   npx tsx scripts/ingest/run.ts enrich [batchSize] [--limit N] [--category cat] [--min-pop 0.1]
+ *   npx tsx scripts/ingest/run.ts enrich [batchSize] [--new-attrs-only]
  *   npx tsx scripts/ingest/run.ts enrich-upload [--remote]
  *   npx tsx scripts/ingest/run.ts enrich-stats
  */
 import Database from 'better-sqlite3';
-import { writeFileSync, existsSync, readFileSync, mkdirSync } from 'fs';
+import { writeFileSync, appendFileSync, existsSync, readFileSync, mkdirSync } from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { getDb, closeDb } from './db.js';
@@ -36,6 +37,8 @@ interface AttributeDef {
 interface EnrichResult {
   characterId: string;
   attributes: Record<string, boolean | null>;
+  confidence?: Record<string, number>;   // EN.3: per-attribute confidence
+  contested?: Record<string, boolean>;   // EN.2: per-attribute contest flag
   tokensUsed: { prompt: number; completion: number };
 }
 
@@ -61,6 +64,7 @@ export function initEnrichSchema(): void {
       attribute_key TEXT NOT NULL,
       value         INTEGER,  -- 1=true, 0=false, NULL=unknown
       confidence    REAL DEFAULT 1.0,
+      contested     INTEGER DEFAULT 0,  -- 1 if model2 disagreed
       PRIMARY KEY (character_id, attribute_key)
     );
 
@@ -75,6 +79,13 @@ export function initEnrichSchema(): void {
 
     CREATE INDEX IF NOT EXISTS idx_enrich_status ON enrichment_status(status);
   `);
+
+  // EN.2: add contested column to existing staging DBs (ALTER TABLE is idempotent via try/catch)
+  try {
+    db.exec(`ALTER TABLE enrichment_attributes ADD COLUMN contested INTEGER DEFAULT 0`);
+  } catch {
+    // Column already exists — safe to ignore
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -145,7 +156,7 @@ interface OpenAIResponse {
   usage: { prompt_tokens: number; completion_tokens: number; total_tokens: number };
 }
 
-async function callLLM(messages: ChatMessage[], apiKey: string): Promise<OpenAIResponse> {
+async function callLLM(messages: ChatMessage[], apiKey: string, model = MODEL): Promise<OpenAIResponse> {
   await rateLimiter.wait();
 
   const response = await fetch(OPENAI_URL, {
@@ -155,7 +166,7 @@ async function callLLM(messages: ChatMessage[], apiKey: string): Promise<OpenAIR
       'Authorization': `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
-      model: MODEL,
+      model,
       messages,
       temperature: 0.1, // Low temp for factual classification
       response_format: { type: 'json_object' },
@@ -169,6 +180,83 @@ async function callLLM(messages: ChatMessage[], apiKey: string): Promise<OpenAIR
   }
 
   return response.json() as Promise<OpenAIResponse>;
+}
+
+// EN.2: OpenRouter client for second-model consensus voting
+const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
+
+async function callOpenRouter(
+  messages: ChatMessage[],
+  model: string,
+  apiKey: string
+): Promise<OpenAIResponse> {
+  const response = await fetch(OPENROUTER_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${apiKey}`,
+      'HTTP-Referer': 'https://guess.pages.dev',
+      'X-Title': 'Guess — Attribute Enrichment',
+    },
+    body: JSON.stringify({
+      model,
+      messages,
+      temperature: 0.1,
+      response_format: { type: 'json_object' },
+      max_tokens: 16384,
+    }),
+  });
+
+  if (!response.ok) {
+    const body = await response.text();
+    throw new Error(`OpenRouter API error ${response.status}: ${body}`);
+  }
+
+  return response.json() as Promise<OpenAIResponse>;
+}
+
+/**
+ * EN.2: Merge two sets of attribute results using majority voting.
+ * Agreement (both match) → confidence 0.92; disagreement → confidence 0.5, contested = true.
+ */
+function mergeConsensusResults(
+  primary: Record<string, boolean | null>,
+  secondary: Record<string, boolean | null>
+): { merged: Record<string, boolean | null>; confidence: Record<string, number>; contested: Record<string, boolean> } {
+  const merged: Record<string, boolean | null> = {};
+  const confidence: Record<string, number> = {};
+  const contested: Record<string, boolean> = {};
+
+  const allKeys = new Set([...Object.keys(primary), ...Object.keys(secondary)]);
+
+  for (const key of allKeys) {
+    const p = primary[key] ?? null;
+    const s = secondary[key] ?? null;
+
+    if (p === s) {
+      // Full agreement
+      merged[key] = p;
+      confidence[key] = p === null ? 0.70 : 0.92;
+      contested[key] = false;
+    } else if (p !== null && s === null) {
+      // Only primary has a definite answer — use it at reduced confidence
+      merged[key] = p;
+      confidence[key] = 0.72;
+      contested[key] = false;
+    } else if (s !== null && p === null) {
+      // Only secondary has a definite answer — use it at reduced confidence
+      merged[key] = s;
+      confidence[key] = 0.72;
+      contested[key] = false;
+    } else {
+      // Genuine disagreement (true vs false)
+      merged[key] = p; // primary wins tie-break
+      confidence[key] = 0.50;
+      contested[key] = true;
+    }
+  }
+
+  return { merged, confidence, contested };
 }
 
 // ---------------------------------------------------------------------------
@@ -220,11 +308,15 @@ interface EnrichOptions {
   category?: Category;
   minPopularity?: number;
   dryRun?: boolean;
+  newAttrsOnly?: boolean;
+  model2?: string;  // EN.2: second model via OpenRouter for consensus voting
+  validate?: boolean;  // EP: run adversarial skeptic pass after enrichment
 }
 
 function getPendingCharacters(
   db: Database.Database,
-  opts: EnrichOptions
+  opts: EnrichOptions,
+  allAttrs?: AttributeDef[]
 ): { id: string; name: string; category: string; description: string | null; popularity: number }[] {
   const conditions: string[] = [];
   const params: (string | number)[] = [];
@@ -232,8 +324,19 @@ function getPendingCharacters(
   // Only canonical characters (from dedup_map)
   conditions.push(`rc.id IN (SELECT canonical_id FROM dedup_map)`);
 
-  // Not already enriched
-  conditions.push(`rc.id NOT IN (SELECT character_id FROM enrichment_status WHERE status = 'done')`);
+  if (opts.newAttrsOnly && allAttrs) {
+    // Include previously-done characters that are missing attr keys (new attr scenario).
+    // Count-based check: character has fewer enriched attrs than the total definitions count.
+    // Category-specific attrs may cause slight over-selection, which is acceptable — INSERT OR REPLACE is safe.
+    conditions.push(`rc.id NOT IN (SELECT character_id FROM enrichment_status WHERE status = 'failed')`);
+    conditions.push(
+      `(SELECT COUNT(*) FROM enrichment_attributes ea WHERE ea.character_id = rc.id) < ?`
+    );
+    params.push(allAttrs.length);
+  } else {
+    // Normal mode: only characters not yet done
+    conditions.push(`rc.id NOT IN (SELECT character_id FROM enrichment_status WHERE status = 'done')`);
+  }
 
   if (opts.category) {
     conditions.push(`rc.category = ?`);
@@ -263,9 +366,13 @@ function getPendingCharacters(
 }
 
 function storeEnrichmentResults(db: Database.Database, results: EnrichResult[]): void {
+  // EN.3: write real confidence values based on LLM certainty heuristic:
+  //   true/false answer → 0.85 (definitive classification)
+  //   null answer      → 0.65 (LLM expressed uncertainty)
+  // EN.2: when per-attribute confidence is provided (consensus mode), use those values
   const insertAttr = db.prepare(`
-    INSERT OR REPLACE INTO enrichment_attributes (character_id, attribute_key, value)
-    VALUES (?, ?, ?)
+    INSERT OR REPLACE INTO enrichment_attributes (character_id, attribute_key, value, confidence, contested)
+    VALUES (?, ?, ?, ?, ?)
   `);
 
   const upsertStatus = db.prepare(`
@@ -283,7 +390,11 @@ function storeEnrichmentResults(db: Database.Database, results: EnrichResult[]):
     for (const result of batch) {
       for (const [key, value] of Object.entries(result.attributes)) {
         const intVal = value === true ? 1 : value === false ? 0 : null;
-        insertAttr.run(result.characterId, key, intVal);
+        // Use per-attribute confidence if available (EN.2 consensus mode),
+        // otherwise fall back to the EN.3 heuristic based on value type
+        const confidence = result.confidence?.[key] ?? (value === null ? 0.65 : 0.85);
+        const isContested = result.contested?.[key] ? 1 : 0;
+        insertAttr.run(result.characterId, key, intVal, confidence, isContested);
       }
       upsertStatus.run(
         result.characterId,
@@ -357,7 +468,7 @@ export async function runEnrichment(opts: EnrichOptions = {}): Promise<EnrichSta
   console.log(`Loaded ${allAttrs.length} attribute definitions`);
 
   // Get pending characters
-  const pending = getPendingCharacters(db, opts);
+  const pending = getPendingCharacters(db, opts, allAttrs);
   console.log(`Found ${pending.length} characters to enrich (batch=${batchSize}, concurrency=${concurrency})`);
 
   if (pending.length === 0) {
@@ -376,6 +487,13 @@ export async function runEnrichment(opts: EnrichOptions = {}): Promise<EnrichSta
       console.log(`  ${c.id}: ${c.name} (${c.category}, pop=${c.popularity.toFixed(3)})`);
     }
     return getEnrichStats();
+  }
+
+  if (opts.model2) {
+    if (!config.openrouterApiKey) {
+      throw new Error('OPENROUTER_API_KEY not set — required for --model2');
+    }
+    console.log(`EN.2 consensus mode: primary=${MODEL}, secondary=${opts.model2}`);
   }
 
   // Split into batches
@@ -425,6 +543,27 @@ export async function runEnrichment(opts: EnrichOptions = {}): Promise<EnrichSta
       }
 
       const parsed = parseResponse(content, batch.map(c => c.id), validKeySet);
+
+      // EN.2: optional second-model consensus pass
+      let parsed2: Record<string, Record<string, boolean | null>> | null = null;
+      if (opts.model2 && config.openrouterApiKey) {
+        try {
+          const response2 = await withRetry(
+            () => callOpenRouter(messages, opts.model2!, config.openrouterApiKey),
+            2,
+            3000
+          );
+          const content2 = response2.choices[0]?.message?.content;
+          if (content2) {
+            parsed2 = parseResponse(content2, batch.map(c => c.id), validKeySet);
+            totalPromptTokens += response2.usage.prompt_tokens;
+            totalCompletionTokens += response2.usage.completion_tokens;
+          }
+        } catch (err) {
+          console.warn(`  [model2 warn] ${(err as Error).message} — using primary only`);
+        }
+      }
+
       const results: EnrichResult[] = [];
 
       for (const char of batch) {
@@ -435,9 +574,23 @@ export async function runEnrichment(opts: EnrichOptions = {}): Promise<EnrichSta
           continue;
         }
 
+        let finalAttrs = attrs;
+        let perAttrConfidence: Record<string, number> | undefined;
+        let perAttrContested: Record<string, boolean> | undefined;
+
+        if (parsed2) {
+          const attrs2 = parsed2[char.id] ?? {};
+          const consensus = mergeConsensusResults(attrs, attrs2);
+          finalAttrs = consensus.merged;
+          perAttrConfidence = consensus.confidence;
+          perAttrContested = consensus.contested;
+        }
+
         results.push({
           characterId: char.id,
-          attributes: attrs,
+          attributes: finalAttrs,
+          confidence: perAttrConfidence,
+          contested: perAttrContested,
           tokensUsed: {
             prompt: Math.round(response.usage.prompt_tokens / batch.length),
             completion: Math.round(response.usage.completion_tokens / batch.length),
@@ -503,15 +656,267 @@ export async function runEnrichment(opts: EnrichOptions = {}): Promise<EnrichSta
   }
 
   // Final summary
+  const elapsed = Date.now() - startTime;
   const totalCost = ((totalPromptTokens / 1_000_000) * 0.15) + ((totalCompletionTokens / 1_000_000) * 0.60);
   console.log(`\n${'='.repeat(60)}`);
-  console.log(`Enrichment complete in ${formatElapsed(Date.now() - startTime)}`);
+  console.log(`Enrichment complete in ${formatElapsed(elapsed)}`);
   console.log(`  Enriched: ${enrichedCount} | Failed: ${failedCount}`);
   console.log(`  Tokens: ${totalPromptTokens.toLocaleString()} prompt + ${totalCompletionTokens.toLocaleString()} completion`);
   console.log(`  Cost: $${totalCost.toFixed(4)}`);
   console.log('='.repeat(60));
 
+  // EN.6: append a row to the enrichment changelog
+  appendEnrichChangelog({
+    enriched: enrichedCount,
+    failed: failedCount,
+    promptTokens: totalPromptTokens,
+    completionTokens: totalCompletionTokens,
+    cost: totalCost,
+    elapsedMs: elapsed,
+    mode: opts.model2
+      ? `consensus:${opts.model2}`
+      : opts.newAttrsOnly
+        ? 'new-attrs-only'
+        : opts.category
+          ? `category:${opts.category}`
+          : 'full',
+  });
+
+  // EP: adversarial validation pass
+  if (opts.validate) {
+    console.log('\nRunning adversarial attribute validation...');
+    const validateLimit = Math.min(50, enrichedCount > 0 ? enrichedCount : 20);
+    await runAdversarialValidation(db, allAttrs, config, validateLimit, false);
+  }
+
   return getEnrichStats();
+}
+
+// ---------------------------------------------------------------------------
+// EN.6: Enrichment Changelog
+// ---------------------------------------------------------------------------
+
+interface ChangelogEntry {
+  enriched: number;
+  failed: number;
+  promptTokens: number;
+  completionTokens: number;
+  cost: number;
+  elapsedMs: number;
+  mode: string;
+}
+
+const CHANGELOG_FILE = path.join(__dirname, '..', '..', 'data', 'enrich-log.md');
+
+function appendEnrichChangelog(entry: ChangelogEntry): void {
+  const date = new Date().toISOString().slice(0, 19).replace('T', ' ') + ' UTC';
+  const elapsed = Math.round(entry.elapsedMs / 1000);
+  const row =
+    `| ${date} | ${entry.mode} | ${entry.enriched.toLocaleString()} | ` +
+    `${entry.failed} | ${entry.promptTokens.toLocaleString()} | ` +
+    `${entry.completionTokens.toLocaleString()} | $${entry.cost.toFixed(4)} | ${elapsed}s |\n`;
+
+  if (!existsSync(CHANGELOG_FILE)) {
+    const header =
+      `# Enrichment Run Log\n\n` +
+      `| Date (UTC) | Mode | Enriched | Failed | Prompt Tokens | Completion Tokens | Cost | Elapsed |\n` +
+      `|---|---|---|---|---|---|---|---|\n`;
+    writeFileSync(CHANGELOG_FILE, header + row);
+  } else {
+    appendFileSync(CHANGELOG_FILE, row);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// EP: Adversarial Attribute Validation (Skeptic LLM)
+// ---------------------------------------------------------------------------
+
+interface StagingDispute {
+  character_id: string;
+  attribute_key: string;
+  current_value: number | null;
+  dispute_reason: string;
+  confidence: number;
+}
+
+function initDisputeSchema(db: Database.Database): void {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS enrichment_disputes (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      character_id TEXT NOT NULL,
+      attribute_key TEXT NOT NULL,
+      current_value INTEGER,
+      dispute_reason TEXT NOT NULL,
+      confidence REAL NOT NULL DEFAULT 0.5,
+      disputed_by TEXT NOT NULL DEFAULT 'skeptic-llm',
+      created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+      status TEXT NOT NULL DEFAULT 'open'
+        CHECK(status IN ('open', 'resolved', 'dismissed')),
+      UNIQUE(character_id, attribute_key, status)
+    )
+  `);
+}
+
+function buildSkepticPrompt(
+  chars: { id: string; name: string; category: string }[],
+  attrValues: Record<string, Record<string, boolean | null>>
+): string {
+  const charBlocks = chars.map(c => {
+    const attrs = attrValues[c.id] ?? {};
+    const attrLines = Object.entries(attrs)
+      .filter(([, v]) => v !== null)
+      .map(([k, v]) => `  ${k}: ${v}`)
+      .join('\n');
+    return `${c.name} (${c.category}):\n${attrLines}`;
+  }).join('\n\n');
+
+  return `You are a fact-checking expert reviewing attribute assignments for fictional characters.
+
+Below are characters with their current attribute values (true/false). Your job is to challenge assignments that seem INCORRECT or SUSPICIOUS based on your knowledge.
+
+Characters and their attributes:
+${charBlocks}
+
+Identify up to 5 attribute assignments you believe are WRONG or HIGHLY QUESTIONABLE. Only flag genuine errors, not minor ambiguities.
+
+Return JSON:
+{
+  "disputes": [
+    {
+      "character_id": "char_id_here",
+      "attribute_key": "attributeKey",
+      "current_value": true,
+      "dispute_reason": "One sentence explaining why this seems wrong",
+      "confidence": 0.85
+    }
+  ]
+}
+
+If you see no errors, return: { "disputes": [] }`;
+}
+
+async function runAdversarialValidation(
+  db: Database.Database,
+  allAttrs: AttributeDef[],
+  config: { openaiApiKey: string },
+  limit: number,
+  dryRun: boolean
+): Promise<number> {
+  initDisputeSchema(db);
+
+  // Sample already-enriched characters
+  const candidates = db.prepare(`
+    SELECT DISTINCT rc.id, rc.name, rc.category
+    FROM enrichment_attributes ea
+    JOIN raw_characters rc ON rc.id = ea.character_id
+    WHERE ea.status = 'done'
+    ORDER BY RANDOM()
+    LIMIT ?
+  `).all(limit) as { id: string; name: string; category: string }[];
+
+  if (candidates.length === 0) {
+    console.log('[skeptic] No enriched characters found — run enrich first');
+    return 0;
+  }
+
+  // Load their current attribute values
+  const attrValues: Record<string, Record<string, boolean | null>> = {};
+  for (const c of candidates) {
+    const rows = db.prepare(`
+      SELECT attribute_key, value FROM enrichment_attributes WHERE character_id = ? AND status = 'done'
+    `).all(c.id) as { attribute_key: string; value: number | null }[];
+
+    attrValues[c.id] = Object.fromEntries(
+      rows.map(r => [r.attribute_key, r.value === null ? null : r.value === 1])
+    );
+  }
+
+  const prompt = buildSkepticPrompt(candidates, attrValues);
+
+  console.log(`[skeptic] Challenging ${candidates.length} characters' attributes...`);
+  if (dryRun) {
+    console.log('[skeptic] Dry run — skipping LLM call');
+    return 0;
+  }
+
+  let rawDisputes: StagingDispute[] = [];
+  try {
+    const response = await withRetry(
+      () => callLLM(
+        [{ role: 'user', content: prompt }],
+        config.openaiApiKey,
+        'gpt-4o'
+      ),
+      3,
+      2000
+    );
+    const content = response.choices[0]?.message?.content;
+    if (!content) throw new Error('Empty skeptic response');
+
+    const parsed = JSON.parse(content) as { disputes: StagingDispute[] };
+    rawDisputes = parsed.disputes ?? [];
+  } catch (err) {
+    console.error(`[skeptic] LLM call failed: ${(err as Error).message}`);
+    return 0;
+  }
+
+  // Filter to valid disputes
+  const charIds = new Set(candidates.map(c => c.id));
+  const attrKeySet = new Set(allAttrs.map(a => a.key));
+
+  const valid = rawDisputes.filter(d =>
+    charIds.has(d.character_id) &&
+    attrKeySet.has(d.attribute_key) &&
+    typeof d.dispute_reason === 'string' &&
+    d.dispute_reason.length > 0
+  );
+
+  if (valid.length === 0) {
+    console.log('[skeptic] No disputes flagged');
+    return 0;
+  }
+
+  // Store in staging DB
+  const insert = db.prepare(`
+    INSERT OR IGNORE INTO enrichment_disputes
+      (character_id, attribute_key, current_value, dispute_reason, confidence)
+    VALUES (?, ?, ?, ?, ?)
+  `);
+  let stored = 0;
+  for (const d of valid) {
+    const currentVal = d.current_value === null ? null : (d.current_value ? 1 : 0);
+    const result = insert.run(
+      d.character_id,
+      d.attribute_key,
+      currentVal,
+      d.dispute_reason,
+      Math.min(1, Math.max(0, d.confidence ?? 0.5))
+    );
+    if (result.changes > 0) stored++;
+  }
+
+  console.log(`[skeptic] Stored ${stored} new disputes (${valid.length} flagged, ${rawDisputes.length - valid.length} invalid)`);
+  return stored;
+}
+
+/** Generate SQL to upload staging disputes to D1 */
+export function generateDisputeUploadSQL(limit = 1000): string {
+  const db = getDb();
+  const disputes = db.prepare(`
+    SELECT character_id, attribute_key, current_value, dispute_reason, confidence
+    FROM enrichment_disputes
+    WHERE status = 'open'
+    LIMIT ?
+  `).all(limit) as StagingDispute[];
+
+  if (disputes.length === 0) return '-- No disputes to upload\n';
+
+  const lines = disputes.map(d => {
+    const val = d.current_value === null ? 'NULL' : d.current_value;
+    const reason = d.dispute_reason.replace(/'/g, "''");
+    return `INSERT OR IGNORE INTO attribute_disputes (character_id, attribute_key, current_value, dispute_reason, confidence) VALUES ('${d.character_id}', '${d.attribute_key}', ${val}, '${reason}', ${d.confidence});`;
+  });
+  return `-- Attribute disputes upload (${disputes.length} rows)\n${lines.join('\n')}\n`;
 }
 
 // ---------------------------------------------------------------------------
