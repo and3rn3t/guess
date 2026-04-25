@@ -14,24 +14,16 @@ export default defineConfig({
     trace: 'on-first-retry',
     serviceWorkers: 'block',
   },
-  projects: [
-    {
-      name: 'chromium',
-      use: { ...devices['Desktop Chrome'] },
-    },
-    {
-      name: 'firefox',
-      use: { ...devices['Desktop Firefox'] },
-    },
-    {
-      name: 'Mobile Safari',
-      use: { ...devices['iPhone 15'] },
-    },
-    {
-      name: 'Mobile Chrome',
-      use: { ...devices['Pixel 7'] },
-    },
-  ],
+  projects: process.env.CI
+    ? [
+        { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
+        { name: 'firefox', use: { ...devices['Desktop Firefox'] } },
+        { name: 'Mobile Safari', use: { ...devices['iPhone 15'] } },
+        { name: 'Mobile Chrome', use: { ...devices['Pixel 7'] } },
+      ]
+    : [
+        { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
+      ],
   webServer: {
     command: 'pnpm preview',
     url: 'http://localhost:4173',

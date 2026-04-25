@@ -22,9 +22,9 @@ export default defineConfig({
       output: {
         manualChunks: {
           'vendor-react': ['react', 'react-dom'],
-          'vendor-charts': ['recharts'],
           'vendor-motion': ['framer-motion'],
-          'vendor-radix': [
+          'vendor-ui': [
+            'recharts',
             '@radix-ui/react-accordion',
             '@radix-ui/react-alert-dialog',
             '@radix-ui/react-aspect-ratio',
