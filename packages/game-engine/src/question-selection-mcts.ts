@@ -38,7 +38,7 @@ const DEFAULT_FOLLOWUP_COUNT = 8
  * Character pool size below which single-step greedy is already near-optimal
  * and the 2-step overhead is not worth it.
  */
-const MCTS_MIN_POOL_SIZE = 5
+const MCTS_MIN_POOL_SIZE = 15
 /** Progress threshold above which we delegate to the greedy endgame logic. */
 const MCTS_ENDGAME_THRESHOLD = 0.85
 
@@ -302,6 +302,7 @@ export function selectBestQuestionMCTS(
         const followupEntropy = expectedEntropyAfterQuestion(characters, branchProbs, q2.attribute)
         if (followupEntropy < bestFollowupEntropy) {
           bestFollowupEntropy = followupEntropy
+          if (bestFollowupEntropy <= 0) break // perfect discriminator — no need to search further
         }
       }
 

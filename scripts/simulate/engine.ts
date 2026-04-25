@@ -124,7 +124,7 @@ function noisyOracleAnswer(
 
 // ── Pool filtering (mirrors filterPossibleCharacters in _game-engine.ts) ──────
 
-function filterPool(
+function _filterPool(
   characters: SimCharacter[],
   answers: GameAnswer[],
   rejectedIds: Set<string>,
@@ -177,7 +177,7 @@ function getBestGuess(
 
 // ── Coverage + popularity maps (mirrors start.ts logic) ───────────────────────
 
-function buildScoringMaps(
+export function buildScoringMaps(
   pool: SimCharacter[],
   questions: SimQuestion[],
   weights?: ScoringWeights,
@@ -216,6 +216,12 @@ export interface SimulateOptions {
    * to tune diversity penalties, taxonomy boosts, and endgame thresholds.
    */
   structuralWeights?: StructuralWeights;
+  /**
+   * Pre-computed scoring maps (coverageMap + popularityMap).
+   * When provided, skips buildScoringMaps inside simulateGame.
+   * Precompute once per run when the pool is the same across all games.
+   */
+  precomputedScoring?: ScoringOptions;
 }
 
 export function simulateGame(
@@ -245,7 +251,7 @@ export function simulateGame(
     workingPool = [target, ...workingPool.slice(0, workingPool.length - 1)];
   }
 
-  const scoring = buildScoringMaps(workingPool, questions, options.scoringWeights);
+  const scoring = options.precomputedScoring ?? buildScoringMaps(workingPool, questions, options.scoringWeights);
 
   const answers: GameAnswer[] = [];
   const rejectedIds = new Set<string>();
@@ -271,7 +277,11 @@ export function simulateGame(
   let secondBestCharacterName: string | null = null;
   let secondBestProbability: number | null = null;
 
-  let filtered = filterPool(workingPool, answers, rejectedIds);
+  // Incremental filter: track per-character mismatch counts rather than re-scanning
+  // all answers each turn. Reduces O(C × A) per turn to O(C) per turn.
+  const mismatchCounts = new Map<string, number>();
+  let filtered = workingPool.filter((c) => !rejectedIds.has(c.id));
+  for (const c of filtered) mismatchCounts.set(c.id, 0);
   let recentCategories: string[] = [];
 
   // Pre-compute probs for initial state
@@ -348,8 +358,9 @@ export function simulateGame(
 
       postRejectCooldown = 1;
 
-      // Re-filter without rejected character
-      filtered = filterPool(workingPool, answers, rejectedIds);
+      // Incrementally remove rejected character from filtered set
+      filtered = filtered.filter((c) => c.id !== guess.id);
+      mismatchCounts.delete(guess.id);
       probs = calculateProbabilities(filtered, answers, scoring);
       continue;
     }
@@ -414,8 +425,19 @@ export function simulateGame(
       recentCategories = [...recentCategories.slice(-2), nextQuestion.category];
     }
 
-    // Update filtered pool and recompute probs
-    filtered = filterPool(workingPool, answers, rejectedIds);
+    // Update filtered pool incrementally: only apply the new answer's constraint
+    filtered = filtered.filter((char) => {
+      const attr = char.attributes[answer.questionId];
+      const isMismatch =
+        (answer.value === 'yes' && attr === false) ||
+        (answer.value === 'no' && attr === true);
+      if (isMismatch) {
+        const count = (mismatchCounts.get(char.id) ?? 0) + 1;
+        mismatchCounts.set(char.id, count);
+        if (count > MAX_MISMATCHES) return false;
+      }
+      return true;
+    });
     probs = calculateProbabilities(filtered, answers, {
       ...scoring,
       progress: answers.length / maxQuestions,

@@ -21,7 +21,7 @@ import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { Worker, isMainThread, parentPort, workerData } from 'node:worker_threads'
 import { cpus } from 'node:os'
-import { simulateGame, DIFFICULTY_MAP } from './engine.js'
+import { simulateGame, buildScoringMaps, DIFFICULTY_MAP } from './engine.js'
 import type { SimCharacter, SimQuestion, SimGameResult, SimulateOptions } from './engine.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
@@ -72,6 +72,8 @@ const NOISE = arg('noise') ? parseFloat(arg('noise')!) / 100 : 0 // --noise 10 â
 const SENSITIVITY = arg('sensitivity') ? parseInt(arg('sensitivity')!, 10) : 0
 /** Use Node worker_threads for parallel execution (splits pool across CPU cores). */
 const PARALLEL = flag('parallel')
+/** Sample targets weighted by popularity instead of uniformly at random. */
+const WEIGHTED = flag('weighted')
 
 if (NOISE < 0 || NOISE > 1) {
   console.error(`--noise must be 0â€“100 (got ${arg('noise')})`)
@@ -142,6 +144,15 @@ if (TARGET_ID) {
   targets = [found]
 } else if (ALL) {
   targets = eligibleCharacters
+} else if (WEIGHTED) {
+  // Efraimidis-Spirakis weighted sampling without replacement: key = U^(1/w), sort descending.
+  // Characters with higher popularity scores are sampled proportionally more often,
+  // reflecting that real players think of popular characters more frequently.
+  targets = eligibleCharacters
+    .map((c) => ({ c, key: Math.pow(Math.random(), 1 / Math.max(c.popularity, 1)) }))
+    .sort((a, b) => b.key - a.key)
+    .slice(0, SAMPLE!)
+    .map(({ c }) => c)
 } else {
   // Random sample without replacement
   const shuffled = eligibleCharacters.slice().sort(() => Math.random() - 0.5)
@@ -160,8 +171,15 @@ const simOptions: SimulateOptions = {
   noise: NOISE,
 }
 
+// Precompute coverage + popularity maps once when pool is fixed across all games.
+// Skipped in parallel mode (Maps can't cross worker_threads serialization boundary)
+// and when poolSize is set (each game uses a different shuffled sub-pool).
+if (!PARALLEL && !POOL_SIZE_OVERRIDE) {
+  simOptions.precomputedScoring = buildScoringMaps(eligibleCharacters, questions)
+}
+
 console.log(`\nSimulation run: ${runId}`)
-console.log(`Targets: ${targets.length} | Pool: ${eligibleCharacters.length} characters | Difficulty: ${DIFFICULTY}${NOISE > 0 ? ` | Noise: ${(NOISE * 100).toFixed(0)}%` : ''}${PARALLEL ? ` | Parallel: ${Math.max(1, cpus().length - 1)} workers` : ''}`)
+console.log(`Targets: ${targets.length} | Pool: ${eligibleCharacters.length} characters | Difficulty: ${DIFFICULTY}${NOISE > 0 ? ` | Noise: ${(NOISE * 100).toFixed(0)}%` : ''}${WEIGHTED ? ' | Weighted' : ''}${PARALLEL ? ` | Parallel: ${Math.max(1, cpus().length - 1)} workers` : ''}${simOptions.precomputedScoring ? ' | Scoring precomputed' : ''}`)
 console.log(`Questions: ${questions.length}\n`)
 
 if (PARALLEL && targets.length > 1) {
