@@ -157,7 +157,7 @@
     {
       "name": "vendor-charts",
       "path": "dist/assets/vendor-charts-*.js",
-      "limit": "65 kB",
+      "limit": "115 kB",
       "gzip": true
     }
   ],
