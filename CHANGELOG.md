@@ -18,6 +18,10 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 - **Win intensity celebration (U.7)** — `ConfettiBurst` in `GameOver` now scales particle count and spread by `questionsAsked`: ≤5 questions → full burst (50 desktop particles, wider spread) + **"Uncanny!"** heading; ≤10 questions → medium burst + "I Got It Right!"; >10 / last question → 3 particles + **"Just in time."** heading; `maxQuestions` prop added to `GameOverProps` and wired from `App.tsx`
 
+### Fixed
+
+- **Coverage report crash "Cannot convert undefined or null to object"** — `fetchGlobalCharacters` in `src/lib/sync.ts` now parses the `attributes_json` denormalized column returned by `GET /api/v2/characters` (format `{key: 0|1}`) into `Character.attributes` (`true`/`false`/`null`); previously the blind cast left `attributes` as `undefined`; `AttributeCoverageReport` also guards with `?? {}` defensively
+
 ---
 
 ## [1.4.0] — 2026-04-24
