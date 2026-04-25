@@ -21,8 +21,19 @@ export async function fetchGlobalCharacters(): Promise<Character[]> {
   try {
     const res = await fetch('/api/v2/characters', { headers: headers() })
     if (!res.ok) throw new Error(`HTTP ${res.status}`)
-    const data = (await res.json()) as { characters: Character[] }
-    const characters = data.characters
+    const data = (await res.json()) as { characters: Array<Record<string, unknown>> }
+    const characters: Character[] = data.characters.map((raw) => {
+      let attributes: Record<string, boolean | null> = {}
+      if (typeof raw.attributes_json === 'string') {
+        try {
+          const parsed = JSON.parse(raw.attributes_json) as Record<string, number | null>
+          attributes = Object.fromEntries(
+            Object.entries(parsed).map(([k, v]) => [k, v === 1 ? true : v === 0 ? false : null])
+          )
+        } catch { /* keep empty */ }
+      }
+      return { ...(raw as unknown as Character), attributes }
+    })
     setCache(KV_CHARACTERS_CACHE, characters)
     return characters
   } catch {

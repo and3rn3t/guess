@@ -35,7 +35,7 @@ export function AttributeCoverageReport({ characters, onBack }: AttributeCoverag
     const allAttributes = new Set<string>()
     
     characters.forEach((char) => {
-      Object.keys(char.attributes).forEach((attr) => allAttributes.add(attr))
+      Object.keys(char.attributes ?? {}).forEach((attr) => allAttributes.add(attr))
     })
 
     const stats: AttributeStats[] = Array.from(allAttributes).map((attribute) => {
@@ -45,7 +45,7 @@ export function AttributeCoverageReport({ characters, onBack }: AttributeCoverag
       let missingCount = 0
 
       characters.forEach((char) => {
-        const value = char.attributes[attribute]
+        const value = (char.attributes ?? {})[attribute]
         if (value === undefined) {
           missingCount++
         } else if (value === true) {
