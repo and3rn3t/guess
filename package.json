@@ -44,6 +44,9 @@
     "simulate:regression": "tsx scripts/simulate/regression.ts",
     "simulate:apply-weights": "tsx scripts/simulate/apply-weights.ts",
     "simulate:race": "tsx scripts/simulate/race.ts",
+    "simulate:maybe-rates": "tsx scripts/simulate/export-maybe-rates.ts",
+    "simulate:net-gains": "tsx scripts/simulate/export-net-gains.ts",
+    "simulate:confusion-pairs": "tsx scripts/simulate/confusion-pairs.ts",
     "prepare": "husky"
   },
   "dependencies": {
