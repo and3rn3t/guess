@@ -13,6 +13,7 @@ import type {
   GameAnswer,
   GuessTrigger,
   ScoringOptions,
+  StructuralWeights,
 } from "@guess/game-engine";
 import {
   calculateProbabilities,
@@ -210,6 +211,11 @@ export interface SimulateOptions {
    * alternative weight combinations without touching production constants.
    */
   scoringWeights?: ScoringWeights;
+  /**
+   * Override structural question-selection constants. Used by grid search (Phase 2)
+   * to tune diversity penalties, taxonomy boosts, and endgame thresholds.
+   */
+  structuralWeights?: StructuralWeights;
 }
 
 export function simulateGame(
@@ -354,6 +360,10 @@ export function simulateGame(
       recentCategories,
       scoring,
       probs,
+      // Hard mode has 10q max: lower the MCTS→greedy handoff threshold so the greedy
+      // top-two-split endgame logic activates at Q7 (70%) instead of Q9 (85%).
+      mctsEndgameThreshold: difficulty === 'hard' ? 0.70 : undefined,
+      structuralWeights: options.structuralWeights,
     });
 
     if (!nextQuestion) {

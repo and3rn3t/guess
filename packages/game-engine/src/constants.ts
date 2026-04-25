@@ -27,3 +27,12 @@ export const ALIVE_THRESHOLD = 0.001
  * attributes (e.g. 100% unknown attrs, or globally unimportant questions).
  */
 export const MIN_INFO_GAIN = 0.01
+
+/**
+ * Net-gain floor (0–1, normalized) below which questions are excluded from the
+ * scoring pool when higher-gain alternatives exist. Net gain is computed as
+ * `avgInfoGain × (1 − unknownRate)` from simulation data — it penalises attributes
+ * that consistently elicit 'unknown' answers, which add no information.
+ * Injectable per-game via `QuestionSelectionOptions.structuralWeights.netGainFloor`.
+ */
+export const NET_GAIN_FLOOR = 0.05

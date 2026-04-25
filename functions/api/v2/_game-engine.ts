@@ -17,11 +17,12 @@ export type {
   AnswerValue,
   ScoringOptions,
   QuestionSelectionOptions,
+  MCTSOptions,
   GuessTrigger,
   ReasoningExplanation,
 } from '@guess/game-engine'
 
-import type { ScoringOptions, QuestionSelectionOptions } from '@guess/game-engine'
+import type { ScoringOptions, MCTSOptions } from '@guess/game-engine'
 export type Answer = GameAnswer
 
 // ── Server-specific types ─────────────────────────────────────────────────────
@@ -124,7 +125,7 @@ export function selectBestQuestion(
   characters: ServerCharacter[],
   answers: Answer[],
   allQuestions: ServerQuestion[],
-  options?: QuestionSelectionOptions
+  options?: MCTSOptions
 ): ServerQuestion | null {
   // Cast is safe: the impl returns one of the elements from allQuestions
   return _selectBestQuestionMCTS(characters, answers, allQuestions, options) as ServerQuestion | null

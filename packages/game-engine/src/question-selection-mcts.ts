@@ -49,6 +49,12 @@ export interface MCTSOptions extends QuestionSelectionOptions {
   candidates?: number
   /** Max q2 candidates per branch. Default: 8. */
   followupCandidates?: number
+  /**
+   * Progress threshold above which MCTS defers to the 1-step greedy endgame logic.
+   * Default: 0.85. Set lower (e.g. 0.70) on hard mode so the greedy top-two-split
+   * logic activates earlier when the question budget is tight (10 questions max).
+   */
+  mctsEndgameThreshold?: number
 }
 
 // ── Internal helpers ──────────────────────────────────────────────────────────
@@ -109,8 +115,10 @@ function applyAnswer(
 function expectedEntropyAfterQuestion(
   characters: GameCharacter[],
   probs: Map<string, number>,
-  attribute: string
+  attribute: string,
+  maybeRateMap?: Record<string, number>
 ): number {
+  const maybeProb = maybeRateMap?.[attribute] ?? MAYBE_ANSWER_PROB
   let pYes = 0
   let pNo = 0
   const yesProbs: number[] = []
@@ -142,8 +150,8 @@ function expectedEntropyAfterQuestion(
   const pUnknown = unknownProbs.reduce((s, p) => s + p, 0)
   const yesTotal = pYes + pUnknown * 0.5
   const noTotal = pNo + pUnknown * 0.5
-  const adjustedYes = yesTotal * (1 - MAYBE_ANSWER_PROB)
-  const adjustedNo = noTotal * (1 - MAYBE_ANSWER_PROB)
+  const adjustedYes = yesTotal * (1 - maybeProb)
+  const adjustedNo = noTotal * (1 - maybeProb)
   let expectedEntropy = 0
 
   if (adjustedYes > 0) {
@@ -164,7 +172,7 @@ function expectedEntropyAfterQuestion(
 
   if (maybeSum > 0) {
     const maybeGroupProbs = maybeWeighted.map((p) => p / maybeSum)
-    expectedEntropy += MAYBE_ANSWER_PROB * entropy(maybeGroupProbs)
+    expectedEntropy += maybeProb * entropy(maybeGroupProbs)
   }
 
   return expectedEntropy
@@ -227,9 +235,10 @@ export function selectBestQuestionMCTS(
   const progress = options?.progress ?? 0
 
   // Delegate to well-tuned greedy when MCTS is unlikely to add value
+  const mctsEndgameThreshold = options?.mctsEndgameThreshold ?? MCTS_ENDGAME_THRESHOLD
   if (
     characters.length <= MCTS_MIN_POOL_SIZE ||
-    progress >= MCTS_ENDGAME_THRESHOLD ||
+    progress >= mctsEndgameThreshold ||
     availableQuestions.length <= 3
   ) {
     return selectBestQuestion(characters, answers, allQuestions, options)
@@ -249,7 +258,7 @@ export function selectBestQuestionMCTS(
   const singleStep: Array<{ question: GameQuestion; gain: number }> = []
 
   for (const q of availableQuestions) {
-    const expEntropy = expectedEntropyAfterQuestion(characters, probs, q.attribute)
+    const expEntropy = expectedEntropyAfterQuestion(characters, probs, q.attribute, options?.maybeRateMap)
     singleStep.push({ question: q, gain: currentEntropy - expEntropy })
   }
 

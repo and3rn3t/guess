@@ -162,12 +162,47 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     }
   }
 
+  // Load runtime adaptive data (parallel — best-effort, failures are non-fatal)
+  const db = context.env.GUESS_DB
+  const [maybeRatesRaw, netGainsRaw, confusionRaw, disputeRows] = await Promise.allSettled([
+    kv.get('kv:attribute-maybe-rates', 'json') as Promise<Record<string, number> | null>,
+    kv.get('kv:attribute-net-gains', 'json') as Promise<Record<string, number> | null>,
+    kv.get('kv:confusion-discriminators', 'json') as Promise<Record<string, string[]> | null>,
+    db
+      ? db.prepare(`SELECT character_id, attribute_key, confidence FROM attribute_disputes WHERE status = 'open'`)
+           .all<{ character_id: string; attribute_key: string; confidence: number }>()
+           .then((r) => r.results)
+      : Promise.resolve([] as Array<{ character_id: string; attribute_key: string; confidence: number }>),
+  ])
+
+  const maybeRateMap = maybeRatesRaw.status === 'fulfilled' ? (maybeRatesRaw.value ?? undefined) : undefined
+  const netGainMap = netGainsRaw.status === 'fulfilled' ? (netGainsRaw.value ?? undefined) : undefined
+  const confusionDiscriminators = confusionRaw.status === 'fulfilled' ? (confusionRaw.value ?? undefined) : undefined
+
+  let disputeMap: Record<string, Record<string, number>> | undefined
+  if (disputeRows.status === 'fulfilled' && disputeRows.value.length > 0) {
+    disputeMap = {}
+    for (const row of disputeRows.value) {
+      disputeMap[row.character_id] ??= {}
+      disputeMap[row.character_id]![row.attribute_key] = row.confidence
+    }
+  }
+
   // Select next question (pass progress + pre-computed probs for efficiency)
   const progress = questionCount / session.maxQuestions
   const recentCategories = session.answers.slice(-3)
     .map((a) => session.questions.find((q) => q.attribute === a.questionId)?.category)
     .filter((c): c is string => c != null)
-  const nextQuestion = selectBestQuestion(filtered, session.answers, session.questions, { progress, recentCategories, scoring, probs })
+  const nextQuestion = selectBestQuestion(filtered, session.answers, session.questions, {
+    progress,
+    recentCategories,
+    scoring: { ...scoring, disputeMap },
+    probs,
+    mctsEndgameThreshold: session.difficulty === 'hard' ? 0.70 : undefined,
+    maybeRateMap: maybeRateMap ?? undefined,
+    netGainMap: netGainMap ?? undefined,
+    confusionDiscriminators: confusionDiscriminators ?? undefined,
+  })
 
   if (!nextQuestion) {
     // No more questions — force a guess

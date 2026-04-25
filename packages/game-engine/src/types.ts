@@ -67,6 +67,39 @@ export interface ScoringOptions {
   progress?: number
   /** Optional scoring weight overrides for grid search / A-B testing. */
   weights?: ScoringWeights
+  /**
+   * Per-character per-attribute dispute confidence (0–1). When a character-attribute
+   * pair has confidence < 1, the scoring for that pair is blended toward the neutral
+   * effectiveUnknown score, reducing certainty from contested attribute values.
+   * Populated at runtime from the `attribute_disputes` D1 table (status = 'open').
+   */
+  disputeMap?: Record<string, Record<string, number>>
+}
+
+/**
+ * Injectable overrides for structural multipliers used by question selection.
+ * Allows grid search and A-B testing to tune diversity/taxonomy/endgame constants
+ * without touching production code.
+ */
+export interface StructuralWeights {
+  /** Multiplier applied when a question's attribute-group matches a recent answer. Default: 0.75. */
+  diversityGroupPenalty?: number
+  /** Multiplier applied when a question's category matches a recent answer. Default: 0.8. */
+  diversityCategoryPenalty?: number
+  /** Early-game info-gain boost for species-type questions (human/robot/alien…). Default: 2.0. */
+  taxonomySpeciesBoost?: number
+  /** Early-game info-gain boost for origin/medium/genre questions. Default: 1.3. */
+  taxonomyOriginBoost?: number
+  /** Progress threshold at which endgame focus mode activates. Default: 0.65. */
+  endgameFocusThreshold?: number
+  /** Number of recent answers checked for attribute-group diversity. Default: 5. */
+  diversityWindow?: number
+  /**
+   * Net-gain floor below which questions are dropped from the scoring pool when
+   * higher-gain alternatives exist. Keyed on attribute names from `netGainMap`.
+   * Default: NET_GAIN_FLOOR (0.05).
+   */
+  netGainFloor?: number
 }
 
 export interface QuestionSelectionOptions {
@@ -75,6 +108,27 @@ export interface QuestionSelectionOptions {
   scoring?: ScoringOptions
   /** Pre-computed probabilities — avoids a redundant calculateProbabilities call in callers. */
   probs?: Map<string, number>
+  /** Injectable structural multipliers for diversity, taxonomy, and endgame behaviour. */
+  structuralWeights?: StructuralWeights
+  /**
+   * Per-attribute maybe-answer probability (0–1). Replaces the global MAYBE_ANSWER_PROB
+   * constant in the three-way entropy calculation. Derived from real game stats via
+   * `scripts/simulate/export-maybe-rates.ts` and stored in KV as `kv:attribute-maybe-rates`.
+   */
+  maybeRateMap?: Record<string, number>
+  /**
+   * Per-attribute net information gain (0–1, normalized). Questions below `netGainFloor`
+   * are filtered from the scoring pool when better alternatives exist.
+   * Derived from simulation data via `scripts/simulate/export-net-gains.ts`.
+   */
+  netGainMap?: Record<string, number>
+  /**
+   * Per-character list of attribute keys that best discriminate it from its most
+   * frequent confusers (characters often confused with it at guess time).
+   * In endgame, questions matching these attributes receive a ×1.4 boost.
+   * Derived from simulation data via `scripts/simulate/confusion-pairs.ts`.
+   */
+  confusionDiscriminators?: Record<string, string[]>
 }
 
 // ── Guess-readiness result ────────────────────────────────────────────────────

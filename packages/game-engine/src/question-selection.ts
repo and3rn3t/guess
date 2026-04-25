@@ -1,4 +1,4 @@
-import { MAYBE_ANSWER_PROB, MIN_INFO_GAIN, SCORE_MAYBE, SCORE_MAYBE_MISS, SCORE_UNKNOWN } from './constants.js'
+import { MAYBE_ANSWER_PROB, MIN_INFO_GAIN, NET_GAIN_FLOOR, SCORE_MAYBE, SCORE_MAYBE_MISS, SCORE_UNKNOWN } from './constants.js'
 import { calculateProbabilities } from './scoring.js'
 import type { GameAnswer, GameCharacter, GameQuestion, QuestionSelectionOptions } from './types.js'
 
@@ -179,9 +179,11 @@ export function selectBestQuestion(
   const currentProbs = characters.map((c) => probs.get(c.id) ?? 0)
   const currentEntropy = entropy(currentProbs)
   const progress = options?.progress ?? 0
-  const endgameFocus = progress >= 0.65 || topNMass >= 0.75
-  // Widen diversity window from 3 → 5 to reduce repetitive same-group questions
-  const recentAttrGroups = new Set(answers.slice(-5).map((a) => getAttributeGroup(a.questionId)))
+  const sw = options?.structuralWeights
+  const endgameFocusThreshold = sw?.endgameFocusThreshold ?? 0.65
+  const endgameFocus = progress >= endgameFocusThreshold || topNMass >= 0.75
+  const diversityWindow = sw?.diversityWindow ?? 5
+  const recentAttrGroups = new Set(answers.slice(-diversityWindow).map((a) => getAttributeGroup(a.questionId)))
 
   // Early-game taxonomy forcing: if no species/origin question has been asked yet and we
   // are still in the first 40% of the game, boost those attribute groups so the AI
@@ -199,9 +201,19 @@ export function selectBestQuestion(
       return g === 'medium' || g === 'geography' || g === 'genre'
     })
 
+  // Net-gain pre-filter: skip provably low-info questions when higher-gain alternatives exist.
+  // Uses sim-derived netGainMap (avgGain × (1 − unknownRate)) to exclude attributes that
+  // consistently contribute little information regardless of pool state.
+  const ngFloor = sw?.netGainFloor ?? NET_GAIN_FLOOR
+  const ngMap = options?.netGainMap
+  const questionsToScore =
+    ngMap && availableQuestions.some((q) => (ngMap[q.attribute] ?? 1) >= ngFloor)
+      ? availableQuestions.filter((q) => (ngMap[q.attribute] ?? 1) >= ngFloor)
+      : availableQuestions
+
   // Pre-compute null ratios for coverage penalty (avoids O(Q×C) re-scan inside the loop)
   const nullRatioMap = new Map<string, number>()
-  for (const q of availableQuestions) {
+  for (const q of questionsToScore) {
     let nullCount = 0
     for (const c of characters) {
       if (c.attributes[q.attribute] == null) nullCount++
@@ -211,7 +223,7 @@ export function selectBestQuestion(
 
   const scored: Array<{ question: GameQuestion; score: number; topTwoSplit: boolean }> = []
 
-  for (const question of availableQuestions) {
+  for (const question of questionsToScore) {
     let pYes = 0
     let pNo = 0
     const yesProbs: number[] = []
@@ -240,15 +252,18 @@ export function selectBestQuestion(
       }
     }
 
-    // Three-way expected entropy: yes/no/maybe partitions
+    // Three-way expected entropy: yes/no/maybe partitions.
+    // Use per-attribute maybe rate when available — replaces global MAYBE_ANSWER_PROB
+    // (e.g. 'isFunny' gets far more maybe answers than 'isHuman', skewing entropy estimates).
+    const maybeProb = options?.maybeRateMap?.[question.attribute] ?? MAYBE_ANSWER_PROB
     let expectedEntropy = 0
     const pUnknown = unknownProbs.reduce((s, p) => s + p, 0)
     const yesTotal = pYes + pUnknown * 0.5
     const noTotal = pNo + pUnknown * 0.5
 
-    // Adjusted weights to account for maybe answers (~15% probability)
-    const adjustedYes = yesTotal * (1 - MAYBE_ANSWER_PROB)
-    const adjustedNo = noTotal * (1 - MAYBE_ANSWER_PROB)
+    // Adjusted weights to account for maybe answers
+    const adjustedYes = yesTotal * (1 - maybeProb)
+    const adjustedNo = noTotal * (1 - maybeProb)
 
     if (adjustedYes > 0) {
       const yesGroupProbs = [
@@ -268,7 +283,7 @@ export function selectBestQuestion(
 
     if (maybeSum > 0) {
       const maybeGroupProbs = maybeWeighted.map((p) => p / maybeSum)
-      expectedEntropy += MAYBE_ANSWER_PROB * entropy(maybeGroupProbs)
+      expectedEntropy += maybeProb * entropy(maybeGroupProbs)
     }
 
     let infoGain = currentEntropy - expectedEntropy
@@ -320,24 +335,33 @@ export function selectBestQuestion(
     // Category diversity penalty: avoid consecutive questions in the same category
     if (options?.recentCategories?.length && question.category) {
       if (options.recentCategories.includes(question.category)) {
-        infoGain *= 0.8
+        infoGain *= sw?.diversityCategoryPenalty ?? 0.8
       }
     }
 
     // Attribute group diversity: penalise consecutive same-type questions
     const attrGroup = getAttributeGroup(question.attribute)
     if (attrGroup !== 'other' && recentAttrGroups.has(attrGroup)) {
-      infoGain *= 0.75
+      infoGain *= sw?.diversityGroupPenalty ?? 0.75
     }
 
     // Early-game taxonomy boost: applied after all other adjustments so it can
-    // override the diversity penalty.  Species gets a 2× lift to ensure the AI
+    // override the diversity penalty.  Species gets a lift to ensure the AI
     // asks "is it human / animal / robot?" before narrowing into specifics.
-    // Origin gets a 1.3× lift to anchor the franchise early.
+    // Origin gets a lift to anchor the franchise early.
     if (needsSpecies && attrGroup === 'species') {
-      infoGain *= 2.0
+      infoGain *= sw?.taxonomySpeciesBoost ?? 2.0
     } else if (needsOrigin && (attrGroup === 'medium' || attrGroup === 'geography' || attrGroup === 'genre')) {
-      infoGain *= 1.3
+      infoGain *= sw?.taxonomyOriginBoost ?? 1.3
+    }
+
+    // Confusion discriminator boost: in endgame, strongly prefer questions that simulation
+    // data shows best separate the top candidate from its most frequent confusers.
+    if (endgameFocus && options?.confusionDiscriminators) {
+      const topCharId = topNChars[0]?.id
+      if (topCharId && options.confusionDiscriminators[topCharId]?.includes(question.attribute)) {
+        infoGain *= 1.4
+      }
     }
 
     scored.push({ question, score: infoGain, topTwoSplit })

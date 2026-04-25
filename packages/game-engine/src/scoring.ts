@@ -69,7 +69,18 @@ export function calculateProbabilities(
       const effectiveUnknown = coverageMap
         ? 0.3 + 0.15 * (coverageMap.get(answer.questionId) ?? 0.5)
         : SCORE_UNKNOWN
-      score *= scoreForAnswer(answer.value, characterValue, effectiveUnknown, options?.weights)
+      let multiplier = scoreForAnswer(answer.value, characterValue, effectiveUnknown, options?.weights)
+      // Dispute-aware scoring: when a character-attribute pair is disputed (open in
+      // attribute_disputes), blend the computed score toward the neutral effectiveUnknown
+      // score proportional to (1 − confidence). This softens the signal from contested
+      // attributes without eliminating it entirely, tolerating LLM false positives.
+      if (characterValue !== null) {
+        const disputeConfidence = options?.disputeMap?.[character.id]?.[answer.questionId]
+        if (disputeConfidence !== undefined) {
+          multiplier = disputeConfidence * multiplier + (1 - disputeConfidence) * effectiveUnknown
+        }
+      }
+      score *= multiplier
       // Early exit: once negligibly probable, skip remaining answers
       if (score < 1e-8) {
         score = 0
