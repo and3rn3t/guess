@@ -6,6 +6,7 @@ import type { GameAnswer, GuessReadiness as BaseGuessReadiness } from '@guess/ga
 import {
   calculateProbabilities as _calculateProbabilities,
   selectBestQuestion as _selectBestQuestion,
+  selectBestQuestionMCTS as _selectBestQuestionMCTS,
   generateReasoning as _generateReasoning,
   shouldMakeGuess as _shouldMakeGuess,
   evaluateGuessReadiness as _evaluateGuessReadiness,
@@ -118,7 +119,7 @@ export function calculateProbabilities(
   return _calculateProbabilities(characters, answers, options)
 }
 
-/** Pick the next question with the highest expected information gain. */
+/** Pick the next question using 2-step MCTS look-ahead (falls back to greedy near endgame). */
 export function selectBestQuestion(
   characters: ServerCharacter[],
   answers: Answer[],
@@ -126,7 +127,7 @@ export function selectBestQuestion(
   options?: QuestionSelectionOptions
 ): ServerQuestion | null {
   // Cast is safe: the impl returns one of the elements from allQuestions
-  return _selectBestQuestion(characters, answers, allQuestions, options) as ServerQuestion | null
+  return _selectBestQuestionMCTS(characters, answers, allQuestions, options) as ServerQuestion | null
 }
 
 /** Build a human-readable explanation of why a question was chosen. */

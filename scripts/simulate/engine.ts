@@ -18,7 +18,7 @@ import {
   calculateProbabilities,
   entropy,
   evaluateGuessReadiness,
-  selectBestQuestion,
+  selectBestQuestionMCTS,
 } from "@guess/game-engine";
 
 // ── Local types ────────────────────────────────────────────────────────────────
@@ -348,8 +348,8 @@ export function simulateGame(
       continue;
     }
 
-    // Select next question
-    const nextQuestion = selectBestQuestion(filtered, answers, questions, {
+    // Select next question (2-step MCTS for mid-game; falls back to greedy near endgame)
+    const nextQuestion = selectBestQuestionMCTS(filtered, answers, questions, {
       progress,
       recentCategories,
       scoring,
