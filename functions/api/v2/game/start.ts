@@ -230,8 +230,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   context.waitUntil(
     d1Run(
       db,
-      `INSERT INTO game_sessions (id, user_id, character_ids, answers, current_question_attr, difficulty, max_questions, created_at)
-       VALUES (?, ?, ?, '[]', ?, ?, ?, ?)`,
+      `INSERT INTO game_sessions (id, user_id, character_ids, answers, current_question_attr, difficulty, max_questions, dropped_at_phase, created_at)
+       VALUES (?, ?, ?, '[]', ?, ?, ?, 'playing', ?)`,
       [sessionId, userId, JSON.stringify(charIds), firstQuestion.attribute, difficulty, maxQuestions, session.createdAt]
     ).catch(() => {})
   )

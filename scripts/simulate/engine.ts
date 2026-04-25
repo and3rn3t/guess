@@ -27,6 +27,7 @@ export interface SimCharacter {
   id: string;
   name: string;
   popularity: number;
+  category?: string;
   attributes: Record<string, boolean | null>;
 }
 
@@ -48,6 +49,7 @@ export interface SimGameResult {
   runId: string;
   targetCharacterId: string;
   targetCharacterName: string;
+  targetCharacterCategory: string | null;
   won: boolean;
   questionsAsked: number;
   guessesUsed: number;
@@ -65,6 +67,8 @@ export interface SimGameResult {
   characterPoolSize: number;
   maxQuestions: number;
   difficulty: string;
+  /** Noise fraction applied to the oracle (0 = deterministic, 0.1 = 10% random flips). */
+  noise: number;
   createdAt: number;
 }
 
@@ -96,6 +100,25 @@ function oracleAnswer(target: SimCharacter, attribute: string): AnswerValue {
   if (val === true) return "yes";
   if (val === false) return "no";
   return "unknown";
+}
+
+/**
+ * Noisy oracle: with probability `noise`, randomly flip the answer to simulate
+ * a real player's uncertainty. null attributes are never flipped (oracle can't
+ * know what it doesn't know). Flips: true→maybe, false→unknown.
+ */
+function noisyOracleAnswer(
+  target: SimCharacter,
+  attribute: string,
+  noise: number,
+): AnswerValue {
+  const clean = oracleAnswer(target, attribute);
+  if (noise <= 0 || clean === "unknown") return clean;
+  if (Math.random() < noise) {
+    // Flip true→maybe, false→unknown (asymmetric — mirrors real player ambiguity)
+    return clean === "yes" ? "maybe" : "unknown";
+  }
+  return clean;
 }
 
 // ── Pool filtering (mirrors filterPossibleCharacters in _game-engine.ts) ──────
@@ -156,6 +179,7 @@ function getBestGuess(
 function buildScoringMaps(
   pool: SimCharacter[],
   questions: SimQuestion[],
+  weights?: ScoringWeights,
 ): ScoringOptions {
   const coverageMap = new Map<string, number>();
   for (const q of questions) {
@@ -166,7 +190,7 @@ function buildScoringMaps(
   const maxPop = Math.max(...pool.map((c) => c.popularity), 1);
   const popularityMap = new Map(pool.map((c) => [c.id, c.popularity / maxPop]));
 
-  return { coverageMap, popularityMap };
+  return { coverageMap, popularityMap, weights };
 }
 
 // ── Core simulation loop ──────────────────────────────────────────────────────
@@ -175,6 +199,17 @@ export interface SimulateOptions {
   difficulty?: string;
   /** Cap pool size. Defaults to the full pool passed in. */
   poolSize?: number;
+  /**
+   * Noise fraction [0, 1]. At each oracle answer, flip with this probability:
+   * yes→maybe, no→unknown. Simulates real-player imprecision.
+   * Default: 0 (deterministic).
+   */
+  noise?: number;
+  /**
+   * Override Bayesian scoring multipliers. Used by grid search (S.8) to test
+   * alternative weight combinations without touching production constants.
+   */
+  scoringWeights?: ScoringWeights;
 }
 
 export function simulateGame(
@@ -185,6 +220,7 @@ export function simulateGame(
   options: SimulateOptions = {},
 ): SimGameResult {
   const difficulty = options.difficulty ?? "medium";
+  const noise = Math.max(0, Math.min(1, options.noise ?? 0));
   let maxQuestions = DIFFICULTY_MAP[difficulty] ?? 15;
   const bonusPerReject = BONUS_QUESTIONS_PER_REJECT[difficulty] ?? 2;
 
@@ -203,7 +239,7 @@ export function simulateGame(
     workingPool = [target, ...workingPool.slice(0, workingPool.length - 1)];
   }
 
-  const scoring = buildScoringMaps(workingPool, questions);
+  const scoring = buildScoringMaps(workingPool, questions, options.scoringWeights);
 
   const answers: GameAnswer[] = [];
   const rejectedIds = new Set<string>();
@@ -352,8 +388,10 @@ export function simulateGame(
       Array.from(probs.values()).filter((p) => p > 0),
     );
 
-    // Oracle player answers
-    const answerValue = oracleAnswer(target, nextQuestion.attribute);
+    // Oracle player answers (deterministic or noisy)
+    const answerValue = noise > 0
+      ? noisyOracleAnswer(target, nextQuestion.attribute, noise)
+      : oracleAnswer(target, nextQuestion.attribute);
     const answer: GameAnswer = {
       questionId: nextQuestion.attribute,
       value: answerValue,
@@ -390,6 +428,7 @@ export function simulateGame(
     runId,
     targetCharacterId: target.id,
     targetCharacterName: target.name,
+    targetCharacterCategory: target.category ?? null,
     won,
     questionsAsked: answers.length,
     guessesUsed,
@@ -407,6 +446,7 @@ export function simulateGame(
     characterPoolSize: workingPool.length,
     maxQuestions: DIFFICULTY_MAP[difficulty] ?? 15, // record base budget, not post-reject
     difficulty,
+    noise,
     createdAt: Date.now(),
   };
 }

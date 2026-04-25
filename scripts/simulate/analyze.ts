@@ -29,6 +29,7 @@ interface SimGameResult {
   runId: string;
   targetCharacterId: string;
   targetCharacterName: string;
+  targetCharacterCategory?: string | null;
   won: boolean;
   questionsAsked: number;
   guessesUsed: number;
@@ -147,6 +148,9 @@ function analyzeResults(games: SimGameResult[]): void {
   // ── 1.5. Per-character difficulty clustering ──────────────────────────────────
   characterDifficultyClustering(games);
 
+  // ── 1.6. Category breakdown ───────────────────────────────────────────────────
+  categoryBreakdown(games);
+
   // ── 2. Trigger breakdown ─────────────────────────────────────────────────────
   section("2. GUESS TRIGGER BREAKDOWN");
 
@@ -255,40 +259,57 @@ function analyzeResults(games: SimGameResult[]): void {
   // ── 6. Information gain per question ─────────────────────────────────────────
   section("6. INFORMATION GAIN PER ATTRIBUTE (top 25 and bottom 25)");
 
-  const attrInfoGain = new Map<string, { total: number; count: number }>();
+  const attrInfoGain = new Map<string, { total: number; count: number; unknownCount: number }>();
   for (const game of games) {
     for (const step of game.questionsSequence) {
-      const e = attrInfoGain.get(step.attribute) ?? { total: 0, count: 0 };
+      const e = attrInfoGain.get(step.attribute) ?? { total: 0, count: 0, unknownCount: 0 };
       e.total += step.infoGain;
       e.count++;
+      if (step.answer === "unknown") e.unknownCount++;
       attrInfoGain.set(step.attribute, e);
     }
   }
 
   const attrRanked = [...attrInfoGain.entries()]
-    .map(([attr, { total, count }]) => ({ attr, avgGain: total / count, count }))
-    .sort((a, b) => b.avgGain - a.avgGain);
+    .map(([attr, { total, count, unknownCount }]) => {
+      const avgGain = total / count;
+      const unknownRate = unknownCount / count;
+      const netGain = avgGain * (1 - unknownRate);
+      return { attr, avgGain, unknownRate, netGain, count };
+    })
+    .sort((a, b) => b.netGain - a.netGain);
 
-  subsection("Top 25 Most Discriminating Attributes");
+  // ASCII heatmap: 5 tiers based on netGain relative to the top value
+  const maxNetGain = attrRanked[0]?.netGain ?? 1;
+  function gainBar(value: number): string {
+    const ratio = maxNetGain > 0 ? value / maxNetGain : 0;
+    if (ratio >= 0.80) return "████";
+    if (ratio >= 0.60) return "▓▓▓▓";
+    if (ratio >= 0.40) return "▒▒▒▒";
+    if (ratio >= 0.20) return "░░░░";
+    return "····";
+  }
+
+  subsection("Top 25 Most Discriminating Attributes (by net gain)");
   console.log(
-    `  ${"Attribute".padEnd(40)} ${"AvgGain".padStart(8)} ${"Asked".padStart(6)}`
+    `  ${"Attribute".padEnd(36)} ${"Heat"} ${"AvgGain".padStart(9)} ${"Null%".padStart(6)} ${"NetGain".padStart(9)} ${"Asked".padStart(6)}`
   );
-  console.log("  " + "─".repeat(57));
-  for (const { attr, avgGain, count } of attrRanked.slice(0, 25)) {
+  console.log("  " + "─".repeat(76));
+  for (const { attr, avgGain, unknownRate, netGain, count } of attrRanked.slice(0, 25)) {
     console.log(
-      `  ${attr.padEnd(40)} ${fmt(avgGain, 4).padStart(8)} ${String(count).padStart(6)}`
+      `  ${attr.padEnd(36)} ${gainBar(netGain)} ${fmt(avgGain, 4).padStart(9)} ${(unknownRate * 100).toFixed(0).padStart(5)}% ${fmt(netGain, 4).padStart(9)} ${String(count).padStart(6)}`
     );
   }
 
-  subsection("Bottom 25 Least Discriminating Attributes (asked ≥5 times)");
+  subsection("Bottom 25 Least Discriminating Attributes (asked ≥5 times, by net gain)");
   console.log(
-    `  ${"Attribute".padEnd(40)} ${"AvgGain".padStart(8)} ${"Asked".padStart(6)}`
+    `  ${"Attribute".padEnd(36)} ${"Heat"} ${"AvgGain".padStart(9)} ${"Null%".padStart(6)} ${"NetGain".padStart(9)} ${"Asked".padStart(6)}`
   );
-  console.log("  " + "─".repeat(57));
+  console.log("  " + "─".repeat(76));
   const bottom = attrRanked.filter((a) => a.count >= 5).slice(-25).reverse();
-  for (const { attr, avgGain, count } of bottom) {
+  for (const { attr, avgGain, unknownRate, netGain, count } of bottom) {
     console.log(
-      `  ${attr.padEnd(40)} ${fmt(avgGain, 4).padStart(8)} ${String(count).padStart(6)}`
+      `  ${attr.padEnd(36)} ${gainBar(netGain)} ${fmt(avgGain, 4).padStart(9)} ${(unknownRate * 100).toFixed(0).padStart(5)}% ${fmt(netGain, 4).padStart(9)} ${String(count).padStart(6)}`
     );
   }
 
@@ -541,6 +562,46 @@ function crossDifficultyTable(byDifficulty: Map<string, SimGameResult[]>): void 
       if (meta.dir === "lte" && num > tNum) flags.push(diff);
     }
     console.log(line + (flags.length > 0 ? `  ✗ [${flags.join(",")}]` : ""));
+  }
+}
+
+// ── Category breakdown ────────────────────────────────────────────────────────
+
+function categoryBreakdown(games: SimGameResult[]): void {
+  const hasCategoryData = games.some((g) => g.targetCharacterCategory != null);
+  if (!hasCategoryData) {
+    console.log("\n  [Category breakdown unavailable — re-run `pnpm simulate:export` to include category data]");
+    return;
+  }
+
+  section("1.6. CATEGORY BREAKDOWN");
+
+  const byCategory = new Map<string, SimGameResult[]>();
+  for (const g of games) {
+    const cat = g.targetCharacterCategory ?? "unknown";
+    const list = byCategory.get(cat) ?? [];
+    list.push(g);
+    byCategory.set(cat, list);
+  }
+
+  const rows = [...byCategory.entries()]
+    .map(([cat, gs]) => {
+      const wins = gs.filter((g) => g.won).length;
+      const qCounts = gs.map((g) => g.questionsAsked);
+      const avgQ = qCounts.reduce((a, b) => a + b, 0) / qCounts.length;
+      const forcedCount = gs.filter((g) => g.forcedGuess).length;
+      return { cat, total: gs.length, wins, winRate: (wins / gs.length) * 100, avgQ, forcedRate: (forcedCount / gs.length) * 100 };
+    })
+    .sort((a, b) => b.total - a.total);
+
+  console.log(
+    `  ${"Category".padEnd(20)} ${"Games".padStart(6)} ${"Win%".padStart(7)} ${"AvgQ".padStart(6)} ${"Forced%".padStart(8)}`
+  );
+  console.log("  " + "─".repeat(50));
+  for (const { cat, total, winRate, avgQ, forcedRate } of rows) {
+    console.log(
+      `  ${cat.padEnd(20)} ${String(total).padStart(6)} ${(winRate.toFixed(1) + "%").padStart(7)} ${avgQ.toFixed(1).padStart(6)} ${(forcedRate.toFixed(1) + "%").padStart(8)}`
+    );
   }
 }
 
@@ -910,9 +971,13 @@ function recommendations(games: SimGameResult[], qCounts: number[]): void {
 
 // ── Main ───────────────────────────────────────────────────────────────────────
 
-const filePaths = process.argv.slice(2);
+const argv = process.argv.slice(2);
+
+// --failures mode: find characters that lost in ALL provided JSONL files
+const FAILURES_MODE = argv.includes("--failures");
+const filePaths = argv.filter((a) => !a.startsWith("--"));
 if (filePaths.length === 0) {
-  console.error("Usage: npx tsx scripts/simulate/analyze.ts <results.jsonl> [results2.jsonl ...]");
+  console.error("Usage: npx tsx scripts/simulate/analyze.ts [--failures] <results.jsonl> [results2.jsonl ...]");
   process.exit(1);
 }
 
@@ -948,6 +1013,63 @@ if (allResults.length === 0) {
 console.log(`\nTotal records loaded: ${allResults.length}`);
 if (byDifficulty.size > 1) {
   crossDifficultyTable(byDifficulty);
+}
+
+// --failures: cross-reference losses across all provided files
+if (FAILURES_MODE) {
+  if (filePaths.length < 2) {
+    console.error("--failures requires at least 2 JSONL files to cross-reference.");
+    process.exit(1);
+  }
+
+  section("CROSS-RUN FAILURE ANALYSIS");
+
+  // Load each file separately to find per-file loser sets
+  const perFileLosses: Set<string>[] = [];
+  const idToName = new Map<string, string>();
+  const idToCategory = new Map<string, string>();
+  const idToLossCount = new Map<string, number>();
+
+  for (const fp of filePaths) {
+    // Re-load each file individually to get accurate per-file loss sets
+    const singleFileResults = await loadResults(path.resolve(fp));
+    const losers = new Set(singleFileResults.filter((r) => !r.won).map((r) => r.targetCharacterId));
+    perFileLosses.push(losers);
+    for (const r of singleFileResults) {
+      idToName.set(r.targetCharacterId, r.targetCharacterName);
+      if (r.targetCharacterCategory) idToCategory.set(r.targetCharacterId, r.targetCharacterCategory);
+      if (!r.won) idToLossCount.set(r.targetCharacterId, (idToLossCount.get(r.targetCharacterId) ?? 0) + 1);
+    }
+  }
+
+  // Characters that lost in ALL runs
+  const allFileLosers = perFileLosses.reduce((acc, set) => {
+    return new Set([...acc].filter((id) => set.has(id)));
+  }, perFileLosses[0]!);
+
+  if (allFileLosers.size === 0) {
+    console.log("  No characters lost in all provided runs. Good calibration!\n");
+  } else {
+    console.log(`  Characters that lost in ALL ${filePaths.length} runs (persistent failures):\n`);
+    console.log(`  ${"Character".padEnd(30)} ${"Category".padEnd(15)} ${"Lost In"}`)
+    console.log("  " + "─".repeat(55));
+    const sorted = [...allFileLosers].sort((a, b) => {
+      const catA = idToCategory.get(a) ?? "";
+      const catB = idToCategory.get(b) ?? "";
+      return catA.localeCompare(catB) || (idToName.get(a) ?? "").localeCompare(idToName.get(b) ?? "");
+    });
+    for (const id of sorted) {
+      const name = idToName.get(id) ?? id;
+      const cat = idToCategory.get(id) ?? "unknown";
+      const lossCount = idToLossCount.get(id) ?? 0;
+      console.log(`  ${name.padEnd(30)} ${cat.padEnd(15)} ${lossCount}/${filePaths.length} runs`);
+    }
+    console.log();
+    console.log(`  Tip: consider reviewing attribute coverage for these characters.`);
+    console.log(`       Run \`pnpm simulate --target <id>\` to debug individually.\n`);
+  }
+
+  process.exit(0);
 }
 
 // If multiple difficulties, analyze the combined set (most useful for recommendations)

@@ -16,14 +16,35 @@
  */
 
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs'
-import { execSync } from 'node:child_process'
+import { execSync, spawnSync } from 'node:child_process'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { Worker, isMainThread, parentPort, workerData } from 'node:worker_threads'
+import { cpus } from 'node:os'
 import { simulateGame, DIFFICULTY_MAP } from './engine.js'
-import type { SimCharacter, SimQuestion, SimGameResult } from './engine.js'
+import type { SimCharacter, SimQuestion, SimGameResult, SimulateOptions } from './engine.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const DATA_DIR = join(__dirname, 'data')
+
+// ── Worker thread short-circuit (S.6) ────────────────────────────────────────
+// When spawned as a worker, receive a character slice, run simulations, return results.
+
+interface WorkerPayload {
+  targets: SimCharacter[]
+  pool: SimCharacter[]
+  questions: SimQuestion[]
+  runId: string
+  options: SimulateOptions
+}
+
+if (!isMainThread) {
+  const payload = workerData as WorkerPayload
+  const results: SimGameResult[] = payload.targets.map((target) =>
+    simulateGame(target, payload.pool, payload.questions, payload.runId, payload.options)
+  )
+  parentPort!.postMessage({ results })
+}
 
 // ── CLI args ──────────────────────────────────────────────────────────────────
 
@@ -45,6 +66,32 @@ const WRITE_DB = flag('write-db')
 const ENV = arg('env') ?? 'production'
 const POOL_SIZE_OVERRIDE = arg('pool-size') ? parseInt(arg('pool-size')!, 10) : undefined
 const MIN_ATTRS_OVERRIDE = arg('min-attrs') ? parseInt(arg('min-attrs')!, 10) : null
+const NOISE = arg('noise') ? parseFloat(arg('noise')!) / 100 : 0 // --noise 10 → 0.10
+/** Shuffle questions N times per target and report win-rate variance (fragility). */
+const SENSITIVITY = arg('sensitivity') ? parseInt(arg('sensitivity')!, 10) : 0
+/** Use Node worker_threads for parallel execution (splits pool across CPU cores). */
+const PARALLEL = flag('parallel')
+
+if (NOISE < 0 || NOISE > 1) {
+  console.error(`--noise must be 0–100 (got ${arg('noise')})`)
+  process.exit(1)
+}
+
+// ── --compare short-circuit ───────────────────────────────────────────────────
+
+const COMPARE_ARGS = (() => {
+  const idx = process.argv.indexOf('--compare')
+  if (idx === -1) return null
+  const a = process.argv[idx + 1]
+  const b = process.argv[idx + 2]
+  return a && b ? [a, b] : null
+})()
+
+if (COMPARE_ARGS) {
+  const compareScript = join(__dirname, 'compare.ts')
+  const result = spawnSync('npx', ['tsx', compareScript, ...COMPARE_ARGS], { stdio: 'inherit' })
+  process.exit(result.status ?? 0)
+}
 
 if (!DIFFICULTY_MAP[DIFFICULTY]) {
   console.error(`Unknown difficulty: "${DIFFICULTY}". Choose easy, medium, or hard.`)
@@ -106,25 +153,77 @@ const runId = crypto.randomUUID()
 const results: SimGameResult[] = []
 const startTime = Date.now()
 
+const simOptions: SimulateOptions = {
+  difficulty: DIFFICULTY,
+  poolSize: POOL_SIZE_OVERRIDE,
+  noise: NOISE,
+}
+
 console.log(`\nSimulation run: ${runId}`)
-console.log(`Targets: ${targets.length} | Pool: ${eligibleCharacters.length} characters | Difficulty: ${DIFFICULTY}`)
+console.log(`Targets: ${targets.length} | Pool: ${eligibleCharacters.length} characters | Difficulty: ${DIFFICULTY}${NOISE > 0 ? ` | Noise: ${(NOISE * 100).toFixed(0)}%` : ''}${PARALLEL ? ` | Parallel: ${Math.max(1, cpus().length - 1)} workers` : ''}`)
 console.log(`Questions: ${questions.length}\n`)
 
-for (let i = 0; i < targets.length; i++) {
-  const target = targets[i]!
-  const result = simulateGame(target, eligibleCharacters, questions, runId, {
-    difficulty: DIFFICULTY,
-    poolSize: POOL_SIZE_OVERRIDE,
-  })
-  results.push(result)
+if (PARALLEL && targets.length > 1) {
+  // ── Parallel mode: split across worker threads ──────────────────────────────
+  const workerCount = Math.max(1, Math.min(cpus().length - 1, targets.length))
+  const chunkSize = Math.ceil(targets.length / workerCount)
+  const chunks: SimCharacter[][] = []
+  for (let i = 0; i < targets.length; i += chunkSize) {
+    chunks.push(targets.slice(i, i + chunkSize))
+  }
 
-  const indicator = result.won ? '✓' : '✗'
-  const pct = Math.round(confidenceOrZero(result.confidenceAtGuess) * 100)
-  process.stdout.write(
-    `  [${String(i + 1).padStart(4)}/${targets.length}] ${indicator} ${target.name.padEnd(28)} ` +
-    `${String(result.questionsAsked).padStart(2)}q  ${pct.toString().padStart(3)}% conf  ${result.guessTrigger ?? 'n/a'}\n`
+  const workerUrl = new URL(import.meta.url)
+  const workerResults = await Promise.all(
+    chunks.map(
+      (chunk) =>
+        new Promise<SimGameResult[]>((resolve, reject) => {
+          const payload: WorkerPayload = {
+            targets: chunk,
+            pool: eligibleCharacters,
+            questions,
+            runId,
+            options: simOptions,
+          }
+          const worker = new Worker(workerUrl, { workerData: payload })
+          worker.on('message', (msg: { results: SimGameResult[] }) => resolve(msg.results))
+          worker.on('error', reject)
+          worker.on('exit', (code) => {
+            if (code !== 0) reject(new Error(`Worker exited with code ${code}`))
+          })
+        })
+    )
   )
+
+  for (const chunk of workerResults) {
+    results.push(...chunk)
+  }
+
+  // Print per-result summary (no live progress in parallel mode)
+  for (const result of results) {
+    const indicator = result.won ? '✓' : '✗'
+    const pct = Math.round(confidenceOrZero(result.confidenceAtGuess) * 100)
+    process.stdout.write(
+      `  ${indicator} ${result.targetCharacterName.padEnd(28)} ` +
+      `${String(result.questionsAsked).padStart(2)}q  ${pct.toString().padStart(3)}% conf  ${result.guessTrigger ?? 'n/a'}\n`
+    )
+  }
+} else {
+  // ── Single-threaded mode ────────────────────────────────────────────────────
+  for (let i = 0; i < targets.length; i++) {
+    const target = targets[i]!
+    const result = simulateGame(target, eligibleCharacters, questions, runId, simOptions)
+    results.push(result)
+
+    const indicator = result.won ? '✓' : '✗'
+    const pct = Math.round(confidenceOrZero(result.confidenceAtGuess) * 100)
+    process.stdout.write(
+      `  [${String(i + 1).padStart(4)}/${targets.length}] ${indicator} ${target.name.padEnd(28)} ` +
+      `${String(result.questionsAsked).padStart(2)}q  ${pct.toString().padStart(3)}% conf  ${result.guessTrigger ?? 'n/a'}\n`
+    )
+  }
 }
+
+function confidenceOrZero(v: number | null): number { return v ?? 0 }
 
 const elapsed = ((Date.now() - startTime) / 1000).toFixed(1)
 const wins = results.filter((r) => r.won).length
@@ -146,7 +245,95 @@ for (const r of results) {
 console.log('  Triggers:', Object.entries(triggerCounts).map(([k, v]) => `${k}=${v}`).join('  '))
 console.log('─────────────────────────────────────────────────────────\n')
 
-function confidenceOrZero(v: number | null): number { return v ?? 0 }
+// ── Sensitivity analysis (S.7) ────────────────────────────────────────────────
+// --sensitivity <N>: for each target, re-run N times with shuffled question list
+// to measure how fragile the win is to question ordering.
+
+function stddev(values: number[]): number {
+  if (values.length < 2) return 0
+  const mean = values.reduce((a, b) => a + b, 0) / values.length
+  return Math.sqrt(values.reduce((s, v) => s + (v - mean) ** 2, 0) / values.length)
+}
+
+function shuffle<T>(arr: T[]): T[] {
+  const a = arr.slice()
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    ;[a[i], a[j]] = [a[j]!, a[i]!]
+  }
+  return a
+}
+
+if (SENSITIVITY > 0) {
+  console.log(`\nSensitivity analysis: ${SENSITIVITY} shuffles per character…\n`)
+
+  interface SensitivityRow {
+    id: string
+    name: string
+    baseWon: boolean
+    shuffleWins: number
+    shuffleWinRate: number
+    shuffleAvgQ: number
+    fragility: number
+  }
+
+  const sensRows: SensitivityRow[] = []
+  const sensitivityRunId = crypto.randomUUID()
+
+  for (const target of targets) {
+    const baseResult = results.find((r) => r.targetCharacterId === target.id)
+    const shuffleWonArr: number[] = []
+    const shuffleQArr: number[] = []
+
+    for (let n = 0; n < SENSITIVITY; n++) {
+      const shuffledQuestions = shuffle(questions)
+      const r = simulateGame(target, eligibleCharacters, shuffledQuestions, sensitivityRunId, simOptions)
+      shuffleWonArr.push(r.won ? 1 : 0)
+      shuffleQArr.push(r.questionsAsked)
+    }
+
+    const shuffleWins = shuffleWonArr.reduce((a, b) => a + b, 0)
+    const shuffleWinRate = shuffleWins / SENSITIVITY
+    const shuffleAvgQ = shuffleQArr.reduce((a, b) => a + b, 0) / SENSITIVITY
+    const fragility = stddev(shuffleWonArr)
+
+    sensRows.push({
+      id: target.id,
+      name: target.name,
+      baseWon: baseResult?.won ?? false,
+      shuffleWins,
+      shuffleWinRate,
+      shuffleAvgQ,
+      fragility,
+    })
+  }
+
+  sensRows.sort((a, b) => b.fragility - a.fragility)
+
+  console.log('── Sensitivity Report (sorted by fragility) ─────────────────────────────────')
+  console.log(
+    `  ${'Character'.padEnd(32)} ${'Base'.padStart(4)} ${'ShuffleWin%'.padStart(11)} ${'AvgQ'.padStart(5)} ${'Fragility'.padStart(9)}`
+  )
+  console.log('  ' + '─'.repeat(66))
+  for (const row of sensRows) {
+    console.log(
+      `  ${row.name.padEnd(32)} ${(row.baseWon ? '✓' : '✗').padStart(4)} ` +
+      `${(row.shuffleWinRate * 100).toFixed(1).padStart(10)}% ` +
+      `${row.shuffleAvgQ.toFixed(1).padStart(5)} ` +
+      `${row.fragility.toFixed(4).padStart(9)}`
+    )
+  }
+  console.log('─'.repeat(70) + '\n')
+
+  if (OUTPUT_FILE) {
+    const base = OUTPUT_FILE.replace(/\.jsonl$/, '')
+    const sensPath = (base + '-sensitivity.jsonl').startsWith('/')
+      ? base + '-sensitivity.jsonl'
+      : join(process.cwd(), base + '-sensitivity.jsonl')
+    writeFileSync(sensPath, sensRows.map((r) => JSON.stringify(r)).join('\n') + '\n', 'utf8')
+    console.log(`Sensitivity report written to ${sensPath}`)
+  }
+}
 
 // ── JSONL output ──────────────────────────────────────────────────────────────
 
@@ -177,7 +364,7 @@ if (WRITE_DB) {
     const inserts = batch.map((r) => {
       const qs = JSON.stringify(r.questionsSequence).replace(/'/g, "''")
       const ad = JSON.stringify(r.answerDistribution).replace(/'/g, "''")
-      return `INSERT INTO sim_game_stats (run_id, target_character_id, target_character_name, won, questions_asked, guesses_used, guess_trigger, forced_guess, confidence_at_guess, entropy_at_guess, gap_at_guess, alive_count_at_guess, second_best_character_id, second_best_character_name, second_best_probability, questions_sequence, answer_distribution, character_pool_size, max_questions, difficulty, created_at) VALUES ('${r.runId}', '${r.targetCharacterId}', '${r.targetCharacterName.replace(/'/g, "''")}', ${r.won ? 1 : 0}, ${r.questionsAsked}, ${r.guessesUsed}, ${r.guessTrigger ? `'${r.guessTrigger}'` : 'NULL'}, ${r.forcedGuess ? 1 : 0}, ${r.confidenceAtGuess ?? 'NULL'}, ${r.entropyAtGuess ?? 'NULL'}, ${r.gapAtGuess ?? 'NULL'}, ${r.aliveCountAtGuess ?? 'NULL'}, ${r.secondBestCharacterId ? `'${r.secondBestCharacterId}'` : 'NULL'}, ${r.secondBestCharacterName ? `'${r.secondBestCharacterName.replace(/'/g, "''")}'` : 'NULL'}, ${r.secondBestProbability ?? 'NULL'}, '${qs}', '${ad}', ${r.characterPoolSize}, ${r.maxQuestions}, '${r.difficulty}', ${r.createdAt});`
+      return `INSERT INTO sim_game_stats (run_id, target_character_id, target_character_name, won, questions_asked, guesses_used, guess_trigger, forced_guess, confidence_at_guess, entropy_at_guess, gap_at_guess, alive_count_at_guess, second_best_character_id, second_best_character_name, second_best_probability, questions_sequence, answer_distribution, character_pool_size, max_questions, difficulty, noise, created_at) VALUES ('${r.runId}', '${r.targetCharacterId}', '${r.targetCharacterName.replace(/'/g, "''")}', ${r.won ? 1 : 0}, ${r.questionsAsked}, ${r.guessesUsed}, ${r.guessTrigger ? `'${r.guessTrigger}'` : 'NULL'}, ${r.forcedGuess ? 1 : 0}, ${r.confidenceAtGuess ?? 'NULL'}, ${r.entropyAtGuess ?? 'NULL'}, ${r.gapAtGuess ?? 'NULL'}, ${r.aliveCountAtGuess ?? 'NULL'}, ${r.secondBestCharacterId ? `'${r.secondBestCharacterId}'` : 'NULL'}, ${r.secondBestCharacterName ? `'${r.secondBestCharacterName.replace(/'/g, "''")}'` : 'NULL'}, ${r.secondBestProbability ?? 'NULL'}, '${qs}', '${ad}', ${r.characterPoolSize}, ${r.maxQuestions}, '${r.difficulty}', ${r.noise}, ${r.createdAt});`
     }).join('\n')
 
     const tmpFile = join(tmpDir, `batch_${batchNum}.sql`)

@@ -5,30 +5,37 @@ import {
   SCORE_MAYBE,
   SCORE_MAYBE_MISS,
 } from './constants.js'
-import type { AnswerValue, GameAnswer, GameCharacter, ScoringOptions } from './types.js'
+import type { AnswerValue, GameAnswer, GameCharacter, ScoringOptions, ScoringWeights } from './types.js'
 
 /**
  * Score a single answer against a character's attribute value.
  * Returns a likelihood multiplier in [0.05, 1].
+ * Optional `weights` override the module-level constants (used by grid search).
  */
 export function scoreForAnswer(
   answerValue: AnswerValue,
   characterValue: boolean | null | undefined,
-  effectiveUnknown: number = SCORE_UNKNOWN
+  effectiveUnknown: number = SCORE_UNKNOWN,
+  weights?: ScoringWeights,
 ): number {
+  const match    = weights?.match    ?? SCORE_MATCH
+  const mismatch = weights?.mismatch ?? SCORE_MISMATCH
+  const maybe    = weights?.maybe    ?? SCORE_MAYBE
+  const maybeMiss = weights?.maybeMiss ?? SCORE_MAYBE_MISS
+
   if (answerValue === 'yes') {
-    if (characterValue === true) return SCORE_MATCH
-    if (characterValue === false) return SCORE_MISMATCH
+    if (characterValue === true) return match
+    if (characterValue === false) return mismatch
     return effectiveUnknown
   }
   if (answerValue === 'no') {
-    if (characterValue === false) return SCORE_MATCH
-    if (characterValue === true) return SCORE_MISMATCH
+    if (characterValue === false) return match
+    if (characterValue === true) return mismatch
     return effectiveUnknown
   }
   if (answerValue === 'maybe') {
-    if (characterValue === true) return SCORE_MAYBE
-    if (characterValue === false) return SCORE_MAYBE_MISS
+    if (characterValue === true) return maybe
+    if (characterValue === false) return maybeMiss
     return effectiveUnknown
   }
   return 1 // 'unknown' → no effect
@@ -62,7 +69,7 @@ export function calculateProbabilities(
       const effectiveUnknown = coverageMap
         ? 0.3 + 0.15 * (coverageMap.get(answer.questionId) ?? 0.5)
         : SCORE_UNKNOWN
-      score *= scoreForAnswer(answer.value, characterValue, effectiveUnknown)
+      score *= scoreForAnswer(answer.value, characterValue, effectiveUnknown, options?.weights)
       // Early exit: once negligibly probable, skip remaining answers
       if (score < 1e-8) {
         score = 0

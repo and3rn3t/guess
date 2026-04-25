@@ -99,7 +99,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   // Mark D1 backup as completed (non-blocking)
   if (db) {
     context.waitUntil(
-      d1Run(db, 'UPDATE game_sessions SET completed_at = ? WHERE id = ?', [Date.now(), body.sessionId])
+      d1Run(db, 'UPDATE game_sessions SET completed_at = ?, dropped_at_phase = NULL WHERE id = ?', [Date.now(), body.sessionId])
         .catch(() => {/* non-critical */})
     )
   }

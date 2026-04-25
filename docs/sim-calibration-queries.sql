@@ -316,3 +316,75 @@ FROM tiered
 GROUP BY difficulty, tier
 ORDER BY difficulty,
   CASE tier WHEN 'easy' THEN 1 WHEN 'medium' THEN 2 WHEN 'hard' THEN 3 ELSE 4 END;
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- Q10. Real-game win rate by ISO week (AN.4)
+-- Tracks live player performance over time — compare against Q0 sim win rate
+-- to spot divergence between simulated calibration and real-world results.
+-- ─────────────────────────────────────────────────────────────────────────────
+SELECT
+  strftime('%Y-W%W', datetime(created_at / 1000, 'unixepoch')) AS iso_week,
+  difficulty,
+  COUNT(*)                                   AS total_games,
+  SUM(won)                                   AS wins,
+  ROUND(100.0 * AVG(won), 1)                AS win_pct,
+  ROUND(AVG(questions_asked), 1)             AS avg_questions,
+  ROUND(AVG(confidence_at_guess), 3)         AS avg_confidence
+FROM game_stats
+WHERE confidence_at_guess IS NOT NULL
+GROUP BY iso_week, difficulty
+ORDER BY iso_week DESC, difficulty;
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- Q11. Real-vs-sim calibration overlay (AN.8)
+-- Side-by-side comparison of the 7 core KPIs across real players (game_stats)
+-- and the most recent simulation run (sim_game_stats). Use this to validate
+-- that simulated win rates are predictive of actual player outcomes.
+-- ─────────────────────────────────────────────────────────────────────────────
+WITH latest_run AS (
+  SELECT run_id FROM sim_game_stats ORDER BY created_at DESC LIMIT 1
+),
+real AS (
+  SELECT
+    difficulty,
+    COUNT(*)                                                                        AS games,
+    ROUND(100.0 * AVG(won), 1)                                                    AS win_pct,
+    ROUND(AVG(confidence_at_guess), 3)                                             AS avg_confidence,
+    ROUND(AVG(questions_asked), 1)                                                 AS avg_questions,
+    ROUND(100.0 * AVG(CASE WHEN forced_guess = 1 THEN 1.0 ELSE 0.0 END), 1)      AS forced_guess_rate,
+    ROUND(100.0 * AVG(CASE WHEN guess_trigger = 'max_questions' THEN 1.0 ELSE 0.0 END), 1) AS max_q_rate,
+    ROUND(AVG(alive_count_at_guess), 1)                                            AS avg_alive
+  FROM game_stats
+  WHERE confidence_at_guess IS NOT NULL
+  GROUP BY difficulty
+),
+sim AS (
+  SELECT
+    s.difficulty,
+    COUNT(*)                                                                        AS games,
+    ROUND(100.0 * AVG(s.won), 1)                                                  AS win_pct,
+    ROUND(AVG(s.confidence_at_guess), 3)                                           AS avg_confidence,
+    ROUND(AVG(s.questions_asked), 1)                                               AS avg_questions,
+    ROUND(100.0 * AVG(CASE WHEN s.forced_guess = 1 THEN 1.0 ELSE 0.0 END), 1)    AS forced_guess_rate,
+    ROUND(100.0 * AVG(CASE WHEN s.guess_trigger = 'max_questions' THEN 1.0 ELSE 0.0 END), 1) AS max_q_rate,
+    ROUND(AVG(s.alive_count_at_guess), 1)                                          AS avg_alive
+  FROM sim_game_stats s
+  JOIN latest_run r ON s.run_id = r.run_id
+  WHERE s.confidence_at_guess IS NOT NULL
+  GROUP BY s.difficulty
+)
+SELECT
+  COALESCE(r.difficulty, s.difficulty)       AS difficulty,
+  r.games                                    AS real_games,
+  r.win_pct                                  AS real_win_pct,
+  s.win_pct                                  AS sim_win_pct,
+  ROUND(r.win_pct - s.win_pct, 1)           AS win_pct_delta,
+  r.avg_questions                            AS real_avg_q,
+  s.avg_questions                            AS sim_avg_q,
+  r.forced_guess_rate                        AS real_forced_pct,
+  s.forced_guess_rate                        AS sim_forced_pct,
+  r.avg_alive                                AS real_avg_alive,
+  s.avg_alive                                AS sim_avg_alive
+FROM real r
+FULL OUTER JOIN sim s ON r.difficulty = s.difficulty
+ORDER BY COALESCE(r.difficulty, s.difficulty);

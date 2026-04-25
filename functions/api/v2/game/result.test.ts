@@ -148,7 +148,7 @@ describe('POST /api/v2/game/result', () => {
     expect(d1RunMock).toHaveBeenNthCalledWith(
       2,
       expect.anything(),
-      'UPDATE game_sessions SET completed_at = ? WHERE id = ?',
+      'UPDATE game_sessions SET completed_at = ?, dropped_at_phase = NULL WHERE id = ?',
       [expect.any(Number), 'sess-123']
     )
     expect(waitUntil).toHaveBeenCalledTimes(2)

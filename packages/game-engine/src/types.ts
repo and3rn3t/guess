@@ -43,11 +43,30 @@ export interface GameAnswer {
 }
 
 // ── Scoring / selection options ───────────────────────────────────────────────
+
+/**
+ * Optional overrides for the Bayesian scoring multipliers.
+ * When omitted, `scoring.ts` uses the module-level constants from `constants.ts`.
+ * Used by the simulator grid search to test alternative weight combinations.
+ */
+export interface ScoringWeights {
+  /** Perfect attribute match multiplier (default: SCORE_MATCH = 1.0). */
+  match?: number
+  /** Contradicting answer multiplier (default: SCORE_MISMATCH = 0.03). */
+  mismatch?: number
+  /** "Maybe" answer — attribute matches (default: SCORE_MAYBE = 0.7). */
+  maybe?: number
+  /** "Maybe" answer — attribute doesn't match (default: SCORE_MAYBE_MISS = 0.3). */
+  maybeMiss?: number
+}
+
 export interface ScoringOptions {
   coverageMap?: Map<string, number>
   popularityMap?: Map<string, number>
   /** Game progress (0–1). Decays the popularity prior: full weight at 0, neutral at 1. */
   progress?: number
+  /** Optional scoring weight overrides for grid search / A-B testing. */
+  weights?: ScoringWeights
 }
 
 export interface QuestionSelectionOptions {

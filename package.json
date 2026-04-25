@@ -39,6 +39,8 @@
     "ingest:upload": "tsx scripts/ingest/run.ts upload",
     "simulate:export": "tsx scripts/simulate/export-data.ts",
     "simulate": "tsx scripts/simulate/run.ts",
+    "simulate:grid": "tsx scripts/simulate/grid-search.ts",
+    "simulate:compare": "tsx scripts/simulate/compare.ts",
     "prepare": "husky"
   },
   "dependencies": {

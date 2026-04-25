@@ -62,12 +62,13 @@ function parseAttrsJson(json: string): Record<string, boolean | null> {
 console.log('Fetching characters...')
 const MIN_ATTRIBUTES = 20
 const characterRows = d1Query(
-  `SELECT id, name, popularity, attributes_json FROM characters WHERE attributes_json IS NOT NULL AND attribute_count >= ${MIN_ATTRIBUTES} ORDER BY popularity DESC`
-) as Array<{ id: string; name: string; popularity: number | null; attributes_json: string }>
+  `SELECT id, name, category, popularity, attributes_json FROM characters WHERE attributes_json IS NOT NULL AND attribute_count >= ${MIN_ATTRIBUTES} ORDER BY popularity DESC`
+) as Array<{ id: string; name: string; category: string; popularity: number | null; attributes_json: string }>
 
 const characters = characterRows.map((row) => ({
   id: row.id,
   name: row.name,
+  category: row.category,
   popularity: row.popularity ?? 0,
   attributes: parseAttrsJson(row.attributes_json),
 }))
