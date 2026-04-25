@@ -244,6 +244,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     maxQuestions,
   }), setCookieHeader)
   } catch (err) {
+    console.error('POST /api/v2/game/start error:', err)
     const message = err instanceof Error ? err.message : 'Unknown error'
     return errorResponse(`Game start failed: ${message}`, 500)
   }

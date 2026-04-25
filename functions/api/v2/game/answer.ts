@@ -31,6 +31,7 @@ interface AnswerRequest {
 // Processes the user's answer, returns next question or a guess
 
 export const onRequestPost: PagesFunction<Env> = async (context) => {
+  try {
   const kv = context.env.GUESS_KV
   if (!kv) return errorResponse('KV not configured', 503)
 
@@ -261,7 +262,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   if (rephrased) nextQuestion.displayText = rephrased
 
   // Sync answers to D1 backup (non-blocking)
-  const db = context.env.GUESS_DB
   if (db) {
     context.waitUntil(
       d1Run(
@@ -281,4 +281,9 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     questionCount,
     readiness: responseReadiness,
   })
+  } catch (err) {
+    console.error('POST /api/v2/game/answer error:', err)
+    const message = err instanceof Error ? err.message : 'Unknown error'
+    return errorResponse(`Answer processing failed: ${message}`, 500)
+  }
 }

@@ -112,7 +112,8 @@ Rephrase this question.`
     if (!rephrased || rephrased.length > 150) return null
 
     return rephrased
-  } catch {
+  } catch (err) {
+    console.warn('rephraseQuestion failed (returning null):', err instanceof Error ? err.message : String(err))
     return null
   }
 }

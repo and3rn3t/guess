@@ -61,7 +61,13 @@ export const onRequest: PagesFunction<Env> = async (context) => {
   }
 
   // Read stored credential (plaintext "user:pass" string stored in KV)
-  const storedCredential = await kv.get('admin:basic-auth')
+  let storedCredential: string | null
+  try {
+    storedCredential = await kv.get('admin:basic-auth')
+  } catch {
+    // KV transient error — fail closed
+    return unauthorizedResponse()
+  }
   if (!storedCredential) {
     return unauthorizedResponse()
   }

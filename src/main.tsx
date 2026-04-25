@@ -3,6 +3,11 @@ import { ErrorBoundary } from "react-error-boundary";
 import { ThemeProvider } from "next-themes";
 
 import App from './App.tsx'
+
+// Catch async errors that bypass ErrorBoundary (event handlers, setTimeout, etc.)
+window.addEventListener('unhandledrejection', (event) => {
+  console.error('Unhandled promise rejection:', event.reason)
+})
 import { ErrorFallback } from './ErrorFallback.tsx'
 
 import "./main.css"
