@@ -152,7 +152,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   if (rephrased) nextQuestion.displayText = rephrased
 
   // Sync to D1 backup (non-blocking)
-  const db = context.env.GUESS_DB
   if (db) {
     context.waitUntil(
       d1Run(
