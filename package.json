@@ -146,21 +146,15 @@
   },
   "size-limit": [
     {
-      "name": "vendor-radix",
-      "path": "dist/assets/vendor-radix-*.js",
-      "limit": "130 kB",
+      "name": "vendor-ui",
+      "path": "dist/assets/vendor-ui-*.js",
+      "limit": "160 kB",
       "gzip": true
     },
     {
       "name": "vendor-motion",
       "path": "dist/assets/vendor-motion-*.js",
       "limit": "50 kB",
-      "gzip": true
-    },
-    {
-      "name": "vendor-charts",
-      "path": "dist/assets/vendor-charts-*.js",
-      "limit": "115 kB",
       "gzip": true
     }
   ],

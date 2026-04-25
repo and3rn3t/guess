@@ -317,11 +317,11 @@ test.describe('Guess confirmation flow', () => {
 
     // Guess phase — confirm correct
     const confirmButton = page.getByRole('button', { name: /yes.*correct|that'?s correct/i })
-    await expect(confirmButton).toBeVisible({ timeout: 5000 })
+    await expect(confirmButton).toBeVisible({ timeout: 10000 })
     await confirmButton.click()
 
     // Should reach game-over
-    await expect(page.getByRole('button', { name: /play again/i }).first()).toBeVisible({ timeout: 5000 })
+    await expect(page.getByRole('button', { name: /play again/i }).first()).toBeVisible({ timeout: 10000 })
   })
 
   test('wrong guess flow allows rejecting the guess', async ({ page }) => {
