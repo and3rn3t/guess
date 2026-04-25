@@ -44,6 +44,7 @@ if (!isMainThread) {
     simulateGame(target, payload.pool, payload.questions, payload.runId, payload.options)
   )
   parentPort!.postMessage({ results })
+  process.exit(0)
 }
 
 // ── CLI args ──────────────────────────────────────────────────────────────────
@@ -172,7 +173,10 @@ if (PARALLEL && targets.length > 1) {
     chunks.push(targets.slice(i, i + chunkSize))
   }
 
-  const workerUrl = new URL(import.meta.url)
+  // Use a .mjs shim that registers tsx hooks before importing run.ts.
+  // Worker threads do not inherit the parent's ESM hooks (tsx), so we must
+  // re-register them explicitly inside each worker.
+  const workerUrl = new URL('./worker-shim.mjs', import.meta.url)
   const workerResults = await Promise.all(
     chunks.map(
       (chunk) =>
@@ -184,7 +188,9 @@ if (PARALLEL && targets.length > 1) {
             runId,
             options: simOptions,
           }
-          const worker = new Worker(workerUrl, { workerData: payload })
+          const worker = new Worker(workerUrl, {
+            workerData: payload,
+          })
           worker.on('message', (msg: { results: SimGameResult[] }) => resolve(msg.results))
           worker.on('error', reject)
           worker.on('exit', (code) => {
