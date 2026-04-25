@@ -2,6 +2,8 @@ import { CoachMark } from "@/components/CoachMark";
 import { OnboardingOverlay } from "@/components/OnboardingOverlay";
 import { QuestionCard, ThinkingCard } from "@/components/QuestionCard";
 import { ReasoningPanel } from "@/components/ReasoningPanel";
+import { PossibilityGrid } from "@/components/PossibilityGrid";
+import { PossibilitySpaceChart } from "@/components/PossibilitySpaceChart";
 import type { GameAction } from "@/hooks/useGameState";
 import type {
   Answer,
@@ -12,9 +14,10 @@ import type {
   Question,
   ReasoningExplanation,
 } from "@/lib/types";
+import { llmStream } from "@/lib/llm";
 import { ClockCounterClockwiseIcon } from "@phosphor-icons/react";
 import { AnimatePresence, motion } from "framer-motion";
-import { memo, useCallback, useState } from "react";
+import { memo, useCallback, useEffect, useRef, useState, useMemo } from "react";
 
 interface PlayingScreenProps {
   answers: Answer[];
@@ -55,13 +58,153 @@ function PlayingScreenBase({
   gamesPlayed,
   showOnboarding,
   setShowOnboarding,
-  activeCharacters: _activeCharacters,
+  activeCharacters,
   readiness,
   onRetry,
   onSkip,
   onGiveUp,
 }: Readonly<PlayingScreenProps>) {
   const [isUndoing, setIsUndoing] = useState(false);
+
+  // ── Warm / cold indicator ────────────────────────────────────────────────
+  const [tempIndicator, setTempIndicator] = useState<'warm' | 'cold' | null>(null);
+  const prevTopProbRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    const currentTop = reasoning?.topCandidates?.[0]?.probability ?? null;
+    if (prevTopProbRef.current !== null && currentTop !== null) {
+      const delta = currentTop - prevTopProbRef.current;
+      if (delta >= 6) {
+        setTempIndicator('warm');
+        const t = setTimeout(() => setTempIndicator(null), 2200);
+        return () => clearTimeout(t);
+      } else if (delta <= -6) {
+        setTempIndicator('cold');
+        const t = setTimeout(() => setTempIndicator(null), 2200);
+        return () => clearTimeout(t);
+      }
+    }
+    if (currentTop !== null) prevTopProbRef.current = currentTop;
+  }, [reasoning]);
+
+  // ── Probability history (for top-3 chart + sparkline) ───────────────────
+  // Each entry captures the top-3 candidates after an answer.
+  const [probHistory, setProbHistory] = useState<Array<[number, number, number]>>([]);
+  const [confidenceHistory, setConfidenceHistory] = useState<number[]>([]);
+  const prevReasoningIdRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!reasoning?.topCandidates || reasoning.topCandidates.length === 0) return;
+    // Deduplicate: only add when the top candidate actually changed
+    const topKey = `${reasoning.topCandidates[0].name}:${reasoning.topCandidates[0].probability}`;
+    if (topKey === prevReasoningIdRef.current) return;
+    prevReasoningIdRef.current = topKey;
+
+    const triple: [number, number, number] = [
+      reasoning.topCandidates[0]?.probability ?? 0,
+      reasoning.topCandidates[1]?.probability ?? 0,
+      reasoning.topCandidates[2]?.probability ?? 0,
+    ];
+    setProbHistory((prev) => [...prev, triple]);
+    setConfidenceHistory((prev) => [...prev, reasoning.confidence]);
+  }, [reasoning]);
+
+  // Reset on game restart (gameSteps resets to 0)
+  useEffect(() => {
+    if (gameSteps.length === 0) {
+      setProbHistory([]);
+      setConfidenceHistory([]);
+      prevReasoningIdRef.current = null;
+      prevTopProbRef.current = null;
+    }
+  }, [gameSteps.length]);
+
+  // ── Remaining-history → per-step eliminations ────────────────────────────
+  const [remainingHistory, setRemainingHistory] = useState<number[]>([]);
+  const prevStepsLenRef = useRef(0);
+
+  useEffect(() => {
+    const len = gameSteps.length;
+    if (len > prevStepsLenRef.current) {
+      setRemainingHistory((prev) => [...prev, effectiveRemaining]);
+    } else if (len < prevStepsLenRef.current) {
+      // Undo: trim the history
+      setRemainingHistory((prev) => prev.slice(0, len));
+    }
+    prevStepsLenRef.current = len;
+  }, [gameSteps.length, effectiveRemaining]);
+
+  const stepEliminations = useMemo(
+    () => remainingHistory.map((rem, i) => (i === 0 ? 0 : (remainingHistory[i - 1] - rem))),
+    [remainingHistory],
+  );
+  const avgElimination = useMemo(
+    () => stepEliminations.reduce((s, n) => s + n, 0) / (stepEliminations.length || 1),
+    [stepEliminations],
+  );
+
+  // ── Streaming reasoning commentary ────────────────────────────────────────
+  const [streamComment, setStreamComment] = useState('');
+  const [isStreamingComment, setIsStreamingComment] = useState(false);
+  const streamAbortRef = useRef<AbortController | null>(null);
+
+  useEffect(() => {
+    if (!reasoning || gameSteps.length === 0 || !currentQuestion) return;
+    // Only fire on new questions (when isThinking goes false and we have a question)
+    if (isThinking) return;
+
+    // Abort any previous stream
+    streamAbortRef.current?.abort();
+    const controller = new AbortController();
+    streamAbortRef.current = controller;
+    setStreamComment('');
+    setIsStreamingComment(true);
+
+    const lastStep = gameSteps[gameSteps.length - 1];
+    const topName = reasoning.topCandidates?.[0]?.name ?? 'unknown';
+    const topProb = reasoning.topCandidates?.[0]?.probability ?? 0;
+
+    const prompt = `The player just answered "${lastStep?.answer}" to: "${lastStep?.questionText}". \
+Top suspect is now ${topName} at ${topProb}%. ${reasoning.remaining} characters remain. \
+In 1-2 sentences, react in character to this answer and what it reveals. Be concise and specific.`;
+
+    const run = async () => {
+      let text = '';
+      try {
+        for await (const token of llmStream({
+          prompt,
+          model: 'gpt-4o-mini',
+          systemPrompt: 'You are a sharp detective assistant. React briefly to each clue.',
+          signal: controller.signal,
+        })) {
+          text += token;
+          setStreamComment(text);
+        }
+      } catch (e) {
+        // Abort is expected when the component unmounts or a new question arrives — ignore.
+        if (e instanceof Error && e.name === 'AbortError') return;
+        // LLM errors are non-fatal for decorative commentary — fail silently.
+      } finally {
+        if (!controller.signal.aborted) setIsStreamingComment(false);
+      }
+    };
+    run();
+
+    return () => { controller.abort(); };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [reasoning?.topCandidates?.[0]?.name, reasoning?.topCandidates?.[0]?.probability]);
+
+  // ── Probability score map for PossibilityGrid ─────────────────────────────
+  const candidateScores = useMemo(() => {
+    if (!reasoning?.topCandidates || activeCharacters.length === 0) return undefined;
+    const nameToId = new Map(activeCharacters.map((c) => [c.name, c.id]));
+    const map = new Map<string, number>();
+    for (const c of reasoning.topCandidates) {
+      const id = nameToId.get(c.name);
+      if (id) map.set(id, c.probability);
+    }
+    return map;
+  }, [reasoning?.topCandidates, activeCharacters]);
 
   const handleUndo = useCallback(() => {
     if (isUndoing) return;
@@ -138,6 +281,22 @@ function PlayingScreenBase({
                   −{eliminatedCount} eliminated
                 </motion.span>
               )}
+              {tempIndicator !== null && (
+                <motion.span
+                  key={`indicator-${tempIndicator}`}
+                  initial={{ opacity: 0, y: 8, scale: 0.9 }}
+                  animate={{ opacity: 1, y: 0, scale: [1, 1.1, 1] }}
+                  exit={{ opacity: 0, y: -8 }}
+                  transition={{ duration: 0.35 }}
+                  className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium shadow-md"
+                  style={{
+                    backgroundColor: tempIndicator === 'warm' ? 'oklch(0.72 0.18 55 / 0.2)' : 'oklch(0.65 0.14 220 / 0.2)',
+                    color: tempIndicator === 'warm' ? 'oklch(0.72 0.18 55)' : 'oklch(0.65 0.14 220)',
+                  }}
+                >
+                  {tempIndicator === 'warm' ? '🔥 Getting warmer' : '򌠵 Going cold'}
+                </motion.span>
+              )}
             </AnimatePresence>
           </div>
           <div className="flex items-center gap-2">
@@ -185,6 +344,8 @@ function PlayingScreenBase({
               };
               const label: Record<string, string> = { yes: 'Y', no: 'N', maybe: 'M' };
               const isLast = i === gameSteps.length - 1;
+              const eliminated = stepEliminations[i] ?? 0;
+              const isHighImpact = avgElimination > 0 && eliminated >= avgElimination * 1.5;
               return (
                 <motion.span
                   key={step.questionId ?? `step-${i}`}
@@ -192,17 +353,17 @@ function PlayingScreenBase({
                   animate={
                     isLast && isUndoing
                       ? { scale: 0.85, opacity: 0.4, boxShadow: '0 0 0 3px rgba(239,68,68,0.7)' }
-                      : { scale: 1, opacity: 1, boxShadow: '0 0 0 0px rgba(0,0,0,0)' }
+                      : { scale: 1, opacity: 1, boxShadow: isHighImpact ? '0 0 0 2px oklch(0.70 0.15 220 / 0.7)' : '0 0 0 0px rgba(0,0,0,0)' }
                   }
                   transition={
                     isLast && isUndoing
                       ? { duration: 0.15 }
                       : { type: 'spring', stiffness: 380, damping: 20, delay: i * 0.025 }
                   }
-                  title={`Q${i + 1}: ${step.questionText} → ${step.answer}`}
+                  title={`Q${i + 1}: ${step.questionText} → ${step.answer}${eliminated > 0 ? ` (−${eliminated} eliminated)` : ''}`}
                   className={`inline-flex items-center justify-center w-8 h-8 sm:w-7 sm:h-7 rounded-full text-xs font-bold cursor-default transition-colors hover:scale-110 ring-1 ring-offset-1 ring-offset-background hover:ring-2 ${
                     bgClass[step.answer] ?? 'bg-muted text-muted-foreground ring-muted-foreground/30'
-                  }`}
+                  }${isHighImpact ? ' scale-[1.05]' : ''}`}
                 >
                   {label[step.answer] ?? '?'}
                 </motion.span>
@@ -290,7 +451,20 @@ function PlayingScreenBase({
               reasoning={reasoning}
               isThinking={isThinking}
               readiness={readiness}
+              streamComment={streamComment}
+              isStreamingComment={isStreamingComment}
+              confidenceHistory={confidenceHistory}
             />
+            {probHistory.length >= 2 && (
+              <PossibilitySpaceChart probHistory={probHistory} />
+            )}
+            {activeCharacters.length > 0 && (
+              <PossibilityGrid
+                characters={activeCharacters}
+                answers={answers}
+                candidateScores={candidateScores}
+              />
+            )}
           </div>
         </div>
       </div>

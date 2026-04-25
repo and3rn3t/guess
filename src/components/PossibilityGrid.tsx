@@ -7,6 +7,7 @@ import type { Character, Answer } from "@/lib/types";
 interface PossibilityGridProps {
   characters: Character[];
   answers: Answer[];
+  candidateScores?: Map<string, number>;
 }
 
 /**
@@ -14,7 +15,7 @@ interface PossibilityGridProps {
  * Eliminated characters fade out; remaining ones stay bright.
  * Tap/hover a dot to see the character name.
  */
-export const PossibilityGrid = memo(function PossibilityGrid({ characters, answers }: PossibilityGridProps) {
+export const PossibilityGrid = memo(function PossibilityGrid({ characters, answers, candidateScores }: PossibilityGridProps) {
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [tappedId, setTappedId] = useState<string | null>(null);
 
@@ -80,15 +81,24 @@ export const PossibilityGrid = memo(function PossibilityGrid({ characters, answe
           {characters.map((char) => {
             const alive = statusMap.get(char.id) ?? true;
             const color = categoryColors[char.category] ?? "#a78bfa";
+            const prob = candidateScores?.get(char.id);
+            const opacity = !alive
+              ? 0.15
+              : prob !== undefined
+              ? 0.3 + (prob / 100) * 0.7
+              : 0.5;
+            const scale = !alive
+              ? 0.7
+              : prob !== undefined
+              ? 0.7 + (prob / 100) * 0.5
+              : 0.85;
+            const tooltipExtra = prob !== undefined ? ` (${Math.round(prob)}%)` : !alive ? ' ✕' : '';
             return (
               <motion.button
                 key={char.id}
                 layout
                 initial={{ opacity: 1, scale: 1 }}
-                animate={{
-                  opacity: alive ? 1 : 0.15,
-                  scale: alive ? 1 : 0.7,
-                }}
+                animate={{ opacity, scale }}
                 transition={{ duration: 0.4, ease: "easeOut" }}
                 className="relative w-6 h-6 sm:w-4 sm:h-4 rounded-full cursor-default focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
                 style={{ backgroundColor: color }}
@@ -97,7 +107,7 @@ export const PossibilityGrid = memo(function PossibilityGrid({ characters, answe
                 onMouseLeave={() => setHoveredId(null)}
                 onFocus={() => setHoveredId(char.id)}
                 onBlur={() => setHoveredId(null)}
-                aria-label={`${char.name}${alive ? "" : " (eliminated)"}`}
+                aria-label={`${char.name}${!alive ? ' (eliminated)' : ''}`}
               >
                 {activeId === char.id && (
                   <motion.span
@@ -105,8 +115,7 @@ export const PossibilityGrid = memo(function PossibilityGrid({ characters, answe
                     animate={{ opacity: 1, y: 0 }}
                     className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 rounded bg-popover text-popover-foreground text-xs font-medium whitespace-nowrap shadow-md border border-border z-10 pointer-events-none"
                   >
-                    {char.name}
-                    {!alive && " ✕"}
+                    {char.name}{tooltipExtra}
                   </motion.span>
                 )}
               </motion.button>

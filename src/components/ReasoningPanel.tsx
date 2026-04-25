@@ -1,20 +1,33 @@
 import { memo, useState } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion, AnimatePresence, useSpring, useTransform } from 'framer-motion'
 import { Brain, Lightbulb, Sparkle, CaretDown, Trophy } from '@phosphor-icons/react'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
-import { Progress } from '@/components/ui/progress'
 import { CharacterImage } from '@/components/CharacterImage'
+import { LineChart, Line, ResponsiveContainer } from 'recharts'
 import type { GuessReadinessSnapshot, ReasoningExplanation } from '@/lib/types'
 
 interface ReasoningPanelProps {
   reasoning: ReasoningExplanation | null
   readiness?: GuessReadinessSnapshot | null
   isThinking?: boolean
+  streamComment?: string
+  isStreamingComment?: boolean
+  confidenceHistory?: number[]
 }
 
-function ReasoningPanelBase({ reasoning, readiness = null, isThinking = false }: Readonly<ReasoningPanelProps>) {
+function SpringBar({ value }: { value: number }) {
+  const spring = useSpring(value, { stiffness: 100, damping: 20 })
+  const width = useTransform(spring, (v) => `${v}%`)
+  return (
+    <div className="w-16 h-1.5 rounded-full bg-secondary overflow-hidden">
+      <motion.div className="h-full rounded-full bg-accent" style={{ width }} />
+    </div>
+  )
+}
+
+function ReasoningPanelBase({ reasoning, readiness = null, isThinking = false, streamComment = '', isStreamingComment = false, confidenceHistory = [] }: Readonly<ReasoningPanelProps>) {
   const [expanded, setExpanded] = useState(false)
 
   if (!reasoning) {
@@ -56,7 +69,7 @@ function ReasoningPanelBase({ reasoning, readiness = null, isThinking = false }:
             <span className="text-xs text-muted-foreground w-4 text-right">{i + 1}.</span>
             <CharacterImage src={candidate.imageUrl} name={candidate.name} size={16} />
             <span className="text-sm text-foreground/90 flex-1 truncate">{candidate.name}</span>
-            <Progress value={candidate.probability} className="w-16 h-1.5" />
+            <SpringBar value={candidate.probability} />
             <span className="text-xs text-muted-foreground w-8 text-right">{candidate.probability}%</span>
           </div>
         ))}
@@ -109,6 +122,47 @@ function ReasoningPanelBase({ reasoning, readiness = null, isThinking = false }:
         </div>
         <p className="text-sm text-foreground/90 leading-relaxed">{reasoning.impact}</p>
       </div>
+      {/* Streaming detective commentary */}
+      <AnimatePresence>
+        {(streamComment || isStreamingComment) && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.3 }}
+            className="rounded-lg border border-primary/20 bg-primary/5 px-3 py-2"
+          >
+            <p className="text-xs text-muted-foreground italic leading-relaxed">
+              {streamComment}
+              {isStreamingComment && (
+                <motion.span
+                  animate={{ opacity: [1, 0] }}
+                  transition={{ repeat: Infinity, duration: 0.7 }}
+                  className="inline-block ml-0.5 w-[2px] h-[0.9em] bg-accent align-middle"
+                />
+              )}
+            </p>
+          </motion.div>
+        )}
+      </AnimatePresence>
+      {/* Confidence sparkline */}
+      {confidenceHistory.length >= 3 && (
+        <div>
+          <p className="text-xs text-muted-foreground mb-1">Confidence trend</p>
+          <ResponsiveContainer width="100%" height={32}>
+            <LineChart data={confidenceHistory.map((v, i) => ({ t: i, v }))}>
+              <Line
+                type="monotone"
+                dataKey="v"
+                dot={false}
+                stroke="oklch(0.70 0.15 220)"
+                strokeWidth={1.5}
+                isAnimationActive={false}
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+      )}
     </>
   )
 

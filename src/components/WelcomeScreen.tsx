@@ -41,6 +41,7 @@ interface WelcomeScreenProps {
   categories: CharacterCategory[];
   setCategories: (c: CharacterCategory[]) => void;
   streak: number;
+  personalBest?: number | null;
 }
 
 export function WelcomeScreen({
@@ -62,6 +63,7 @@ export function WelcomeScreen({
   categories,
   setCategories,
   streak,
+  personalBest = null,
 }: Readonly<WelcomeScreenProps>) {
   const filteredTotal =
     categories.length === 0
@@ -101,6 +103,11 @@ export function WelcomeScreen({
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-accent/10 border border-accent/30 text-accent text-sm font-semibold mx-auto">
               <FireSimpleIcon size={16} weight="fill" />
               {streak}-day streak
+            </div>
+          )}
+          {personalBest !== null && (
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 border border-primary/30 text-primary text-sm font-medium mx-auto">
+              🏆 Best: {personalBest}q
             </div>
           )}
         </div>

@@ -60,6 +60,8 @@ import { useServerGame } from "@/hooks/useServerGame";
 import { useGlobalStats } from "@/hooks/useGlobalStats";
 import { useDailyStreak } from "@/hooks/useDailyStreak";
 import { useWakeLock } from "@/hooks/useWakeLock";
+import { usePersonalBest } from "@/hooks/usePersonalBest";
+import { startViewTransition } from "@/lib/view-transitions";
 
 const TeachingMode = lazy(() =>
   import("@/components/TeachingMode").then((m) => ({
@@ -119,11 +121,16 @@ function App() {
   const {
     state: game,
     dispatch,
-    navigate,
+    navigate: rawNavigate,
     hasSavedSession,
     resumeSession,
     clearSession,
   } = useGameState();
+
+  /** Wraps navigate with the View Transitions API cross-fade. */
+  const navigate = useCallback((phase: Parameters<typeof rawNavigate>[0], char?: Parameters<typeof rawNavigate>[1]) => {
+    startViewTransition(() => rawNavigate(phase, char));
+  }, [rawNavigate]);
   const {
     phase: gamePhase,
     answers,
@@ -161,7 +168,9 @@ function App() {
   const { theme, setTheme } = useTheme();
   const online = useOnlineStatus();
   const [eliminatedCount, setEliminatedCount] = useState<number | null>(null);
+  const [isNewPersonalBest, setIsNewPersonalBest] = useState(false);
   const prevPossibleCount = useRef<number>(0);
+  const { personalBest, updateBest } = usePersonalBest(difficulty);
   const maxQuestions = DIFFICULTIES[difficulty].maxQuestions;
   const persona = DIFFICULTY_TO_PERSONA[difficulty];
   const [onboardingDone] = useKV("onboarding-complete", false);
@@ -233,6 +242,7 @@ function App() {
 
   // ========== GAME START ==========
   const startGame = async () => {
+    setIsNewPersonalBest(false);
     await startServerGame(categories, difficulty);
   };
 
@@ -248,6 +258,8 @@ function App() {
   // ========== GAME OUTCOME HANDLERS ==========
 
   const handleCorrectGuess = () => {
+    const isNewBest = updateBest(gameSteps.length);
+    setIsNewPersonalBest(isNewBest);
     dispatch({ type: "CORRECT_GUESS" });
     analytics().then((m) => m.trackGameEnd(true, difficulty, gameSteps.length, guessCount));
     playCorrectGuess();
@@ -422,6 +434,12 @@ function App() {
       <Toaster position="top-center" richColors />
       <div className="min-h-screen bg-background relative overflow-hidden">
         <div className="absolute inset-0 opacity-20 bg-cosmic-glow" />
+        {/* Ambient confidence reactor — brightens as the AI homes in */}
+        <div
+          className="absolute inset-0 bg-cosmic-hot-glow transition-opacity duration-1000 ease-out"
+          style={{ opacity: gamePhase === 'playing' ? (confidence / 100) * 0.18 : 0 }}
+          aria-hidden="true"
+        />
 
         <div className="relative z-10">
           <AppHeader
@@ -480,6 +498,7 @@ function App() {
                   categories={categories}
                   setCategories={setCategories}
                   streak={dailyStreak}
+                  personalBest={personalBest}
                 />
               )}
 
@@ -565,6 +584,8 @@ function App() {
                       })}
                       onReveal={gameWon ? undefined : handleReveal}
                       persona={persona}
+                      isPersonalBest={isNewPersonalBest}
+                      personalBest={personalBest}
                     />
                   </div>
                 </motion.div>

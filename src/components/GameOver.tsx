@@ -9,7 +9,6 @@ import {
   ArrowClockwise,
   ChartBar,
   ClockCounterClockwise,
-  Flag,
   House,
   Link as LinkIcon,
   ShareNetwork,
@@ -86,6 +85,8 @@ interface GameOverProps {
   onReveal?: (characterName: string) => Promise<RevealResult>;
   surrendered?: boolean;
   persona?: Persona;
+  isPersonalBest?: boolean;
+  personalBest?: number | null;
 }
 
 export function GameOver({
@@ -108,6 +109,8 @@ export function GameOver({
   onReveal,
   surrendered,
   persona,
+  isPersonalBest = false,
+  personalBest = null,
 }: Readonly<GameOverProps>) {
   const [narrative, setNarrative] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
@@ -206,141 +209,134 @@ export function GameOver({
           <ConfettiBurst questionsAsked={questionsAsked} />
         )}
 
+        {/* 🏆 Personal best banner */}
+        {isPersonalBest && (
+          <motion.div
+            initial={{ opacity: 0, y: -24 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4, type: 'spring', stiffness: 180, damping: 16 }}
+            className="mb-4 flex items-center justify-center gap-2 rounded-lg bg-accent/15 border border-accent/40 px-4 py-2"
+          >
+            <motion.span
+              animate={{ scale: [1, 1.35, 1] }}
+              transition={{ delay: 0.7, duration: 0.4 }}
+              className="text-xl"
+            >🏆</motion.span>
+            <span className="text-sm font-bold text-accent">
+              New Personal Best — {questionsAsked} question{questionsAsked === 1 ? '' : 's'}!
+            </span>
+          </motion.div>
+        )}
+
+        {/* Classified stamp */}
+        <div className="relative mb-4 flex justify-center">
+          <motion.div
+            initial={{ opacity: 0, rotate: -12, scale: 1.5 }}
+            animate={{ opacity: 1, rotate: -10, scale: 1 }}
+            transition={{ delay: 0.25, duration: 0.4, type: 'spring' }}
+            className={`absolute -top-1 right-2 sm:right-6 px-3 py-1 border-2 rounded text-xs font-black tracking-widest uppercase select-none pointer-events-none ${
+              won
+                ? 'border-emerald-500 text-emerald-500'
+                : surrendered
+                  ? 'border-amber-400 text-amber-400'
+                  : 'border-rose-500 text-rose-500'
+            }`}
+            style={{ fontFamily: 'monospace', opacity: 0.85 }}
+          >
+            {won ? 'IDENTIFIED' : surrendered ? 'ABANDONED' : 'ESCAPED'}
+          </motion.div>
+
+          {/* Character image */}
+          <motion.div
+            animate={{ rotate: [0, -8, 8, -4, 4, 0], scale: [1, 1.3, 0.9, 1.15, 1] }}
+            transition={{ duration: 0.6, delay: 0.2 }}
+            className="animate-glow-pulse w-fit"
+          >
+            {character?.imageUrl ? (
+              <div className={`w-20 h-20 rounded-full overflow-hidden ring-4 shadow-lg ${
+                won ? 'ring-emerald-500/60 shadow-emerald-500/30' : 'ring-muted-foreground/30 shadow-muted/20 grayscale'
+              }`}>
+                <img src={character.imageUrl} alt={character.name} className="w-full h-full object-cover" />
+              </div>
+            ) : won ? (
+              <Sparkle size={64} weight="fill" className="mx-auto text-accent" />
+            ) : (
+              <XCircle size={64} weight="fill" className="mx-auto text-muted-foreground" />
+            )}
+          </motion.div>
+        </div>
+
         <div
           data-phase-focus
           tabIndex={-1}
           className="space-y-6 text-center focus:outline-none"
         >
           {won ? (
-            <>
-              <motion.div
-                animate={{ rotate: [0, -8, 8, -4, 4, 0], scale: [1, 1.3, 0.9, 1.15, 1] }}
-                transition={{ duration: 0.6, delay: 0.2 }}
-                className="animate-glow-pulse w-fit mx-auto"
-              >
-                {character?.imageUrl ? (
-                  <div className="w-20 h-20 rounded-full overflow-hidden ring-4 ring-emerald-500/60 shadow-lg shadow-emerald-500/30">
-                    <img
-                      src={character.imageUrl}
-                      alt={character.name}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                ) : (
-                  <Sparkle
-                    size={64}
-                    weight="fill"
-                    className="mx-auto text-accent"
-                  />
-                )}
-              </motion.div>
-              <div>
-                <h2 className="text-4xl font-bold text-gradient-win mb-2">
-                  {questionsAsked != null && questionsAsked <= 5
-                    ? "Uncanny!"
-                    : maxQuestions != null && questionsAsked != null && questionsAsked >= maxQuestions - 1
-                      ? "Just in time."
-                      : "I Got It Right!"}
-                </h2>
-                {character && (
-                  <p className="text-xl text-muted-foreground">
-                    It was {character.name}!
-                  </p>
-                )}
-              </div>
-              <p className="text-foreground/80">
-                Thanks for playing! The more games we play, the smarter I
-                become.
-              </p>
-            </>
+            <div>
+              <h2 className="text-4xl font-bold text-gradient-win mb-2">
+                {questionsAsked != null && questionsAsked <= 5
+                  ? 'Uncanny!'
+                  : maxQuestions != null && questionsAsked != null && questionsAsked >= maxQuestions - 1
+                    ? 'Just in time.'
+                    : 'I Got It Right!'}
+              </h2>
+              {character && (
+                <p className="text-xl text-muted-foreground">
+                  It was {character.name}!
+                </p>
+              )}
+            </div>
           ) : surrendered ? (
-            <>
-              <motion.div
-                animate={{ rotate: [0, -8, 8, -4, 0] }}
-                transition={{ duration: 0.5, delay: 0.15 }}
-              >
-                <Flag
-                  size={64}
-                  weight="fill"
-                  className="mx-auto text-amber-400"
-                />
-              </motion.div>
-              <div>
-                <h2 className="text-4xl font-bold text-foreground mb-2">
-                  You Called It
-                </h2>
-                <p className="text-xl text-muted-foreground">
-                  You ended the game after{" "}
-                  {questionsAsked ?? 0} question
-                  {questionsAsked === 1 ? "" : "s"}.
-                </p>
-              </div>
-              <p className="text-foreground/80">
-                No worries — tell me who you were thinking of and I&apos;ll learn for next time.
+            <div>
+              <h2 className="text-4xl font-bold text-foreground mb-2">You Called It</h2>
+              <p className="text-xl text-muted-foreground">
+                You ended the game after {questionsAsked ?? 0} question{questionsAsked === 1 ? '' : 's'}.
               </p>
-            </>
+            </div>
           ) : exhausted ? (
-            <>
-              <motion.div
-                animate={{ rotate: [0, -5, 5, -3, 3, 0] }}
-                transition={{ duration: 0.6, delay: 0.15 }}
-              >
-                <XCircle
-                  size={64}
-                  weight="fill"
-                  className="mx-auto text-amber-400"
-                />
-              </motion.div>
-              <div>
-                <h2 className="text-4xl font-bold text-foreground mb-2">
-                  I'm Stumped!
-                </h2>
-                <p className="text-xl text-muted-foreground">
-                  I ran out of candidates after{" "}
-                  {guessesUsed != null && guessesUsed > 0
-                    ? `${guessesUsed} guess${guessesUsed === 1 ? "" : "es"}`
-                    : "all my questions"}
-                  .
-                </p>
-              </div>
-              <p className="text-foreground/80">
-                You&apos;ve truly stumped me! Every wrong guess teaches me
-                something new.
+            <div>
+              <h2 className="text-4xl font-bold text-foreground mb-2">I'm Stumped!</h2>
+              <p className="text-xl text-muted-foreground">
+                I ran out of candidates after{' '}
+                {guessesUsed != null && guessesUsed > 0
+                  ? `${guessesUsed} guess${guessesUsed === 1 ? '' : 'es'}`
+                  : 'all my questions'}.
               </p>
-            </>
+            </div>
           ) : (
-            <>
-              <motion.div
-                animate={{ x: [0, -6, 6, -4, 4, -2, 2, 0] }}
-                transition={{ duration: 0.5, delay: 0.15 }}
-              >
-                <XCircle
-                  size={64}
-                  weight="fill"
-                  className="mx-auto text-muted-foreground"
-                />
-              </motion.div>
-              <div>
-                <h2 className="text-4xl font-bold text-foreground mb-2">
-                  You Stumped Me!
-                </h2>
-                <p className="text-xl text-muted-foreground">
-                  I couldn't figure it out this time.
-                </p>
-              </div>
-              <p className="text-foreground/80">
-                But I learn from every game! Play again to help me get better.
-              </p>
+            <div>
+              <h2 className="text-4xl font-bold text-foreground mb-2">You Stumped Me!</h2>
+              <p className="text-xl text-muted-foreground">I couldn't figure it out this time.</p>
               {(gamesPlayed ?? 0) >= 3 && (
-                <p className="text-sm text-accent font-medium">
+                <p className="text-sm text-accent font-medium mt-2">
                   Check your Stats to see how we've both improved!
                 </p>
               )}
-            </>
+            </div>
+          )}
+
+          {/* Case File — answer history in monospace */}
+          {answeredQuestions && answeredQuestions.length > 0 && (
+            <div className="rounded-xl border border-border/60 bg-secondary/10 p-4 text-left">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-3">Evidence Log</p>
+              <ul className="space-y-1 max-h-48 overflow-y-auto">
+                {answeredQuestions.map((q, i) => {
+                  const icon = q.answer === 'yes' ? '✓' : q.answer === 'no' ? '✗' : '?';
+                  const label = q.answer === 'yes' ? 'YES' : q.answer === 'no' ? 'NO' : 'MBE';
+                  const color = q.answer === 'yes' ? 'text-emerald-400' : q.answer === 'no' ? 'text-rose-400' : 'text-amber-400';
+                  return (
+                    <li key={i} className="flex gap-2 text-xs leading-relaxed font-mono">
+                      <span className={`shrink-0 font-bold ${color}`}>{icon} {label}</span>
+                      <span className="text-foreground/70 truncate">{q.question}</span>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
           )}
 
           {(narrative || isStreaming) && (
-            <div className="text-left bg-gradient-to-br from-accent/10 to-primary/5 rounded-xl p-4 border border-accent/30 border-l-4 border-l-accent">
+            <div className="text-left bg-linear-to-br from-accent/10 to-primary/5 rounded-xl p-4 border border-accent/30 border-l-4 border-l-accent">
               <p className="text-sm text-foreground/80 italic">
                 {narrative}
                 {isStreaming && <span className="animate-pulse">▌</span>}
@@ -350,7 +346,7 @@ export function GameOver({
 
           {/* Reveal section — ask what the user was thinking of when AI lost */}
           {!won && onReveal && (
-            <div className="bg-gradient-to-br from-primary/8 to-secondary/5 rounded-xl p-4 border border-primary/30 text-left space-y-3">
+            <div className="bg-linear-to-br from-primary/8 to-secondary/5 rounded-xl p-4 border border-primary/30 text-left space-y-3">
               {revealStatus === "done" && revealResult ? (
                 <motion.div
                   initial={{ opacity: 0, y: 4 }}
@@ -427,27 +423,8 @@ export function GameOver({
           )}
 
           {(questionsAsked != null || remainingCharacters != null || guessesUsed != null) && (
-            <p className="text-sm text-muted-foreground">
-              {questionsAsked != null && (
-                <>
-                  {questionsAsked} question
-                  {questionsAsked === 1 ? "" : "s"} asked
-                </>
-              )}
-              {questionsAsked != null && guessesUsed != null && guessesUsed > 0 && " · "}
-              {guessesUsed != null && guessesUsed > 0 && (
-                <>
-                  {guessesUsed} guess
-                  {guessesUsed === 1 ? "" : "es"} made
-                </>
-              )}
-              {(questionsAsked != null || (guessesUsed != null && guessesUsed > 0)) && remainingCharacters != null && " · "}
-              {remainingCharacters != null && (
-                <>
-                  {remainingCharacters} character
-                  {remainingCharacters === 1 ? "" : "s"} remaining
-                </>
-              )}
+            <p className="text-sm text-muted-foreground font-mono">
+              [{questionsAsked != null ? `${questionsAsked}q` : '██q'}{guessesUsed != null && guessesUsed > 0 ? ` · ${guessesUsed}g` : ''}{remainingCharacters != null ? ` · ${remainingCharacters} remaining` : ''}{personalBest != null ? ` · best: ${personalBest}q` : ''}]
             </p>
           )}
 

@@ -29,3 +29,19 @@
     radial-gradient(circle at 40% 20%, var(--color-secondary) 0%, transparent 55%),
     radial-gradient(circle at 65% 40%, oklch(0.55 0.20 260 / 0.25) 0%, transparent 50%);
 }
+
+/**
+ * Ambient confidence reactor — hot white/purple point that grows as the AI
+ * closes in on the answer. Controlled via the element's `opacity` CSS property
+ * set inline from React based on the current confidence value (0–1).
+ */
+.bg-cosmic-hot-glow {
+  background-image: radial-gradient(
+    circle at 50% 38%,
+    oklch(0.92 0.18 300) 0%,
+    oklch(0.70 0.20 280) 12%,
+    oklch(0.55 0.22 260) 25%,
+    transparent 55%
+  );
+  pointer-events: none;
+}

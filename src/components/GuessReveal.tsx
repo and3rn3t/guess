@@ -1,13 +1,15 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import type { Character } from "@/lib/types";
+import { getAttributeGroup } from "@guess/game-engine";
 import {
   CheckCircle,
   Sparkle,
   XCircle,
 } from "@phosphor-icons/react";
 import { AnimatePresence, motion } from "framer-motion";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { RadarChart, Radar, PolarGrid, PolarAngleAxis, ResponsiveContainer } from "recharts";
 
 interface GuessRevealProps {
   character: Character;
@@ -33,6 +35,24 @@ export function GuessReveal({
     const t2 = setTimeout(() => setStage("reveal"), 2200);
     return () => { clearTimeout(t1); clearTimeout(t2); };
   }, []);
+
+  // Build radar data from character attributes bucketed by group
+  const radarData = useMemo(() => {
+    const groups: Record<string, { trueCount: number; total: number }> = {};
+    for (const [attrKey, value] of Object.entries(character.attributes)) {
+      if (value === null) continue;
+      const group = getAttributeGroup(attrKey);
+      if (!groups[group]) groups[group] = { trueCount: 0, total: 0 };
+      groups[group].total++;
+      if (value === true) groups[group].trueCount++;
+    }
+    return Object.entries(groups)
+      .filter(([, g]) => g.total >= 2)
+      .map(([group, g]) => ({
+        group: group.charAt(0).toUpperCase() + group.slice(1),
+        value: Math.round((g.trueCount / g.total) * 100),
+      }));
+  }, [character.attributes]);
 
   return (
     <motion.div
@@ -186,6 +206,32 @@ export function GuessReveal({
                 >
                   {character.name}
                 </motion.h1>
+                {radarData.length >= 3 && (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.6 }}
+                    className="mt-4"
+                    aria-hidden="true"
+                  >
+                    <ResponsiveContainer width="100%" height={160}>
+                      <RadarChart data={radarData}>
+                        <PolarGrid stroke="oklch(0.60 0.10 280 / 0.3)" />
+                        <PolarAngleAxis
+                          dataKey="group"
+                          tick={{ fontSize: 10, fill: 'oklch(0.70 0.05 280)' }}
+                        />
+                        <Radar
+                          dataKey="value"
+                          stroke="oklch(0.70 0.15 220)"
+                          fill="oklch(0.70 0.15 220)"
+                          fillOpacity={0.3}
+                          isAnimationActive={false}
+                        />
+                      </RadarChart>
+                    </ResponsiveContainer>
+                  </motion.div>
+                )}
               </motion.div>
             )}
           </AnimatePresence>
