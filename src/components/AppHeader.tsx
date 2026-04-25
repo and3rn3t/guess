@@ -16,6 +16,7 @@ import {
   SpeakerSlashIcon,
   SparkleIcon,
   SunIcon,
+  GearSixIcon,
   UsersIcon,
   WrenchIcon,
 } from "@phosphor-icons/react";
@@ -140,6 +141,14 @@ function AppHeaderBase({
                     <span className="hidden sm:inline">Dev Tools</span>
                   </Button>
                 )}
+                <a
+                  href="/admin"
+                  aria-label="Admin panel"
+                  title="Admin panel"
+                  className="inline-flex items-center justify-center h-8 w-8 rounded-md border border-border/50 text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors touch-target"
+                >
+                  <GearSixIcon size={16} weight="duotone" />
+                </a>
               </>
             )}
 

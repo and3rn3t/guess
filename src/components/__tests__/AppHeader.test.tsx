@@ -13,7 +13,7 @@ vi.mock('@phosphor-icons/react', () => {
     CloudSlashIcon: Icon, CloudXIcon: Icon, ClockCounterClockwiseIcon: Icon,
     ChartBarIcon: Icon, HouseIcon: Icon, MoonIcon: Icon,
     SpeakerHighIcon: Icon, SpeakerSlashIcon: Icon, SparkleIcon: Icon,
-    SunIcon: Icon, UsersIcon: Icon, WrenchIcon: Icon,
+    SunIcon: Icon, GearSixIcon: Icon, UsersIcon: Icon, WrenchIcon: Icon,
   }
 })
 
