@@ -12,7 +12,10 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
   const validStatuses = ['open', 'resolved', 'dismissed', 'all']
   const filterStatus = validStatuses.includes(status) ? status : 'open'
-  const where = filterStatus === 'all' ? '' : `WHERE ad.status = '${filterStatus}'`
+  const hasFilter = filterStatus !== 'all'
+  const where = hasFilter ? 'WHERE ad.status = ?' : ''
+  const countWhere = hasFilter ? 'WHERE status = ?' : ''
+  const filterParams = hasFilter ? [filterStatus] : []
 
   const [rows, total] = await Promise.all([
     db.prepare(`
@@ -25,8 +28,8 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       ${where}
       ORDER BY ad.created_at DESC
       LIMIT ? OFFSET ?
-    `).bind(pageSize, offset).all(),
-    db.prepare(`SELECT COUNT(*) as n FROM attribute_disputes ${where}`).first<{ n: number }>(),
+    `).bind(...filterParams, pageSize, offset).all(),
+    db.prepare(`SELECT COUNT(*) as n FROM attribute_disputes ${countWhere}`).bind(...filterParams).first<{ n: number }>(),
   ])
 
   return jsonResponse({ disputes: rows.results, total: total?.n ?? 0, page, pageSize })

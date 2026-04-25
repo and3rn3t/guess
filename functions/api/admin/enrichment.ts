@@ -26,19 +26,33 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
   const offset = (page - 1) * pageSize
   const filter = url.searchParams.get('filter') ?? 'pending' // 'all'|'enriched'|'pending'
 
-  const [summaryResult, pendingCount] = await Promise.all([
+  // Build character list filter before the parallel queries
+  let whereClause = ''
+  if (filter === 'enriched') whereClause = 'WHERE image_url IS NOT NULL'
+  else if (filter === 'pending') whereClause = 'WHERE image_url IS NULL'
+
+  const [summaryResult, rows] = await Promise.all([
     db.prepare(`
       SELECT
         COUNT(*) as total,
         SUM(CASE WHEN image_url IS NOT NULL THEN 1 ELSE 0 END) as enriched
       FROM characters
     `).first<{ total: number; enriched: number }>(),
-    db.prepare('SELECT COUNT(*) as total FROM characters WHERE image_url IS NULL').first<{ total: number }>(),
+    db
+      .prepare(
+        `SELECT id, name, category, image_url, created_at
+       FROM characters
+       ${whereClause}
+       ORDER BY created_at DESC
+       LIMIT ? OFFSET ?`
+      )
+      .bind(pageSize, offset)
+      .all<{ id: string; name: string; category: string; image_url: string | null; created_at: number }>(),
   ])
 
   const total = summaryResult?.total ?? 0
   const enriched = summaryResult?.enriched ?? 0
-  const pending = pendingCount?.total ?? 0
+  const pending = total - enriched
 
   const summary: EnrichmentSummary = {
     total,
@@ -46,22 +60,6 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     pending,
     coveragePct: total > 0 ? Math.round((enriched / total) * 100) : 0,
   }
-
-  // Build character list based on filter
-  let whereClause = ''
-  if (filter === 'enriched') whereClause = 'WHERE image_url IS NOT NULL'
-  else if (filter === 'pending') whereClause = 'WHERE image_url IS NULL'
-
-  const rows = await db
-    .prepare(
-      `SELECT id, name, category, image_url, created_at
-       FROM characters
-       ${whereClause}
-       ORDER BY created_at DESC
-       LIMIT ? OFFSET ?`
-    )
-    .bind(pageSize, offset)
-    .all<{ id: string; name: string; category: string; image_url: string | null; created_at: number }>()
 
   const characters = (rows.results ?? []).map((r) => ({
     id: r.id,

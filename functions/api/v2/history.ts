@@ -25,22 +25,23 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
   const limit = Math.min(Number(url.searchParams.get('limit')) || 50, 200)
 
   try {
-    const rows = await d1Query<GameHistoryRow>(
-      db,
-      `SELECT id, won, difficulty, questions_asked, character_pool_size,
+    const [rows, total] = await Promise.all([
+      d1Query<GameHistoryRow>(
+        db,
+        `SELECT id, won, difficulty, questions_asked, character_pool_size,
               character_id, character_name, steps, created_at
        FROM game_stats
        WHERE user_id = ?
        ORDER BY created_at DESC
        LIMIT ?`,
-      [userId, limit]
-    )
-
-    const total = await d1First<{ count: number }>(
-      db,
-      'SELECT COUNT(*) as count FROM game_stats WHERE user_id = ?',
-      [userId]
-    )
+        [userId, limit]
+      ),
+      d1First<{ count: number }>(
+        db,
+        'SELECT COUNT(*) as count FROM game_stats WHERE user_id = ?',
+        [userId]
+      ),
+    ])
 
     const games = rows.map((row) => {
       let parsedSteps: Array<{ questionText: string; attribute: string; answer: string }> = []

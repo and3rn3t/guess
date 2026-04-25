@@ -57,7 +57,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
   }
   const sortCol = validSortColumns[sortBy] ?? 'c.popularity'
 
-  const [countResult, totalAttrsResult] = await Promise.all([
+  const [countResult, totalAttrsResult, rows] = await Promise.all([
     db
       .prepare(`SELECT COUNT(*) as total FROM characters c ${where}`)
       .bind(...params)
@@ -65,20 +65,19 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     db
       .prepare('SELECT COUNT(*) as total FROM attribute_definitions WHERE is_active = 1')
       .first<{ total: number }>(),
-  ])
-
-  const rows = await db
-    .prepare(
-      `SELECT
+    db
+      .prepare(
+        `SELECT
         c.id, c.name, c.category, c.source, c.popularity,
         c.image_url, c.attribute_count, c.is_custom, c.created_at
       FROM characters c
       ${where}
       ORDER BY ${sortCol} ${order}
       LIMIT ? OFFSET ?`
-    )
-    .bind(...params, pageSize, offset)
-    .all<CharactersRow & { attribute_count: number }>()
+      )
+      .bind(...params, pageSize, offset)
+      .all<CharactersRow & { attribute_count: number }>(),
+  ])
 
   const totalAttributes = totalAttrsResult?.total ?? 1
 

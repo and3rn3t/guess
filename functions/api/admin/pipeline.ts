@@ -60,21 +60,22 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
   const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : ''
 
-  const countResult = await db
-    .prepare(`SELECT COUNT(*) as total FROM pipeline_runs ${where}`)
-    .bind(...params)
-    .first<{ total: number }>()
-
-  const rows = await db
-    .prepare(
-      `SELECT id, run_batch, character_id, step, status, error, duration_ms, created_at
+  const [countResult, rows] = await Promise.all([
+    db
+      .prepare(`SELECT COUNT(*) as total FROM pipeline_runs ${where}`)
+      .bind(...params)
+      .first<{ total: number }>(),
+    db
+      .prepare(
+        `SELECT id, run_batch, character_id, step, status, error, duration_ms, created_at
        FROM pipeline_runs
        ${where}
        ORDER BY created_at DESC
        LIMIT ? OFFSET ?`
-    )
-    .bind(...params, pageSize, offset)
-    .all<PipelineRunsRow>()
+      )
+      .bind(...params, pageSize, offset)
+      .all<PipelineRunsRow>(),
+  ])
 
   const runs: PipelineRun[] = (rows.results ?? []).map((r) => ({
     id: r.id,
