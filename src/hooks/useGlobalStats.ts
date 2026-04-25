@@ -48,6 +48,23 @@ export interface GlobalStats {
       maxQuestionGuessRate: number
     } | null
   } | null
+  /** AN.7: Top character confusion pairs from sim_game_stats */
+  confusion: Array<{
+    targetName: string
+    secondBestName: string
+    count: number
+    lossRate: number
+  }> | null
+  /** AN.8: Real vs. sim calibration by difficulty */
+  calibration: Array<{
+    difficulty: string
+    realGames: number
+    realWinRate: number
+    realAvgQ: number
+    simGames: number
+    simWinRate: number
+    simAvgQ: number
+  }> | null
 }
 
 interface HistoryResponse {

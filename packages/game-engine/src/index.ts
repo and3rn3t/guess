@@ -7,6 +7,8 @@ export * from './constants.js'
 export * from './types.js'
 export { calculateProbabilities, scoreForAnswer } from './scoring.js'
 export { selectBestQuestion, getAttributeGroup, entropy } from './question-selection.js'
+export { selectBestQuestionMCTS } from './question-selection-mcts.js'
+export type { MCTSOptions } from './question-selection-mcts.js'
 export {
   evaluateGuessReadiness,
   shouldMakeGuess,

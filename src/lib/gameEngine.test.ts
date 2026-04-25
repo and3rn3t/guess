@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import {
   calculateProbabilities,
   selectBestQuestion,
+  selectBestQuestionMCTS,
   shouldMakeGuess,
   evaluateGuessReadiness,
   getBestGuess,
@@ -773,5 +774,63 @@ describe('evaluateGuessReadiness – strict_readiness trigger', () => {
 
     expect(readiness.shouldGuess).toBe(false)
     expect(readiness.trigger).toBe('insufficient_data')
+  })
+})
+
+// ── selectBestQuestionMCTS ───────────────────────────────────────────────────
+
+describe('selectBestQuestionMCTS', () => {
+  const chars: Character[] = [
+    { id: 'a', name: 'A', category: 'movies', attributes: { isHuman: true,  canFly: false, usesWeapons: true  } },
+    { id: 'b', name: 'B', category: 'movies', attributes: { isHuman: true,  canFly: false, usesWeapons: false } },
+    { id: 'c', name: 'C', category: 'movies', attributes: { isHuman: false, canFly: true,  usesWeapons: true  } },
+    { id: 'd', name: 'D', category: 'movies', attributes: { isHuman: false, canFly: true,  usesWeapons: false } },
+    { id: 'e', name: 'E', category: 'movies', attributes: { isHuman: true,  canFly: false, usesWeapons: true  } },
+    { id: 'f', name: 'F', category: 'movies', attributes: { isHuman: false, canFly: false, usesWeapons: false } },
+  ]
+  const questions: Question[] = [
+    { id: 'isHuman',     text: 'Human?',   attribute: 'isHuman' },
+    { id: 'canFly',      text: 'Fly?',     attribute: 'canFly' },
+    { id: 'usesWeapons', text: 'Weapons?', attribute: 'usesWeapons' },
+  ]
+
+  it('returns null when no questions are available', () => {
+    const result = selectBestQuestionMCTS(chars, [
+      { questionId: 'isHuman', value: 'yes' },
+      { questionId: 'canFly', value: 'no' },
+      { questionId: 'usesWeapons', value: 'yes' },
+    ], questions)
+    expect(result).toBeNull()
+  })
+
+  it('returns a question from the available list', () => {
+    const result = selectBestQuestionMCTS(chars, [], questions)
+    expect(result).not.toBeNull()
+    expect(questions).toContain(result)
+  })
+
+  it('does not return an already-asked question', () => {
+    const answers: Answer[] = [{ questionId: 'isHuman', value: 'yes' }]
+    const result = selectBestQuestionMCTS(chars, answers, questions)
+    expect(result?.attribute).not.toBe('isHuman')
+  })
+
+  it('delegates to greedy at endgame progress (≥ 0.85)', () => {
+    const result = selectBestQuestionMCTS(chars, [], questions, { progress: 0.9 })
+    expect(result).not.toBeNull()
+    expect(questions).toContain(result)
+  })
+
+  it('delegates to greedy when pool is small (≤ 5 chars)', () => {
+    const tinyChars = chars.slice(0, 4)
+    const result = selectBestQuestionMCTS(tinyChars, [], questions)
+    expect(result).not.toBeNull()
+    expect(questions).toContain(result)
+  })
+
+  it('returns a question whose attribute is in the available set', () => {
+    const result = selectBestQuestionMCTS(chars, [], questions)
+    const attrs = questions.map((q) => q.attribute)
+    expect(attrs).toContain(result?.attribute)
   })
 })

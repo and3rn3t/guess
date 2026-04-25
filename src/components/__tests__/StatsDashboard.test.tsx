@@ -17,6 +17,9 @@ vi.mock('@phosphor-icons/react', () => {
     Lightning: Icon,
     GameController: Icon,
     Globe: Icon,
+    Question: Icon,
+    Crosshair: Icon,
+    ArrowsLeftRight: Icon,
   }
 })
 
@@ -53,6 +56,8 @@ const statsFixture: GlobalStats = {
       maxQuestionGuessRate: 11.2,
     },
   },
+  confusion: null,
+  calibration: null,
 }
 
 describe('StatsDashboard', () => {

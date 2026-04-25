@@ -181,6 +181,113 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     byCategory,
     bySource,
     gameStats,
+    confusion: null as Array<{
+      targetName: string
+      secondBestName: string
+      count: number
+      lossRate: number
+    }> | null,
+    calibration: null as Array<{
+      difficulty: string
+      realGames: number
+      realWinRate: number
+      realAvgQ: number
+      simGames: number
+      simWinRate: number
+      simAvgQ: number
+    }> | null,
+  }
+
+  // ── AN.7: Confusion pairs from sim_game_stats ─────────────
+  try {
+    const confusionRows = await d1Query<{
+      target_character_name: string
+      second_best_character_name: string
+      confusion_count: number
+      loss_rate: number
+    }>(
+      db,
+      `SELECT
+         target_character_name,
+         second_best_character_name,
+         COUNT(*) AS confusion_count,
+         ROUND(100.0 * SUM(CASE WHEN won = 0 THEN 1 ELSE 0 END) / COUNT(*), 1) AS loss_rate
+       FROM sim_game_stats
+       WHERE second_best_character_name IS NOT NULL
+       GROUP BY target_character_name, second_best_character_name
+       ORDER BY confusion_count DESC
+       LIMIT 20`
+    )
+    if (confusionRows.length > 0) {
+      result.confusion = confusionRows.map((r) => ({
+        targetName: r.target_character_name,
+        secondBestName: r.second_best_character_name,
+        count: r.confusion_count,
+        lossRate: r.loss_rate,
+      }))
+    }
+  } catch {
+    // sim_game_stats may not exist yet
+  }
+
+  // ── AN.8: Calibration overlay (real vs sim) ───────────────
+  try {
+    const [realRows, simRows] = await Promise.all([
+      d1Query<{
+        difficulty: string
+        real_games: number
+        real_win_rate: number
+        real_avg_q: number
+      }>(
+        db,
+        `SELECT
+           difficulty,
+           COUNT(*) AS real_games,
+           ROUND(100.0 * AVG(won), 1) AS real_win_rate,
+           ROUND(AVG(questions_asked), 1) AS real_avg_q
+         FROM game_stats
+         GROUP BY difficulty`
+      ),
+      d1Query<{
+        difficulty: string
+        sim_games: number
+        sim_win_rate: number
+        sim_avg_q: number
+      }>(
+        db,
+        `SELECT
+           difficulty,
+           COUNT(*) AS sim_games,
+           ROUND(100.0 * AVG(won), 1) AS sim_win_rate,
+           ROUND(AVG(questions_asked), 1) AS sim_avg_q
+         FROM sim_game_stats
+         WHERE run_id = (
+           SELECT run_id FROM sim_game_stats ORDER BY created_at DESC LIMIT 1
+         )
+         GROUP BY difficulty`
+      ),
+    ])
+
+    if (realRows.length > 0 || simRows.length > 0) {
+      const difficulties = [
+        ...new Set([...realRows.map((r) => r.difficulty), ...simRows.map((r) => r.difficulty)]),
+      ]
+      result.calibration = difficulties.map((diff) => {
+        const real = realRows.find((r) => r.difficulty === diff)
+        const sim = simRows.find((r) => r.difficulty === diff)
+        return {
+          difficulty: diff,
+          realGames: real?.real_games ?? 0,
+          realWinRate: real?.real_win_rate ?? 0,
+          realAvgQ: real?.real_avg_q ?? 0,
+          simGames: sim?.sim_games ?? 0,
+          simWinRate: sim?.sim_win_rate ?? 0,
+          simAvgQ: sim?.sim_avg_q ?? 0,
+        }
+      })
+    }
+  } catch {
+    // sim_game_stats may not exist yet
   }
 
   // ── KV cache: store result with 5-minute TTL ─────────────

@@ -11,6 +11,7 @@ import type {
 import {
   calculateProbabilities as _calculateProbabilities,
   selectBestQuestion as _selectBestQuestion,
+  selectBestQuestionMCTS as _selectBestQuestionMCTS,
   generateReasoning as _generateReasoning,
   shouldMakeGuess as _shouldMakeGuess,
   evaluateGuessReadiness as _evaluateGuessReadiness,
@@ -23,6 +24,7 @@ import type { Character, Question, Answer, ReasoningExplanation } from './types'
 export type {
   ScoringOptions,
   QuestionSelectionOptions,
+  MCTSOptions,
   GuessTrigger,
   GuessReadiness,
 } from '@guess/game-engine'
@@ -50,6 +52,16 @@ export function selectBestQuestion(
 ): Question | null {
   // Cast is safe: the impl returns one of the elements from allQuestions
   return _selectBestQuestion(characters, answers, allQuestions, options) as Question | null
+}
+
+/** Pick the next question using 2-step look-ahead (MCTS-inspired). */
+export function selectBestQuestionMCTS(
+  characters: Character[],
+  answers: Answer[],
+  allQuestions: Question[],
+  options?: import('@guess/game-engine').MCTSOptions
+): Question | null {
+  return _selectBestQuestionMCTS(characters, answers, allQuestions, options) as Question | null
 }
 
 /** Build a human-readable explanation of why a question was chosen. */

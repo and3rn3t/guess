@@ -41,6 +41,9 @@
     "simulate": "tsx scripts/simulate/run.ts",
     "simulate:grid": "tsx scripts/simulate/grid-search.ts",
     "simulate:compare": "tsx scripts/simulate/compare.ts",
+    "simulate:regression": "tsx scripts/simulate/regression.ts",
+    "simulate:apply-weights": "tsx scripts/simulate/apply-weights.ts",
+    "simulate:race": "tsx scripts/simulate/race.ts",
     "prepare": "husky"
   },
   "dependencies": {

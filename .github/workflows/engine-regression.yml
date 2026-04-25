@@ -1,0 +1,67 @@
+name: Engine Regression Gate
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "packages/game-engine/**"
+      - "scripts/simulate/**"
+      - "functions/api/**"
+  pull_request:
+    branches: [main]
+    paths:
+      - "packages/game-engine/**"
+      - "scripts/simulate/**"
+      - "functions/api/**"
+
+concurrency:
+  group: engine-regression-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  regression:
+    name: Simulator regression gate
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # The regression script needs characters.json and questions.json.
+      # We commit a compact sample (150 chars) as baseline.jsonl, but the
+      # full character/question data is too large to commit and must be
+      # regenerated from the D1 export — which requires Cloudflare credentials.
+      #
+      # Strategy: use the pre-committed sim data from scripts/simulate/data/
+      # (characters.json, questions.json).  If they don't exist in-tree, skip
+      # and post a neutral warning instead of failing.
+      - name: Check for simulation data
+        id: data-check
+        run: |
+          if [ -f scripts/simulate/data/characters.json ] && \
+             [ -f scripts/simulate/data/questions.json ] && \
+             [ -f scripts/simulate/baseline.jsonl ]; then
+            echo "available=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "available=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Run regression gate
+        if: steps.data-check.outputs.available == 'true'
+        run: pnpm simulate:regression
+
+      - name: No baseline available — skipping regression gate
+        if: steps.data-check.outputs.available == 'false'
+        run: |
+          echo "::warning::Regression data not committed — skipping engine regression gate."
+          echo "Run \`pnpm simulate:export\` then \`pnpm simulate:regression --update-baseline\`"
+          echo "and commit scripts/simulate/baseline.jsonl to enable this check."

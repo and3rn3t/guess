@@ -177,6 +177,8 @@ describe('WelcomeScreen', () => {
       ],
       bySource: [],
       gameStats: null,
+      confusion: null,
+      calibration: null,
     }
     render(<WelcomeScreen {...defaultProps()} categories={['anime', 'movies']} globalStats={globalStats} serverTotal={500} />)
     expect(screen.getByText('~350')).toBeInTheDocument()

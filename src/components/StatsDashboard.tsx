@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
 import { Badge } from '@/components/ui/badge'
@@ -16,6 +16,9 @@ import {
   Lightning,
   GameController,
   Globe,
+  Question,
+  Crosshair,
+  ArrowsLeftRight,
 } from '@phosphor-icons/react'
 import type { GlobalStats } from '@/hooks/useGlobalStats'
 
@@ -27,6 +30,29 @@ interface StatsDashboardProps {
 
 export function StatsDashboard({ stats, loading, onBack }: StatsDashboardProps) {
   const [_activeTab, setActiveTab] = useState('games')
+
+  // AN.3 / AN.6: lazy-load question coverage when those tabs are visited
+  const [questionData, setQuestionData] = useState<Array<{
+    id: string
+    text: string
+    attribute_key: string
+    priority: number
+    total_characters: number
+    filled_count: number
+    coverage_pct: number
+  }> | null>(null)
+  const [questionLoading, setQuestionLoading] = useState(false)
+
+  useEffect(() => {
+    if ((_activeTab === 'questions' || _activeTab === 'coverage') && questionData === null && !questionLoading) {
+      setQuestionLoading(true)
+      fetch('/api/v2/questions?coverage=true')
+        .then((r) => (r.ok ? r.json() : Promise.reject(r.status)))
+        .then((data) => setQuestionData(data as typeof questionData))
+        .catch(() => setQuestionData([]))
+        .finally(() => setQuestionLoading(false))
+    }
+  }, [_activeTab, questionData, questionLoading])
 
   const gs = stats?.gameStats
   const readiness = gs?.readiness
@@ -159,12 +185,18 @@ export function StatsDashboard({ stats, loading, onBack }: StatsDashboardProps) 
       </div>
 
       <Tabs defaultValue="games" onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="games" className="text-xs sm:text-sm">Games</TabsTrigger>
-          <TabsTrigger value="readiness" className="text-xs sm:text-sm">Readiness</TabsTrigger>
-          <TabsTrigger value="categories" className="text-xs sm:text-sm">Categories</TabsTrigger>
-          <TabsTrigger value="database" className="text-xs sm:text-sm">Database</TabsTrigger>
-        </TabsList>
+        <ScrollArea className="w-full" type="scroll">
+          <TabsList className="flex w-max min-w-full h-auto gap-1 p-1">
+            <TabsTrigger value="games" className="text-xs sm:text-sm">Games</TabsTrigger>
+            <TabsTrigger value="readiness" className="text-xs sm:text-sm">Readiness</TabsTrigger>
+            <TabsTrigger value="categories" className="text-xs sm:text-sm">Categories</TabsTrigger>
+            <TabsTrigger value="database" className="text-xs sm:text-sm">Database</TabsTrigger>
+            <TabsTrigger value="questions" className="text-xs sm:text-sm">Questions</TabsTrigger>
+            <TabsTrigger value="coverage" className="text-xs sm:text-sm">Coverage</TabsTrigger>
+            <TabsTrigger value="confusion" className="text-xs sm:text-sm">Confusion</TabsTrigger>
+            <TabsTrigger value="calibration" className="text-xs sm:text-sm">Calibration</TabsTrigger>
+          </TabsList>
+        </ScrollArea>
 
         {/* Games tab */}
         <TabsContent value="games" className="space-y-4">
@@ -500,7 +532,219 @@ export function StatsDashboard({ stats, loading, onBack }: StatsDashboardProps) 
             </CardContent>
           </Card>
         </TabsContent>
+
+        {/* AN.3: Questions tab — coverage per question attribute */}
+        <TabsContent value="questions" className="space-y-4">
+          <Card className="bg-card/50 backdrop-blur-sm border-primary/20">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Question size={24} className="text-accent" />
+                Question Coverage
+              </CardTitle>
+              <CardDescription>
+                How many characters have each attribute filled in (determines question quality)
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {questionLoading && (
+                <div className="space-y-2">
+                  {Array.from({ length: 8 }).map((_, i) => (
+                    <Skeleton key={i} className="h-8 w-full" />
+                  ))}
+                </div>
+              )}
+              {!questionLoading && questionData !== null && questionData.length === 0 && (
+                <p className="text-center text-muted-foreground py-8">No question data available.</p>
+              )}
+              {!questionLoading && questionData && questionData.length > 0 && (
+                <ScrollArea className="h-[calc(100dvh-380px)] min-h-[300px] max-h-[500px] pr-4">
+                  <div className="space-y-2">
+                    {[...questionData].sort((a, b) => b.coverage_pct - a.coverage_pct).map((q) => (
+                      <div key={q.id} className="space-y-1">
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-foreground font-medium truncate max-w-[70%]">{q.text}</span>
+                          <span className="text-muted-foreground shrink-0 ml-2">
+                            {q.filled_count}/{q.total_characters} ({q.coverage_pct.toFixed(0)}%)
+                          </span>
+                        </div>
+                        <Progress value={q.coverage_pct} className="h-1.5" />
+                      </div>
+                    ))}
+                  </div>
+                </ScrollArea>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* AN.6: Coverage tab — questions grouped by fill bucket */}
+        <TabsContent value="coverage" className="space-y-4">
+          <div className="grid md:grid-cols-2 gap-4">
+            {questionLoading && (
+              <div className="col-span-2 space-y-2">
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <Skeleton key={i} className="h-24 w-full" />
+                ))}
+              </div>
+            )}
+            {!questionLoading && questionData !== null && (() => {
+              const buckets = [
+                { label: 'Excellent (≥90%)', min: 90, color: 'text-emerald-400' },
+                { label: 'Good (70–89%)', min: 70, color: 'text-accent' },
+                { label: 'Fair (50–69%)', min: 50, color: 'text-yellow-400' },
+                { label: 'Poor (<50%)', min: 0, color: 'text-red-400' },
+              ]
+              return buckets.map(({ label, min, color }, bi) => {
+                const maxPct = bi === 0 ? 101 : [90, 70, 50][bi - 1]!
+                const items = questionData.filter(
+                  (q) => q.coverage_pct >= min && q.coverage_pct < maxPct
+                )
+                return (
+                  <Card key={label} className="bg-card/50 backdrop-blur-sm border-primary/20">
+                    <CardHeader className="pb-2">
+                      <CardTitle className={`text-base ${color}`}>{label}</CardTitle>
+                      <CardDescription>{items.length} question{items.length !== 1 ? 's' : ''}</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <ScrollArea className="h-[180px] pr-2">
+                        <div className="space-y-1.5">
+                          {items.sort((a, b) => b.coverage_pct - a.coverage_pct).map((q) => (
+                            <div key={q.id} className="flex items-center justify-between text-xs gap-2">
+                              <span className="truncate text-foreground">{q.text}</span>
+                              <span className={`shrink-0 font-medium ${color}`}>{q.coverage_pct.toFixed(0)}%</span>
+                            </div>
+                          ))}
+                          {items.length === 0 && (
+                            <p className="text-muted-foreground text-xs">None in this range</p>
+                          )}
+                        </div>
+                      </ScrollArea>
+                    </CardContent>
+                  </Card>
+                )
+              })
+            })()}
+          </div>
+        </TabsContent>
+
+        {/* AN.7: Confusion tab — character pairs from sim analysis */}
+        <TabsContent value="confusion" className="space-y-4">
+          <Card className="bg-card/50 backdrop-blur-sm border-primary/20">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Crosshair size={24} className="text-accent" />
+                Character Confusion Pairs
+              </CardTitle>
+              <CardDescription>
+                Characters most frequently confused with each other in simulations (second-best analysis)
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {!stats.confusion || stats.confusion.length === 0 ? (
+                <div className="py-12 text-center">
+                  <Crosshair size={40} className="mx-auto text-muted-foreground mb-3" />
+                  <p className="text-muted-foreground">No confusion data yet. Run simulations with <code className="text-xs bg-muted px-1 rounded">pnpm simulate --all</code> first.</p>
+                </div>
+              ) : (
+                <ScrollArea className="h-[calc(100dvh-380px)] min-h-[300px] max-h-[500px] pr-4">
+                  <div className="space-y-2">
+                    {stats.confusion.map((pair, i) => (
+                      <div key={i} className="flex items-center gap-3 bg-background/50 rounded-lg p-3 border border-border/50">
+                        <span className="text-muted-foreground text-sm w-6 shrink-0">{i + 1}.</span>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 text-sm font-medium flex-wrap">
+                            <span className="text-foreground">{pair.targetName}</span>
+                            <ArrowsLeftRight size={14} className="text-muted-foreground shrink-0" />
+                            <span className="text-accent">{pair.secondBestName}</span>
+                          </div>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <div className="text-sm font-medium text-foreground">{pair.count}×</div>
+                          <div className="text-xs text-red-400">{pair.lossRate.toFixed(0)}% loss</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </ScrollArea>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* AN.8: Calibration tab — real vs sim overlay */}
+        <TabsContent value="calibration" className="space-y-4">
+          <Card className="bg-card/50 backdrop-blur-sm border-primary/20">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <ArrowsLeftRight size={24} className="text-accent" />
+                Real vs. Simulation Calibration
+              </CardTitle>
+              <CardDescription>
+                Compares live game metrics against the latest simulator run — validates engine accuracy
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {!stats.calibration || stats.calibration.length === 0 ? (
+                <div className="py-12 text-center">
+                  <ArrowsLeftRight size={40} className="mx-auto text-muted-foreground mb-3" />
+                  <p className="text-muted-foreground">No calibration data yet. Run <code className="text-xs bg-muted px-1 rounded">pnpm simulate --all --write-db</code> to populate sim data.</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {stats.calibration.sort((a, b) => a.difficulty.localeCompare(b.difficulty)).map((row) => (
+                    <div key={row.difficulty} className="bg-background/50 rounded-lg p-4 border border-border/50">
+                      <div className="flex items-center justify-between mb-3">
+                        <Badge variant="outline" className="capitalize">{row.difficulty}</Badge>
+                        <div className="flex gap-4 text-xs text-muted-foreground">
+                          <span>{row.realGames} real games</span>
+                          <span>{row.simGames} sim games</span>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <CalibrationMetric label="Win Rate" real={row.realWinRate} sim={row.simWinRate} unit="%" />
+                        <CalibrationMetric label="Avg Questions" real={row.realAvgQ} sim={row.simAvgQ} unit="q" lowerIsBetter />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
       </Tabs>
+    </div>
+  )
+}
+
+function CalibrationMetric({
+  label,
+  real,
+  sim,
+  unit,
+  lowerIsBetter = false,
+}: {
+  label: string
+  real: number
+  sim: number
+  unit: string
+  lowerIsBetter?: boolean
+}) {
+  const delta = sim - real
+  const good = lowerIsBetter ? delta <= 0 : delta >= 0
+  return (
+    <div className="space-y-1">
+      <div className="text-xs text-muted-foreground">{label}</div>
+      <div className="flex items-baseline gap-2">
+        <span className="text-sm font-bold text-foreground">{real.toFixed(1)}{unit}</span>
+        <span className="text-xs text-muted-foreground">real</span>
+      </div>
+      <div className="flex items-baseline gap-2">
+        <span className="text-sm font-medium text-accent">{sim.toFixed(1)}{unit}</span>
+        <span className="text-xs text-muted-foreground">sim</span>
+        <span className={`text-xs font-medium ${good ? 'text-emerald-400' : 'text-red-400'}`}>
+          {delta >= 0 ? '+' : ''}{delta.toFixed(1)}{unit}
+        </span>
+      </div>
     </div>
   )
 }
