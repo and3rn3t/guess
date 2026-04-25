@@ -285,28 +285,29 @@ export function evaluateGuessReadiness(
   // Near the budget limit, voluntarily guess if a leader has emerged — avoids the hard
   // forced max_questions trigger and saves 3+ questions per game.
   // Only fires in large pools (≥100 chars): in small pools each remaining question is
-  // valuable enough to use fully. competitiveCount ≤ 5 ensures at least some posterior
-  // concentration (blocks when 100s of characters are equally likely).
+  // valuable enough to use fully. competitiveCount ≤ 20 allows triggering even when the
+  // posterior is moderately spread — at 4q remaining, a confident forced guess is
+  // better than wasting budget on low-gain questions.
   // topProbability ≥ 0.15 prevents spurious triggers when topP is very low (≤1%) — in
   // that regime the p > 0.01 floor in competitiveCount produces 0 competitive chars even
   // though the posterior is actually nearly uniform across many candidates.
   if (
-    questionsRemaining <= 3 &&
+    questionsRemaining <= 4 &&
     questionCount >= 5 &&
     characters.length >= 100 &&
-    competitiveCount <= 5 &&
+    competitiveCount <= 20 &&
     topProbability >= 0.15
   ) {
     return { shouldGuess: true, trigger: 'time_pressure', ...resultBase }
   }
 
   // ── Gate 2b: last-resort time pressure ────────────────────────────────────
-  // On the final question, prefer a low-confidence voluntary guess over a zero-confidence
-  // forced max_questions guess. Skips the competitiveCount guard — at 1 question left,
+  // With 3 questions left, prefer a voluntary guess over a zero-confidence forced
+  // max_questions guess. Skips the competitiveCount guard — at 3q left,
   // even a spread posterior is better addressed by guessing the leader than exhausting
   // the budget. Requires any signal (≥8%) to avoid pure-noise guesses.
   if (
-    questionsRemaining <= 1 &&
+    questionsRemaining <= 3 &&
     questionCount >= 5 &&
     characters.length >= 100 &&
     topProbability >= 0.08
@@ -331,6 +332,16 @@ export function evaluateGuessReadiness(
     topProbability >= highCertaintyThreshold && gap >= 0.20 && competitiveCount <= 3
   if (highCertainty) {
     return { shouldGuess: true, trigger: 'high_certainty', ...resultBase }
+  }
+
+  // ── Gate 4b: dueling fast-path ───────────────────────────────────────────────
+  // When only 2 candidates remain competitive and the leader has a clear margin,
+  // guess immediately regardless of requiredConfidence. At competitiveCount ≤ 2 the
+  // engine has already narrowed the pool to a head-to-head duel — further questions
+  // are unlikely to flip the result and just waste budget. The gap ≥ 0.20 guard
+  // prevents triggering on a perfect tie (gap=0 when both candidates are equal).
+  if (competitiveCount <= 2 && gap >= 0.20 && questionCount >= 5) {
+    return { shouldGuess: true, trigger: 'strict_readiness', ...resultBase }
   }
 
   // ── Gate 5: strict_readiness ─────────────────────────────────────────────────
