@@ -65,10 +65,10 @@ export default function ProposedAttrsRoute(): React.JSX.Element {
   const action = async (id: number, act: 'approve' | 'reject') => {
     setActing(id)
     try {
-      const res = await fetch(`/api/admin/proposed-attributes/${id}`, {
-        method: 'POST',
+      const res = await fetch('/api/admin/proposed-attributes', {
+        method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: act }),
+        body: JSON.stringify({ id, status: act === 'approve' ? 'approved' : 'rejected' }),
       })
       if (!res.ok) throw new Error(`${res.status}`)
       // Refresh

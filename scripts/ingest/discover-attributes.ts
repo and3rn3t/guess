@@ -20,15 +20,10 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { getDb } from './db.js';
 import { getConfig } from './config.js';
-import { loadAttributeDefinitions } from './enrich.js';
+import { loadAttributeDefinitions, type AttributeDef } from './enrich.js';
 import { withRetry } from './rate-limiter.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-
-interface AttributeDef {
-  key: string;
-  displayText: string;
-}
 
 interface ProposedAttr {
   key: string;

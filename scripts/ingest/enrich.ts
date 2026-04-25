@@ -28,7 +28,7 @@ const CACHE_DIR = path.join(__dirname, '..', '..', 'data', 'enrich-cache');
 // Types
 // ---------------------------------------------------------------------------
 
-interface AttributeDef {
+export interface AttributeDef {
   key: string;
   displayText: string;
   categories: string | null; // JSON array or null (= all)

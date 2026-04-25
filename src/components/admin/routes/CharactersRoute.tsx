@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
@@ -51,7 +51,7 @@ export default function CharactersRoute(): React.JSX.Element {
   const [deleting, setDeleting] = useState(false)
   const pageSize = 50
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     setLoading(true)
     setError(null)
     try {
@@ -71,14 +71,14 @@ export default function CharactersRoute(): React.JSX.Element {
     } finally {
       setLoading(false)
     }
-  }
+  }, [search, category, page, pageSize, sort, order])
 
   useEffect(() => {
     const timer = setTimeout(() => { setPage(1); void fetchData() }, 300)
     return () => clearTimeout(timer)
-  }, [search, category])
+  }, [search, category]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  useEffect(() => { void fetchData() }, [page, sort, order, search, category]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { void fetchData() }, [fetchData])
 
   const toggleSort = (col: SortKey) => {
     if (sort === col) {

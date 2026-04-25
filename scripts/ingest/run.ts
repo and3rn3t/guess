@@ -10,6 +10,7 @@
  *   npx tsx scripts/ingest/run.ts dedup         # Run deduplication
  *   npx tsx scripts/ingest/run.ts upload        # Generate D1 migration SQL
  */
+import { writeFileSync } from 'fs';
 import { closeDb } from './db.js';
 import { showStats } from './upload.js';
 import { runDedup } from './dedup.js';
@@ -125,7 +126,6 @@ async function main() {
         : 1000;
       const sql = generateDisputeUploadSQL(disputeLimit);
       const outputFile = 'migrations/0026b_dispute_upload.sql';
-      const { writeFileSync } = await import('fs');
       writeFileSync(outputFile, sql);
       console.log(`Wrote ${outputFile}`);
       if (process.argv.includes('--apply')) {
