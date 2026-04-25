@@ -180,6 +180,7 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          wranglerVersion: "4.83.0"
           command: pages deploy dist --project-name=guess --branch=${{ github.head_ref }}
 
       - name: Smoke test
@@ -234,6 +235,7 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          wranglerVersion: "4.83.0"
           command: pages deploy dist --project-name=guess
 
       - name: Smoke test
