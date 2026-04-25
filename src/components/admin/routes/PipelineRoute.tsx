@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { ArrowLeftIcon, ArrowRightIcon } from '@phosphor-icons/react'
 
@@ -37,6 +38,8 @@ export default function PipelineRoute(): React.JSX.Element {
   const [error, setError] = useState<string | null>(null)
   const [filterStep, setFilterStep] = useState('')
   const [filterStatus, setFilterStatus] = useState('')
+  const [filterBatch, setFilterBatch] = useState('')
+  const [filterCharacter, setFilterCharacter] = useState('')
   const [page, setPage] = useState(1)
   const pageSize = 50
 
@@ -47,6 +50,8 @@ export default function PipelineRoute(): React.JSX.Element {
       const params = new URLSearchParams({ page: String(p), pageSize: String(pageSize) })
       if (filterStep) params.set('step', filterStep)
       if (filterStatus) params.set('status', filterStatus)
+      if (filterBatch.trim()) params.set('batch', filterBatch.trim())
+      if (filterCharacter.trim()) params.set('character', filterCharacter.trim())
       const res = await fetch(`/api/admin/pipeline?${params}`)
       if (!res.ok) throw new Error(`${res.status} ${res.statusText}`)
       setData(await res.json())
@@ -57,7 +62,7 @@ export default function PipelineRoute(): React.JSX.Element {
     }
   }
 
-  useEffect(() => { setPage(1); void fetchData(1) }, [filterStep, filterStatus]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { setPage(1); void fetchData(1) }, [filterStep, filterStatus, filterBatch, filterCharacter]) // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { void fetchData(page) }, [page]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const totalPages = data ? Math.ceil(data.total / pageSize) : 1
@@ -89,6 +94,18 @@ export default function PipelineRoute(): React.JSX.Element {
             <option value="">All statuses</option>
             {STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
           </select>
+          <Input
+            placeholder="Batch UUID…"
+            value={filterBatch}
+            onChange={(e) => setFilterBatch(e.target.value)}
+            className="h-9 w-48 text-xs font-mono"
+          />
+          <Input
+            placeholder="Character ID…"
+            value={filterCharacter}
+            onChange={(e) => setFilterCharacter(e.target.value)}
+            className="h-9 w-40 text-xs font-mono"
+          />
         </div>
       </div>
 

@@ -96,23 +96,31 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       else byAttr[v.attribute].no += 1
     }
 
-    const toApply = Object.entries(byAttr).filter(([, c]) => c.yes > c.no)
-    if (toApply.length === 0) return jsonResponse({ ok: true, applied: 0, message: 'No majority corrections to apply' })
+    const toApplyYes = Object.entries(byAttr).filter(([, c]) => c.yes > c.no)
+    const toApplyNo = Object.entries(byAttr).filter(([, c]) => c.no > c.yes)
+    if (toApplyYes.length === 0 && toApplyNo.length === 0) return jsonResponse({ ok: true, applied: 0, message: 'No majority corrections to apply' })
 
     if (db) {
-      await Promise.all(
-        toApply.map(([attr]) =>
+      await Promise.all([
+        ...toApplyYes.map(([attr]) =>
           d1Run(
             db,
             `INSERT OR REPLACE INTO character_attributes (character_id, attribute_key, value, confidence) VALUES (?, ?, 1, 0.75)`,
             [characterId, attr]
           )
-        )
-      )
+        ),
+        ...toApplyNo.map(([attr]) =>
+          d1Run(
+            db,
+            `INSERT OR REPLACE INTO character_attributes (character_id, attribute_key, value, confidence) VALUES (?, ?, 0, 0.75)`,
+            [characterId, attr]
+          )
+        ),
+      ])
     }
 
     await kv.delete(key)
-    return jsonResponse({ ok: true, applied: toApply.length, characterId })
+    return jsonResponse({ ok: true, applied: toApplyYes.length + toApplyNo.length, characterId })
   }
 
   return errorResponse('Unknown action', 400)

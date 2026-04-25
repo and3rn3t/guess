@@ -48,7 +48,9 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
         COUNT(DISTINCT gs.id) as usage_count
       FROM attribute_definitions ad
       LEFT JOIN game_stats gs ON gs.answer_distribution IS NOT NULL
-        AND gs.answer_distribution LIKE '%"' || ad.key || '"%'
+        AND EXISTS (
+          SELECT 1 FROM json_each(gs.answer_distribution) jk WHERE jk.key = ad.key
+        )
       ${whereClause}
       GROUP BY ad.key
       ORDER BY usage_count DESC, ad.key ASC

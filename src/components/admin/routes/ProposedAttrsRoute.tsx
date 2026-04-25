@@ -65,13 +65,25 @@ export default function ProposedAttrsRoute(): React.JSX.Element {
   const action = async (id: number, act: 'approve' | 'reject') => {
     setActing(id)
     try {
-      const res = await fetch('/api/admin/proposed-attributes', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id, status: act === 'approve' ? 'approved' : 'rejected' }),
-      })
-      if (!res.ok) throw new Error(`${res.status}`)
-      // Refresh
+      let res: Response
+      if (act === 'approve') {
+        // Use the /[id] route which actually inserts into attribute_definitions
+        res = await fetch(`/api/admin/proposed-attributes/${id}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'approve' }),
+        })
+      } else {
+        res = await fetch('/api/admin/proposed-attributes', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id, status: 'rejected' }),
+        })
+      }
+      if (!res.ok) {
+        const body = await res.json() as { error?: string }
+        throw new Error(body.error ?? `${res.status}`)
+      }
       await fetchData(filter, page)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Action failed')

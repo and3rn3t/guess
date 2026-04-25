@@ -30,7 +30,7 @@ export function CharacterPicker({ onSelect }: CharacterPickerProps): React.JSX.E
         <p className="text-muted-foreground text-sm">Loading characters…</p>
       ) : (
         <ul className="space-y-1 max-h-[60vh] overflow-y-auto">
-          {filtered.slice(0, 100).map((c) => (
+          {(query.trim() ? filtered : filtered.slice(0, 100)).map((c) => (
             <li key={c.id}>
               <Button
                 variant="ghost"

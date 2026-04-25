@@ -1,10 +1,40 @@
 /**
+ * GET    /api/admin/characters/:id — character attributes + active definitions
  * PATCH  /api/admin/characters/:id — update a character attribute value
  * DELETE /api/admin/characters/:id — hard delete a character
  *
  * Protected by the Basic auth gate in functions/_middleware.ts.
  */
 import { type Env, jsonResponse, errorResponse, parseJsonBody } from '../../_helpers'
+
+export const onRequestGet: PagesFunction<Env> = async (context) => {
+  const db = context.env.GUESS_DB
+  if (!db) return errorResponse('D1 not configured', 503)
+
+  const id = context.params.id as string
+  if (!id || typeof id !== 'string') return errorResponse('Missing character id', 400)
+
+  const [char, attrs, defs] = await Promise.all([
+    db.prepare('SELECT id, name, category FROM characters WHERE id = ?')
+      .bind(id).first<{ id: string; name: string; category: string }>(),
+    db.prepare('SELECT attribute_key, value FROM character_attributes WHERE character_id = ?')
+      .bind(id).all<{ attribute_key: string; value: number | null }>(),
+    db.prepare('SELECT key, display_text FROM attribute_definitions WHERE is_active = 1 ORDER BY key ASC')
+      .all<{ key: string; display_text: string }>(),
+  ])
+
+  if (!char) return errorResponse('Character not found', 404)
+
+  const attributes = Object.fromEntries(
+    (attrs.results ?? []).map((r) => [r.attribute_key, r.value as 0 | 1 | null])
+  )
+
+  return jsonResponse({
+    character: char,
+    definitions: (defs.results ?? []).map((d) => ({ key: d.key, displayText: d.display_text })),
+    attributes,
+  })
+}
 
 interface AttributePatch {
   attributeKey: string

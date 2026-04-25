@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
@@ -9,6 +9,8 @@ import {
   ArrowRightIcon,
   ArrowUpIcon,
   ArrowDownIcon,
+  CaretDownIcon,
+  CaretUpIcon,
 } from '@phosphor-icons/react'
 import type { CharacterCategory } from '@/lib/types'
 import { CATEGORY_LABELS } from '@/lib/types'
@@ -49,6 +51,12 @@ export default function CharactersRoute(): React.JSX.Element {
   const [order, setOrder] = useState<'asc' | 'desc'>('desc')
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null)
   const [deleting, setDeleting] = useState(false)
+  const [expandedCharId, setExpandedCharId] = useState<string | null>(null)
+  const [expandedData, setExpandedData] = useState<{
+    definitions: Array<{ key: string; displayText: string }>
+    attributes: Record<string, 0 | 1 | null>
+  } | null>(null)
+  const [expandLoading, setExpandLoading] = useState(false)
   const pageSize = 50
 
   const fetchData = useCallback(async () => {
@@ -98,10 +106,57 @@ export default function CharactersRoute(): React.JSX.Element {
       if (!res.ok) throw new Error(res.statusText)
       setData((prev) => prev ? { ...prev, characters: prev.characters.filter((c) => c.id !== id), total: prev.total - 1 } : prev)
     } catch (e) {
-      alert(`Failed to delete ${name}: ${e instanceof Error ? e.message : 'Unknown error'}`)
+      setError(`Failed to delete ${name}: ${e instanceof Error ? e.message : 'Unknown error'}`)
     } finally {
       setDeleting(false)
       setDeleteConfirm(null)
+    }
+  }
+
+  const toggleExpand = async (id: string) => {
+    if (expandedCharId === id) {
+      setExpandedCharId(null)
+      setExpandedData(null)
+      return
+    }
+    setExpandedCharId(id)
+    setExpandedData(null)
+    setExpandLoading(true)
+    try {
+      const res = await fetch(`/api/admin/characters/${encodeURIComponent(id)}`)
+      if (!res.ok) throw new Error(res.statusText)
+      const json = await res.json() as {
+        definitions: Array<{ key: string; displayText: string }>
+        attributes: Record<string, 0 | 1 | null>
+      }
+      setExpandedData(json)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to load attributes')
+      setExpandedCharId(null)
+    } finally {
+      setExpandLoading(false)
+    }
+  }
+
+  const nextAttrValue = (v: 0 | 1 | null): 0 | 1 | null => {
+    if (v === null) return 1
+    if (v === 1) return 0
+    return null
+  }
+
+  const patchAttr = async (charId: string, attrKey: string, currentVal: 0 | 1 | null) => {
+    const newVal = nextAttrValue(currentVal)
+    setExpandedData((prev) => prev ? { ...prev, attributes: { ...prev.attributes, [attrKey]: newVal } } : prev)
+    try {
+      const res = await fetch(`/api/admin/characters/${encodeURIComponent(charId)}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ attributeKey: attrKey, value: newVal }),
+      })
+      if (!res.ok) throw new Error(res.statusText)
+    } catch (e) {
+      setExpandedData((prev) => prev ? { ...prev, attributes: { ...prev.attributes, [attrKey]: currentVal } } : prev)
+      setError(e instanceof Error ? e.message : 'Attribute update failed')
     }
   }
 
@@ -162,7 +217,7 @@ export default function CharactersRoute(): React.JSX.Element {
                   Pop. <SortIcon col="popularity" />
                 </button>
               </th>
-              <th className="text-center px-4 py-3 font-medium text-muted-foreground w-20">Delete</th>
+              <th className="text-center px-4 py-3 font-medium text-muted-foreground w-24">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
@@ -171,41 +226,86 @@ export default function CharactersRoute(): React.JSX.Element {
                   <tr key={i}><td colSpan={6} className="px-4 py-3"><div className="h-4 bg-muted animate-pulse rounded" /></td></tr>
                 ))
               : (data?.characters ?? []).map((c) => (
-                  <tr key={c.id} className="hover:bg-muted/30 transition-colors">
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-2">
-                        {c.imageUrl && (
-                          <img src={c.imageUrl} alt="" className="w-7 h-7 rounded-full object-cover" loading="lazy" />
-                        )}
-                        <span className="font-medium">{c.name}</span>
-                        {c.isCustom && <Badge variant="outline" className="text-xs">custom</Badge>}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-muted-foreground text-xs">{CATEGORY_LABELS[c.category as CharacterCategory] ?? c.category}</td>
-                    <td className="px-4 py-3 text-muted-foreground text-xs">{c.source}</td>
-                    <td className="px-4 py-3 text-center">
-                      <div className="flex items-center gap-2">
-                        <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
-                          <div className="h-full bg-violet-500 rounded-full" style={{ width: `${c.coveragePct}%` }} />
+                  <React.Fragment key={c.id}>
+                    <tr className="hover:bg-muted/30 transition-colors">
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-2">
+                          {c.imageUrl && (
+                            <img src={c.imageUrl} alt="" className="w-7 h-7 rounded-full object-cover" loading="lazy" />
+                          )}
+                          <span className="font-medium">{c.name}</span>
+                          {c.isCustom && <Badge variant="outline" className="text-xs">custom</Badge>}
                         </div>
-                        <span className="text-xs text-muted-foreground w-10 text-right">{c.coveragePct}%</span>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-center text-xs text-muted-foreground">{c.popularity.toFixed(2)}</td>
-                    <td className="px-4 py-3 text-center">
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        className={`h-7 w-7 ${deleteConfirm === c.id ? 'text-destructive' : 'text-muted-foreground'}`}
-                        onClick={() => void deleteCharacter(c.id, c.name)}
-                        disabled={deleting}
-                        title={deleteConfirm === c.id ? 'Click again to confirm delete' : 'Delete character'}
-                      >
-                        <TrashIcon size={14} />
-                      </Button>
-                    </td>
-                  </tr>
-                ))}
+                      </td>
+                      <td className="px-4 py-3 text-muted-foreground text-xs">{CATEGORY_LABELS[c.category as CharacterCategory] ?? c.category}</td>
+                      <td className="px-4 py-3 text-muted-foreground text-xs">{c.source}</td>
+                      <td className="px-4 py-3 text-center">
+                        <div className="flex items-center gap-2">
+                          <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
+                            <div className="h-full bg-violet-500 rounded-full" style={{ width: `${c.coveragePct}%` }} />
+                          </div>
+                          <span className="text-xs text-muted-foreground w-10 text-right">{c.coveragePct}%</span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-center text-xs text-muted-foreground">{c.popularity.toFixed(2)}</td>
+                      <td className="px-4 py-3 text-center">
+                        <div className="flex items-center justify-center gap-1">
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className={`h-7 w-7 ${deleteConfirm === c.id ? 'text-destructive' : 'text-muted-foreground'}`}
+                            onClick={() => void deleteCharacter(c.id, c.name)}
+                            disabled={deleting}
+                            title={deleteConfirm === c.id ? 'Click again to confirm delete' : 'Delete character'}
+                          >
+                            <TrashIcon size={14} />
+                          </Button>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-7 w-7 text-muted-foreground"
+                            onClick={() => void toggleExpand(c.id)}
+                            title={expandedCharId === c.id ? 'Collapse attributes' : 'Edit attributes'}
+                          >
+                            {expandedCharId === c.id ? <CaretUpIcon size={14} /> : <CaretDownIcon size={14} />}
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                    {expandedCharId === c.id && (
+                      <tr>
+                        <td colSpan={6} className="px-4 py-4 bg-muted/20 border-b border-border">
+                          {expandLoading ? (
+                            <p className="text-sm text-muted-foreground">Loading attributes…</p>
+                          ) : expandedData ? (
+                            <div className="flex flex-wrap gap-1.5">
+                              {expandedData.definitions.map((def) => {
+                                const val = expandedData.attributes[def.key] ?? null
+                                return (
+                                  <button
+                                    key={def.key}
+                                    onClick={() => void patchAttr(c.id, def.key, val)}
+                                    title={`${def.displayText}: ${val === 1 ? 'true' : val === 0 ? 'false' : 'unknown'} — click to cycle`}
+                                    className={`px-2 py-1 rounded text-xs font-mono border transition-colors ${
+                                      val === 1
+                                        ? 'bg-green-500/20 text-green-400 border-green-500/30 hover:bg-green-500/30'
+                                        : val === 0
+                                        ? 'bg-red-500/20 text-red-400 border-red-500/30 hover:bg-red-500/30'
+                                        : 'bg-muted text-muted-foreground border-border hover:text-foreground'
+                                    }`}
+                                  >
+                                    {def.key}
+                                  </button>
+                                )
+                              })}
+                            </div>
+                          ) : null}
+                        </td>
+                      </tr>
+                    )}
+                  </React.Fragment>
+                ))
+            }
           </tbody>
         </table>
       </div>

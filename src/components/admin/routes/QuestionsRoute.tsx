@@ -85,7 +85,7 @@ export default function QuestionsRoute(): React.JSX.Element {
       setData((prev) => prev ? { ...prev, questions: prev.questions.map((q) => q.key === key ? { ...q, questionText: editValue } : q) } : prev)
       cancelEdit()
     } catch (e) {
-      alert(e instanceof Error ? e.message : 'Save failed')
+      setError(e instanceof Error ? e.message : 'Save failed')
     } finally {
       setSaving(false)
     }

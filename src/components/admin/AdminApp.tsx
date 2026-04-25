@@ -18,6 +18,7 @@ const CharactersRoute = lazy(() => import('./routes/CharactersRoute'))
 const QuestionsRoute = lazy(() => import('./routes/QuestionsRoute'))
 const EnrichmentRoute = lazy(() => import('./routes/EnrichmentRoute'))
 const PipelineRoute = lazy(() => import('./routes/PipelineRoute'))
+const AnalyticsRoute = lazy(() => import('./routes/AnalyticsRoute'))
 
 // Phase 3 — Pipeline/streaming (stubs until implemented)
 const EnrichDashboardRoute = lazy(() => import('./routes/EnrichDashboardRoute'))
@@ -67,6 +68,7 @@ export function AdminApp(): React.JSX.Element {
             <Route path="questions" element={<RouteWrapper><QuestionsRoute /></RouteWrapper>} />
             <Route path="enrichment" element={<RouteWrapper><EnrichmentRoute /></RouteWrapper>} />
             <Route path="pipeline" element={<RouteWrapper><PipelineRoute /></RouteWrapper>} />
+            <Route path="analytics" element={<RouteWrapper><AnalyticsRoute /></RouteWrapper>} />
             <Route path="enrich" element={<RouteWrapper><EnrichDashboardRoute /></RouteWrapper>} />
             <Route path="proposed-attrs" element={<RouteWrapper><ProposedAttrsRoute /></RouteWrapper>} />
             <Route path="disputes" element={<RouteWrapper><DisputesRoute /></RouteWrapper>} />

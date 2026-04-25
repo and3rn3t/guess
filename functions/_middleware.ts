@@ -80,9 +80,28 @@ export const onRequest: PagesFunction<Env> = async (context) => {
   }
 
   const valid = await timingSafeEqual(providedCredential, storedCredential)
+
+  // Rate limiting: track per-IP failures in KV (15-minute window, 10-attempt cap)
+  const ip =
+    request.headers.get('CF-Connecting-IP') ??
+    request.headers.get('X-Forwarded-For')?.split(',')[0].trim() ??
+    'unknown'
+  const failKey = `auth:fails:${ip}`
+
   if (!valid) {
+    const failCount = parseInt((await kv.get(failKey)) ?? '0', 10)
+    await kv.put(failKey, String(failCount + 1), { expirationTtl: 900 })
+    if (failCount + 1 >= 10) {
+      return new Response('Too many failed login attempts. Try again later.', {
+        status: 429,
+        headers: { 'Content-Type': 'text/plain', 'Retry-After': '900' },
+      })
+    }
     return unauthorizedResponse()
   }
+
+  // Clear failure counter on successful auth
+  await kv.delete(failKey)
 
   return next()
 }

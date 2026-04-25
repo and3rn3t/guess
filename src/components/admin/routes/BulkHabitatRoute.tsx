@@ -1,9 +1,11 @@
+import { useNavigate } from 'react-router-dom'
 import { MultiCategoryEnhancer } from '@/components/MultiCategoryEnhancer'
 import { useAdminData } from '../AdminDataContext'
 import type { Character } from '@/lib/types'
 
 export default function BulkHabitatRoute(): React.JSX.Element {
   const { characters, refresh } = useAdminData()
+  const navigate = useNavigate()
 
   const handleUpdateCharacters = (_chars: Character[]) => refresh()
 
@@ -12,7 +14,7 @@ export default function BulkHabitatRoute(): React.JSX.Element {
       <MultiCategoryEnhancer
         characters={characters}
         onUpdateCharacters={handleUpdateCharacters}
-        onBack={() => window.history.back()}
+        onBack={() => navigate(-1)}
       />
     </div>
   )

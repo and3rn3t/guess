@@ -45,6 +45,12 @@ const VALUE_LABEL: Record<string, string> = {
   null: "unknown",
 };
 
+interface ResolveTarget {
+  id: number;
+  characterId: string;
+  attributeKey: string;
+}
+
 export default function DisputesRoute(): React.JSX.Element {
   const [data, setData] = useState<PageData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -52,6 +58,9 @@ export default function DisputesRoute(): React.JSX.Element {
   const [filter, setFilter] = useState<Filter>("open");
   const [page, setPage] = useState(1);
   const [acting, setActing] = useState<number | null>(null);
+  const [resolveTarget, setResolveTarget] = useState<ResolveTarget | null>(null);
+  const [correctedValue, setCorrectedValue] = useState<1 | 0 | null>(1);
+  const [resolving, setResolving] = useState(false);
   const pageSize = 25;
 
   const fetchData = async (f: Filter, p: number) => {
@@ -77,7 +86,7 @@ export default function DisputesRoute(): React.JSX.Element {
     void fetchData(filter, page);
   }, [filter, page]);
 
-  const action = async (id: number, status: "resolved" | "dismissed") => {
+  const action = async (id: number, status: "dismissed") => {
     setActing(id);
     try {
       const res = await fetch("/api/admin/attribute-disputes", {
@@ -91,6 +100,42 @@ export default function DisputesRoute(): React.JSX.Element {
       setError(e instanceof Error ? e.message : "Action failed");
     } finally {
       setActing(null);
+    }
+  };
+
+  const resolveAction = async () => {
+    if (!resolveTarget) return;
+    setResolving(true);
+    try {
+      // 1. Apply corrected value to character_attributes
+      const patchRes = await fetch(
+        `/api/admin/characters/${encodeURIComponent(resolveTarget.characterId)}`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            attributeKey: resolveTarget.attributeKey,
+            value: correctedValue,
+          }),
+        }
+      );
+      if (!patchRes.ok) {
+        const body = (await patchRes.json()) as { error?: string };
+        throw new Error(body.error ?? `Character patch failed: ${patchRes.status}`);
+      }
+      // 2. Mark dispute resolved
+      const disputeRes = await fetch("/api/admin/attribute-disputes", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: resolveTarget.id, status: "resolved" }),
+      });
+      if (!disputeRes.ok) throw new Error(`Dispute update failed: ${disputeRes.status}`);
+      setResolveTarget(null);
+      await fetchData(filter, page);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Resolve failed");
+    } finally {
+      setResolving(false);
     }
   };
 
@@ -156,7 +201,8 @@ export default function DisputesRoute(): React.JSX.Element {
       )}
 
       {!loading && (data?.total ?? 0) > 0 && (
-        <div className="space-y-3">
+        <>
+          <div className="space-y-3">
           {(data?.disputes ?? []).map((d) => (
             <div key={d.id} className="rounded-xl border bg-card p-5 space-y-3">
               <div className="flex items-start justify-between gap-4">
@@ -196,8 +242,15 @@ export default function DisputesRoute(): React.JSX.Element {
                       size="sm"
                       variant="outline"
                       className="text-green-400 border-green-500/40 hover:bg-green-500/10"
-                      disabled={acting === d.id}
-                      onClick={() => void action(d.id, "resolved")}
+                      disabled={acting === d.id || resolving}
+                      onClick={() => {
+                        setCorrectedValue(d.current_value === 1 ? 0 : 1);
+                        setResolveTarget({
+                          id: d.id,
+                          characterId: d.character_id,
+                          attributeKey: d.attribute_key,
+                        });
+                      }}
                     >
                       <CheckCircleIcon size={14} className="mr-1.5" />
                       Resolve
@@ -206,7 +259,7 @@ export default function DisputesRoute(): React.JSX.Element {
                       size="sm"
                       variant="outline"
                       className="text-muted-foreground"
-                      disabled={acting === d.id}
+                      disabled={acting === d.id || resolving}
                       onClick={() => void action(d.id, "dismissed")}
                     >
                       <XCircleIcon size={14} className="mr-1.5" />
@@ -215,12 +268,48 @@ export default function DisputesRoute(): React.JSX.Element {
                   </div>
                 )}
               </div>
+              {/* Inline resolution panel */}
+              {resolveTarget?.id === d.id && (
+                <div className="mt-2 p-3 rounded-lg bg-muted/50 border border-border space-y-3">
+                  <p className="text-sm font-medium">
+                    Set corrected value for{" "}
+                    <code className="bg-muted px-1 py-0.5 rounded text-xs font-mono">
+                      {d.attribute_key}
+                    </code>
+                  </p>
+                  <div className="flex gap-2">
+                    {([1, 0, null] as (1 | 0 | null)[]).map((v) => (
+                      <button
+                        key={String(v)}
+                        onClick={() => setCorrectedValue(v)}
+                        className={`px-3 py-1.5 rounded-md text-sm font-medium border transition-colors ${
+                          correctedValue === v
+                            ? "bg-violet-600 text-white border-violet-600"
+                            : "bg-background text-muted-foreground border-border hover:text-foreground"
+                        }`}
+                      >
+                        {v === 1 ? "true" : v === 0 ? "false" : "unknown (remove)"}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="flex gap-2">
+                    <Button size="sm" disabled={resolving} onClick={() => void resolveAction()}>
+                      {resolving ? "Applying\u2026" : "Confirm resolve"}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={resolving}
+                      onClick={() => setResolveTarget(null)}
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              )}
             </div>
           ))}
         </div>
-      )}
-
-      {totalPages > 1 && (
         <div className="flex items-center justify-between">
           <Button
             variant="outline"
@@ -244,6 +333,7 @@ export default function DisputesRoute(): React.JSX.Element {
             <ArrowRightIcon size={14} className="ml-1.5" />
           </Button>
         </div>
+        </>
       )}
     </div>
   );
