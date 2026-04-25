@@ -8,6 +8,7 @@ import {
   kvGetObject,
   kvPut,
   sanitizeString,
+  logError,
 } from "./_helpers";
 
 const MAX_PROMPT_LENGTH = 50_000;
@@ -310,6 +311,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         .text()
         .catch(() => "Unknown error");
       console.error("OpenAI API error:", openaiResponse.status, errorText);
+      context.waitUntil(logError(context.env.GUESS_DB, 'llm', 'error', `OpenAI API error ${openaiResponse.status}`, errorText));
 
       // Surface specific error codes to the client
       if (openaiResponse.status === 429) {
@@ -343,6 +345,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     return processSuccess(data, kv, cacheKey, context.request);
   } catch (error) {
     console.error("LLM proxy error:", error);
+    context.waitUntil(logError(context.env.GUESS_DB, 'llm', 'error', 'LLM proxy error', error));
     return Response.json(
       { error: "Internal server error", code: "INTERNAL" },
       { status: 500 },

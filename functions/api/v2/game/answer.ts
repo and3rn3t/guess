@@ -4,6 +4,7 @@ import {
   errorResponse,
   parseJsonBody,
   d1Run,
+  logError,
 } from '../../_helpers'
 import {
   type AnswerValue,
@@ -283,6 +284,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   })
   } catch (err) {
     console.error('POST /api/v2/game/answer error:', err)
+    context.waitUntil(logError(context.env.GUESS_DB, 'answer', 'error', 'answer processing failed', err))
     const message = err instanceof Error ? err.message : 'Unknown error'
     return errorResponse(`Answer processing failed: ${message}`, 500)
   }

@@ -9,6 +9,7 @@ import {
   kvGetArray,
   kvPut,
   d1Run,
+  logError,
 } from './_helpers'
 
 interface CorrectionVote {
@@ -43,6 +44,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     return jsonResponse(corrections)
   } catch (e) {
     console.error('corrections GET error:', e)
+    context.waitUntil(logError(context.env.GUESS_DB, 'corrections', 'error', 'corrections GET error', e))
     return errorResponse('Internal server error', 500)
   }
 }
@@ -119,6 +121,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
           )
         } catch (e) {
           console.warn('D1 correction write failed (KV still updated):', e)
+          context.waitUntil(logError(context.env.GUESS_DB, 'corrections', 'warn', 'D1 correction write failed', e))
         }
       }
 
@@ -132,6 +135,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     return withSetCookie(jsonResponse({ success: true, autoApplied: false }), setCookieHeader)
   } catch (e) {
     console.error('corrections POST error:', e)
+    context.waitUntil(logError(context.env.GUESS_DB, 'corrections', 'error', 'corrections POST error', e))
     return errorResponse('Internal server error', 500)
   }
 }

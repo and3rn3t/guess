@@ -275,3 +275,31 @@ export async function d1Batch(
   )
   return db.batch(prepared)
 }
+
+/**
+ * Write an error or warning to the error_logs D1 table (fire-and-forget).
+ * Never throws. Evicts oldest entries beyond 1000 rows automatically.
+ * Pass to context.waitUntil() where available for reliable delivery.
+ */
+export function logError(
+  db: D1Database | undefined | null,
+  source: string,
+  level: 'error' | 'warn',
+  message: string,
+  err?: unknown,
+): Promise<void> {
+  if (!db || typeof db.prepare !== 'function') return Promise.resolve()
+  const detail = err != null
+    ? (err instanceof Error
+        ? JSON.stringify({ message: err.message, stack: err.stack?.slice(0, 1500) })
+        : String(err).slice(0, 500))
+    : null
+  return db
+    .batch([
+      db.prepare('INSERT INTO error_logs (level, source, message, detail) VALUES (?, ?, ?, ?)')
+        .bind(level, source, message.slice(0, 500), detail),
+      db.prepare('DELETE FROM error_logs WHERE id NOT IN (SELECT id FROM error_logs ORDER BY id DESC LIMIT 1000)'),
+    ])
+    .then(() => {})
+    .catch(() => {})
+}

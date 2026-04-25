@@ -6,6 +6,7 @@ import {
   errorResponse,
   d1Query,
   d1First,
+  logError,
 } from '../_helpers'
 import type { GameStatsRow } from '../_db-types'
 
@@ -72,6 +73,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     }), setCookieHeader)
   } catch (e) {
     console.error('history GET error:', e)
+    context.waitUntil(logError(context.env.GUESS_DB, 'history', 'error', 'history GET error', e))
     return errorResponse('Internal server error', 500)
   }
 }

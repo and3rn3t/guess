@@ -9,6 +9,7 @@ import {
   kvGetObject,
   kvPut,
   kvGetArray,
+  logError,
 } from './_helpers'
 
 interface CharacterStats {
@@ -54,6 +55,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     return jsonResponse(leaderboard)
   } catch (e) {
     console.error('stats GET error:', e)
+    context.waitUntil(logError(context.env.GUESS_DB, 'stats', 'error', 'stats GET error', e))
     return errorResponse('Internal server error', 500)
   }
 }
@@ -119,6 +121,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     return withSetCookie(jsonResponse({ success: true }), setCookieHeader)
   } catch (e) {
     console.error('stats POST error:', e)
+    context.waitUntil(logError(context.env.GUESS_DB, 'stats', 'error', 'stats POST error', e))
     return errorResponse('Internal server error', 500)
   }
 }

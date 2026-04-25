@@ -11,6 +11,7 @@ import {
   kvGetArray,
   kvPut,
   isValidCategory,
+  logError,
 } from './_helpers'
 
 const DEPRECATION_HEADERS = {
@@ -112,6 +113,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       return errorResponse(err.message, 400)
     }
     console.error('Characters API error:', err)
+    context.waitUntil(logError(context.env.GUESS_DB, 'characters', 'error', 'characters POST error', err))
     return errorResponse('Internal server error', 500)
   }
 }

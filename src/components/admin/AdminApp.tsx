@@ -25,6 +25,7 @@ const EnrichDashboardRoute = lazy(() => import('./routes/EnrichDashboardRoute'))
 const ProposedAttrsRoute = lazy(() => import('./routes/ProposedAttrsRoute'))
 const DisputesRoute = lazy(() => import('./routes/DisputesRoute'))
 const CommunityRoute = lazy(() => import('./routes/CommunityRoute'))
+const ErrorLogsRoute = lazy(() => import('./routes/ErrorLogsRoute'))
 
 function AdminLanding(): React.JSX.Element {
   return (
@@ -73,6 +74,7 @@ export function AdminApp(): React.JSX.Element {
             <Route path="proposed-attrs" element={<RouteWrapper><ProposedAttrsRoute /></RouteWrapper>} />
             <Route path="disputes" element={<RouteWrapper><DisputesRoute /></RouteWrapper>} />
             <Route path="community" element={<RouteWrapper><CommunityRoute /></RouteWrapper>} />
+            <Route path="error-logs" element={<RouteWrapper><ErrorLogsRoute /></RouteWrapper>} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Route>
         </Routes>

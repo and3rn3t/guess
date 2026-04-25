@@ -1,4 +1,4 @@
-import { getCompletionsEndpoint, getLlmHeaders, type Env } from '../_helpers'
+import { getCompletionsEndpoint, getLlmHeaders, logError, type Env } from '../_helpers'
 import type { Answer, ServerQuestion, ReasoningExplanation } from './_game-engine'
 
 /** Persona-specific voice instructions for the rephrase system prompt. */
@@ -114,6 +114,7 @@ Rephrase this question.`
     return rephrased
   } catch (err) {
     console.warn('rephraseQuestion failed (returning null):', err instanceof Error ? err.message : String(err))
+    logError(env.GUESS_DB, 'llm-rephrase', 'warn', 'rephraseQuestion failed', err).catch(() => {})
     return null
   }
 }

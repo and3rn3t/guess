@@ -29,6 +29,15 @@ export interface AttributeDefinitionsRow {
   created_at: number
 }
 
+export interface ErrorLogsRow {
+  id: number
+  level: 'error' | 'warn'
+  source: string
+  message: string
+  detail: string | null
+  created_at: number
+}
+
 export interface PipelineRunsRow {
   id: number
   run_batch: string
