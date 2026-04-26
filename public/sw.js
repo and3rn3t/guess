@@ -1,12 +1,18 @@
-const CACHE_NAME = 'mystic-guesser-v4'
-const API_CACHE = 'mystic-guesser-api-v2'
+const CACHE_NAME = 'andernator-v1'
+const API_CACHE = 'andernator-api-v1'
+const FONT_CACHE = 'andernator-fonts-v1'
+
 const STATIC_ASSETS = [
   '/',
   '/index.html',
   '/manifest.json',
-  '/icon-192.svg',
-  '/icon-512.svg',
+  '/icon-192.png',
+  '/icon-512.png',
+  '/apple-touch-icon.png',
 ]
+
+// Google Fonts hosts
+const FONT_HOSTS = ['fonts.googleapis.com', 'fonts.gstatic.com']
 
 // Read-only API endpoints eligible for stale-while-revalidate
 const CACHEABLE_API = [
@@ -22,14 +28,18 @@ self.addEventListener('install', (event) => {
 })
 
 self.addEventListener('activate', (event) => {
+  const validCaches = new Set([CACHE_NAME, API_CACHE, FONT_CACHE])
   event.waitUntil(
     caches.keys().then((keys) =>
       Promise.all(
-        keys
-          .filter((k) => k !== CACHE_NAME && k !== API_CACHE)
-          .map((k) => caches.delete(k))
+        keys.filter((k) => !validCaches.has(k)).map((k) => caches.delete(k))
       )
-    )
+    ).then(() => {
+      // Notify all open tabs that a new SW has taken over
+      return self.clients.matchAll({ includeUncontrolled: true }).then((clients) => {
+        clients.forEach((client) => client.postMessage({ type: 'SW_UPDATED' }))
+      })
+    })
   )
   self.clients.claim()
 })
@@ -41,6 +51,22 @@ self.addEventListener('fetch', (event) => {
   // Skip non-GET requests
   if (request.method !== 'GET') return
 
+  // Google Fonts: cache-first (fonts rarely change)
+  if (FONT_HOSTS.includes(url.hostname)) {
+    event.respondWith(
+      caches.open(FONT_CACHE).then((cache) =>
+        cache.match(request).then((cached) => {
+          if (cached) return cached
+          return fetch(request).then((response) => {
+            if (response.ok) cache.put(request, response.clone())
+            return response
+          })
+        })
+      )
+    )
+    return
+  }
+
   // Cacheable API endpoints: stale-while-revalidate
   if (CACHEABLE_API.some((path) => url.pathname === path)) {
     event.respondWith(
@@ -48,13 +74,10 @@ self.addEventListener('fetch', (event) => {
         cache.match(request).then((cached) => {
           const fetchPromise = fetch(request)
             .then((response) => {
-              if (response.ok) {
-                cache.put(request, response.clone())
-              }
+              if (response.ok) cache.put(request, response.clone())
               return response
             })
             .catch(() => cached)
-
           return cached || fetchPromise
         })
       )

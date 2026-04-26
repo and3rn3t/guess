@@ -63,6 +63,8 @@ import { useWakeLock } from "@/hooks/useWakeLock";
 import { usePersonalBest } from "@/hooks/usePersonalBest";
 import { useAchievements } from "@/hooks/useAchievements";
 import { useWeeklyRecap } from "@/hooks/useWeeklyRecap";
+import { useInstallPrompt } from "@/hooks/useInstallPrompt";
+import { useSWUpdate } from "@/hooks/useSWUpdate";
 import { startViewTransition } from "@/lib/view-transitions";
 
 const TeachingMode = lazy(() =>
@@ -244,6 +246,20 @@ function App() {
 
   // ========== KEEP SCREEN AWAKE DURING ACTIVE PLAY ==========
   useWakeLock(gamePhase === "playing" || gamePhase === "guessing");
+
+  // ========== PWA: INSTALL PROMPT ==========
+  const { canInstall, promptInstall } = useInstallPrompt();
+
+  // ========== PWA: SW UPDATE NOTIFICATION ==========
+  const { updateAvailable, reload: reloadForUpdate } = useSWUpdate();
+  useEffect(() => {
+    if (!updateAvailable) return;
+    toast('Update available', {
+      description: 'A new version of Andernator is ready.',
+      action: { label: 'Reload', onClick: reloadForUpdate },
+      duration: Infinity,
+    });
+  }, [updateAvailable, reloadForUpdate]);
 
   // ========== FOCUS MANAGEMENT ON PHASE CHANGE ==========
   // Move focus to the new phase's primary heading/wrapper after transition,
@@ -495,7 +511,19 @@ function App() {
             theme={theme}
             toggleTheme={toggleTheme}
             setShowQuitDialog={setShowQuitDialog}
+            canInstall={canInstall}
+            promptInstall={promptInstall}
           />
+          {!online && (
+            <div
+              role="status"
+              aria-live="polite"
+              className="flex items-center justify-center gap-2 bg-yellow-500/10 border-b border-yellow-500/30 px-4 py-2 text-sm text-yellow-400"
+            >
+              <span className="inline-block w-2 h-2 rounded-full bg-yellow-400 animate-pulse" aria-hidden="true" />
+              You&rsquo;re offline — new games are unavailable until you reconnect.
+            </div>
+          )}
 
           <main
             role="main"

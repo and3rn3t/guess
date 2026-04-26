@@ -10,6 +10,7 @@ import {
   CloudXIcon,
   ClockCounterClockwiseIcon,
   ChartBarIcon,
+  DeviceMobileIcon,
   HouseIcon,
   MoonIcon,
   SpeakerHighIcon,
@@ -47,6 +48,8 @@ interface AppHeaderProps {
   theme: string | undefined;
   toggleTheme: () => void;
   setShowQuitDialog: (show: boolean) => void;
+  canInstall?: boolean;
+  promptInstall?: () => Promise<void>;
 }
 
 function AppHeaderBase({
@@ -62,6 +65,8 @@ function AppHeaderBase({
   theme,
   toggleTheme,
   setShowQuitDialog,
+  canInstall = false,
+  promptInstall,
 }: Readonly<AppHeaderProps>) {
   return (
     <header
@@ -139,6 +144,18 @@ function AppHeaderBase({
                   >
                     <WrenchIcon size={20} />
                     <span className="hidden sm:inline">Dev Tools</span>
+                  </Button>
+                )}
+                {canInstall && promptInstall && (
+                  <Button
+                    onClick={promptInstall}
+                    variant="outline"
+                    size="sm"
+                    aria-label="Install app"
+                    className="flex items-center gap-2 touch-target border-accent/30 text-accent hover:bg-accent/20"
+                  >
+                    <DeviceMobileIcon size={20} />
+                    <span className="hidden sm:inline">Install</span>
                   </Button>
                 )}
                 <a
