@@ -4,7 +4,6 @@ description: Checkout, install pnpm, set up Node 22 with pnpm cache, and install
 runs:
   using: composite
   steps:
-    - uses: actions/checkout@v4
     - uses: pnpm/action-setup@v4
     - uses: actions/setup-node@v4
       with:

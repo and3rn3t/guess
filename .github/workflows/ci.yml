@@ -80,6 +80,7 @@ jobs:
     permissions:
       contents: read
     steps:
+      - uses: actions/checkout@v4
       - uses: ./.github/actions/setup
       - run: pnpm lint
       - run: tsc -b
@@ -93,6 +94,7 @@ jobs:
     permissions:
       contents: read
     steps:
+      - uses: actions/checkout@v4
       - uses: ./.github/actions/setup
       - uses: actions/download-artifact@v4
         with:
@@ -126,6 +128,7 @@ jobs:
     permissions:
       contents: read
     steps:
+      - uses: actions/checkout@v4
       - uses: ./.github/actions/setup
       - run: pnpm build
 
@@ -154,6 +157,7 @@ jobs:
     permissions:
       contents: read
     steps:
+      - uses: actions/checkout@v4
       - uses: ./.github/actions/setup
       - name: Regenerate DB types
         run: pnpm db:types
