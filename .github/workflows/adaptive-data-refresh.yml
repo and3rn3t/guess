@@ -22,65 +22,102 @@ concurrency:
   group: adaptive-data-refresh
   cancel-in-progress: true # only one refresh at a time
 
-env:
-  CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-  CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-
 jobs:
-  refresh:
-    name: Refresh adaptive data
+  # ── 1. Export character + question data from production D1 ──
+  export:
+    name: Export simulation data
     runs-on: ubuntu-latest
-    timeout-minutes: 60
-
+    timeout-minutes: 10
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
-
       - uses: pnpm/action-setup@v4
-
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: pnpm
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      # ── 1. Export character + question data from production D1 ──────────────
-      - name: Export simulation data from D1
+      - run: pnpm install --frozen-lockfile
+      - name: Export from D1
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: pnpm simulate:export --env production
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sim-data
+          path: |
+            scripts/simulate/data/characters.json
+            scripts/simulate/data/questions.json
+          retention-days: 1
 
-      # ── 2. Run simulations across all three difficulties ────────────────────
-      # Uses parallel workers (--parallel) for speed.
-      # Sample size is intentionally small (default 100/difficulty = 300 total)
-      # to keep CI runtime under ~15 min. Increase via workflow_dispatch input.
-      - name: Run simulations (easy)
+  # ── 2. Run simulations in parallel across all three difficulties
+  simulate:
+    name: Simulate (${{ matrix.difficulty }})
+    needs: [export]
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    strategy:
+      matrix:
+        difficulty: [easy, medium, hard]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - uses: actions/download-artifact@v4
+        with:
+          name: sim-data
+          path: scripts/simulate/data
+      - name: Run simulations
         run: |
           SAMPLE=${{ github.event.inputs.sample || '100' }}
           pnpm simulate \
             --sample "$SAMPLE" \
-            --difficulty easy \
+            --difficulty ${{ matrix.difficulty }} \
             --parallel \
-            --output scripts/simulate/data/results-ci-easy.jsonl
+            --output scripts/simulate/data/results-ci-${{ matrix.difficulty }}.jsonl
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sim-results-${{ matrix.difficulty }}
+          path: scripts/simulate/data/results-ci-${{ matrix.difficulty }}.jsonl
+          retention-days: 1
 
-      - name: Run simulations (medium)
-        run: |
-          SAMPLE=${{ github.event.inputs.sample || '100' }}
-          pnpm simulate \
-            --sample "$SAMPLE" \
-            --difficulty medium \
-            --parallel \
-            --output scripts/simulate/data/results-ci-medium.jsonl
+  # ── 3. Merge results, compute adaptive data, upload to KV ────
+  compute-and-upload:
+    name: Compute adaptive data + upload to KV
+    needs: [simulate]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
 
-      - name: Run simulations (hard)
-        run: |
-          SAMPLE=${{ github.event.inputs.sample || '100' }}
-          pnpm simulate \
-            --sample "$SAMPLE" \
-            --difficulty hard \
-            --parallel \
-            --output scripts/simulate/data/results-ci-hard.jsonl
+      - uses: actions/download-artifact@v4
+        with:
+          name: sim-results-easy
+          path: scripts/simulate/data
+      - uses: actions/download-artifact@v4
+        with:
+          name: sim-results-medium
+          path: scripts/simulate/data
+      - uses: actions/download-artifact@v4
+        with:
+          name: sim-results-hard
+          path: scripts/simulate/data
 
-      # ── 3. Merge results and compute adaptive data ──────────────────────────
       - name: Merge simulation results
         run: |
           cat \
@@ -99,10 +136,12 @@ jobs:
       - name: Compute confusion-discriminators
         run: pnpm simulate:confusion-pairs --input "$PWD/scripts/simulate/data/results-ci-all.jsonl"
 
-      # ── 4. Upload to production KV ──────────────────────────────────────────
       - name: Upload maybe-rates to KV
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
-          npx wrangler kv key put \
+          npx wrangler@4.83.0 kv key put \
             --binding GUESS_KV \
             --path scripts/simulate/data/maybe-rates.json \
             --env production \
@@ -110,8 +149,11 @@ jobs:
             "kv:attribute-maybe-rates"
 
       - name: Upload net-gains to KV
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
-          npx wrangler kv key put \
+          npx wrangler@4.83.0 kv key put \
             --binding GUESS_KV \
             --path scripts/simulate/data/net-gains.json \
             --env production \
@@ -119,15 +161,17 @@ jobs:
             "kv:attribute-net-gains"
 
       - name: Upload confusion-discriminators to KV
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
-          npx wrangler kv key put \
+          npx wrangler@4.83.0 kv key put \
             --binding GUESS_KV \
             --path scripts/simulate/data/confusion-discriminators.json \
             --env production \
             --remote \
             "kv:confusion-discriminators"
 
-      # ── 5. Summary ──────────────────────────────────────────────────────────
       - name: Print summary
         run: |
           echo "### Adaptive Data Refresh" >> "$GITHUB_STEP_SUMMARY"

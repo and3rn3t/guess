@@ -22,19 +22,12 @@ jobs:
   regression:
     name: Simulator regression gate
     runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
 
     steps:
-      - uses: actions/checkout@v4
-
-      - uses: pnpm/action-setup@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: pnpm
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+      - uses: ./.github/actions/setup
 
       # The regression script needs characters.json and questions.json.
       # We commit a compact sample (150 chars) as baseline.jsonl, but the

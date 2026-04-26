@@ -6,7 +6,6 @@ on:
     paths-ignore:
       - "**/*.md"
       - "docs/**"
-      - "migrations/**"
       - "LICENSE"
       - ".gitignore"
       - ".husky/**"
@@ -15,7 +14,6 @@ on:
     paths-ignore:
       - "**/*.md"
       - "docs/**"
-      - "migrations/**"
       - "LICENSE"
       - ".gitignore"
       - ".husky/**"
@@ -31,6 +29,7 @@ jobs:
     outputs:
       app: ${{ steps.filter.outputs.app }}
       frontend: ${{ steps.filter.outputs.frontend }}
+      db: ${{ steps.filter.outputs.db }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -67,37 +66,34 @@ jobs:
               - 'tsconfig.json'
               - 'tailwind.config.js'
               - 'components.json'
+            db:
+              - 'migrations/**'
+              - 'functions/api/_db-types.ts'
+              - 'scripts/generate-db-types.ts'
 
   # ── Lint + type-check + tests (merged to share install) ──────
   checks:
+    needs: [changes]
+    if: needs.changes.outputs.app == 'true'
     runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
+      - uses: ./.github/actions/setup
       - run: pnpm lint
       - run: tsc -b
       - run: pnpm test
-      - run: pnpm build
-      - name: Check bundle size
-        run: pnpm size
 
   test-e2e:
     needs: [changes, build]
     if: needs.changes.outputs.frontend == 'true'
     runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
+      - uses: ./.github/actions/setup
       - uses: actions/download-artifact@v4
         with:
           name: dist
@@ -107,11 +103,12 @@ jobs:
         id: playwright-cache
         with:
           path: ~/.cache/ms-playwright
-          key: playwright-browsers-webkit-${{ hashFiles('**/pnpm-lock.yaml') }}
+          key: playwright-browsers-${{ hashFiles('**/pnpm-lock.yaml') }}
       - name: Install Playwright browsers
-        run: npx playwright install chromium firefox webkit
         if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: npx playwright install chromium firefox webkit
       - name: Install Playwright system dependencies
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
         run: npx playwright install-deps chromium firefox webkit
       - run: npx playwright test
       - uses: actions/upload-artifact@v4
@@ -125,14 +122,11 @@ jobs:
     needs: [changes]
     if: needs.changes.outputs.app == 'true'
     runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
+      - uses: ./.github/actions/setup
       - run: pnpm build
 
       - name: Check bundle size
@@ -153,15 +147,14 @@ jobs:
 
   # ── DB type drift check (DX.11) ────────────────────────────
   db-drift:
+    needs: [changes]
+    if: needs.changes.outputs.db == 'true'
     runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
+      - uses: ./.github/actions/setup
       - name: Regenerate DB types
         run: pnpm db:types
       - name: Check for drift
@@ -180,6 +173,7 @@ jobs:
       needs.build.result == 'success' &&
       (needs.test-e2e.result == 'success' || needs.test-e2e.result == 'skipped')
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
       contents: read
       deployments: write
@@ -237,6 +231,7 @@ jobs:
       needs.build.result == 'success' &&
       (needs.test-e2e.result == 'success' || needs.test-e2e.result == 'skipped')
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
       contents: read
       deployments: write
@@ -281,9 +276,10 @@ jobs:
 
   # ── PR report (bundle stats + preview link) ─────────────────
   pr-report:
-    needs: [build, deploy-preview]
+    needs: [deploy-preview]
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     permissions:
       pull-requests: write
     steps:
@@ -369,6 +365,7 @@ jobs:
     needs: deploy-preview
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     continue-on-error: true
     steps:
       - uses: actions/checkout@v4
