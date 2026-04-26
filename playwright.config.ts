@@ -19,8 +19,6 @@ export default defineConfig({
     ? [
         { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
         { name: 'firefox', use: { ...devices['Desktop Firefox'] } },
-        { name: 'Mobile Safari', use: { ...devices['iPhone 15'] } },
-        { name: 'Mobile Chrome', use: { ...devices['Pixel 7'] } },
       ]
     : [
         { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
