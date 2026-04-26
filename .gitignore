@@ -54,3 +54,13 @@ pids
 .devcontainer/
 
 .spark-workbench-id
+.spark-initial-sha
+
+# Wrangler temp build artifacts
+.tmp-functions/
+
+# Playwright MCP session artifacts
+.playwright-mcp/
+
+# nohup output
+nohup.out
