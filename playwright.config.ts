@@ -5,12 +5,13 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
-  workers: process.env.CI ? 2 : undefined,
+  workers: process.env.CI ? 4 : undefined,
   reporter: process.env.CI
     ? [['dot'], ['html', { open: 'never' }]]
     : 'html',
   use: {
     baseURL: 'http://localhost:4173',
+    screenshot: 'only-on-failure',
     trace: 'on-first-retry',
     serviceWorkers: 'block',
   },

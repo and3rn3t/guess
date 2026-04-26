@@ -448,6 +448,7 @@ export function GameOver({
               <Button
                 onClick={onPlayAgain}
                 size="lg"
+                data-testid="play-again-btn"
                 className="h-14 text-lg bg-accent hover:bg-accent/90 text-accent-foreground shadow-lg shadow-accent/30 hover:scale-105 transition-transform"
               >
                 <ArrowClockwise size={24} weight="bold" className="mr-2" />
@@ -459,6 +460,7 @@ export function GameOver({
               <Button
                 onClick={onPlayAgain}
                 size="lg"
+                data-testid="play-again-btn"
                 className="h-14 text-lg bg-accent hover:bg-accent/90 text-accent-foreground shadow-lg shadow-accent/30 hover:scale-105 transition-transform"
               >
                 <ArrowClockwise size={24} weight="bold" className="mr-2" />

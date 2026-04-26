@@ -273,6 +273,7 @@ export function GuessReveal({
                 <Button
                   onClick={onCorrect}
                   size="lg"
+                  data-testid="guess-correct-btn"
                   className="flex-1 max-w-xs h-14 text-lg bg-emerald-500 hover:bg-emerald-400 text-white shadow-lg shadow-emerald-500/30 hover:scale-105 transition-transform"
                 >
                   <CheckCircle size={24} weight="fill" className="mr-2" />
@@ -282,6 +283,7 @@ export function GuessReveal({
                   onClick={onRejectGuess ?? onIncorrect}
                   size="lg"
                   variant="outline"
+                  data-testid="guess-wrong-btn"
                   className="flex-1 max-w-xs h-14 text-lg hover:scale-105 transition-transform"
                 >
                   <XCircle size={24} weight="fill" className="mr-2" />
