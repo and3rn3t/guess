@@ -7,6 +7,8 @@ interface AdminDataContextValue {
   questions: Question[]
   loading: boolean
   refresh: () => void
+  characterLimit: number
+  setCharacterLimit: (limit: number) => void
 }
 
 export const AdminDataContext = createContext<AdminDataContextValue>({
@@ -14,6 +16,8 @@ export const AdminDataContext = createContext<AdminDataContextValue>({
   questions: DEFAULT_QUESTIONS,
   loading: false,
   refresh: () => {},
+  characterLimit: 200,
+  setCharacterLimit: () => {},
 })
 
 export function useAdminData(): AdminDataContextValue {

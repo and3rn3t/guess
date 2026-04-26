@@ -1,5 +1,5 @@
 import { KV_CHARACTERS_CACHE, KV_QUESTIONS_CACHE, SYNC_CACHE_TTL } from './constants'
-import type { Character, Question, Difficulty } from './types'
+import type { Character, CharacterCategory, Question, Difficulty } from './types'
 import { getUserId } from './utils'
 
 export type SyncStatus = 'synced' | 'pending' | 'error' | 'offline'
@@ -39,6 +39,75 @@ export async function fetchGlobalCharacters(): Promise<Character[]> {
   } catch {
     // Offline fallback: use cache even if stale
     return getStaleCache<Character[]>(KV_CHARACTERS_CACHE) || []
+  }
+}
+
+// ===== Admin Characters (top-N popular from real DB) =====
+
+interface AdminCharacterRow {
+  id: string
+  name: string
+  category: string
+  imageUrl: string | null
+  isCustom: boolean
+  createdAt: number
+}
+
+/**
+ * Fetch the top-N most popular characters from the admin API.
+ * Returns Character objects with empty attributes (sufficient for CharacterPicker).
+ * No localStorage cache — admin tools always need fresh data.
+ */
+export async function fetchAdminCharacters(limit: number): Promise<Character[]> {
+  try {
+    const params = new URLSearchParams({
+      sort: 'popularity',
+      order: 'desc',
+      pageSize: String(Math.min(500, Math.max(50, limit))),
+      page: '1',
+    })
+    const res = await fetch(`/api/admin/characters?${params.toString()}`, { headers: headers() })
+    if (!res.ok) throw new Error(`HTTP ${res.status}`)
+    const data = (await res.json()) as { characters: AdminCharacterRow[] }
+    return (data.characters ?? []).map((r) => ({
+      id: r.id,
+      name: r.name,
+      category: r.category as CharacterCategory,
+      attributes: {},
+      imageUrl: r.imageUrl ?? undefined,
+      isCustom: r.isCustom,
+      createdAt: r.createdAt,
+    }))
+  } catch {
+    return []
+  }
+}
+
+interface AdminCharacterDetail {
+  character: { id: string; name: string; category: string }
+  attributes: Record<string, 0 | 1 | null>
+}
+
+/**
+ * Fetch full character data (including attributes) from the admin API.
+ * Used by CharacterPicker when a character is selected for detailed analysis.
+ */
+export async function fetchAdminCharacterById(id: string): Promise<Character | null> {
+  try {
+    const res = await fetch(`/api/admin/characters/${encodeURIComponent(id)}`, { headers: headers() })
+    if (!res.ok) return null
+    const data = (await res.json()) as AdminCharacterDetail
+    const attributes: Record<string, boolean | null> = Object.fromEntries(
+      Object.entries(data.attributes).map(([k, v]) => [k, v === 1 ? true : v === 0 ? false : null])
+    )
+    return {
+      id: data.character.id,
+      name: data.character.name,
+      category: data.character.category as CharacterCategory,
+      attributes,
+    }
+  } catch {
+    return null
   }
 }
 

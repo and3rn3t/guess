@@ -16,6 +16,8 @@ import {
   BugIcon,
   WarningOctagonIcon,
 } from '@phosphor-icons/react'
+import { useAdminData } from './AdminDataContext'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 
 interface NavItem {
   to: string
@@ -87,6 +89,8 @@ function SidebarSection({
 }
 
 export function AdminShell(): React.JSX.Element {
+  const { characterLimit, setCharacterLimit, characters, loading } = useAdminData()
+
   return (
     <div className="min-h-screen bg-background flex">
       {/* Sidebar */}
@@ -107,6 +111,31 @@ export function AdminShell(): React.JSX.Element {
           <SidebarSection title="Data" items={DATA_ITEMS} />
           <SidebarSection title="Pipeline" items={PIPELINE_ITEMS} />
         </nav>
+
+        {/* Working-set selector */}
+        <div className="mt-4 px-3 border-t border-border/40 pt-4">
+          <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground/60 mb-2">
+            Working set
+          </p>
+          <Select
+            value={String(characterLimit)}
+            onValueChange={(v) => setCharacterLimit(Number(v))}
+            disabled={loading}
+          >
+            <SelectTrigger className="h-8 text-xs">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="50">Top 50</SelectItem>
+              <SelectItem value="100">Top 100</SelectItem>
+              <SelectItem value="200">Top 200</SelectItem>
+              <SelectItem value="500">Top 500</SelectItem>
+            </SelectContent>
+          </Select>
+          <p className="text-[10px] text-muted-foreground/50 mt-1">
+            {loading ? 'Loading…' : `${characters.length} chars loaded`}
+          </p>
+        </div>
       </aside>
 
       {/* Main content */}

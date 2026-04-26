@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import type { Character } from '@/lib/types'
 import { useAdminData } from './AdminDataContext'
+import { fetchAdminCharacterById } from '@/lib/sync'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 
@@ -11,10 +12,21 @@ interface CharacterPickerProps {
 export function CharacterPicker({ onSelect }: CharacterPickerProps): React.JSX.Element {
   const { characters, loading } = useAdminData()
   const [query, setQuery] = useState('')
+  const [loadingId, setLoadingId] = useState<string | null>(null)
 
   const filtered = characters.filter((c) =>
     c.name.toLowerCase().includes(query.toLowerCase())
   )
+
+  const handleSelect = async (c: Character) => {
+    setLoadingId(c.id)
+    try {
+      const full = await fetchAdminCharacterById(c.id)
+      onSelect(full ?? c)
+    } finally {
+      setLoadingId(null)
+    }
+  }
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-lg">
@@ -35,9 +47,10 @@ export function CharacterPicker({ onSelect }: CharacterPickerProps): React.JSX.E
               <Button
                 variant="ghost"
                 className="w-full justify-start text-sm"
-                onClick={() => onSelect(c)}
+                onClick={() => { void handleSelect(c) }}
+                disabled={loadingId === c.id}
               >
-                {c.name}
+                {loadingId === c.id ? 'Loading…' : c.name}
                 <span className="ml-2 text-xs text-muted-foreground">{c.category}</span>
               </Button>
             </li>

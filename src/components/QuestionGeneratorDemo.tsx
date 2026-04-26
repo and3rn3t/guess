@@ -10,6 +10,7 @@ import { DEFAULT_CHARACTERS, DEFAULT_QUESTIONS } from '@/lib/database'
 
 interface QuestionGeneratorDemoProps {
   onBack: () => void
+  initialCharacters?: Character[]
 }
 
 type DemoStep = 'intro' | 'character' | 'generator' | 'success'
@@ -41,14 +42,15 @@ const TEST_CHARACTER: Character = {
   },
 }
 
-export function QuestionGeneratorDemo({ onBack }: QuestionGeneratorDemoProps) {
+export function QuestionGeneratorDemo({ onBack, initialCharacters }: QuestionGeneratorDemoProps) {
+  const baseCharacters = initialCharacters ?? DEFAULT_CHARACTERS
   const [currentStep, setCurrentStep] = useState<DemoStep>('intro')
-  const [characters, setCharacters] = useState<Character[]>([...DEFAULT_CHARACTERS])
+  const [characters, setCharacters] = useState<Character[]>([...baseCharacters])
   const [questions, setQuestions] = useState<Question[]>([...DEFAULT_QUESTIONS])
   const [generatedCount, setGeneratedCount] = useState(0)
 
   const handleAddTestCharacter = () => {
-    setCharacters([...DEFAULT_CHARACTERS, TEST_CHARACTER])
+    setCharacters([...baseCharacters, TEST_CHARACTER])
     setCurrentStep('character')
   }
 
