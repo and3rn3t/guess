@@ -110,7 +110,6 @@ jobs:
         if: steps.playwright-cache.outputs.cache-hit != 'true'
         run: npx playwright install chromium firefox webkit
       - name: Install Playwright system dependencies
-        if: steps.playwright-cache.outputs.cache-hit != 'true'
         run: npx playwright install-deps chromium firefox webkit
       - run: npx playwright test
       - uses: actions/upload-artifact@v4
