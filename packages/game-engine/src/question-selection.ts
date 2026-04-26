@@ -364,6 +364,13 @@ export function selectBestQuestion(
       }
     }
 
+    // Difficulty soft-filter: de-prioritize questions tagged for a different difficulty level.
+    // Only applies when both the game difficulty and the question's difficulty tag are set.
+    // A 0.5× penalty keeps mismatched questions available as a last resort.
+    if (options?.gameDifficulty && question.difficulty && question.difficulty !== options.gameDifficulty) {
+      infoGain *= 0.5
+    }
+
     scored.push({ question, score: infoGain, topTwoSplit })
   }
 

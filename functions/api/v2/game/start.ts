@@ -189,7 +189,10 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   )
 
   // Select first question
-  const firstQuestion = selectBestQuestion(serverChars, [], serverQuestions, { scoring: { coverageMap, popularityMap } })
+  const firstQuestion = selectBestQuestion(serverChars, [], serverQuestions, {
+    scoring: { coverageMap, popularityMap },
+    gameDifficulty: difficulty as 'easy' | 'medium' | 'hard',
+  })
   if (!firstQuestion) {
     return errorResponse('No questions available', 500)
   }

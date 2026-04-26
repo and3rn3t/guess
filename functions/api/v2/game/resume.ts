@@ -111,10 +111,11 @@ async function reconstructFromD1(
 
   // Re-select current question based on answers
   const filtered = filterPossibleCharacters(serverChars, answers)
+  const resumeOptions = { gameDifficulty: row.difficulty as 'easy' | 'medium' | 'hard' }
   const currentQuestion = row.current_question_attr
     ? serverQuestions.find((q) => q.attribute === row.current_question_attr) ??
-      selectBestQuestion(filtered, answers, serverQuestions)
-    : selectBestQuestion(filtered, answers, serverQuestions)
+      selectBestQuestion(filtered, answers, serverQuestions, resumeOptions)
+    : selectBestQuestion(filtered, answers, serverQuestions, resumeOptions)
 
   const session: GameSession = {
     id: row.id,

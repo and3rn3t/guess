@@ -35,6 +35,8 @@ export interface GameCharacter {
 export interface GameQuestion {
   attribute: string
   category?: string
+  /** Difficulty tag set by scripts/classify-difficulty.ts. Used for soft-filtering by game difficulty. */
+  difficulty?: 'easy' | 'medium' | 'hard'
 }
 
 export interface GameAnswer {
@@ -129,6 +131,12 @@ export interface QuestionSelectionOptions {
    * Derived from simulation data via `scripts/simulate/confusion-pairs.ts`.
    */
   confusionDiscriminators?: Record<string, string[]>
+  /**
+   * Active game difficulty. When set, questions tagged with a different `difficulty`
+   * level receive a 0.5× score penalty (soft filter — they can still be selected if
+   * no better alternatives exist). Questions with no difficulty tag are unaffected.
+   */
+  gameDifficulty?: 'easy' | 'medium' | 'hard'
 }
 
 // ── Guess-readiness result ────────────────────────────────────────────────────

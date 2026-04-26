@@ -112,6 +112,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     progress,
     scoring: { ...scoring, disputeMap },
     mctsEndgameThreshold: session.difficulty === 'hard' ? 0.70 : undefined,
+    gameDifficulty: session.difficulty as 'easy' | 'medium' | 'hard',
     maybeRateMap: maybeRateMap ?? undefined,
     netGainMap: netGainMap ?? undefined,
     confusionDiscriminators: confusionDiscriminators ?? undefined,
