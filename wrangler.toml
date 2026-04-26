@@ -41,10 +41,6 @@ name = "RATE_LIMITER"
 class_name = "RateLimiter"
 script_name = "guess"
 
-[[env.production.migrations]]
-tag = "v1"
-new_classes = ["RateLimiter"]
-
 # ── Preview / Development ─────────────────────────────────────
 # Isolated KV so preview experiments never touch production data.
 [env.preview]
@@ -71,3 +67,4 @@ bucket_name = "guess-images"
 name = "RATE_LIMITER"
 class_name = "RateLimiter"
 script_name = "guess"
+
