@@ -1,0 +1,72 @@
+- generic [ref=e2]:
+  - region "Notifications alt+T"
+  - generic [ref=e5]:
+    - banner "Game navigation" [ref=e6]:
+      - generic [ref=e8]:
+        - button "Andernator" [ref=e9]:
+          - img [ref=e10]
+          - heading "Andernator" [level=1] [ref=e12]
+        - generic [ref=e13]:
+          - button "Statistics" [ref=e14]:
+            - img
+            - generic [ref=e15]: Statistics
+          - button "History" [ref=e16]:
+            - img
+            - generic [ref=e17]: History
+          - button "Compare" [ref=e18]:
+            - img
+            - generic [ref=e19]: Compare
+          - button "Dev Tools" [ref=e20]:
+            - img
+            - generic [ref=e21]: Dev Tools
+          - link "Admin panel" [ref=e22] [cursor=pointer]:
+            - /url: /admin
+            - img [ref=e23]
+          - 'generic "Sync status: synced" [ref=e26]':
+            - img [ref=e27]
+          - button "Mute sounds" [ref=e29]:
+            - img
+          - button "Switch to light mode" [ref=e30]:
+            - img
+    - main "Game content" [ref=e31]:
+      - generic [ref=e34]:
+        - generic [ref=e35]:
+          - img [ref=e36]
+          - heading "Think of a Character" [active] [level=2] [ref=e38]
+          - paragraph [ref=e39]: I'll ask strategic questions and try to guess who you're thinking of.
+        - generic [ref=e40]:
+          - paragraph [ref=e41]: Who's your detective?
+          - group "Select detective persona" [ref=e42]:
+            - button "Poirot Theatrical & precise 20 questions · deliberate pace" [ref=e43]:
+              - generic [ref=e44]: 🎩
+              - generic [ref=e45]: Poirot
+              - generic [ref=e46]: Theatrical & precise
+              - generic [ref=e47]: 20 questions · deliberate pace
+            - button "Watson Warm & methodical 15 questions · balanced" [pressed] [ref=e48]:
+              - generic [ref=e49]: 📓
+              - generic [ref=e50]: Watson
+              - generic [ref=e51]: Warm & methodical
+              - generic [ref=e52]: 15 questions · balanced
+            - button "Sherlock Terse & brilliant 10 questions · intense" [ref=e53]:
+              - generic [ref=e54]: 🔍
+              - generic [ref=e55]: Sherlock
+              - generic [ref=e56]: Terse & brilliant
+              - generic [ref=e57]: 10 questions · intense
+        - group "Filter by category" [ref=e58]:
+          - button "Video Games" [ref=e59]
+          - button "Movies" [ref=e60]
+          - button "Anime" [ref=e61]
+          - button "Comics" [ref=e62]
+          - button "Books" [ref=e63]
+          - button "Cartoons" [ref=e64]
+          - button "TV Shows" [ref=e65]
+          - button "Pop Culture" [ref=e66]
+        - generic [ref=e67]:
+          - button "Start Game" [ref=e68]:
+            - img
+            - text: Start Game
+          - 'button "Or: which character are you ? →" [ref=e69]':
+            - text: "Or: which character are"
+            - emphasis [ref=e70]: you
+            - text: "? →"
+          - paragraph [ref=e71]: 500+ characters · 15 questions
