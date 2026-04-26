@@ -185,13 +185,17 @@ async function proposeForConfusions(
 async function submitProposals(proposals: Proposal[]): Promise<void> {
   const resp = await fetch(`${BASE_URL}/api/admin/proposed-attributes`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Basic ${Buffer.from(ADMIN_SECRET).toString('base64')}`,
+    },
     body: JSON.stringify({
       proposals: proposals.map((p) => ({
         ...p,
-        example_chars: p.example_chars ?? null,
+        example_chars: p.example_chars
+          ? (typeof p.example_chars === 'string' ? p.example_chars : JSON.stringify(p.example_chars))
+          : null,
       })),
-      secret: ADMIN_SECRET,
     }),
   })
   if (!resp.ok) {
@@ -203,12 +207,20 @@ async function submitProposals(proposals: Proposal[]): Promise<void> {
 }
 
 async function main() {
-  const db = new Database(STAGING_DB, { readonly: true })
-
   // Existing attribute keys to avoid duplicates
-  const existingKeys = new Set(
-    (db.prepare('SELECT key FROM attribute_definitions').all() as Array<{ key: string }>).map((r) => r.key)
-  )
+  let existingKeys: Set<string>
+
+  if (IS_REMOTE) {
+    process.stderr.write('Fetching existing attribute keys from D1...\n')
+    const keyRows = d1Query('SELECT key FROM attribute_definitions') as Array<{ key: string }>
+    existingKeys = new Set(keyRows.map((r) => r.key))
+  } else {
+    const db = new Database(STAGING_DB, { readonly: true })
+    existingKeys = new Set(
+      (db.prepare('SELECT key FROM attribute_definitions').all() as Array<{ key: string }>).map((r) => r.key)
+    )
+    db.close()
+  }
 
   // Sim confusion data from D1 (if --remote), otherwise use heuristic
   let confusions: Array<{ aName: string; bName: string }> = []
@@ -216,11 +228,12 @@ async function main() {
   if (IS_REMOTE) {
     process.stderr.write('Fetching confusion data from D1...\n')
     const confRows = d1Query(
-      `SELECT json_extract(c.value, '$.char_a') as char_a,
-              json_extract(c.value, '$.char_b') as char_b,
+      `SELECT target_character_name as char_a,
+              second_best_character_name as char_b,
               COUNT(*) as confusion_count
-       FROM sim_game_stats sgs, json_each(sgs.confusion_pairs) c
-       GROUP BY char_a, char_b
+       FROM sim_game_stats
+       WHERE second_best_character_name IS NOT NULL
+       GROUP BY target_character_name, second_best_character_name
        ORDER BY confusion_count DESC
        LIMIT 30`
     ) as ConfusionRow[]
@@ -231,11 +244,15 @@ async function main() {
   }
 
   if (confusions.length === 0) {
+    if (IS_REMOTE) {
+      console.error('No confusion data found in D1 sim_game_stats.')
+      process.exit(1)
+    }
     process.stderr.write('Using heuristic confusion detection from staging.db...\n')
-    confusions = findHeuristicConfusions(db, 30)
+    const localDb = new Database(STAGING_DB, { readonly: true })
+    confusions = findHeuristicConfusions(localDb, 30)
+    localDb.close()
   }
-
-  db.close()
 
   if (confusions.length === 0) {
     console.error('No character data found. Is staging.db populated?')
