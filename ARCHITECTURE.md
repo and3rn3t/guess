@@ -56,12 +56,28 @@ src/
 │   ├── DataHygiene.tsx        # DB health checks
 │   ├── CharacterComparison.tsx# Side-by-side attribute diff
 │   ├── PossibilityGrid.tsx    # Visual candidate matrix
+│   ├── CharacterImage.tsx         # Shimmer skeleton + avatar fallback for character images
+│   ├── DescribeYourselfScreen.tsx # 10 first-person questions → character match
+│   ├── PersonaSelector.tsx        # 3-card Poirot/Watson/Sherlock difficulty picker
 │   ├── ProbabilityLeaderboard.tsx
-│   └── ...                    # ~24 feature components total
+│   ├── WeeklyRecapCard.tsx        # Weekly win/loss summary card
+│   ├── QuestionManager.tsx        # Admin question CRUD
+│   ├── MultiCategoryEnhancer.tsx  # Multi-category attribute enhancement
+│   └── ...                    # ~30 feature components total
 ├── hooks/
 │   ├── useGameState.ts        # Reducer: phase, answers, characters, currentQuestion
 │   ├── useKV.ts               # localStorage + cross-tab sync
-│   ├── useServerGame.ts       # Server game via /api/v2/game/*│   ├── useDailyChallenge.ts   # Daily challenge status + completion recording│   ├── useOnlineStatus.ts     # navigator.onLine tracking
+│   ├── useServerGame.ts       # Server game via /api/v2/game/*
+│   ├── useDailyChallenge.ts   # Daily challenge status + completion recording
+│   ├── useDailyStreak.ts      # Consecutive-day win streak from game history
+│   ├── useGlobalStats.ts      # AI win rate stat from server
+│   ├── useAchievements.ts     # Achievement unlock tracking
+│   ├── usePersonalBest.ts     # Per-difficulty personal best tracking
+│   ├── useWeeklyRecap.ts      # Weekly game summary
+│   ├── useInstallPrompt.ts    # PWA install prompt (beforeinstallprompt)
+│   ├── useSWUpdate.ts         # Service worker update detection
+│   ├── useWakeLock.ts         # Screen wake lock during active games
+│   ├── useOnlineStatus.ts     # navigator.onLine tracking
 │   ├── useSound.ts            # Mute state (external store)
 │   └── use-mobile.ts          # Responsive breakpoint (768px)
 ├── lib/
@@ -79,6 +95,10 @@ src/
 │   ├── sounds.ts              # Web Audio API tone synthesis
 │   ├── sharing.ts             # Base64url challenge encoding
 │   ├── migrations.ts          # localStorage schema migrations
+│   ├── attributeRecommender.ts# Attribute recommendation logic
+│   ├── categoryRecommender.ts # Category recommendation logic
+│   ├── idle.ts                # Idle detection helpers
+│   ├── view-transitions.ts    # View Transition API helpers
 │   └── utils.ts               # cn() — Tailwind class merging
 └── styles/
     └── theme.css              # CSS variables, Space Grotesk font, glassmorphism
@@ -100,10 +120,15 @@ functions/api/                 # Cloudflare Workers
     ├── attributes.ts          # Attribute definitions + coverage %
     ├── stats.ts               # Database overview
     ├── daily.ts               # Daily challenge — deterministic character selection + completion tracking
+    ├── events.ts              # Client→server analytics event pipeline (POST /api/v2/events)
+    ├── history.ts             # Server-side game history (GET /api/v2/history)
+    ├── _llm-rephrase.ts       # LLM question rephrasing with 24h KV cache
     └── game/
         ├── _game-engine.ts    # Server-side Bayesian engine (ported from client)
         ├── start.ts           # Initialize session → first question
         ├── answer.ts          # Process answer → next question or guess
+        ├── skip.ts            # Skip current question → next-best (no budget decrement)
+        ├── reject-guess.ts    # Player rejects a guess → continue game
         ├── result.ts          # Record outcome to game_stats
         ├── resume.ts          # Restore interrupted session from KV
         └── reveal.ts          # User reveals answer on loss → backfill DB attributes
@@ -128,6 +153,7 @@ packages/
         ├── constants.ts       # Scoring weights, readiness thresholds, difficulty configs
         ├── scoring.ts         # Bayesian probability calculation & hard filters
         ├── question-selection.ts # Information gain optimization, best-question algorithm
+        ├── question-selection-mcts.ts # MCTS alternative question selector (selectBestQuestionMCTS)
         └── guess-readiness.ts # Guess decision logic (confidence gates, entropy, forced-guess fallback)
 
 migrations/                    # D1 SQLite migrations
@@ -140,6 +166,15 @@ migrations/                    # D1 SQLite migrations
 ├── 0019_attributes_json.sql   # Attributes JSON column
 ├── 0020_sim_game_stats.sql    # Simulation game stats
 ├── 0021_remove_duplicate_has_glasses.sql  # Data cleanup
+├── 0022_admin_panel.sql       # Admin panel tables
+├── 0023_proposed_attributes.sql  # proposed_attributes table
+├── 0024_dropped_at_phase.sql  # Session funnel: dropped_at_phase column
+├── 0025_client_events.sql     # Client analytics event pipeline table
+├── 0026_attribute_disputes.sql   # attribute_disputes table (adversarial validation)
+├── 0027_error_logs.sql        # error_logs table (Worker observability; capped at 1 000 rows)
+├── 0028_dedup_attributes.sql  # Deduplicate attribute pairs; deactivate zero-info attributes
+├── 0029_fill_missing_questions.sql  # Fill questions rows for active attributes missing them
+├── 0030_question_difficulty.sql     # difficulty column on questions (easy/medium/hard)
 └── chunks/                    # Split data imports (chunk_001–053.sql)
 ```
 
@@ -230,7 +265,7 @@ Additional phases: `manage`, `demo`, `stats`, `compare`, `coverage`, `recommende
 
 Primary database for the server-side engine and character catalog.
 
-**Tables**: `characters`, `character_attributes`, `questions`, `question_coverage`, `attribute_definitions`, `game_stats`, `game_plays`, `game_reveals`
+**Tables**: `characters`, `character_attributes`, `questions`, `question_coverage`, `attribute_definitions`, `game_stats`, `game_plays`, `game_sessions`, `game_reveals`, `attribute_disputes`, `proposed_attributes`, `error_logs`, `client_events`
 
 - 187 DEFAULT_CHARACTERS seeded via migrations
 - 53K+ ingested characters from AniList, WikiData, TMDB, IGDB, ComicVine
@@ -293,6 +328,7 @@ Object storage for character images.
 | `/api/v2/game/start` | POST | Initialize session → first question |
 | `/api/v2/game/answer` | POST | Process answer → next Q or guess |
 | `/api/v2/game/skip` | POST | Skip current question → return next-best question (free; no budget decrement) |
+| `/api/v2/game/reject-guess` | POST | Player rejects guess → continue asking questions |
 | `/api/v2/game/resume` | GET | Restore interrupted session |
 | `/api/v2/game/result` | POST | Record outcome + stats |
 | `/api/v2/game/reveal` | POST | User-disclosed answer on loss → backfill null attributes, queue corrections |
@@ -322,7 +358,14 @@ Calibration queries live in [docs/guess-readiness-queries.sql](docs/guess-readin
 | `/api/llm` | POST | Non-streaming LLM call (cached 24h) |
 | `/api/llm-stream` | POST | Streaming completions (SSE) |
 | `/api/images/{id}/{size}.webp` | GET | R2 image serving |
+| `/api/v2/events` | POST | Client→server analytics event pipeline |
+| `/api/v2/history` | GET | Server-side game history |
 | `/api/admin/upload-attrs` | POST | Bulk attribute upload (ADMIN_SECRET) |
+| `/api/admin/attribute-disputes` | GET, PATCH | Adversarial validation dispute review |
+| `/api/admin/proposed-attributes` | GET, POST, PATCH | Community-proposed attribute management |
+| `/api/admin/analytics` | GET | Admin analytics dashboard data |
+| `/api/admin/error-logs` | GET | Worker error log viewer |
+| `/api/admin/pipeline` | GET | Enrichment pipeline status |
 
 ---
 
