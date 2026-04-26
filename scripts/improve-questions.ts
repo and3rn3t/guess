@@ -17,16 +17,24 @@
  */
 
 import Database from 'better-sqlite3'
+import { execSync } from 'child_process'
+import Database from 'better-sqlite3'
 import * as fs from 'fs'
 import * as path from 'path'
 
 const STAGING_DB = 'data/staging.db'
 const OUTPUT_JSONL = 'data/question-improvements.jsonl'
 const APPLY = process.argv.includes('--apply')
+const IS_REMOTE = process.argv.includes('--remote')
 const LIMIT = (() => {
   const i = process.argv.indexOf('--limit')
   return i >= 0 ? parseInt(process.argv[i + 1] ?? '100', 10) : undefined
 })()
+const ENV_FLAG = (() => {
+  const i = process.argv.indexOf('--env')
+  return i >= 0 ? process.argv[i + 1] : 'production'
+})()
+const DB_NAME = ENV_FLAG === 'production' ? 'guess-db' : 'guess-db-preview'
 
 const BASE_URL = process.env.BASE_URL || 'https://guess.andernet.dev'
 const ADMIN_SECRET = process.env.ADMIN_SECRET || ''
@@ -34,6 +42,16 @@ const OPENAI_API_KEY = process.env.OPENAI_API_KEY || ''
 const OPENAI_MODEL = 'gpt-4o'
 const BATCH_SIZE = 20
 const CONCURRENCY = 3
+
+function d1Query(sql: string): unknown[] {
+  const escaped = sql.replace(/"/g, '\\"')
+  const out = execSync(
+    `npx wrangler d1 execute ${DB_NAME} --env ${ENV_FLAG} --remote --json --command "${escaped}"`,
+    { encoding: 'utf8', maxBuffer: 50 * 1024 * 1024 }
+  )
+  const parsed = JSON.parse(out) as Array<{ results: unknown[]; success: boolean }>
+  return parsed[0]?.results ?? []
+}
 
 if (!OPENAI_API_KEY) {
   console.error('Error: OPENAI_API_KEY env var is required')
@@ -139,18 +157,23 @@ async function improveBatch(batch: QuestionInput[]): Promise<Improvement[]> {
 }
 
 async function applyImprovement(imp: Improvement): Promise<void> {
-  // Update staging.db
-  const db = new Database(STAGING_DB)
-  db.prepare(
-    'UPDATE questions SET text = ? WHERE attribute_key = ?'
-  ).run(imp.suggested, imp.attribute_key)
-  db.close()
+  // Update staging.db (skip when using --remote; staging.db lacks game tables)
+  if (!IS_REMOTE) {
+    const db = new Database(STAGING_DB)
+    db.prepare(
+      'UPDATE questions SET text = ? WHERE attribute_key = ?'
+    ).run(imp.suggested, imp.attribute_key)
+    db.close()
+  }
 
   // Call admin API
   const resp = await fetch(`${BASE_URL}/api/admin/questions/${imp.attribute_key}`, {
     method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ questionText: imp.suggested, secret: ADMIN_SECRET }),
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Basic ${Buffer.from(ADMIN_SECRET).toString('base64')}`,
+    },
+    body: JSON.stringify({ questionText: imp.suggested }),
   })
   if (!resp.ok) {
     const text = await resp.text()
@@ -159,20 +182,34 @@ async function applyImprovement(imp: Improvement): Promise<void> {
 }
 
 async function main() {
-  const db = new Database(STAGING_DB, { readonly: true })
+  let rows: QuestionInput[]
 
-  const rows = db.prepare(`
-    SELECT ad.key AS attribute_key,
-           ad.display_text,
-           COALESCE(q.text, ad.question_text) AS current_question
-    FROM attribute_definitions ad
-    LEFT JOIN questions q ON q.attribute_key = ad.key
-    WHERE ad.is_active = 1
-      AND COALESCE(q.text, ad.question_text) IS NOT NULL
-    ORDER BY ad.key
-  `).all() as QuestionInput[]
-
-  db.close()
+  if (IS_REMOTE) {
+    process.stderr.write(`Fetching questions from D1 (${ENV_FLAG})...\n`)
+    rows = d1Query(
+      `SELECT ad.key AS attribute_key,
+              ad.display_text,
+              COALESCE(q.text, ad.question_text) AS current_question
+       FROM attribute_definitions ad
+       LEFT JOIN questions q ON q.attribute_key = ad.key
+       WHERE ad.is_active = 1
+         AND COALESCE(q.text, ad.question_text) IS NOT NULL
+       ORDER BY ad.key`
+    ) as QuestionInput[]
+  } else {
+    const db = new Database(STAGING_DB, { readonly: true })
+    rows = db.prepare(`
+      SELECT ad.key AS attribute_key,
+             ad.display_text,
+             COALESCE(q.text, ad.question_text) AS current_question
+      FROM attribute_definitions ad
+      LEFT JOIN questions q ON q.attribute_key = ad.key
+      WHERE ad.is_active = 1
+        AND COALESCE(q.text, ad.question_text) IS NOT NULL
+      ORDER BY ad.key
+    `).all() as QuestionInput[]
+    db.close()
+  }
 
   const items = LIMIT ? rows.slice(0, LIMIT) : rows
   console.log(`Auditing ${items.length} questions (batch=${BATCH_SIZE}, concurrency=${CONCURRENCY})...`)

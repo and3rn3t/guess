@@ -90,35 +90,57 @@ function localQuery<T>(db: InstanceType<typeof Database>, sql: string, params: u
 // ── Main ──────────────────────────────────────────────────────────────────────
 
 async function main() {
-  const db = new Database(STAGING_DB, { readonly: true })
+  let attrs: AttrRow[]
+  let questionsRaw: QuestionRow[]
+  let charAttrs: CharAttrRow[]
+  let totalChars: number
 
-  // Load attribute definitions
-  const attrs = localQuery<AttrRow>(
-    db,
-    'SELECT key, display_text, question_text, is_active FROM attribute_definitions ORDER BY key'
-  )
+  if (IS_REMOTE) {
+    // All base data from D1 — staging.db doesn't contain game tables
+    process.stderr.write('Fetching attribute_definitions from D1...\n')
+    attrs = d1Query(
+      'SELECT key, display_text, question_text, is_active FROM attribute_definitions ORDER BY key'
+    ) as AttrRow[]
 
-  // Load questions table
-  const questionsRaw = localQuery<QuestionRow>(
-    db,
-    'SELECT attribute_key, text, priority, difficulty FROM questions'
-  )
+    process.stderr.write('Fetching questions from D1...\n')
+    questionsRaw = d1Query(
+      'SELECT attribute_key, text, priority, difficulty FROM questions'
+    ) as QuestionRow[]
+
+    process.stderr.write('Fetching character_attributes coverage from D1...\n')
+    charAttrs = d1Query(
+      `SELECT attribute_key,
+              COUNT(*) AS set_count,
+              SUM(CASE WHEN value = 1 THEN 1 ELSE 0 END) AS yes_count
+       FROM character_attributes
+       GROUP BY attribute_key`
+    ) as CharAttrRow[]
+
+    process.stderr.write('Fetching character count from D1...\n')
+    const countRow = d1Query('SELECT COUNT(*) as n FROM characters') as Array<{ n: number }>
+    totalChars = countRow[0]?.n ?? 0
+  } else {
+    // Local staging.db — only works if it has game tables (e.g. a local D1 export)
+    const db = new Database(STAGING_DB, { readonly: true })
+    attrs = localQuery<AttrRow>(
+      db,
+      'SELECT key, display_text, question_text, is_active FROM attribute_definitions ORDER BY key'
+    )
+    questionsRaw = localQuery<QuestionRow>(db, 'SELECT attribute_key, text, priority, difficulty FROM questions')
+    charAttrs = localQuery<CharAttrRow>(
+      db,
+      `SELECT attribute_key,
+              COUNT(*) AS set_count,
+              SUM(CASE WHEN value = 1 THEN 1 ELSE 0 END) AS yes_count
+       FROM character_attributes
+       GROUP BY attribute_key`
+    )
+    totalChars = (db.prepare('SELECT COUNT(*) as n FROM characters').get() as { n: number }).n
+    db.close()
+  }
+
   const questionsMap = new Map(questionsRaw.map((q) => [q.attribute_key, q]))
-
-  // Character attribute coverage: how many characters have each attribute set (non-null)
-  const charAttrs = localQuery<CharAttrRow>(
-    db,
-    `SELECT
-       attribute_key,
-       COUNT(*) AS set_count,
-       SUM(CASE WHEN value = 1 THEN 1 ELSE 0 END) AS yes_count
-     FROM character_attributes
-     GROUP BY attribute_key`
-  )
   const charAttrMap = new Map(charAttrs.map((r) => [r.attribute_key, r]))
-
-  // Total character count
-  const totalChars = (db.prepare('SELECT COUNT(*) as n FROM characters WHERE is_active = 1').get() as { n: number }).n
 
   // Remote: simulation info gain + real usage
   const simGainMap = new Map<string, { avgGain: number; simUsages: number }>()
@@ -144,8 +166,6 @@ async function main() {
     ) as RealUsageRow[]
     for (const r of realRows) realUsageMap.set(r.attr, r.total)
   }
-
-  db.close()
 
   // ── Build audit rows ──────────────────────────────────────────────────────
 
@@ -183,7 +203,15 @@ async function main() {
     const simUsages = simData?.simUsages ?? null
 
     const flags: Flag[] = []
-    if (KNOWN_DUPLICATES.some(([a, b]) => a === attr.key || b === attr.key)) flags.push('DUPLICATE')
+    // Only flag as DUPLICATE if the alias key also exists in attribute_definitions
+    const attrKeys = new Set(attrs.map((a) => a.key))
+    if (
+      KNOWN_DUPLICATES.some(
+        ([canonical, alias]) =>
+          (attr.key === canonical || attr.key === alias) && attrKeys.has(canonical) && attrKeys.has(alias)
+      )
+    )
+      flags.push('DUPLICATE')
     if (KNOWN_ZERO_INFO.includes(attr.key)) flags.push('ZERO_INFO')
     if (coveragePct < 40 && attr.is_active) flags.push('LOW_COVERAGE')
     if (!questionRow && attr.is_active) flags.push('NO_QUESTION')
