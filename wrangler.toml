@@ -36,9 +36,10 @@ migrations_dir = "migrations"
 binding = "GUESS_IMAGES"
 bucket_name = "guess-images"
 
-[[env.production.durable_objects.bindings]]
-name = "RATE_LIMITER"
-class_name = "RateLimiter"
+# NOTE: RATE_LIMITER Durable Object binding is configured via Cloudflare Pages dashboard.
+# The RateLimiter class is defined in functions/_rate-limiter-do.ts and exported in the
+# Pages Functions bundle. wrangler 3.52.0+ requires script_name for DO bindings in
+# wrangler.toml Pages configs, which is not applicable for co-located Functions DOs.
 
 # ── Preview / Development ─────────────────────────────────────
 # Isolated KV so preview experiments never touch production data.
@@ -62,7 +63,5 @@ migrations_dir = "migrations"
 binding = "GUESS_IMAGES"
 bucket_name = "guess-images"
 
-[[env.preview.durable_objects.bindings]]
-name = "RATE_LIMITER"
-class_name = "RateLimiter"
+# NOTE: RATE_LIMITER DO binding configured via CF dashboard (see production env note above)
 
