@@ -21,9 +21,7 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-
-      - name: Install wrangler
-        run: npm install -g wrangler@4.83.0
+      - uses: ./.github/actions/setup
 
       - name: Clone production → preview
         env:

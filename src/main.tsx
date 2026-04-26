@@ -11,8 +11,6 @@ window.addEventListener('unhandledrejection', (event) => {
 import { ErrorFallback } from './ErrorFallback.tsx'
 
 import "./main.css"
-import "./styles/theme.css"
-import "./index.css"
 
 const isAdmin = window.location.pathname === '/admin' || window.location.pathname.startsWith('/admin/')
 

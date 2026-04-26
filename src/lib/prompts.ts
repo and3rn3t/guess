@@ -382,7 +382,7 @@ What single distinguishing factor — an attribute or trait — most likely set 
  * suspected character WITHOUT naming them. Builds suspense before the reveal.
  */
 export function suspectDescription_v1(
-  topCandidates: Array<{ name: string; probability: number }>,
+  _topCandidates: Array<{ name: string; probability: number }>,
   confidence: number,
   answeredQuestions: Array<{ question: string; answer: string }>,
   persona: Persona = 'watson'

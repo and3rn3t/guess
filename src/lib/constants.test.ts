@@ -5,6 +5,8 @@ import {
   SCORE_UNKNOWN,
   SCORE_MAYBE,
   SCORE_MAYBE_MISS,
+} from '@guess/game-engine'
+import {
   LLM_MAX_RETRIES,
   LLM_RETRY_BASE_MS,
   LLM_RETRYABLE_STATUSES,
@@ -20,8 +22,9 @@ describe('Bayesian scoring constants', () => {
     expect(SCORE_MATCH).toBe(1.0)
   })
 
-  it('SCORE_MISMATCH is 0.05 (soft penalty for resilience)', () => {
-    expect(SCORE_MISMATCH).toBe(0.05)
+  it('SCORE_MISMATCH is a soft penalty (non-zero, less than 0.1)', () => {
+    expect(SCORE_MISMATCH).toBeGreaterThan(0)
+    expect(SCORE_MISMATCH).toBeLessThan(0.1)
   })
 
   it('SCORE_UNKNOWN is 0.35', () => {

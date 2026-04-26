@@ -372,27 +372,21 @@ Defined in `.github/workflows/ci.yml`. Runs on push to `main` and PRs (skips `*.
             ┌── lint ──────┐
             ├── typecheck ─┤
 push/PR  ──►├── test ──────┼──► build ──► test-e2e
-            └── test-comp ─┘       │
-                                   ├──► deploy-preview (PRs)
-                                   │     └── smoke test
-                                   │     └── pr-report (bundle stats)
-                                   └──► deploy-production (main)
-                                         └── smoke test
+            └── size ──────┘
 ```
 
 | Stage | What it does |
 |---|---|
 | lint | `eslint .` |
 | typecheck | `tsc -b` |
-| test | `vitest run` (unit + hooks) |
-| test-components | `vitest run src/components/` |
-| build | `vite build` + bundle size check (700KB limit per chunk) |
-| test-e2e | Playwright (Chromium) against built artifact |
-| deploy-preview | Cloudflare Pages preview branch + smoke test |
-| deploy-production | Cloudflare Pages production + smoke test |
-| pr-report | Bundle size breakdown comment on PR |
+| test | `vitest run` (unit + hooks + components) |
+| size | `du`-based bundle size check (700KB limit per chunk) |
+| build | `vite build` |
+| test-e2e | Playwright (Chromium + Firefox + Mobile) against built artifact |
 
-**Coverage targets** (vitest.config.ts): 80% lines, 70% branches, 80% functions
+> Deploy is handled by Cloudflare Pages' built-in Git integration (no CI workflow needed).
+
+**Coverage targets** (vitest.config.ts): 80% lines, 65% branches, 75% functions
 
 ---
 

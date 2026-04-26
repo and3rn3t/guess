@@ -78,7 +78,7 @@ describe('PlayingScreen', () => {
     const onRetry = vi.fn()
     render(<PlayingScreen {...baseProps()} onRetry={onRetry} currentQuestion={null} isThinking={false} />)
     // retry button only appears when no question and not thinking
-    const _retryBtn = screen.queryByRole('button', { name: /retry/i })
+    screen.queryByRole('button', { name: /retry/i })
     // May or may not render depending on component logic — just verify no crash
     expect(document.body).toBeTruthy()
   })
