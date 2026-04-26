@@ -36,6 +36,15 @@ migrations_dir = "migrations"
 binding = "GUESS_IMAGES"
 bucket_name = "guess-images"
 
+[[env.production.durable_objects.bindings]]
+name = "RATE_LIMITER"
+class_name = "RateLimiter"
+script_name = "guess"
+
+[[env.production.migrations]]
+tag = "v1"
+new_classes = ["RateLimiter"]
+
 # ── Preview / Development ─────────────────────────────────────
 # Isolated KV so preview experiments never touch production data.
 [env.preview]
@@ -57,3 +66,8 @@ migrations_dir = "migrations"
 [[env.preview.r2_buckets]]
 binding = "GUESS_IMAGES"
 bucket_name = "guess-images"
+
+[[env.preview.durable_objects.bindings]]
+name = "RATE_LIMITER"
+class_name = "RateLimiter"
+script_name = "guess"

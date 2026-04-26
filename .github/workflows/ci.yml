@@ -151,6 +151,26 @@ jobs:
           path: dist/
           retention-days: 3
 
+  # ── DB type drift check (DX.11) ────────────────────────────
+  db-drift:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Regenerate DB types
+        run: pnpm db:types
+      - name: Check for drift
+        run: |
+          if ! git diff --exit-code functions/api/_db-types.ts; then
+            echo "::error::Generated DB types (functions/api/_db-types.ts) are out of sync with the schema. Run 'pnpm db:types' and commit the result."
+            exit 1
+          fi
+
   # ── Deploy preview (PRs) ────────────────────────────────────
   deploy-preview:
     needs: [checks, build, test-e2e]

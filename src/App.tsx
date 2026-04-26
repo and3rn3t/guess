@@ -61,6 +61,8 @@ import { useGlobalStats } from "@/hooks/useGlobalStats";
 import { useDailyStreak } from "@/hooks/useDailyStreak";
 import { useWakeLock } from "@/hooks/useWakeLock";
 import { usePersonalBest } from "@/hooks/usePersonalBest";
+import { useAchievements } from "@/hooks/useAchievements";
+import { useWeeklyRecap } from "@/hooks/useWeeklyRecap";
 import { startViewTransition } from "@/lib/view-transitions";
 
 const TeachingMode = lazy(() =>
@@ -170,11 +172,46 @@ function App() {
   const [eliminatedCount, setEliminatedCount] = useState<number | null>(null);
   const [isNewPersonalBest, setIsNewPersonalBest] = useState(false);
   const prevPossibleCount = useRef<number>(0);
+  // Track remaining count per step to find the decisive (highest-elimination) question
+  const remainingHistoryRef = useRef<number[]>([]);
   const { personalBest, updateBest } = usePersonalBest(difficulty);
+  const achievements = useAchievements(gameHistory, dailyStreak, gamesPlayed);
+  const weeklyRecap = useWeeklyRecap(gameHistory);
   const maxQuestions = DIFFICULTIES[difficulty].maxQuestions;
   const persona = DIFFICULTY_TO_PERSONA[difficulty];
   const [onboardingDone] = useKV("onboarding-complete", false);
   const [showOnboarding, setShowOnboarding] = useState(false);
+
+  // Adaptive difficulty suggestion — show once per session when win rate ≥ 80% over last 10 games
+  const adaptiveToastShownRef = useRef(false);
+  useEffect(() => {
+    if (gamePhase !== "welcome") return;
+    if (adaptiveToastShownRef.current) return;
+    if (difficulty === "hard") return; // already on hardest
+    if (!gameHistory || gameHistory.length < 10) return;
+
+    const nextDifficulty: Record<string, string> = { easy: "Medium", medium: "Hard" };
+    const next = nextDifficulty[difficulty];
+    if (!next) return;
+
+    const last10 = gameHistory
+      .filter((g) => g.difficulty === difficulty)
+      .slice(-10);
+    if (last10.length < 10) return;
+
+    const winRate = last10.filter((g) => g.won).length / last10.length;
+    if (winRate >= 0.8) {
+      adaptiveToastShownRef.current = true;
+      const wins = Math.round(winRate * 10);
+      toast(`You've won ${wins}/10 on ${DIFFICULTIES[difficulty].label} — ready for ${next}?`, {
+        duration: 6000,
+        action: {
+          label: `Try ${next}`,
+          onClick: () => setDifficulty(difficulty === "easy" ? "medium" : "hard"),
+        },
+      });
+    }
+  }, [gamePhase, difficulty, gameHistory, setDifficulty]);
 
   // Show onboarding when first game starts
   useEffect(() => {
@@ -223,6 +260,7 @@ function App() {
     if (prevPossibleCount.current > 0 && eliminated > 0) {
       setEliminatedCount(eliminated);
       setTimeout(() => setEliminatedCount(null), 2000);
+      remainingHistoryRef.current = [...remainingHistoryRef.current, serverRemaining];
     }
     prevPossibleCount.current = serverRemaining;
   }, [serverRemaining]);
@@ -243,6 +281,8 @@ function App() {
   // ========== GAME START ==========
   const startGame = async () => {
     setIsNewPersonalBest(false);
+    remainingHistoryRef.current = [];
+    prevPossibleCount.current = 0;
     await startServerGame(categories, difficulty);
   };
 
@@ -499,6 +539,8 @@ function App() {
                   setCategories={setCategories}
                   streak={dailyStreak}
                   personalBest={personalBest}
+                  achievements={achievements}
+                  weeklyRecap={weeklyRecap}
                 />
               )}
 
@@ -576,11 +618,15 @@ function App() {
                       onViewStats={() => navigate("stats")}
                       onShare={handleShare}
                       onCopyLink={handleCopyLink}
-                      answeredQuestions={answers.map((a) => {
+                      answeredQuestions={answers.map((a, i) => {
                         const q = (questions || DEFAULT_QUESTIONS).find(
                           (q) => q.id === a.questionId,
                         );
-                        return { question: q?.text || "", answer: a.value };
+                        const hist = remainingHistoryRef.current;
+                        const eliminated = i === 0
+                          ? 0
+                          : (hist[i - 1] ?? 0) - (hist[i] ?? hist[i - 1] ?? 0);
+                        return { question: q?.text || "", answer: a.value, eliminated };
                       })}
                       onReveal={gameWon ? undefined : handleReveal}
                       persona={persona}

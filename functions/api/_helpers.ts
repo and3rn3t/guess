@@ -8,6 +8,8 @@ export interface Env {
   CLOUDFLARE_AI_GATEWAY?: string
   AI_GATEWAY_TOKEN?: string
   COOKIE_SECRET?: string
+  /** Durable Object for atomic per-user rate limiting (BI.5) */
+  RATE_LIMITER?: DurableObjectNamespace
 }
 
 const OPENAI_COMPLETIONS = 'https://api.openai.com/v1/chat/completions'
@@ -78,6 +80,28 @@ export async function checkRateLimit(
 
   await kv.put(key, String(current + 1), { expirationTtl: 7200 })
   return { allowed: true, remaining: maxPerHour - current - 1 }
+}
+
+/**
+ * Atomic per-user rate limiting via Durable Objects (BI.5).
+ * Falls back to the KV-based limiter if RATE_LIMITER binding is unavailable.
+ */
+export async function checkRateLimitDO(
+  env: Env,
+  userId: string,
+  action: string,
+  maxPerHour: number
+): Promise<{ allowed: boolean; remaining: number }> {
+  if (!env.RATE_LIMITER) {
+    // Fallback for local dev / preview environments without the DO binding
+    return checkRateLimit(env.GUESS_KV, userId, action, maxPerHour)
+  }
+  const id = env.RATE_LIMITER.idFromName(`${action}:${userId}`)
+  const stub = env.RATE_LIMITER.get(id)
+  const res = await stub.fetch(
+    new Request(`https://rate-limiter.internal/?max=${maxPerHour}`, { method: 'POST' })
+  )
+  return res.json<{ allowed: boolean; remaining: number }>()
 }
 
 /** @deprecated Use getOrCreateUserId() for endpoints that need cookie-based auth */

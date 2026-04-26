@@ -1,5 +1,5 @@
 import {
-  checkRateLimit,
+  checkRateLimitDO,
   type Env,
   getCompletionsEndpoint,
   getLlmHeaders,
@@ -130,7 +130,7 @@ async function enforceRateLimit(
   env: Env,
 ): Promise<Response | null> {
   const { userId, setCookieHeader } = await getOrCreateUserId(request, env);
-  const { allowed } = await checkRateLimit(kv, userId, "llm", 60);
+  const { allowed } = await checkRateLimitDO(env, userId, "llm", 60);
   if (!allowed) {
     const headers: Record<string, string> = {
       "Retry-After": "3600",

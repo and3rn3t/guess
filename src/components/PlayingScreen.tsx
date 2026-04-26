@@ -372,7 +372,7 @@ In 1-2 sentences, react in character to this answer and what it reveals. Be conc
           </div>
         )}
 
-        <div className="grid lg:grid-cols-2 gap-4 lg:gap-6">
+        <div className="grid lg:grid-cols-2 xl:grid-cols-[1fr_380px] gap-4 lg:gap-6">
           <div className="space-y-3">
             {/* Coach marks based on game count */}
             <CoachMark
@@ -446,7 +446,7 @@ In 1-2 sentences, react in character to this answer and what it reveals. Be conc
             )}
           </div>
 
-          <div className="lg:sticky lg:top-8 lg:self-start space-y-4">
+          <div className="lg:sticky lg:top-8 lg:self-start xl:max-h-[calc(100vh-8rem)] xl:overflow-y-auto space-y-4">
             <ReasoningPanel
               reasoning={reasoning}
               isThinking={isThinking}

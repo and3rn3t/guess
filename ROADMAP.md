@@ -159,16 +159,16 @@ The headless simulator (`scripts/simulate/`) runs the real Bayesian engine again
 
 | # | Item | Effort | Why |
 |---|------|--------|-----|
-| S.1 | **Noisy oracle player** | Low | The current oracle always answers correctly (`null → 'unknown'`). Real players make mistakes. Add a `--noise <pct>` flag that randomly flips a fraction of answers to "maybe" or the wrong value. A game that's 90% win with perfect answers but 60% with 10% noise has a fragility problem. |
-| S.2 | **`--compare` flag for regression detection** | Low | After a parameter change, run `pnpm simulate --compare results-before.jsonl results-after.jsonl`. Print a diff table: win rate Δ, avg questions Δ, forced guess rate Δ. Currently this requires manual SQL comparison. |
-| S.3 | **Category breakdown in analyze output** | Low | `analyze.ts` shows overall win rates and trigger breakdowns but not per-category. "Anime characters win at 92%; Book characters win at 58%" is the single most actionable signal for which part of the DB needs work. |
-| S.4 | **Chronically-lost characters report** | Low | Add a `--failures` flag that outputs the characters the engine lost on in every run (not just the latest). Cross-reference with attribute coverage — low attribute count is almost always the cause. |
-| S.5 | **Per-attribute info-gain heatmap** | Medium | Extend `questionsSequence` analysis to show which attributes delivered the most average info gain across all games. Attributes with near-zero info gain across all games are either redundant or too sparse — candidates for removal or new question phrasing. |
-| S.6 | **Worker threads parallelism** | Medium | The simulator is single-threaded. Node.js `worker_threads` can split the character pool across CPU cores. On an 8-core machine a 500-character `--all` run could be 4–6× faster. Starter pattern: `StaticPool` from `jest-worker` or a simple `Worker` per difficulty. |
-| S.7 | **Question ordering sensitivity** | Medium | Run the same character 10× with questions shuffled into a random order each time. Measure win rate variance. A robust engine should have low sensitivity to question order; high variance reveals that the greedy question-selector is making brittle early choices. |
-| S.8 | **Scoring weight grid search** | Medium | `ScoringOptions` (SCORE_MATCH, SCORE_MISMATCH, SCORE_MAYBE, popularity decay) are currently hand-tuned constants. Add a `scripts/simulate/grid-search.ts` that sweeps a parameter grid, runs 200 games per point, and outputs a ranked table. Find the Pareto-optimal weights across win rate vs. avg questions. |
-| S.9 | **CI regression gate** | Medium | GitHub Actions job: on every PR that touches `packages/game-engine/` or `functions/api/v2/_game-engine.ts`, run `pnpm simulate --sample 200 --write-db` against the preview DB, then run the calibration SQL and `exit 1` if win rate drops > 3 points from main. Makes engine changes risky to merge without evidence. |
-| S.10 | **Sim run changelog** | Low | Write a `sim-runs.md` that logs each simulator run: date, run_id, sample size, difficulty, win rate, avg questions, key parameter values. Manual but takes 2 minutes after each run — builds a long-term performance history you can graph later. |
+| ~~S.1~~ | ~~**Noisy oracle player**~~ | ~~Low~~ | ~~The current oracle always answers correctly (`null → 'unknown'`). Real players make mistakes. Add a `--noise <pct>` flag that randomly flips a fraction of answers to "maybe" or the wrong value. A game that's 90% win with perfect answers but 60% with 10% noise has a fragility problem.~~ |
+| ~~S.2~~ | ~~**`--compare` flag for regression detection**~~ | ~~Low~~ | ~~After a parameter change, run `pnpm simulate --compare results-before.jsonl results-after.jsonl`. Print a diff table: win rate Δ, avg questions Δ, forced guess rate Δ. Currently this requires manual SQL comparison.~~ |
+| ~~S.3~~ | ~~**Category breakdown in analyze output**~~ | ~~Low~~ | ~~`analyze.ts` shows overall win rates and trigger breakdowns but not per-category. "Anime characters win at 92%; Book characters win at 58%" is the single most actionable signal for which part of the DB needs work.~~ |
+| ~~S.4~~ | ~~**Chronically-lost characters report**~~ | ~~Low~~ | ~~Add a `--failures` flag that outputs the characters the engine lost on in every run (not just the latest). Cross-reference with attribute coverage — low attribute count is almost always the cause.~~ |
+| ~~S.5~~ | ~~**Per-attribute info-gain heatmap**~~ | ~~Medium~~ | ~~Extend `questionsSequence` analysis to show which attributes delivered the most average info gain across all games. Attributes with near-zero info gain across all games are either redundant or too sparse — candidates for removal or new question phrasing.~~ |
+| ~~S.6~~ | ~~**Worker threads parallelism**~~ | ~~Medium~~ | ~~The simulator is single-threaded. Node.js `worker_threads` can split the character pool across CPU cores. On an 8-core machine a 500-character `--all` run could be 4–6× faster. Starter pattern: `StaticPool` from `jest-worker` or a simple `Worker` per difficulty.~~ |
+| ~~S.7~~ | ~~**Question ordering sensitivity**~~ | ~~Medium~~ | ~~Run the same character 10× with questions shuffled into a random order each time. Measure win rate variance. A robust engine should have low sensitivity to question order; high variance reveals that the greedy question-selector is making brittle early choices.~~ |
+| ~~S.8~~ | ~~**Scoring weight grid search**~~ | ~~Medium~~ | ~~`ScoringOptions` (SCORE_MATCH, SCORE_MISMATCH, SCORE_MAYBE, popularity decay) are currently hand-tuned constants. Add a `scripts/simulate/grid-search.ts` that sweeps a parameter grid, runs 200 games per point, and outputs a ranked table. Find the Pareto-optimal weights across win rate vs. avg questions.~~ |
+| ~~S.9~~ | ~~**CI regression gate**~~ | ~~Medium~~ | ~~GitHub Actions job: on every PR that touches `packages/game-engine/` or `functions/api/v2/_game-engine.ts`, run `pnpm simulate --sample 200 --write-db` against the preview DB, then run the calibration SQL and `exit 1` if win rate drops > 3 points from main. Makes engine changes risky to merge without evidence.~~ |
+| ~~S.10~~ | ~~**Sim run changelog**~~ | ~~Low~~ | ~~Write a `sim-runs.md` that logs each simulator run: date, run_id, sample size, difficulty, win rate, avg questions, key parameter values. Manual but takes 2 minutes after each run — builds a long-term performance history you can graph later.~~ |
 
 ### AN — Analytics Improvements
 
@@ -177,13 +177,15 @@ The headless simulator (`scripts/simulate/`) runs the real Bayesian engine again
 | AN.1 | **Question skip & frustration funnel** | Low | Track which questions players skip most often (once item 1.7 ships). High skip rates on a question = either confusing phrasing or the attribute is ambiguous. This feeds directly into question quality improvement. |
 | ~~AN.2~~ | ~~**Session funnel in D1**~~ | ~~Low~~ | ~~`game_sessions` table exists but the funnel is unclear. Add a `dropped_at_phase` column: `welcome`, `playing`, `reveal`, `gameover`. A drop spike at `playing:q3` means the first few questions are frustrating.~~ |
 | AN.3 | **Answer distribution dashboard** | Medium | The `answerDistribution` field exists in `SimGameResult` and in game data. Surface it in `StatsDashboard`: "Players said 'maybe' 34% of the time on *isVillain*". High "maybe" rates on a question mean it needs rewording or removal. |
-| AN.4 | **Win rate time-series query** | Low | Add a calibration SQL query (in `sim-calibration-queries.sql`) that shows win rate by week from `game_stats`. Lets you catch gradual drift — a DB that's growing with poorly-attributed characters will show a slow win rate decline. |
+| ~~AN.4~~ | ~~**Win rate time-series query**~~ | ~~Low~~ | ~~Add a calibration SQL query (in `sim-calibration-queries.sql`) that shows win rate by week from `game_stats`. Lets you catch gradual drift — a DB that's growing with poorly-attributed characters will show a slow win rate decline.~~ |
 | ~~AN.5~~ | ~~**Client→server event pipeline**~~ | ~~Medium~~ | ~~`analytics.ts` stores events in `localStorage` up to `MAX_ANALYTICS_EVENTS` but they never reach the server. Flush to a `POST /api/v2/events` endpoint on game end. Enables cross-session analysis — right now client analytics are ephemeral and siloed per device.~~ |
 | AN.6 | **Attribute coverage heatmap** | Medium | A D1 query + `StatsDashboard` view showing, for each attribute, what % of characters have a non-null value. Attributes below ~40% coverage are effectively useless for discrimination. Prioritise filling them via the enrichment pipeline. |
 | AN.7 | **Confusion matrix** | Medium | Which characters does the engine most frequently confuse with each other? Store the `secondBestCharacterId` on game loss in D1 (already in `sim_game_stats`). Visualise as a heatmap in `StatsDashboard`. "Batman and Black Panther are confused 40% of the time" is a direct signal to add differentiating attributes. |
 | AN.8 | **Real-world calibration overlay** | Medium | Run the calibration SQL queries against both `game_stats` (real games) and `sim_game_stats` (simulator). Display both series side-by-side. If the simulator shows 85% win rate but real games show 62%, the oracle player model is too optimistic — the noise model (S.1) needs calibrating. |
 
 ### E — Tech Explorations (Learning-oriented)
+
+> 🧊 **Icebox** — Deferred indefinitely. Worth understanding, but no implementation timeline.
 
 These are deeper algorithmic alternatives — no obligation to ship, but worth understanding for the portfolio narrative.
 
@@ -215,11 +217,13 @@ Things that are missing or under-realised in the current implementation.
 | ~~U.5~~ | ~~**Top-3 probability trace in chart**~~ ✅ | ~~`PossibilitySpaceChart`~~ | ~~The chart currently shows aggregate "remaining" and a naive confidence line. Replace with 3 stacked lines: the top 3 candidates' individual probability scores over the game.~~ Done: `PossibilitySpaceChart` completely rewritten as a 3-line `LineChart` (emerald/blue/muted) tracking top-3 candidate probabilities per turn. |
 | ~~U.6~~ | ~~**Blur-to-reveal on GuessReveal**~~ | ~~`GuessReveal`~~ | ~~The character image currently appears instantly. Start it heavily blurred and clear over 1.5 seconds — like a photograph developing. Pairs perfectly with the typewriter name reveal (2.6). The image and name arrive together as the "case closes."~~ |
 | ~~U.7~~ | ~~**Win intensity celebration**~~ | ~~`GameOver`~~ | ~~Confetti count and duration currently don't scale with performance. Win in ≤5 questions → full particle burst + "Uncanny!" heading. Win on the last question → 3 particles, "Just in time." The celebration matches how impressive the win actually was.~~ |
-| U.8 | **Desktop sidebar layout** | `PlayingScreen` | On screens ≥1280px, render `ReasoningPanel` and `PossibilityGrid` as a fixed right sidebar (already `max-w-7xl mx-auto` grid). Currently they stack below the question on all sizes — on desktop they have room to coexist. |
+| ~~U.8~~ | ~~**Desktop sidebar layout**~~ | ~~`PlayingScreen`~~ | ~~On screens ≥1280px, render `ReasoningPanel` and `PossibilityGrid` as a fixed right sidebar (already `max-w-7xl mx-auto` grid). Currently they stack below the question on all sizes — on desktop they have room to coexist.~~ |
 | ~~U.9~~ | ~~**Thinking animation with search pulse**~~ | ~~`QuestionCard` (ThinkingCard)~~ | ~~The shimmer skeleton is generic. Replace with a custom animation: the possibility grid dots pulse in waves from left to right — visually suggesting the engine is sweeping through candidates. One CSS animation, no JS.~~ |
 | ~~U.10~~ | ~~**Undo ripple**~~ | ~~`PlayingScreen`~~ | ~~When the player hits Undo, the most recent answer pill briefly glows red before removing. Currently it just disappears. A 200ms flash gives the action tactile feedback and prevents accidental double-undos.~~ |
 
 ### U-EX — UI Explorations & Pipe Dreams
+
+> 🧊 **Icebox** — Deferred indefinitely. Good ideas, no current priority.
 
 The weird stuff. No timeline, no guarantee. Think of these as creative prompts.
 
@@ -269,6 +273,8 @@ The pipeline is one of the most technically interesting parts of this project �
 | ~~EN.6~~ | ~~**Enrichment changelog**~~ | ~~Low~~ | ~~Write `data/enrich-log.md` (not the raw txt log) after each run: date, characters processed, attributes filled, tokens used, cost, any failures. Plain Markdown table. Over time this becomes a run history you can graph — did cost-per-character go up after a prompt change?~~ |
 
 ### EP — Enrichment Pipe Dreams
+
+> 🧊 **Icebox** — Deferred indefinitely. Good engineering problems, no current priority.
 
 The enrichment pipeline already does something genuinely impressive — automated character classification at scale using LLMs. These ideas push it into territory most projects never touch.
 
@@ -324,9 +330,11 @@ Issues found in the current implementation.
 | ~~BI.2~~ | ~~**Add `Cache-Control` to API responses**~~ | ~~Low~~ | ~~Workers responses aren't covered by `public/_headers`. Stable GET endpoints (`/api/v2/questions`, `/api/v2/characters`) should return `Cache-Control: public, max-age=60, stale-while-revalidate=300` — lets the Cloudflare edge serve repeat requests without Worker invocations.~~ |
 | ~~BI.3~~ | ~~**Request body size guard**~~ | ~~Low~~ | ~~`parseJsonBody` reads the full body with no size cap. A request with a large body consumes Worker CPU. Add a `Content-Length` check in `parseJsonBody`: reject requests over 64 KB with a `413` before calling `.json()`.~~ |
 | ~~BI.4~~ | ~~**Deployment checklist: verify `COOKIE_SECRET`**~~ | ~~Low~~ | ~~`_helpers.ts` falls back to `DEV_SECRET = 'dev-insecure-secret-do-not-use-in-production'` if `COOKIE_SECRET` is unset. There's no production guard that fails loudly. Add a startup assertion in `getSigningKey`: if `env.COOKIE_SECRET` is falsy, throw — don't silently use the dev secret.~~ |
-| BI.5 | **Atomic rate limiting via Durable Objects** | Medium | `checkRateLimit` does KV read → write (non-atomic). Concurrent requests see the same count before any write lands — the limit can be exceeded. Replace with a Durable Object per `{action}:{userId}` — atomic counters via `state.storage`. The canonical Cloudflare solution; teaches DO lifecycle and state management. |
+| ~~BI.5~~ | ~~**Atomic rate limiting via Durable Objects**~~ | ~~Medium~~ | ~~`checkRateLimit` does KV read → write (non-atomic). Concurrent requests see the same count before any write lands — the limit can be exceeded. Replace with a Durable Object per `{action}:{userId}` — atomic counters via `state.storage`. The canonical Cloudflare solution; teaches DO lifecycle and state management.~~ |
 
 ### BE — Backend Explorations
+
+> 🧊 **Icebox** — Deferred indefinitely. Learning-oriented; no implementation timeline.
 
 | # | Exploration | What you'd learn |
 |---|------------|-----------------|
@@ -335,7 +343,7 @@ Issues found in the current implementation.
 
 ### BP — Backend Pipe Dreams
 
-Technically deep ideas. No obligation to ship. Cool engineering problems, most of which you'd be proud to explain in a portfolio interview.
+> 🧊 **Icebox** — Deferred indefinitely. Technically deep; listed for portfolio narrative value.
 
 **Cloudflare Vectorize as the Character Index**
 Replace the O(N×Q) Bayesian probability loop with approximate nearest neighbor search. On each answer, embed the current answer state as a vector (`yes/no/maybe/null` per attribute → float[]). Store all characters as pre-computed vectors in Cloudflare Vectorize. `POST /api/v2/game/answer` does a single `vectorize.query()` instead of iterating 500 characters × 50 attributes. The Bayesian engine becomes an embedding update step — a fundamentally different architecture. Teaches: vector databases, ANN search, Vectorize API. The tradeoff: loses the transparency of per-character probability scores (though you can re-derive them from similarity distances).
@@ -391,6 +399,8 @@ The project already has developer tools — `CostDashboard`, `DataHygiene`, `Att
 
 ### AM — Admin Pipe Dreams: Mission Control
 
+> 🧊 **Icebox** — Deferred indefinitely. These transform the admin panel into a live ops center; no implementation timeline.
+
 These ideas transform the admin panel from a collection of developer tools into a live operations center for the game. The technology is all real and available — the question is just how far to take it.
 
 **Real-Time Game Observatory**
@@ -430,19 +440,21 @@ The development loop is already solid — Husky pre-commit, lint-staged, CI with
 
 | # | Item | Effort | Notes |
 |---|------|--------|-------|
-| DX.1 | **Enable `strict: true` in `tsconfig.json`** | Low | Currently only `strictNullChecks: true` is set. `"strict": true` adds `noImplicitAny`, `strictFunctionTypes`, `strictPropertyInitialization`, and `strictBindCallApply` — the full safety net. The copilot instructions say "avoid `any`" but nothing in the compiler enforces it. Expect ~20–40 type errors on first enable; fixing them will surface latent bugs not caught by tests. |
+| ~~DX.1~~ | ~~**Enable `strict: true` in `tsconfig.json`**~~ | ~~Low~~ | ~~Currently only `strictNullChecks: true` is set. `"strict": true` adds `noImplicitAny`, `strictFunctionTypes`, `strictPropertyInitialization`, and `strictBindCallApply` — the full safety net. The copilot instructions say "avoid `any`" but nothing in the compiler enforces it. Expect ~20–40 type errors on first enable; fixing them will surface latent bugs not caught by tests.~~ |
 | ~~DX.2~~ | ~~**Add type-check to `lint-staged`**~~ | ~~Low~~ | ~~The pre-commit hook runs `eslint --fix` on changed `.ts/.tsx` files but not `tsc`. A type error in a changed file passes pre-commit silently and only fails in CI. Add `tsc -b --noCheck` (or `tsc --noEmit --isolatedModules` per-file) to `lint-staged`. Type errors are caught locally before they waste a CI run.~~ |
 | DX.3 | **`@cloudflare/vitest-pool-workers` for Workers handler tests** | Medium | Every file in `functions/api/v2/game/**`, `questions.ts`, `characters.ts`, etc. is explicitly excluded from coverage because they require the CF Workers runtime. `@cloudflare/vitest-pool-workers` runs Vitest inside Miniflare — real Workers runtime, local KV + D1 bindings, no mocking required. Route handlers become testable without a deployed environment, and a currently dark coverage zone gets light. |
 | DX.4 | **MSW for API-dependent component tests** | Medium | Components that call `/api/v2/*` can't be unit-tested without a running server, so they're skipped. Add [MSW](https://mswjs.io/) (`msw/node` in Vitest): intercept `fetch` at the network layer and return fixture responses. Component tests for `ReasoningPanel`, `QuestionCard`, and game hooks become self-contained and fast, with no server dependency. Fixtures can be generated from the Zod schemas in DP "Zod API Contract Layer". |
 | ~~DX.5~~ | ~~**Bundle size budget in CI**~~ | ~~Low~~ | ~~The `vendor-radix` chunk grows silently every time a new shadcn/ui component is added — there's no alarm. Add [size-limit](https://github.com/ai/size-limit) with per-chunk budgets in CI: `vendor-radix ≤ 130 KB gzip`, `vendor-motion ≤ 50 KB gzip`, `vendor-charts ≤ 65 KB gzip`. A chunk that exceeds its budget fails CI. Chunk bloat becomes a deliberate choice, not a surprise on delay.~~ |
 | ~~DX.6~~ | ~~**WebKit + mobile viewport in Playwright**~~ | ~~Low~~ | ~~`playwright.config.ts` runs Desktop Chromium and Desktop Firefox only. The game has swipe gestures (`useSwipeAnswer`) and a fully touch-optimized layout — neither is exercised in CI. Add a `Mobile Safari` project (`devices['iPhone 15']`) and a `Mobile Chrome` project (`devices['Pixel 7']`). Move swipe gesture specs into a group that only runs on mobile projects. Safari rendering bugs and touch interaction failures are caught before deploy.~~ |
-| DX.7 | **Coverage thresholds in CI** | Low | `pnpm test:coverage` generates `lcov.info` but no threshold is enforced — coverage can drop to 0% without a CI failure. Add `coverage.thresholds` in `vitest.config.ts`: `{ lines: 70, functions: 70, branches: 60 }` as a baseline (calibrated to actual current coverage). The number exists to catch accidental regression, not to demand perfection. |
+| ~~DX.7~~ | ~~**Coverage thresholds in CI**~~ | ~~Low~~ | ~~`pnpm test:coverage` generates `lcov.info` but no threshold is enforced — coverage can drop to 0% without a CI failure. Add `coverage.thresholds` in `vitest.config.ts`: `{ lines: 70, functions: 70, branches: 60 }` as a baseline (calibrated to actual current coverage). The number exists to catch accidental regression, not to demand perfection.~~ |
 | ~~DX.8~~ | ~~**`eslint-plugin-jsx-a11y`**~~ | ~~Low~~ | ~~The Modern Web section identifies four accessibility gaps. None are caught automatically — there's no a11y linting in `eslint.config.js`. Add `eslint-plugin-jsx-a11y` with the `recommended` rule set. `aria-live`, focus management, and interactive element labelling issues get flagged at lint time instead of discovered during a manual audit.~~ |
 | ~~DX.9~~ | ~~**`@typescript-eslint/no-explicit-any` enforcement**~~ | ~~Low~~ | ~~The copilot instructions say "avoid `any`" in function signatures. ESLint enforces `no-unused-vars` but not `no-explicit-any`. Add the rule at `"error"` with `ignoreRestArgs: false`. The few legitimate escape hatches get `// eslint-disable-next-line` comments explaining why — making implicit `any` a deliberate, documented exception rather than invisible drift.~~ |
 | DX.10 | **Automated CHANGELOG + release tagging** | Low | `CHANGELOG.md` is maintained by hand. Add [changesets](https://github.com/changesets/changesets): PR authors drop a changeset file; on merge to `main`, a GitHub Action commits the changelog entry and creates a semantic version tag. The git history gets clean `v1.x.y` tags and the CHANGELOG stays accurate automatically — no manual "what did I ship this week?" archaeology. |
-| DX.11 | **DB types CI drift check** | Medium | `pnpm db:types` runs `scripts/generate-db-types.ts` to produce `functions/api/_db-types.ts` from the D1 schema. This is a manual step — types can silently drift from the schema after any migration lands. Add a CI step that re-runs the generator and runs `git diff --exit-code`; if the output changed, the job fails with the diff. Untracked schema drift becomes a CI failure rather than a runtime surprise. |
+| ~~DX.11~~ | ~~**DB types CI drift check**~~ | ~~Medium~~ | ~~`pnpm db:types` runs `scripts/generate-db-types.ts` to produce `functions/api/_db-types.ts` from the D1 schema. This is a manual step — types can silently drift from the schema after any migration lands. Add a CI step that re-runs the generator and runs `git diff --exit-code`; if the output changed, the job fails with the diff. Untracked schema drift becomes a CI failure rather than a runtime surprise.~~ |
 
 ### DP — DX Pipe Dreams
+
+> 🧊 **Icebox** — Deferred indefinitely. Best-in-class tooling; not scoped.
 
 A best-in-class development loop. Not scoped — listed because they're worth knowing about.
 
@@ -468,6 +480,8 @@ DX.3 makes individual route handlers testable. The next level: a full integratio
 
 ## Phase 2 — Gameplay Depth (Medium-term, 1–4 weeks each)
 
+> 🧊 **Icebox** — Remaining unimplemented items deferred. Completed items are struck through above.
+
 New mechanics that expand replayability without breaking what works.
 
 | # | Item | Why |
@@ -477,14 +491,16 @@ New mechanics that expand replayability without breaking what works.
 | 2.3 | **Multi-guess with drama** | Instead of one final guess, the AI gets 3 guesses — each with a higher confidence threshold. Dramatic reveal sequence; last guess plays the full typewriter + ring animation. |
 | 2.4 | **Speed mode** | 60-second countdown per session (not per question). Keyboard answers are essential here — desktop only. Timer shown as a sweeping arc instead of a number. |
 | 2.5 | ~~**Personal best tracking**~~ ✅ | ~~Track lowest question count to win per difficulty in `localStorage`. Surface as "Personal Best: 7 questions" on the win screen with a "new record" burst animation.~~ Done: `usePersonalBest` hook, displayed on `WelcomeScreen` + burst animation on `GameOver`. |
-| 2.6 | **Suspense reveal animation** | On final guess, reveal the character name one letter at a time (typewriter, ~80ms/char) with a subtle drumroll via Web Audio. Purely theatrical — highly memorable. Already partially staged in `GuessReveal`. |
+| ~~2.6~~ | ~~**Suspense reveal animation**~~ | ~~On final guess, reveal the character name one letter at a time (typewriter, ~80ms/char) with a subtle drumroll via Web Audio. Purely theatrical — highly memorable. Already partially staged in `GuessReveal`.~~ |
 | 2.7 | ~~**Warm/cold proximity indicator**~~ ✅ | ~~After each answer, flash "Getting warmer 🔥" or "Going cold 🧊" based on whether the top candidate's score moved up or down. Gamification without spoiling.~~ Done: `PlayingScreen` tracks `prevTopProbRef`; delta ≥6 → warm badge, ≤-6 → cold badge, auto-dismiss 2.2s. |
-| 2.8 | **Decisive question highlight** | On game over (win or loss), star the single question that caused the biggest probability jump. "This question cracked it." Reinforces the Bayesian narrative. |
+| ~~2.8~~ | ~~**Decisive question highlight**~~ | ~~On game over (win or loss), star the single question that caused the biggest probability jump. "This question cracked it." Reinforces the Bayesian narrative.~~ |
 | 2.9 | ~~**AI confidence sparkline**~~ ✅ | ~~In `ReasoningPanel`, add a 12-point mini sparkline of the top candidate's score over the game so far. Visual proof of the narrowing — already have `Recharts`.~~ Done: `ReasoningPanel` renders a Recharts `LineChart` sparkline of `confidenceHistory[]` when ≥3 data points exist. Also added a top-3 probability trace chart (`PossibilitySpaceChart`) in the right column. |
 
 ---
 
 ## Phase 3 — Social & Replayability (Longer-term, project weekends)
+
+> 🧊 **Icebox** — Remaining unimplemented items deferred. Completed items are struck through above.
 
 Features that make people come back and bring friends.
 
@@ -492,15 +508,17 @@ Features that make people come back and bring friends.
 |---|------|-----|
 | 3.1 | **Challenge a friend link** | Encode a specific character ID + salt into a shareable URL. Friend plays the same character; results compared side-by-side. Uses existing `sharing.ts` base64 encoding. |
 | 3.2 | **Custom character lists** | Let users create a named list of character IDs (stored in `localStorage`). Play against only their list — great for family/friend groups with shared fandoms. |
-| 3.3 | **Achievement badges** | Unlockable badges stored in `localStorage`: "Speed Demon" (win ≤5q), "Stubborn" (use all questions), "Teacher" (submit 10 corrections), "Perfect Week" (daily streak ×7). Shown on welcome screen. |
+| ~~3.3~~ | ~~**Achievement badges**~~ | ~~Unlockable badges stored in `localStorage`: "Speed Demon" (win ≤5q), "Stubborn" (use all questions), "Teacher" (submit 10 corrections), "Perfect Week" (daily streak ×7). Shown on welcome screen.~~ |
 | 3.4 | **Improved teaching mode UX** | Current flow is functional but one long form. Redesign as a wizard: (1) character name, (2) confirm auto-detected attributes, (3) fill gaps manually, (4) submit. Progress indicator between steps. |
-| 3.5 | **Weekly recap card** | Every Monday, show "Last week:" — games played, win rate, streak, hardest character. Computed from `IndexedDB` game history. Zero server cost. |
+| ~~3.5~~ | ~~**Weekly recap card**~~ | ~~Every Monday, show "Last week:" — games played, win rate, streak, hardest character. Computed from `IndexedDB` game history. Zero server cost.~~ |
 | 3.6 | **Bento grid stats dashboard** | Replace the flat stat rows in `StatsDashboard` with a CSS grid bento layout — large "Win Rate" tile, smaller supporting tiles. Looks much stronger as a portfolio piece. |
 | 3.7 | **Voice input (experimental)** | Web Speech API "Yes / No / Maybe" recognition — triggers only on user permission. Fun party trick; fully degradable if unsupported. |
 
 ---
 
 ## Phase 4 — Showcase & Portfolio Polish (Ongoing)
+
+> 🧊 **Icebox** — Remaining unimplemented items deferred. Completed items are struck through above.
 
 Items that make the project stand out as a demo piece.
 
@@ -511,7 +529,7 @@ Items that make the project stand out as a demo piece.
 | 4.3 | **Ambient character color theming** | Extract the dominant color from the character's R2 image (small canvas script on the Worker). Use it as the accent tint on the `GuessReveal` card — the UI literally adapts to the character. |
 | 4.4 | **Character suggestion page** | A simple `/suggest` route — visitors nominate characters via a form stored in D1. You review and merge. Turns passive visitors into contributors without requiring auth. |
 | 4.5 | **Offline-first full game** | Currently PWA-registered but not fully offline-playable. Bundle a representative 100-character subset into the service worker cache. Works on a plane. |
-| 4.6 | **Adaptive difficulty prompt** | After 10+ games, analyze the player's recent win rate and prompt: "You've won 9 of your last 10 on Medium — try Hard?" Shown as a dismissible toast on the welcome screen. |
+| ~~4.6~~ | ~~**Adaptive difficulty prompt**~~ | ~~After 10+ games, analyze the player's recent win rate and prompt: "You've won 9 of your last 10 on Medium — try Hard?" Shown as a dismissible toast on the welcome screen.~~ |
 | 4.7 | **AI-generated character portraits** | For characters missing an R2 image, call `@cf/stabilityai/stable-diffusion-xl-base-1.0` via Workers AI to generate and cache a portrait. Zero manual asset work. |
 
 ---
@@ -583,6 +601,8 @@ Parked here so they don't get lost, but not prioritized.
 
 ## Pipe Dreams (Wacky AI/LLM Ideas)
 
+> 🧊 **Icebox** — No timelines. No promises. Deferred indefinitely.
+
 No timelines. No promises. Just "wouldn't it be wild if..."
 
 **The AI Argues Back**
@@ -618,6 +638,8 @@ Each character in the DB gets an LLM-generated 2-sentence bio written in the AI'
 ---
 
 ## Moonshots
+
+> 🧊 **Icebox** — Alternate futures for the project. No timelines, no current priority.
 
 Ideas at a different scale — not features or improvements, but alternate futures for what this project could become. No timelines. Listed here because they're worth thinking about.
 

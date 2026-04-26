@@ -29,12 +29,26 @@ export function GuessReveal({
   onRejectGuess,
 }: Readonly<GuessRevealProps>) {
   const [stage, setStage] = useState<"analyzing" | "confidence" | "reveal">("analyzing");
+  const [displayedName, setDisplayedName] = useState("");
 
   useEffect(() => {
     const t1 = setTimeout(() => setStage("confidence"), 1200);
     const t2 = setTimeout(() => setStage("reveal"), 2200);
     return () => { clearTimeout(t1); clearTimeout(t2); };
   }, []);
+
+  // Typewriter reveal — letter by letter at ~80ms/char starting when reveal stage begins
+  useEffect(() => {
+    if (stage !== "reveal") return;
+    setDisplayedName("");
+    let i = 0;
+    const interval = setInterval(() => {
+      i++;
+      setDisplayedName(character.name.slice(0, i));
+      if (i >= character.name.length) clearInterval(interval);
+    }, 80);
+    return () => clearInterval(interval);
+  }, [stage, character.name]);
 
   // Build radar data from character attributes bucketed by group
   const radarData = useMemo(() => {
@@ -199,12 +213,16 @@ export function GuessReveal({
                   </motion.div>
                 )}
                 <motion.h1
-                  initial={{ opacity: 0, scale: 0.7, filter: "blur(8px)" }}
-                  animate={{ opacity: 1, scale: 1, filter: "blur(0px)" }}
-                  transition={{ type: "spring", stiffness: 150, damping: 18, delay: 0.15 }}
-                  className="text-5xl md:text-6xl font-bold text-gradient-win"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ duration: 0.2, delay: 0.1 }}
+                  className="text-5xl md:text-6xl font-bold text-gradient-win min-h-[1.2em]"
+                  aria-label={character.name}
                 >
-                  {character.name}
+                  {displayedName}
+                  {displayedName.length < character.name.length && (
+                    <span className="animate-pulse opacity-70">|</span>
+                  )}
                 </motion.h1>
                 {radarData.length >= 3 && (
                   <motion.div

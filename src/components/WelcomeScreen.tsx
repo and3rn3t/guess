@@ -1,7 +1,10 @@
 import { Button } from "@/components/ui/button";
 import { PersonaSelector } from "@/components/PersonaSelector";
+import { WeeklyRecapCard } from "@/components/WeeklyRecapCard";
 import type { GamePhase } from "@/hooks/useGameState";
 import type { GlobalStats } from "@/hooks/useGlobalStats";
+import type { Achievement } from "@/hooks/useAchievements";
+import type { WeeklyRecap } from "@/hooks/useWeeklyRecap";
 import type {
   Character,
   CharacterCategory,
@@ -42,6 +45,8 @@ interface WelcomeScreenProps {
   setCategories: (c: CharacterCategory[]) => void;
   streak: number;
   personalBest?: number | null;
+  achievements?: Achievement[];
+  weeklyRecap?: WeeklyRecap | null;
 }
 
 export function WelcomeScreen({
@@ -64,6 +69,8 @@ export function WelcomeScreen({
   setCategories,
   streak,
   personalBest = null,
+  achievements = [],
+  weeklyRecap = null,
 }: Readonly<WelcomeScreenProps>) {
   const filteredTotal =
     categories.length === 0
@@ -110,6 +117,20 @@ export function WelcomeScreen({
               🏆 Best: {personalBest}q
             </div>
           )}
+          {achievements.length > 0 && (
+            <div className="flex flex-wrap justify-center gap-2 mt-1" aria-label="Achievements">
+              {achievements.map((a) => (
+                <span
+                  key={a.id}
+                  title={a.description}
+                  className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-secondary/60 border border-border/60 text-xs font-medium text-foreground/80 cursor-default select-none"
+                >
+                  <span aria-hidden="true">{a.emoji}</span>
+                  {a.label}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Resume saved session */}
@@ -139,6 +160,9 @@ export function WelcomeScreen({
 
         {/* Detective persona / difficulty */}
         <PersonaSelector difficulty={difficulty} setDifficulty={setDifficulty} />
+
+        {/* Weekly recap card — shown on Mondays only */}
+        {weeklyRecap && <WeeklyRecapCard recap={weeklyRecap} />}
 
         {/* Category filter chips */}
         <div
