@@ -13,42 +13,27 @@
 --   isReal          (inverse of isFictional → same problem)
 --   livesInNewYork  (hyperspecific single-city geography with no peer attributes)
 
--- ── Step 1: Merge loser rows into winner (insert only where winner is missing) ─────────
+-- NOTE: The INSERT OR IGNORE ... SELECT merge step was removed because it causes
+-- SQLITE_NOMEM on D1 when character_attributes is large (builds full result set in memory).
+-- Trade-off: characters that ONLY had the loser key (not the canonical key) will lose
+-- that attribute — re-run the enrichment pipeline to restore coverage for those characters.
 
-INSERT OR IGNORE INTO character_attributes (character_id, attribute_key, value, confidence)
-SELECT character_id, 'fromVideoGame', value, confidence
-FROM character_attributes
-WHERE attribute_key = 'isVideoGameCharacter';
+-- ── Step 1: Remove loser character_attribute rows ─────────────────────────────────────
 
-INSERT OR IGNORE INTO character_attributes (character_id, attribute_key, value, confidence)
-SELECT character_id, 'fromMovie', value, confidence
-FROM character_attributes
-WHERE attribute_key = 'isFromMovie';
+DELETE FROM character_attributes
+WHERE attribute_key IN ('isVideoGameCharacter', 'isFromMovie', 'isFromBook');
 
-INSERT OR IGNORE INTO character_attributes (character_id, attribute_key, value, confidence)
-SELECT character_id, 'fromBook', value, confidence
-FROM character_attributes
-WHERE attribute_key = 'isFromBook';
+-- ── Step 2: Remove loser questions ────────────────────────────────────────────────────
 
--- ── Step 2: Remove loser rows ──────────────────────────────────────────────────────────
+DELETE FROM questions
+WHERE attribute_key IN ('isVideoGameCharacter', 'isFromMovie', 'isFromBook');
 
-DELETE FROM character_attributes WHERE attribute_key = 'isVideoGameCharacter';
-DELETE FROM character_attributes WHERE attribute_key = 'isFromMovie';
-DELETE FROM character_attributes WHERE attribute_key = 'isFromBook';
+-- ── Step 3: Remove loser attribute definitions ────────────────────────────────────────
 
--- ── Step 3: Remove loser questions ────────────────────────────────────────────────────
+DELETE FROM attribute_definitions
+WHERE key IN ('isVideoGameCharacter', 'isFromMovie', 'isFromBook');
 
-DELETE FROM questions WHERE attribute_key = 'isVideoGameCharacter';
-DELETE FROM questions WHERE attribute_key = 'isFromMovie';
-DELETE FROM questions WHERE attribute_key = 'isFromBook';
-
--- ── Step 4: Remove loser attribute definitions ────────────────────────────────────────
-
-DELETE FROM attribute_definitions WHERE key = 'isVideoGameCharacter';
-DELETE FROM attribute_definitions WHERE key = 'isFromMovie';
-DELETE FROM attribute_definitions WHERE key = 'isFromBook';
-
--- ── Step 5: Deactivate zero-info attributes ────────────────────────────────────────────
+-- ── Step 4: Deactivate zero-info attributes ────────────────────────────────────────────
 
 UPDATE attribute_definitions
 SET is_active = 0
