@@ -5,6 +5,10 @@ import type { Page } from '@playwright/test'
 // ---------------------------------------------------------------------------
 
 export const MOCK_SESSION_ID = 'e2e-mock-session-id'
+/** localStorage key that marks onboarding as complete — set by fixtures to skip the overlay. */
+export const ONBOARDING_KEY = 'kv:onboarding-complete'
+/** sessionStorage key used by useServerGame to persist the active session ID for auto-resume. */
+export const SESSION_KEY = 'server-session-id'
 
 export const mockReasoning = {
   why: 'Testing question',
@@ -95,6 +99,21 @@ export async function setupApiMocks(page: Page) {
       status: 200,
       contentType: 'application/json',
       body: JSON.stringify({ expired: true }),
+    }),
+  )
+
+  await page.route('**/api/v2/game/skip', (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        type: 'question',
+        question: mockQuestion(answerCount + 2),
+        reasoning: { ...mockReasoning, remaining: 90 - answerCount * 20 },
+        remaining: 90 - answerCount * 20,
+        eliminated: 10 + answerCount * 20,
+        questionCount: answerCount + 2,
+      }),
     }),
   )
 }

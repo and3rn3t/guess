@@ -428,6 +428,7 @@ In 1-2 sentences, react in character to this answer and what it reveals. Be conc
               <div className="text-center pt-1">
                 <button
                   onClick={onSkip}
+                  data-testid="skip-btn"
                   className="text-xs text-muted-foreground hover:text-foreground transition-colors underline-offset-2 hover:underline"
                 >
                   Skip this question

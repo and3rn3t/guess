@@ -1,22 +1,23 @@
 import { test as base } from '@playwright/test'
-import { setupApiMocks } from './helpers'
+import { GamePage } from './pages/GamePage'
+import { setupApiMocks, ONBOARDING_KEY } from './helpers'
 
 export { expect } from '@playwright/test'
-export { MOCK_SESSION_ID, mockQuestion, mockReasoning, setupApiMocks } from './helpers'
+export { MOCK_SESSION_ID, ONBOARDING_KEY, SESSION_KEY, mockQuestion, mockReasoning, setupApiMocks } from './helpers'
 
 type Fixtures = {
-  /** Page pre-loaded with localStorage init, API mocks, and navigated to '/'. */
-  gamePage: import('@playwright/test').Page
+  /** GamePage pre-loaded with localStorage init, API mocks, and navigated to '/'. */
+  gamePage: GamePage
 }
 
 export const test = base.extend<Fixtures>({
   gamePage: async ({ page }, provide) => {
-    await page.addInitScript(() => {
+    await page.addInitScript((key: string) => {
       localStorage.clear()
-      localStorage.setItem('kv:onboarding-complete', 'true')
-    })
+      localStorage.setItem(key, 'true')
+    }, ONBOARDING_KEY)
     await setupApiMocks(page)
     await page.goto('/')
-    await provide(page)
+    await provide(new GamePage(page))
   },
 })
