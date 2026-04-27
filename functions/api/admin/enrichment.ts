@@ -83,6 +83,24 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   const db = context.env.GUESS_DB
   if (!db) return errorResponse('D1 not configured', 503)
 
+  // Accept optional specific character IDs to retry
+  let characterIds: string[] | null = null
+  try {
+    const body = await context.request.json() as { characterIds?: string[] }
+    if (Array.isArray(body.characterIds) && body.characterIds.length > 0) {
+      characterIds = body.characterIds.filter((id) => typeof id === 'string').slice(0, 500)
+    }
+  } catch {
+    // no body or non-JSON body — fall through to full retry
+  }
+
+  if (characterIds) {
+    await kv.put('admin:enrich-retry-ids', JSON.stringify({ requestedAt: Date.now(), characterIds }), {
+      expirationTtl: 3600,
+    })
+    return jsonResponse({ ok: true, queued: characterIds.length })
+  }
+
   // Count how many characters need enrichment
   const result = await db
     .prepare('SELECT COUNT(*) as total FROM characters WHERE image_url IS NULL')

@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { ArrowLeftIcon, ArrowRightIcon, ChartBarIcon } from '@phosphor-icons/react'
+import { ArrowLeftIcon, ArrowRightIcon, ChartBarIcon, SparkleIcon, XIcon } from '@phosphor-icons/react'
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts'
 
 interface ClientEvent {
   id: string
@@ -33,12 +34,17 @@ const EVENT_COLORS: Record<string, string> = {
   guess: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
 }
 
+const BAR_COLORS = ['#7c3aed', '#2563eb', '#059669', '#d97706', '#dc2626', '#8b5cf6', '#0891b2']
+
 export default function AnalyticsRoute(): React.JSX.Element {
   const [data, setData] = useState<PageData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [filterType, setFilterType] = useState('')
   const [page, setPage] = useState(1)
+  const [insights, setInsights] = useState<string | null>(null)
+  const [insightsLoading, setInsightsLoading] = useState(false)
+  const [showInsights, setShowInsights] = useState(false)
   const pageSize = 25
 
   const fetchData = async (type: string, p: number) => {
@@ -63,6 +69,25 @@ export default function AnalyticsRoute(): React.JSX.Element {
   const formatDate = (ts: number) =>
     new Date(ts).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' })
 
+  const fetchInsights = async (bust = false) => {
+    setInsightsLoading(true)
+    setShowInsights(true)
+    try {
+      const res = await fetch('/api/admin/analytics/insights', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ summary: data?.summary ?? [], bustCache: bust }),
+      })
+      if (!res.ok) throw new Error(`${res.status}`)
+      const json = await res.json() as { insights: string }
+      setInsights(json.insights)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Insights failed')
+    } finally {
+      setInsightsLoading(false)
+    }
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-3">
@@ -70,7 +95,71 @@ export default function AnalyticsRoute(): React.JSX.Element {
           <h1 className="text-2xl font-bold">Client Analytics</h1>
           {data && <p className="text-sm text-muted-foreground mt-1">{data.total.toLocaleString()} events</p>}
         </div>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => void fetchInsights()}
+          disabled={insightsLoading || !data}
+          className="text-violet-400 border-violet-500/40 hover:bg-violet-500/10"
+        >
+          <SparkleIcon size={14} className={`mr-1.5 ${insightsLoading ? 'animate-pulse' : ''}`} />
+          {insightsLoading ? 'Thinking…' : 'AI Insights'}
+        </Button>
       </div>
+
+      {/* AI Insights Card */}
+      {showInsights && (
+        <div className="rounded-xl border border-violet-500/30 bg-violet-500/10 px-5 py-4 space-y-2">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 text-violet-300 font-medium text-sm">
+              <SparkleIcon size={14} /> AI Insights
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => void fetchInsights(true)}
+                className="text-xs text-muted-foreground hover:text-foreground"
+              >
+                Refresh
+              </button>
+              <button onClick={() => setShowInsights(false)} className="text-muted-foreground hover:text-foreground">
+                <XIcon size={14} />
+              </button>
+            </div>
+          </div>
+          {insightsLoading ? (
+            <div className="space-y-2">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="h-4 bg-violet-500/20 animate-pulse rounded" />
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground whitespace-pre-line">{insights}</p>
+          )}
+        </div>
+      )}
+
+      {/* BarChart for event type distribution */}
+      {(data?.summary.length ?? 0) > 0 && (
+        <div className="rounded-xl border bg-card px-5 py-4">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-3">Event Distribution</p>
+          <ResponsiveContainer width="100%" height={160}>
+            <BarChart data={data!.summary} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
+              <XAxis dataKey="event_type" tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} />
+              <YAxis tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} />
+              <Tooltip
+                contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: 8, fontSize: 12 }}
+                itemStyle={{ color: 'hsl(var(--foreground))' }}
+                labelStyle={{ color: 'hsl(var(--muted-foreground))' }}
+              />
+              <Bar dataKey="count" radius={[4, 4, 0, 0]}>
+                {data!.summary.map((_, idx) => (
+                  <Cell key={idx} fill={BAR_COLORS[idx % BAR_COLORS.length]} />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      )}
 
       {/* Event type filter pills */}
       {(data?.summary.length ?? 0) > 0 && (

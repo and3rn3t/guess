@@ -43,6 +43,7 @@ export default function EnrichmentRoute(): React.JSX.Element {
   const [page, setPage] = useState(1)
   const [retrying, setRetrying] = useState(false)
   const [retryMsg, setRetryMsg] = useState<string | null>(null)
+  const [retryingId, setRetryingId] = useState<string | null>(null)
   const pageSize = 50
 
   const fetchData = async (f: Filter, p: number) => {
@@ -73,6 +74,22 @@ export default function EnrichmentRoute(): React.JSX.Element {
       setRetryMsg('Retry request failed')
     } finally {
       setRetrying(false)
+    }
+  }
+
+  const handleRetryOne = async (id: string) => {
+    setRetryingId(id)
+    try {
+      const res = await fetch('/api/admin/enrichment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ characterIds: [id] }),
+      })
+      if (!res.ok) throw new Error(res.statusText)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Retry failed')
+    } finally {
+      setRetryingId(null)
     }
   }
 
@@ -134,12 +151,13 @@ export default function EnrichmentRoute(): React.JSX.Element {
               <th className="text-left px-4 py-3 font-medium text-muted-foreground">Character</th>
               <th className="text-left px-4 py-3 font-medium text-muted-foreground w-32">Category</th>
               <th className="text-center px-4 py-3 font-medium text-muted-foreground w-24">Status</th>
+              <th className="text-center px-4 py-3 font-medium text-muted-foreground w-24">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
             {loading && !data
               ? Array.from({ length: 8 }).map((_, i) => (
-                  <tr key={i}><td colSpan={3} className="px-4 py-3"><div className="h-4 bg-muted animate-pulse rounded" /></td></tr>
+                  <tr key={i}><td colSpan={4} className="px-4 py-3"><div className="h-4 bg-muted animate-pulse rounded" /></td></tr>
                 ))
               : (data?.characters ?? []).map((c) => (
                   <tr key={c.id} className="hover:bg-muted/30 transition-colors">
@@ -158,6 +176,20 @@ export default function EnrichmentRoute(): React.JSX.Element {
                         ? <Badge className="bg-green-500/20 text-green-400 border-green-500/30 text-xs">enriched</Badge>
                         : <Badge variant="outline" className="text-yellow-500 border-yellow-500/30 text-xs">pending</Badge>
                       }
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      {!c.enriched && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-7 text-xs text-muted-foreground hover:text-foreground"
+                          onClick={() => void handleRetryOne(c.id)}
+                          disabled={retryingId === c.id}
+                        >
+                          <ArrowsClockwiseIcon size={12} className={`mr-1 ${retryingId === c.id ? 'animate-spin' : ''}`} />
+                          Retry
+                        </Button>
+                      )}
                     </td>
                   </tr>
                 ))}

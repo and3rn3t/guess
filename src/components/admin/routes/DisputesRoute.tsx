@@ -6,6 +6,7 @@ import {
   CheckCircleIcon,
   WarningOctagonIcon,
   XCircleIcon,
+  SparkleIcon,
 } from "@phosphor-icons/react";
 import { useEffect, useState } from "react";
 
@@ -45,6 +46,12 @@ const VALUE_LABEL: Record<string, string> = {
   null: "unknown",
 };
 
+interface AiVerdict {
+  correct: 'current' | 'flagged'
+  confidence: number
+  reason: string
+}
+
 interface ResolveTarget {
   id: number;
   characterId: string;
@@ -58,6 +65,8 @@ export default function DisputesRoute(): React.JSX.Element {
   const [filter, setFilter] = useState<Filter>("open");
   const [page, setPage] = useState(1);
   const [acting, setActing] = useState<number | null>(null);
+  const [aiVerdict, setAiVerdict] = useState<Record<number, AiVerdict>>({})
+  const [aiLoading, setAiLoading] = useState<number | null>(null)
   const [resolveTarget, setResolveTarget] = useState<ResolveTarget | null>(null);
   const [correctedValue, setCorrectedValue] = useState<1 | 0 | null>(1);
   const [resolving, setResolving] = useState(false);
@@ -141,6 +150,29 @@ export default function DisputesRoute(): React.JSX.Element {
 
   const totalPages = data ? Math.ceil(data.total / pageSize) : 1;
   const formatDate = (ts: number) => new Date(ts * 1000).toLocaleDateString();
+
+  const askAi = async (d: Dispute) => {
+    setAiLoading(d.id)
+    try {
+      const res = await fetch('/api/admin/attribute-disputes-ai', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          characterName: d.character_name ?? d.character_id,
+          attributeKey: d.attribute_key,
+          currentValue: d.current_value === 1 ? true : d.current_value === 0 ? false : null,
+          disputeReason: d.dispute_reason,
+        }),
+      })
+      if (!res.ok) throw new Error(`${res.status}`)
+      const verdict = await res.json() as AiVerdict
+      setAiVerdict((prev) => ({ ...prev, [d.id]: verdict }))
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'AI review failed')
+    } finally {
+      setAiLoading(null)
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -241,6 +273,16 @@ export default function DisputesRoute(): React.JSX.Element {
                     <Button
                       size="sm"
                       variant="outline"
+                      className="text-violet-400 border-violet-500/40 hover:bg-violet-500/10"
+                      disabled={aiLoading === d.id}
+                      onClick={() => void askAi(d)}
+                    >
+                      <SparkleIcon size={14} className={`mr-1.5 ${aiLoading === d.id ? 'animate-pulse' : ''}`} />
+                      {aiLoading === d.id ? 'Asking AI…' : 'Ask AI'}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
                       className="text-green-400 border-green-500/40 hover:bg-green-500/10"
                       disabled={acting === d.id || resolving}
                       onClick={() => {
@@ -268,6 +310,23 @@ export default function DisputesRoute(): React.JSX.Element {
                   </div>
                 )}
               </div>
+              {/* AI Verdict */}
+              {aiVerdict[d.id] && (
+                <div className={`px-3 py-2 rounded-lg border text-xs ${
+                  aiVerdict[d.id].correct === 'current'
+                    ? 'bg-green-500/10 border-green-500/30 text-green-400'
+                    : 'bg-yellow-500/10 border-yellow-500/30 text-yellow-400'
+                }`}>
+                  <span className="font-medium">
+                    AI verdict: keep <strong>{aiVerdict[d.id].correct}</strong> value
+                  </span>
+                  <span className="mx-1.5 text-muted-foreground">·</span>
+                  <span className="text-muted-foreground">
+                    {(aiVerdict[d.id].confidence * 100).toFixed(0)}% confidence
+                  </span>
+                  <p className="mt-1 text-muted-foreground">{aiVerdict[d.id].reason}</p>
+                </div>
+              )}
               {/* Inline resolution panel */}
               {resolveTarget?.id === d.id && (
                 <div className="mt-2 p-3 rounded-lg bg-muted/50 border border-border space-y-3">

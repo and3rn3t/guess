@@ -13,28 +13,20 @@ const EnvTestRoute = lazy(() => import('./routes/EnvTestRoute'))
 const BulkHabitatRoute = lazy(() => import('./routes/BulkHabitatRoute'))
 const DemoRoute = lazy(() => import('./routes/DemoRoute'))
 
-// Phase 2 — Data views (stubs until implemented)
 const CharactersRoute = lazy(() => import('./routes/CharactersRoute'))
 const QuestionsRoute = lazy(() => import('./routes/QuestionsRoute'))
 const EnrichmentRoute = lazy(() => import('./routes/EnrichmentRoute'))
 const PipelineRoute = lazy(() => import('./routes/PipelineRoute'))
 const AnalyticsRoute = lazy(() => import('./routes/AnalyticsRoute'))
-
-// Phase 3 — Pipeline/streaming (stubs until implemented)
 const EnrichDashboardRoute = lazy(() => import('./routes/EnrichDashboardRoute'))
 const ProposedAttrsRoute = lazy(() => import('./routes/ProposedAttrsRoute'))
 const DisputesRoute = lazy(() => import('./routes/DisputesRoute'))
 const CommunityRoute = lazy(() => import('./routes/CommunityRoute'))
 const ErrorLogsRoute = lazy(() => import('./routes/ErrorLogsRoute'))
-
-function AdminLanding(): React.JSX.Element {
-  return (
-    <div className="container mx-auto px-4 py-12 max-w-2xl">
-      <h1 className="text-2xl font-bold text-foreground mb-2">Mission Control</h1>
-      <p className="text-muted-foreground">Select a tool from the sidebar.</p>
-    </div>
-  )
-}
+const LandingRoute = lazy(() => import('./routes/LandingRoute'))
+const ConfusionRoute = lazy(() => import('./routes/ConfusionRoute'))
+const MatrixRoute = lazy(() => import('./routes/MatrixRoute'))
+const StressTestRoute = lazy(() => import('./routes/StressTestRoute'))
 
 function RouteWrapper({ children }: { children: React.ReactNode }): React.JSX.Element {
   return (
@@ -56,7 +48,7 @@ export function AdminApp(): React.JSX.Element {
       <BrowserRouter basename="/admin">
         <Routes>
           <Route path="/" element={<AdminShell />}>
-            <Route index element={<AdminLanding />} />
+            <Route index element={<RouteWrapper><LandingRoute /></RouteWrapper>} />
             <Route path="coverage" element={<RouteWrapper><CoverageRoute /></RouteWrapper>} />
             <Route path="hygiene" element={<RouteWrapper><HygieneRoute /></RouteWrapper>} />
             <Route path="cost" element={<RouteWrapper><CostRoute /></RouteWrapper>} />
@@ -70,6 +62,9 @@ export function AdminApp(): React.JSX.Element {
             <Route path="enrichment" element={<RouteWrapper><EnrichmentRoute /></RouteWrapper>} />
             <Route path="pipeline" element={<RouteWrapper><PipelineRoute /></RouteWrapper>} />
             <Route path="analytics" element={<RouteWrapper><AnalyticsRoute /></RouteWrapper>} />
+            <Route path="confusion" element={<RouteWrapper><ConfusionRoute /></RouteWrapper>} />
+            <Route path="matrix" element={<RouteWrapper><MatrixRoute /></RouteWrapper>} />
+            <Route path="stress-test" element={<RouteWrapper><StressTestRoute /></RouteWrapper>} />
             <Route path="enrich" element={<RouteWrapper><EnrichDashboardRoute /></RouteWrapper>} />
             <Route path="proposed-attrs" element={<RouteWrapper><ProposedAttrsRoute /></RouteWrapper>} />
             <Route path="disputes" element={<RouteWrapper><DisputesRoute /></RouteWrapper>} />

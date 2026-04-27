@@ -29,6 +29,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
   const url = new URL(context.request.url)
   const search = url.searchParams.get('search') ?? ''
   const category = url.searchParams.get('category') ?? ''
+  const maxCoverageParam = url.searchParams.get('maxCoverage')
   const page = Math.max(1, parseInt(url.searchParams.get('page') ?? '1', 10))
   const pageSize = Math.min(100, Math.max(10, parseInt(url.searchParams.get('pageSize') ?? '50', 10)))
   const offset = (page - 1) * pageSize
@@ -80,24 +81,27 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
   ])
 
   const totalAttributes = totalAttrsResult?.total ?? 1
+  const maxCoverage = maxCoverageParam !== null ? parseInt(maxCoverageParam, 10) : null
 
-  const characters: AdminCharacter[] = (rows.results ?? []).map((r) => ({
-    id: r.id,
-    name: r.name,
-    category: r.category,
-    source: r.source,
-    popularity: r.popularity,
-    imageUrl: r.image_url,
-    attributeCount: r.attribute_count ?? 0,
-    totalAttributes,
-    coveragePct: totalAttributes > 0 ? Math.round(((r.attribute_count ?? 0) / totalAttributes) * 100) : 0,
-    isCustom: r.is_custom === 1,
-    createdAt: r.created_at,
-  }))
+  const characters: AdminCharacter[] = (rows.results ?? [])
+    .map((r) => ({
+      id: r.id,
+      name: r.name,
+      category: r.category,
+      source: r.source,
+      popularity: r.popularity,
+      imageUrl: r.image_url,
+      attributeCount: r.attribute_count ?? 0,
+      totalAttributes,
+      coveragePct: totalAttributes > 0 ? Math.round(((r.attribute_count ?? 0) / totalAttributes) * 100) : 0,
+      isCustom: r.is_custom === 1,
+      createdAt: r.created_at,
+    }))
+    .filter((c) => maxCoverage === null || !Number.isNaN(maxCoverage) ? (maxCoverage === null || c.coveragePct <= maxCoverage) : true)
 
   return jsonResponse({
     characters,
-    total: countResult?.total ?? 0,
+    total: maxCoverage !== null ? characters.length : (countResult?.total ?? 0),
     page,
     pageSize,
   })

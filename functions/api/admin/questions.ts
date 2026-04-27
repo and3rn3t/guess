@@ -15,6 +15,7 @@ export interface AdminQuestion {
   isActive: boolean
   createdAt: number
   usageCount: number
+  difficulty: string | null
 }
 
 export const onRequestGet: PagesFunction<Env> = async (context) => {
@@ -45,7 +46,8 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
         ad.categories,
         ad.is_active,
         ad.created_at,
-        COUNT(DISTINCT gs.id) as usage_count
+        COUNT(DISTINCT gs.id) as usage_count,
+        (SELECT q.difficulty FROM questions q WHERE q.attribute_key = ad.key LIMIT 1) as difficulty
       FROM attribute_definitions ad
       LEFT JOIN game_stats gs ON gs.answer_distribution IS NOT NULL
         AND EXISTS (
@@ -57,7 +59,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       LIMIT ? OFFSET ?`
     )
     .bind(...params, pageSize, offset)
-    .all<AttributeDefinitionsRow & { usage_count: number }>()
+    .all<AttributeDefinitionsRow & { usage_count: number; difficulty: string | null }>()
 
   const questions: AdminQuestion[] = (rows.results ?? []).map((r) => ({
     key: r.key,
@@ -67,6 +69,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     isActive: r.is_active !== 0,
     createdAt: r.created_at,
     usageCount: r.usage_count,
+    difficulty: r.difficulty ?? null,
   }))
 
   return jsonResponse({

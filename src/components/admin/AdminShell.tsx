@@ -15,6 +15,9 @@ import {
   ChartLineIcon,
   BugIcon,
   WarningOctagonIcon,
+  GridFourIcon,
+  DnaIcon,
+  TargetIcon,
 } from '@phosphor-icons/react'
 import { useAdminData } from './AdminDataContext'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -29,6 +32,7 @@ const TOOL_ITEMS: NavItem[] = [
   { to: 'coverage', label: 'Attribute Coverage', icon: <ChartBarIcon size={16} weight="duotone" /> },
   { to: 'hygiene', label: 'Data Hygiene', icon: <WrenchIcon size={16} weight="duotone" /> },
   { to: 'cost', label: 'Cost Dashboard', icon: <ChartLineIcon size={16} weight="duotone" /> },
+  { to: 'stress-test', label: 'Stress Test', icon: <TargetIcon size={16} weight="duotone" /> },
   { to: 'recommender', label: 'Attr Recommender', icon: <LightningIcon size={16} weight="duotone" /> },
   { to: 'category-recommender', label: 'Category Recommender', icon: <TreeStructureIcon size={16} weight="duotone" /> },
   { to: 'env', label: 'Environment Test', icon: <FlaskIcon size={16} weight="duotone" /> },
@@ -42,6 +46,8 @@ const DATA_ITEMS: NavItem[] = [
   { to: 'enrichment', label: 'Enrichment Status', icon: <ArrowsClockwiseIcon size={16} weight="duotone" /> },
   { to: 'pipeline', label: 'Pipeline Log', icon: <TreeStructureIcon size={16} weight="duotone" /> },
   { to: 'analytics', label: 'Analytics', icon: <ChartBarIcon size={16} weight="duotone" /> },
+  { to: 'confusion', label: 'Confusion Matrix', icon: <GridFourIcon size={16} weight="duotone" /> },
+  { to: 'matrix', label: 'DNA Matrix', icon: <DnaIcon size={16} weight="duotone" /> },
 ]
 
 const PIPELINE_ITEMS: NavItem[] = [

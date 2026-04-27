@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { ArrowLeft, Warning, CheckCircle, TrendUp, Funnel } from '@phosphor-icons/react'
+import { ArrowLeft, Warning, CheckCircle, TrendUp, Funnel, Sparkle, X } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
@@ -26,6 +26,13 @@ interface CoverageData {
   attributes: CoverageAttribute[]
 }
 
+interface PriorityItem {
+  key: string
+  displayText: string
+  nullPct: number
+  reason: string
+}
+
 type SortOption = 'coverage' | 'diversity' | 'missing' | 'alphabetical'
 type FilterOption = 'all' | 'gaps' | 'complete' | 'partial'
 
@@ -40,6 +47,8 @@ export default function CoverageRoute(): React.JSX.Element {
   const [category, setCategory] = useState<string>('all')
   const [sortBy, setSortBy] = useState<SortOption>('coverage')
   const [filterBy, setFilterBy] = useState<FilterOption>('all')
+  const [prioritizing, setPrioritizing] = useState(false)
+  const [priorities, setPriorities] = useState<PriorityItem[] | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -93,6 +102,20 @@ export default function CoverageRoute(): React.JSX.Element {
     }
   }, [data])
 
+  const prioritize = async () => {
+    setPrioritizing(true)
+    try {
+      const res = await fetch('/api/admin/coverage-priority', { method: 'POST' })
+      if (!res.ok) throw new Error(`${res.status}`)
+      const json = await res.json() as { items: PriorityItem[] }
+      setPriorities(json.items)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Priority analysis failed')
+    } finally {
+      setPrioritizing(false)
+    }
+  }
+
   if (loading) {
     return (
       <div className="container mx-auto px-4 py-8">
@@ -125,7 +148,48 @@ export default function CoverageRoute(): React.JSX.Element {
           <ArrowLeft size={20} className="mr-2" />
           Back
         </Button>
+        <Button
+          variant="outline"
+          onClick={() => void prioritize()}
+          disabled={prioritizing}
+        >
+          <Sparkle size={16} className={`mr-2 ${prioritizing ? 'animate-pulse' : ''}`} />
+          {prioritizing ? 'Analyzing…' : 'AI Prioritize'}
+        </Button>
       </div>
+
+      {/* AI Priority Card */}
+      {priorities !== null && (
+        <Card className="bg-violet-500/10 border-violet-500/30">
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm font-medium text-violet-300">AI Enrichment Priorities</CardTitle>
+              <button onClick={() => setPriorities(null)} className="text-muted-foreground hover:text-foreground">
+                <X size={14} />
+              </button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {priorities.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No sparse attributes found above threshold.</p>
+            ) : (
+              <ol className="space-y-2">
+                {priorities.map((item, i) => (
+                  <li key={item.key} className="flex gap-3 text-sm">
+                    <span className="text-violet-400 font-bold w-5 shrink-0">{i + 1}.</span>
+                    <div>
+                      <span className="font-medium text-violet-200">{item.displayText}</span>
+                      <span className="ml-2 text-xs text-muted-foreground font-mono">{item.key}</span>
+                      <span className="ml-2 text-xs text-yellow-400">{item.nullPct}% null</span>
+                      <p className="text-xs text-muted-foreground mt-0.5">{item.reason}</p>
+                    </div>
+                  </li>
+                ))}
+              </ol>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Summary cards */}
       {summary && (

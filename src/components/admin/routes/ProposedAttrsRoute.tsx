@@ -7,6 +7,7 @@ import {
   ArrowLeftIcon,
   ArrowRightIcon,
   PlusCircleIcon,
+  SparkleIcon,
 } from '@phosphor-icons/react'
 
 interface Proposal {
@@ -28,6 +29,12 @@ interface PageData {
   pageSize: number
 }
 
+interface ProposalScore {
+  score: number
+  concerns: string[]
+  strengths: string[]
+}
+
 type Filter = 'pending' | 'approved' | 'rejected' | 'all'
 
 const STATUS_STYLES: Record<string, string> = {
@@ -43,6 +50,8 @@ export default function ProposedAttrsRoute(): React.JSX.Element {
   const [filter, setFilter] = useState<Filter>('pending')
   const [page, setPage] = useState(1)
   const [acting, setActing] = useState<number | null>(null)
+  const [scores, setScores] = useState<Record<number, ProposalScore>>({})
+  const [scoringIds, setScoringIds] = useState<Set<number>>(new Set())
   const pageSize = 25
 
   const fetchData = async (f: Filter, p: number) => {
@@ -61,6 +70,31 @@ export default function ProposedAttrsRoute(): React.JSX.Element {
   }
 
   useEffect(() => { void fetchData(filter, page) }, [filter, page])
+
+  const scoreProposal = async (p: Proposal) => {
+    if (scoringIds.has(p.id) || scores[p.id] !== undefined) return
+    setScoringIds((prev) => new Set([...prev, p.id]))
+    try {
+      const res = await fetch(`/api/admin/proposed-attributes/${p.id}/score`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key: p.key, displayText: p.display_text, questionText: p.question_text, rationale: p.rationale }),
+      })
+      if (!res.ok) return
+      const result = await res.json() as ProposalScore
+      setScores((prev) => ({ ...prev, [p.id]: result }))
+    } finally {
+      setScoringIds((prev) => { const next = new Set(prev); next.delete(p.id); return next })
+    }
+  }
+
+  // Auto-score pending proposals when they load
+  useEffect(() => {
+    if (filter === 'pending' && data?.proposals) {
+      void Promise.all(data.proposals.map((p) => scoreProposal(p)))
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data?.proposals, filter])
 
   const action = async (id: number, act: 'approve' | 'reject') => {
     setActing(id)
@@ -138,8 +172,21 @@ export default function ProposedAttrsRoute(): React.JSX.Element {
                 <div className="space-y-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
                     <code className="text-xs bg-muted px-2 py-0.5 rounded font-mono">{p.key}</code>
-                    <Badge className={`text-xs ${STATUS_STYLES[p.status] ?? ''}`}>{p.status}</Badge>
-                    <span className="text-xs text-muted-foreground">by {p.proposed_by} · {formatDate(p.created_at)}</span>
+                    <Badge className={`text-xs ${STATUS_STYLES[p.status] ?? ''}`}>{p.status}</Badge>                      {/* AI score pill */}
+                      {scores[p.id] !== undefined ? (
+                        <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border font-medium ${
+                          scores[p.id].score >= 70
+                            ? 'bg-green-500/20 text-green-400 border-green-500/30'
+                            : scores[p.id].score >= 40
+                            ? 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30'
+                            : 'bg-red-500/20 text-red-400 border-red-500/30'
+                        }`}>
+                          <SparkleIcon size={10} />
+                          {scores[p.id].score}/100
+                        </span>
+                      ) : scoringIds.has(p.id) ? (
+                        <span className="text-xs text-muted-foreground animate-pulse">Scoring…</span>
+                      ) : null}                    <span className="text-xs text-muted-foreground">by {p.proposed_by} · {formatDate(p.created_at)}</span>
                   </div>
                   <p className="font-medium">{p.display_text}</p>
                   <p className="text-sm text-muted-foreground italic">"{p.question_text}"</p>
@@ -157,6 +204,17 @@ export default function ProposedAttrsRoute(): React.JSX.Element {
                       )
                     } catch { return null }
                   })()}
+                  {/* AI score concerns/strengths */}
+                  {scores[p.id] !== undefined && (
+                    <div className="mt-2 space-y-1">
+                      {scores[p.id].concerns.map((c, i) => (
+                        <p key={i} className="text-xs text-yellow-400">⚠️ {c}</p>
+                      ))}
+                      {scores[p.id].strengths.map((s, i) => (
+                        <p key={i} className="text-xs text-green-400">✓ {s}</p>
+                      ))}
+                    </div>
+                  )}
                 </div>
                 {p.status === 'pending' && (
                   <div className="flex gap-2 shrink-0">
