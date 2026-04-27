@@ -1,15 +1,11 @@
+import { defineHandler } from './_handler'
 import {
-  type Env,
-  getOrCreateUserId,
-  withSetCookie,
-  checkRateLimit,
-  parseJsonBody,
-  jsonResponse,
   errorResponse,
+  jsonResponse,
+  kvGetArray,
   kvGetObject,
   kvPut,
-  kvGetArray,
-  logError,
+  parseJsonBody,
 } from './_helpers'
 
 interface CharacterStats {
@@ -38,59 +34,51 @@ function emptyStats(characterId: string): CharacterStats {
   }
 }
 
-export const onRequestGet: PagesFunction<Env> = async (context) => {
-  const kv = context.env.GUESS_KV
-  if (!kv) return errorResponse('KV not configured', 503)
-
-  try {
-    const url = new URL(context.request.url)
+export const onRequestGet = defineHandler(
+  { name: 'stats', requireUser: false },
+  async ({ env, url }) => {
+    const kv = env.GUESS_KV
     const characterId = url.searchParams.get('characterId')
 
     if (characterId) {
-      const stats = (await kvGetObject<CharacterStats>(kv, `stats:${characterId}`)) || emptyStats(characterId)
+      const stats =
+        (await kvGetObject<CharacterStats>(kv, `stats:${characterId}`)) ||
+        emptyStats(characterId)
       return jsonResponse(stats)
     }
 
     const leaderboard = await kvGetArray<CharacterStats>(kv, 'stats:leaderboard')
     return jsonResponse(leaderboard)
-  } catch (e) {
-    console.error('stats GET error:', e)
-    context.waitUntil(logError(context.env.GUESS_DB, 'stats', 'error', 'stats GET error', e))
-    return errorResponse('Internal server error', 500)
-  }
-}
+  },
+)
 
-export const onRequestPost: PagesFunction<Env> = async (context) => {
-  const kv = context.env.GUESS_KV
-  if (!kv) return errorResponse('KV not configured', 503)
+export const onRequestPost = defineHandler(
+  { name: 'stats', rateLimit: 30 },
+  async ({ env, request }) => {
+    const body = await parseJsonBody<{
+      characterId?: string
+      won?: boolean
+      questionsAsked?: number
+      difficulty?: string
+    }>(request)
 
-  const body = await parseJsonBody<{
-    characterId?: string
-    won?: boolean
-    questionsAsked?: number
-    difficulty?: string
-  }>(context.request)
+    if (!body) return errorResponse('Invalid JSON body', 400)
 
-  if (!body) return errorResponse('Invalid JSON body', 400)
+    const characterId = body.characterId
+    if (!characterId || typeof characterId !== 'string') {
+      return errorResponse('Missing characterId', 400)
+    }
+    if (typeof body.won !== 'boolean') {
+      return errorResponse('Missing or invalid "won" field', 400)
+    }
+    if (typeof body.questionsAsked !== 'number' || body.questionsAsked < 0) {
+      return errorResponse('Missing or invalid "questionsAsked"', 400)
+    }
 
-  const characterId = body.characterId
-  if (!characterId || typeof characterId !== 'string') {
-    return errorResponse('Missing characterId', 400)
-  }
-  if (typeof body.won !== 'boolean') {
-    return errorResponse('Missing or invalid "won" field', 400)
-  }
-  if (typeof body.questionsAsked !== 'number' || body.questionsAsked < 0) {
-    return errorResponse('Missing or invalid "questionsAsked"', 400)
-  }
-
-  const { userId, setCookieHeader } = await getOrCreateUserId(context.request, context.env)
-  const { allowed } = await checkRateLimit(kv, userId, 'stats', 30)
-  if (!allowed) return errorResponse('Rate limit exceeded', 429)
-
-  try {
+    const kv = env.GUESS_KV
     const key = `stats:${characterId}`
-    const stats = (await kvGetObject<CharacterStats>(kv, key)) || emptyStats(characterId)
+    const stats =
+      (await kvGetObject<CharacterStats>(kv, key)) || emptyStats(characterId)
 
     stats.timesPlayed++
     stats.totalQuestions += body.questionsAsked
@@ -118,10 +106,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     leaderboard.sort((a, b) => b.timesPlayed - a.timesPlayed)
     await kvPut(kv, 'stats:leaderboard', leaderboard.slice(0, 20))
 
-    return withSetCookie(jsonResponse({ success: true }), setCookieHeader)
-  } catch (e) {
-    console.error('stats POST error:', e)
-    context.waitUntil(logError(context.env.GUESS_DB, 'stats', 'error', 'stats POST error', e))
-    return errorResponse('Internal server error', 500)
-  }
-}
+    return jsonResponse({ success: true })
+  },
+)
