@@ -177,6 +177,7 @@ jobs:
   deploy-preview:
     needs: [checks, build, test-e2e]
     if: |
+      !cancelled() &&
       github.event_name == 'pull_request' &&
       needs.checks.result == 'success' &&
       needs.build.result == 'success' &&
@@ -234,6 +235,7 @@ jobs:
   deploy-production:
     needs: [checks, build, test-e2e]
     if: |
+      !cancelled() &&
       github.event_name == 'push' &&
       github.ref == 'refs/heads/main' &&
       needs.checks.result == 'success' &&
