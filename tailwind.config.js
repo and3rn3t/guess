@@ -3,14 +3,21 @@ import fs from "fs";
 /** @type {import('tailwindcss').Config} */
 
 let theme = {};
-try {
-  const themePath = "./theme.json";
+const themePath = "./theme.json";
+const isCi = process.env.CI === "true" || process.env.NODE_ENV === "production";
 
-  if (fs.existsSync(themePath)) {
+if (fs.existsSync(themePath)) {
+  if (isCi) {
+    // Fail loudly in CI / production builds — a malformed theme.json must not
+    // silently fall back to defaults and ship broken styling.
     theme = JSON.parse(fs.readFileSync(themePath, "utf-8"));
+  } else {
+    try {
+      theme = JSON.parse(fs.readFileSync(themePath, "utf-8"));
+    } catch (err) {
+      console.error("failed to parse custom styles", err);
+    }
   }
-} catch (err) {
-  console.error('failed to parse custom styles', err)
 }
 const defaultTheme = {
   container: {

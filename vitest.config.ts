@@ -45,6 +45,9 @@ export default defineConfig({
         // Barrel re-exports and pure type declarations — no runtime logic
         'packages/game-engine/src/index.ts',
         'packages/game-engine/src/types.ts',
+        // Pure seed data (character/question definitions) — no runtime logic
+        'src/lib/database.ts',
+        'src/lib/seed/**',
       ],
       thresholds: {
         lines: 80,

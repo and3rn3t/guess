@@ -134,7 +134,7 @@ jobs:
 
       - name: Check bundle size
         run: |
-          MAX_KB=700
+          MAX_KB=600
           LARGEST=$(find dist/assets -name '*.js' -exec du -k {} + | sort -rn | head -1 | awk '{print $1}')
           echo "Largest JS chunk: ${LARGEST}KB (limit: ${MAX_KB}KB)"
           if [ "$LARGEST" -gt "$MAX_KB" ]; then
@@ -332,7 +332,7 @@ jobs:
               '|--------|------|',
               `| Total JS | **${totalJs}KB** |`,
               `| Total CSS | **${totalCss}KB** |`,
-              `| Largest chunk | **${jsFiles[0]?.size ?? 0}KB** (limit: 700KB) |`,
+              `| Largest chunk | **${jsFiles[0]?.size ?? 0}KB** (limit: 600KB) |`,
               '',
               '<details><summary>JS chunk breakdown</summary>',
               '',

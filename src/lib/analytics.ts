@@ -96,3 +96,27 @@ export function trackShare(method: 'native' | 'clipboard' | 'link') {
 export function trackFeatureUse(feature: string) {
   trackEvent('feature_use', { feature })
 }
+
+/**
+ * Record a server API error — endpoint, HTTP status (0 if network/abort),
+ * and a short error code/message. Used by `useServerGame` to surface backend
+ * issues without spamming the console.
+ */
+export function trackServerError(endpoint: string, status: number, message: string) {
+  trackEvent('server_error', {
+    endpoint,
+    status,
+    message: message.slice(0, 200),
+  })
+}
+
+/**
+ * Record an uncaught client-side error reaching the React error boundary.
+ * Truncates the stack to keep payloads small.
+ */
+export function trackUncaughtError(message: string, stack?: string) {
+  trackEvent('uncaught_error', {
+    message: message.slice(0, 200),
+    stack: (stack ?? '').slice(0, 1000),
+  })
+}

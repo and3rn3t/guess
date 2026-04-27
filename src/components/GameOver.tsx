@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { ConfettiBurst } from "@/components/ConfettiBurst";
 import { llmStream, LlmError } from "@/lib/llm";
 import { narrativeExplanation_v1 } from "@/lib/prompts";
 import { buildShareEmoji } from "@/lib/sharing";
@@ -15,49 +16,8 @@ import {
   Sparkle,
   XCircle,
 } from "@phosphor-icons/react";
-import { motion, useReducedMotion } from "framer-motion";
+import { motion } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
-import { useIsMobile } from "@/hooks/use-mobile";
-
-/** Lightweight confetti burst — scales intensity by questionsAsked, reduces on mobile & respects reduced-motion */
-function ConfettiBurst({ questionsAsked }: { questionsAsked?: number }) {
-  const isMobile = useIsMobile();
-  const reduced = useReducedMotion();
-  if (reduced) return null;
-  // Full burst ≤5 q, medium burst ≤10, minimal burst >10
-  const intensity = questionsAsked == null ? 1 : questionsAsked <= 5 ? 1 : questionsAsked <= 10 ? 0.6 : 0.2;
-  const baseCount = isMobile ? 20 : 50;
-  const count = Math.max(3, Math.round(baseCount * intensity));
-  const spread = isMobile ? 280 : 480;
-  return (
-    <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
-      {Array.from({ length: count }).map((_, i) => (
-        <motion.div
-          key={`confetti-${i}`}
-          className="absolute w-2 h-2 rounded-full"
-          style={{
-            left: "50%",
-            top: "30%",
-            backgroundColor: ["#a78bfa", "#34d399", "#fbbf24", "#f472b6", "#60a5fa", "#38bdf8", "#e879f9"][i % 7],
-          }}
-          initial={{ x: 0, y: 0, opacity: 1, scale: 1, rotate: 0 }}
-          animate={{
-            x: (Math.random() - 0.5) * spread,
-            y: Math.random() * (isMobile ? 240 : 340) + 50,
-            opacity: 0,
-            scale: Math.random() * 1.5 + 0.5,
-            rotate: Math.random() * 720 - 360,
-          }}
-          transition={{
-            duration: (1.5 + Math.random() * 0.8) * intensity,
-            ease: "easeOut",
-            delay: Math.random() * 0.3,
-          }}
-        />
-      ))}
-    </div>
-  );
-}
 
 interface RevealResult {
   found: boolean;

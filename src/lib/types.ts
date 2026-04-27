@@ -1,15 +1,27 @@
 export type { Persona } from '@guess/game-engine'
 import type { Persona } from '@guess/game-engine'
 
-export type CharacterCategory =
-  | "video-games"
-  | "movies"
-  | "anime"
-  | "comics"
-  | "books"
-  | "cartoons"
-  | "tv-shows"
-  | "pop-culture";
+export const CHARACTER_CATEGORIES = [
+  "video-games",
+  "movies",
+  "anime",
+  "comics",
+  "books",
+  "cartoons",
+  "tv-shows",
+  "pop-culture",
+] as const;
+
+export type CharacterCategory = typeof CHARACTER_CATEGORIES[number];
+
+export function isCharacterCategory(value: unknown): value is CharacterCategory {
+  return typeof value === "string" && (CHARACTER_CATEGORIES as readonly string[]).includes(value);
+}
+
+export function sanitizeCategories(value: unknown): CharacterCategory[] {
+  if (!Array.isArray(value)) return [];
+  return value.filter(isCharacterCategory);
+}
 
 export type Difficulty = "easy" | "medium" | "hard";
 
