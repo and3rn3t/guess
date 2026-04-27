@@ -10,17 +10,21 @@ interface ErrorFallbackProps {
 }
 
 export const ErrorFallback = ({ error, resetErrorBoundary }: ErrorFallbackProps) => {
-  // When encountering an error in the development mode, rethrow it and don't display the boundary.
-  // The parent UI will take care of showing a more helpful dialog.
-  if (import.meta.env.DEV) throw error;
+  const isDev = import.meta.env.DEV;
 
-  // In production, log the error through analytics so it reaches the events
-  // pipeline (and any future Sentry/Datadog sink wired in there).
+  // Hooks must run on every render to satisfy the Rules of Hooks. The DEV
+  // rethrow happens *after* the hook is registered, so the order is stable
+  // across DEV and production.
   useEffect(() => {
+    if (isDev) return;
     const message = error instanceof Error ? error.message : String(error);
     const stack = error instanceof Error ? error.stack : undefined;
     void import("@/lib/analytics").then((m) => m.trackUncaughtError(message, stack));
-  }, [error]);
+  }, [error, isDev]);
+
+  // When encountering an error in the development mode, rethrow it and don't display the boundary.
+  // The parent UI will take care of showing a more helpful dialog.
+  if (isDev) throw error;
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">

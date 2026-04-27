@@ -81,8 +81,14 @@ export const onRequest: PagesFunction<Env> = async (context) => {
   const url = new URL(request.url)
   const path = url.pathname
 
-  // Only gate /admin* paths (static assets under /assets/* are NOT under /admin*)
-  const isAdminPath = path === '/admin' || path.startsWith('/admin/')
+  // Gate both the SPA admin shell (/admin*) and the admin JSON API
+  // (/api/admin*). Static assets under /assets/* are NOT under either prefix
+  // and are therefore unaffected.
+  const isAdminPath =
+    path === '/admin' ||
+    path.startsWith('/admin/') ||
+    path === '/api/admin' ||
+    path.startsWith('/api/admin/')
 
   if (!isAdminPath) {
     return next()
