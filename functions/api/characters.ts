@@ -1,17 +1,13 @@
+import { defineHandler } from './_handler'
 import {
-  type Env,
   ValidationError,
-  validateString,
-  checkRateLimit,
-  getOrCreateUserId,
-  withSetCookie,
-  parseJsonBody,
-  jsonResponse,
   errorResponse,
+  isValidCategory,
+  jsonResponse,
   kvGetArray,
   kvPut,
-  isValidCategory,
-  logError,
+  parseJsonBody,
+  validateString,
 } from './_helpers'
 
 const DEPRECATION_HEADERS = {
@@ -32,37 +28,38 @@ interface StoredCharacter {
 const KV_KEY = 'global:characters'
 const MAX_PER_HOUR = 5
 
-export const onRequestGet: PagesFunction<Env> = async (context) => {
-  const kv = context.env.GUESS_KV
-  if (!kv) {
-    return errorResponse('KV not configured', 503)
-  }
+export const onRequestGet = defineHandler(
+  { name: 'characters', requireUser: false },
+  async ({ env }) => {
+    const characters = await kvGetArray<StoredCharacter>(env.GUESS_KV, KV_KEY)
+    const response = jsonResponse(characters)
+    const res = new Response(response.body, response)
+    Object.entries(DEPRECATION_HEADERS).forEach(([k, v]) =>
+      res.headers.set(k, v),
+    )
+    return res
+  },
+)
 
-  const characters = await kvGetArray<StoredCharacter>(kv, KV_KEY)
-  const response = jsonResponse(characters)
-  const res = new Response(response.body, response)
-  Object.entries(DEPRECATION_HEADERS).forEach(([k, v]) => res.headers.set(k, v))
-  return res
-}
+export const onRequestPost = defineHandler(
+  { name: 'characters', rateLimit: MAX_PER_HOUR },
+  async ({ env, request, userId }) => {
+    const body = await parseJsonBody<{
+      name?: string
+      category?: string
+      attributes?: Record<string, boolean | null>
+    }>(request)
 
-export const onRequestPost: PagesFunction<Env> = async (context) => {
-  const kv = context.env.GUESS_KV
-  if (!kv) {
-    return errorResponse('KV not configured', 503)
-  }
+    if (!body) return errorResponse('Invalid JSON body', 400)
 
-  const body = await parseJsonBody<{
-    name?: string
-    category?: string
-    attributes?: Record<string, boolean | null>
-  }>(context.request)
+    let name: string
+    try {
+      name = validateString(body.name, 'name', 2, 50)
+    } catch (err) {
+      if (err instanceof ValidationError) return errorResponse(err.message, 400)
+      throw err
+    }
 
-  if (!body) {
-    return errorResponse('Invalid JSON body', 400)
-  }
-
-  try {
-    const name = validateString(body.name, 'name', 2, 50)
     if (!body.category || !isValidCategory(body.category)) {
       return errorResponse('Invalid category', 400)
     }
@@ -73,28 +70,25 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       return errorResponse('Missing or invalid "attributes"', 400)
     }
 
-    const nonNullCount = Object.values(attributes).filter((v) => v !== null).length
+    const nonNullCount = Object.values(attributes).filter(
+      (v) => v !== null,
+    ).length
     if (nonNullCount < 5) {
-      return errorResponse('Character must have at least 5 non-null attributes', 400)
+      return errorResponse(
+        'Character must have at least 5 non-null attributes',
+        400,
+      )
     }
 
-    // Rate limit
-    const { userId, setCookieHeader } = await getOrCreateUserId(context.request, context.env)
-    const { allowed } = await checkRateLimit(kv, userId, 'characters', MAX_PER_HOUR)
-    if (!allowed) {
-      return errorResponse('Rate limit exceeded. Try again later.', 429)
-    }
-
-    // Duplicate check
+    const kv = env.GUESS_KV
     const existing = await kvGetArray<StoredCharacter>(kv, KV_KEY)
     const duplicate = existing.find(
-      (c) => c.name.toLowerCase() === name.toLowerCase()
+      (c) => c.name.toLowerCase() === name.toLowerCase(),
     )
     if (duplicate) {
       return errorResponse(`Character "${name}" already exists`, 409)
     }
 
-    // Create character
     const character: StoredCharacter = {
       id: `char-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       name,
@@ -107,13 +101,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     existing.push(character)
     await kvPut(kv, KV_KEY, existing)
 
-    return withSetCookie(jsonResponse(character, 201), setCookieHeader)
-  } catch (err) {
-    if (err instanceof ValidationError) {
-      return errorResponse(err.message, 400)
-    }
-    console.error('Characters API error:', err)
-    context.waitUntil(logError(context.env.GUESS_DB, 'characters', 'error', 'characters POST error', err))
-    return errorResponse('Internal server error', 500)
-  }
-}
+    return jsonResponse(character, 201)
+  },
+)
