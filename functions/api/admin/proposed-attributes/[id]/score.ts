@@ -6,7 +6,7 @@
  * Calls OpenAI directly — NOT via /api/llm.
  * Protected by the Basic auth gate in functions/_middleware.ts.
  */
-import { type Env, jsonResponse, errorResponse, getCompletionsEndpoint, getLlmHeaders } from '../../_helpers'
+import { type Env, jsonResponse, errorResponse, getCompletionsEndpoint, getLlmHeaders } from '../../../_helpers'
 
 export interface ProposalScore {
   score: number

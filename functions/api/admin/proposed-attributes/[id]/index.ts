@@ -1,4 +1,4 @@
-import { type Env, jsonResponse, errorResponse, parseJsonBody } from '../../_helpers'
+import { type Env, jsonResponse, errorResponse, parseJsonBody } from '../../../_helpers'
 import type { ProposedAttributesRow } from '../../_db-types'
 
 export const onRequestPost: PagesFunction<Env> = async (context) => {

@@ -5,7 +5,7 @@
  *
  * Protected by the Basic auth gate in functions/_middleware.ts.
  */
-import { type Env, jsonResponse, errorResponse, parseJsonBody } from '../../_helpers'
+import { type Env, jsonResponse, errorResponse, parseJsonBody } from '../../../_helpers'
 
 export const onRequestGet: PagesFunction<Env> = async (context) => {
   const db = context.env.GUESS_DB
