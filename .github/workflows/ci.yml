@@ -32,10 +32,10 @@ jobs:
       frontend: ${{ steps.filter.outputs.frontend }}
       db: ${{ steps.filter.outputs.db }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
-      - uses: dorny/paths-filter@v3
+      - uses: dorny/paths-filter@v4
         id: filter
         with:
           filters: |
@@ -81,7 +81,7 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: ./.github/actions/setup
       - run: pnpm lint
       - run: tsc -b
@@ -95,14 +95,14 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: ./.github/actions/setup
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: dist
           path: dist
       - name: Cache Playwright browsers
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         id: playwright-cache
         with:
           path: ~/.cache/ms-playwright
@@ -113,7 +113,7 @@ jobs:
       - name: Install Playwright system dependencies
         run: npx playwright install-deps chromium firefox
       - run: npx playwright test
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: ${{ !cancelled() }}
         with:
           name: playwright-report
@@ -128,7 +128,7 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: ./.github/actions/setup
       - run: pnpm build
 
@@ -145,7 +145,7 @@ jobs:
       - name: Check named chunk budgets
         run: pnpm size
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: dist
           path: dist/
@@ -160,7 +160,7 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: ./.github/actions/setup
       - name: Regenerate DB types
         run: pnpm db:types
@@ -189,9 +189,9 @@ jobs:
       name: preview
       url: ${{ steps.deploy.outputs.deployment-url }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/download-artifact@v4
+      - uses: actions/checkout@v6
+      - uses: pnpm/action-setup@v6
+      - uses: actions/download-artifact@v8
         with:
           name: dist
           path: dist
@@ -246,9 +246,9 @@ jobs:
       name: production
       url: https://guess.andernet.dev
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/download-artifact@v4
+      - uses: actions/checkout@v6
+      - uses: pnpm/action-setup@v6
+      - uses: actions/download-artifact@v8
         with:
           name: dist
           path: dist
@@ -290,13 +290,13 @@ jobs:
     permissions:
       pull-requests: write
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: dist
           path: dist
 
       - name: Post PR comment
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         env:
           PREVIEW_URL: ${{ needs.deploy-preview.outputs.url }}
         with:
@@ -375,7 +375,7 @@ jobs:
     timeout-minutes: 10
     continue-on-error: true
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: treosh/lighthouse-ci-action@v12
         with:
           urls: ${{ needs.deploy-preview.outputs.url }}

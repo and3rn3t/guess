@@ -31,14 +31,14 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: ./.github/actions/setup
       - name: Export from D1
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: pnpm simulate:export --env production
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: sim-data
           path: |
@@ -58,9 +58,9 @@ jobs:
       matrix:
         difficulty: [easy, medium, hard]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: ./.github/actions/setup
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: sim-data
           path: scripts/simulate/data
@@ -72,7 +72,7 @@ jobs:
             --difficulty ${{ matrix.difficulty }} \
             --parallel \
             --output scripts/simulate/data/results-ci-${{ matrix.difficulty }}.jsonl
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: sim-results-${{ matrix.difficulty }}
           path: scripts/simulate/data/results-ci-${{ matrix.difficulty }}.jsonl
@@ -87,18 +87,18 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: ./.github/actions/setup
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: sim-results-easy
           path: scripts/simulate/data
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: sim-results-medium
           path: scripts/simulate/data
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: sim-results-hard
           path: scripts/simulate/data
