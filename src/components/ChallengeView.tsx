@@ -29,7 +29,13 @@ export function ChallengeView({ challenge, onPlay }: ChallengeViewProps) {
             weight="fill"
             className="mx-auto text-accent animate-float"
           />
-          <h1 className="text-3xl font-bold text-foreground">Challenge!</h1>
+          <h1
+            data-phase-focus
+            tabIndex={-1}
+            className="text-3xl font-bold text-foreground"
+          >
+            Challenge!
+          </h1>
           <p className="text-muted-foreground text-lg">
             {challenge.won
               ? `Andernator figured out ${challenge.characterName} in ${challenge.questionCount} questions!`
