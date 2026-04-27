@@ -54,6 +54,8 @@ jobs:
               - 'tailwind.config.js'
               - 'components.json'
               - 'wrangler.toml'
+              - '.github/workflows/ci.yml'
+              - '.github/actions/setup/action.yml'
             frontend:
               - 'src/**'
               - 'packages/**'
