@@ -19,10 +19,7 @@ export function useEliminationTracker(serverRemaining: number) {
     if (prevPossibleCount.current > 0 && eliminated > 0) {
       setEliminatedCount(eliminated);
       const t = setTimeout(() => setEliminatedCount(null), 2000);
-      remainingHistoryRef.current = [
-        ...remainingHistoryRef.current,
-        serverRemaining,
-      ];
+      remainingHistoryRef.current.push(serverRemaining);
       prevPossibleCount.current = serverRemaining;
       return () => clearTimeout(t);
     }
