@@ -1,14 +1,22 @@
 import type { GameAction } from "@/hooks/useGameState";
-import { playSuspense, playThinking } from "@/lib/sounds";
+import {
+  normalizeReadiness,
+  rejectGuess as apiRejectGuess,
+  reportFetchError,
+  resumeGame,
+  skipQuestion,
+  startGame,
+  submitAnswer,
+  submitResult,
+} from "@/lib/gameApi";
 import { runWhenIdle } from "@/lib/idle";
+import { playSuspense, playThinking } from "@/lib/sounds";
 import type {
   AnswerValue,
   Character,
   CharacterCategory,
   Difficulty,
   GuessReadinessSnapshot,
-  Question,
-  ReasoningExplanation,
 } from "@/lib/types";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -16,110 +24,6 @@ import { toast } from "sonner";
 const analytics = () => import("@/lib/analytics");
 
 const SERVER_SESSION_KEY = "server-session-id";
-
-/** Carries the HTTP status alongside the failure message so analytics can
- *  distinguish network failures (status 0) from server errors. */
-class HttpError extends Error {
-  constructor(public readonly status: number, message: string) {
-    super(message);
-    this.name = "HttpError";
-  }
-}
-
-function reportFetchError(endpoint: string, err: unknown): void {
-  const status = err instanceof HttpError ? err.status : 0;
-  const message = err instanceof Error ? err.message : String(err);
-  void analytics().then((m) => m.trackServerError(endpoint, status, message));
-}
-
-// ── Server response types ────────────────────────────────────
-
-interface StartResponse {
-  sessionId: string;
-  question: Question;
-  reasoning: ReasoningExplanation;
-  totalCharacters: number;
-  maxQuestions?: number;
-}
-
-interface AnswerResponse {
-  type: "question" | "guess" | "contradiction";
-  question?: Question;
-  reasoning?: ReasoningExplanation;
-  character?: {
-    id: string;
-    name: string;
-    category: string;
-    imageUrl: string | null;
-  };
-  confidence?: number;
-  remaining?: number;
-  eliminated?: number;
-  questionCount?: number;
-  guessCount?: number;
-  message?: string;
-  readiness?: {
-    trigger?: GuessReadinessSnapshot["trigger"];
-    blockedByRejectCooldown?: boolean;
-    rejectCooldownRemaining?: number;
-    topProbability?: number;
-    gap?: number;
-    aliveCount?: number;
-    questionsRemaining?: number;
-    forced?: boolean;
-  };
-}
-
-interface SkipResponse {
-  type: "question";
-  question: Question;
-  reasoning: ReasoningExplanation;
-  remaining: number;
-  questionCount: number;
-  skippedCount: number;
-}
-
-interface RejectGuessResponse {
-  type: "question" | "exhausted";
-  question?: Question;
-  reasoning?: ReasoningExplanation;
-  remaining?: number;
-  questionCount?: number;
-  maxQuestions?: number;
-  guessCount?: number;
-  rejectCooldownRemaining?: number;
-  message?: string;
-}
-
-interface ResumeResponse {
-  expired: boolean;
-  question?: Question;
-  reasoning?: ReasoningExplanation;
-  remaining?: number;
-  totalCharacters?: number;
-  questionCount?: number;
-  guessCount?: number;
-  answers?: Array<{ questionId: string; value: AnswerValue }>;
-}
-
-function normalizeReadiness(
-  readiness?: Partial<GuessReadinessSnapshot> | null,
-): GuessReadinessSnapshot | null {
-  if (!readiness) return null;
-
-  return {
-    trigger: readiness.trigger ?? "insufficient_data",
-    blockedByRejectCooldown: readiness.blockedByRejectCooldown ?? false,
-    rejectCooldownRemaining: readiness.rejectCooldownRemaining ?? 0,
-    topProbability: readiness.topProbability,
-    gap: readiness.gap,
-    aliveCount: readiness.aliveCount,
-    questionsRemaining: readiness.questionsRemaining,
-    forced: readiness.forced,
-  };
-}
-
-// ── Hook ─────────────────────────────────────────────────────
 
 /**
  * Server game delegate: manages session ID, remaining count, and
@@ -172,17 +76,8 @@ export function useServerGame(dispatch: React.Dispatch<GameAction>) {
 
     (async () => {
       try {
-        const res = await fetch("/api/v2/game/resume", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ sessionId: savedId }),
-        });
-        if (!res.ok) {
-          persistSessionId(null);
-          return;
-        }
-        const data = (await res.json()) as ResumeResponse;
-        if (data.expired || !data.question || !data.reasoning) {
+        const data = await resumeGame(savedId);
+        if (!data || data.expired || !data.question || !data.reasoning) {
           persistSessionId(null);
           return;
         }
@@ -240,17 +135,7 @@ export function useServerGame(dispatch: React.Dispatch<GameAction>) {
       dispatch({ type: "SET_THINKING", isThinking: true });
       playThinking();
       try {
-        const res = await fetch("/api/v2/game/start", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            categories: categories.length ? categories : undefined,
-            difficulty,
-            characterId: characterId ?? undefined,
-          }),
-        });
-        if (!res.ok) throw new HttpError(res.status, "Failed to start");
-        const data = (await res.json()) as StartResponse;
+        const data = await startGame({ categories, difficulty, characterId });
         persistSessionId(data.sessionId);
         setServerRemainingSync(data.totalCharacters);
         setServerTotal(data.totalCharacters);
@@ -284,13 +169,7 @@ export function useServerGame(dispatch: React.Dispatch<GameAction>) {
       isSubmittingAnswer.current = true;
       dispatch({ type: "SET_THINKING", isThinking: true });
       try {
-        const res = await fetch("/api/v2/game/answer", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ sessionId: serverSessionId, value }),
-        });
-        if (!res.ok) throw new HttpError(res.status, "Failed to process answer");
-        const data = (await res.json()) as AnswerResponse;
+        const data = await submitAnswer(serverSessionId ?? "", value);
 
         if (data.type === "contradiction") {
           dispatch({ type: "UNDO_LAST_ANSWER" });
@@ -352,18 +231,12 @@ export function useServerGame(dispatch: React.Dispatch<GameAction>) {
   const postServerResult = useCallback(
     (correct: boolean) => {
       if (!serverSessionId) return;
-      const body = JSON.stringify({ sessionId: serverSessionId, correct });
-      const attempt = () =>
-        fetch("/api/v2/game/result", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body,
-        });
+      const sessionId = serverSessionId;
       // Defer the result POST to idle time so it doesn't compete with the
       // reveal/confetti animation on the main thread.
       runWhenIdle(() => {
-        attempt()
-          .catch(() => attempt())
+        submitResult(sessionId, correct)
+          .catch(() => submitResult(sessionId, correct))
           .catch(() => {});
       });
       persistSessionId(null);
@@ -379,13 +252,7 @@ export function useServerGame(dispatch: React.Dispatch<GameAction>) {
       lastRejectedCharRef.current = characterId;
       dispatch({ type: "REJECT_GUESS" });
       try {
-        const res = await fetch("/api/v2/game/reject-guess", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ sessionId: serverSessionId, characterId }),
-        });
-        if (!res.ok) throw new HttpError(res.status, "Failed to reject guess");
-        const data = (await res.json()) as RejectGuessResponse;
+        const data = await apiRejectGuess(serverSessionId, characterId);
 
         if (data.type === "exhausted") {
           dispatch({ type: "SET_EXHAUSTED" });
@@ -445,18 +312,12 @@ export function useServerGame(dispatch: React.Dispatch<GameAction>) {
     if (!serverSessionId) return;
     dispatch({ type: "SKIP_QUESTION" });
     try {
-      const res = await fetch("/api/v2/game/skip", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sessionId: serverSessionId }),
-      });
-      if (res.status === 409) {
+      const data = await skipQuestion(serverSessionId);
+      if (!data) {
         toast.info("No more questions to skip to!");
         dispatch({ type: "SET_EXHAUSTED" });
         return;
       }
-      if (!res.ok) throw new HttpError(res.status, "Failed to skip question");
-      const data = (await res.json()) as SkipResponse;
       dispatch({
         type: "SET_QUESTION",
         question: data.question,

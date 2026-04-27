@@ -1,8 +1,6 @@
 import { AppHeader } from "@/components/AppHeader";
-import { GameOver } from "@/components/GameOver";
-import { GuessReveal } from "@/components/GuessReveal";
-import { PlayingScreen } from "@/components/PlayingScreen";
-import { WelcomeScreen } from "@/components/WelcomeScreen";
+import { ChallengeView } from "@/components/ChallengeView";
+import { GamePhaseRouter } from "@/components/GamePhaseRouter";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -13,11 +11,21 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
+import { useAchievements } from "@/hooks/useAchievements";
+import { useDailyStreak } from "@/hooks/useDailyStreak";
+import { useEliminationTracker } from "@/hooks/useEliminationTracker";
 import { useGameState } from "@/hooks/useGameState";
+import { useGlobalStats } from "@/hooks/useGlobalStats";
+import { useInstallPrompt } from "@/hooks/useInstallPrompt";
 import { useKV } from "@/hooks/useKV";
+import { useOnlineStatus } from "@/hooks/useOnlineStatus";
+import { usePersonalBest } from "@/hooks/usePersonalBest";
+import { useServerGame } from "@/hooks/useServerGame";
 import { useSound } from "@/hooks/useSound";
+import { useSWUpdate } from "@/hooks/useSWUpdate";
+import { useSyncStatus } from "@/hooks/useSyncStatus";
+import { useWakeLock } from "@/hooks/useWakeLock";
+import { useWeeklyRecap } from "@/hooks/useWeeklyRecap";
 import { DEFAULT_CHARACTERS, DEFAULT_QUESTIONS } from "@/lib/database";
 import type { SharePayload } from "@/lib/sharing";
 import {
@@ -33,8 +41,6 @@ import {
   playCorrectGuess,
   playIncorrectGuess,
 } from "@/lib/sounds";
-import type { SyncStatus } from "@/lib/sync";
-import { getSyncStatus, onSyncStatusChange } from "@/lib/sync";
 import type {
   AnswerValue,
   Character,
@@ -42,62 +48,16 @@ import type {
   Difficulty,
   Question,
 } from "@/lib/types";
-import { DIFFICULTIES, DIFFICULTY_TO_PERSONA, sanitizeCategories } from "@/lib/types";
-import { PlayIcon, SparkleIcon } from "@phosphor-icons/react";
-import { AnimatePresence, motion } from "framer-motion";
-import { useTheme } from "next-themes";
 import {
-  lazy,
-  Suspense,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
-import { toast, Toaster } from "sonner";
-import { useOnlineStatus } from "@/hooks/useOnlineStatus";
-import { useServerGame } from "@/hooks/useServerGame";
-import { useGlobalStats } from "@/hooks/useGlobalStats";
-import { useDailyStreak } from "@/hooks/useDailyStreak";
-import { useWakeLock } from "@/hooks/useWakeLock";
-import { usePersonalBest } from "@/hooks/usePersonalBest";
-import { useAchievements } from "@/hooks/useAchievements";
-import { useWeeklyRecap } from "@/hooks/useWeeklyRecap";
-import { useInstallPrompt } from "@/hooks/useInstallPrompt";
-import { useSWUpdate } from "@/hooks/useSWUpdate";
+  DIFFICULTIES,
+  DIFFICULTY_TO_PERSONA,
+  sanitizeCategories,
+} from "@/lib/types";
 import { startViewTransition } from "@/lib/view-transitions";
+import { useTheme } from "next-themes";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { toast, Toaster } from "sonner";
 
-const TeachingMode = lazy(() =>
-  import("@/components/TeachingMode").then((m) => ({
-    default: m.TeachingMode,
-  })),
-);
-const DescribeYourselfScreen = lazy(() =>
-  import("@/components/DescribeYourselfScreen").then((m) => ({
-    default: m.DescribeYourselfScreen,
-  })),
-);
-const QuestionManager = lazy(() =>
-  import("@/components/QuestionManager").then((m) => ({
-    default: m.QuestionManager,
-  })),
-);
-const StatsDashboard = lazy(() =>
-  import("@/components/StatsDashboard").then((m) => ({
-    default: m.StatsDashboard,
-  })),
-);
-const CharacterComparison = lazy(() =>
-  import("@/components/CharacterComparison").then((m) => ({
-    default: m.CharacterComparison,
-  })),
-);
-const GameHistory = lazy(() =>
-  import("@/components/GameHistory").then((m) => ({ default: m.GameHistory })),
-);
-
-// Lazy-loaded modules — fire-and-forget or async-only usage
 const analytics = () => import("@/lib/analytics");
 
 function App() {
@@ -133,29 +93,41 @@ function App() {
   } = useGameState();
 
   /** Wraps navigate with the View Transitions API cross-fade. */
-  const navigate = useCallback((phase: Parameters<typeof rawNavigate>[0], char?: Parameters<typeof rawNavigate>[1]) => {
-    startViewTransition(() => rawNavigate(phase, char));
-  }, [rawNavigate]);
+  const navigate = useCallback(
+    (
+      phase: Parameters<typeof rawNavigate>[0],
+      char?: Parameters<typeof rawNavigate>[1],
+    ) => {
+      startViewTransition(() => rawNavigate(phase, char));
+    },
+    [rawNavigate],
+  );
+
   const {
     phase: gamePhase,
     answers,
-    currentQuestion,
-    reasoning,
-    possibleCharacters,
-    finalGuess,
-    isThinking,
     gameWon,
     gameSteps,
-    showDevTools,
     guessCount,
-    exhausted,
     surrendered,
+    currentQuestion,
+    finalGuess,
+    reasoning,
   } = game;
 
   // ========== SETTINGS ==========
-  const [difficulty, setDifficulty] = useKV<Difficulty>("pref:difficulty", "medium");
-  const [rawCategories, setCategories] = useKV<CharacterCategory[]>("pref:categories", []);
-  const categories = useMemo(() => sanitizeCategories(rawCategories), [rawCategories]);
+  const [difficulty, setDifficulty] = useKV<Difficulty>(
+    "pref:difficulty",
+    "medium",
+  );
+  const [rawCategories, setCategories] = useKV<CharacterCategory[]>(
+    "pref:categories",
+    [],
+  );
+  const categories = useMemo(
+    () => sanitizeCategories(rawCategories),
+    [rawCategories],
+  );
   const [challenge, setChallenge] = useState<SharePayload | null>(null);
   const {
     serverRemaining,
@@ -170,14 +142,12 @@ function App() {
   } = useServerGame(dispatch);
   const { muted, toggle: toggleMute } = useSound();
   const [showQuitDialog, setShowQuitDialog] = useState(false);
-  const [syncStatus, setSyncStatus] = useState<SyncStatus>("synced");
+  const syncStatus = useSyncStatus();
   const { theme, setTheme } = useTheme();
   const online = useOnlineStatus();
-  const [eliminatedCount, setEliminatedCount] = useState<number | null>(null);
   const [isNewPersonalBest, setIsNewPersonalBest] = useState(false);
-  const prevPossibleCount = useRef<number>(0);
-  // Track remaining count per step to find the decisive (highest-elimination) question
-  const remainingHistoryRef = useRef<number[]>([]);
+  const { eliminatedCount, remainingHistoryRef, reset: resetElimination } =
+    useEliminationTracker(serverRemaining);
   const { personalBest, updateBest } = usePersonalBest(difficulty);
   const achievements = useAchievements(gameHistory, dailyStreak, gamesPlayed);
   const weeklyRecap = useWeeklyRecap(gameHistory);
@@ -191,10 +161,13 @@ function App() {
   useEffect(() => {
     if (gamePhase !== "welcome") return;
     if (adaptiveToastShownRef.current) return;
-    if (difficulty === "hard") return; // already on hardest
+    if (difficulty === "hard") return;
     if (!gameHistory || gameHistory.length < 10) return;
 
-    const nextDifficulty: Record<string, string> = { easy: "Medium", medium: "Hard" };
+    const nextDifficulty: Record<string, string> = {
+      easy: "Medium",
+      medium: "Hard",
+    };
     const next = nextDifficulty[difficulty];
     if (!next) return;
 
@@ -207,23 +180,23 @@ function App() {
     if (winRate >= 0.8) {
       adaptiveToastShownRef.current = true;
       const wins = Math.round(winRate * 10);
-      toast(`You've won ${wins}/10 on ${DIFFICULTIES[difficulty].label} — ready for ${next}?`, {
-        duration: 6000,
-        action: {
-          label: `Try ${next}`,
-          onClick: () => setDifficulty(difficulty === "easy" ? "medium" : "hard"),
+      toast(
+        `You've won ${wins}/10 on ${DIFFICULTIES[difficulty].label} — ready for ${next}?`,
+        {
+          duration: 6000,
+          action: {
+            label: `Try ${next}`,
+            onClick: () =>
+              setDifficulty(difficulty === "easy" ? "medium" : "hard"),
+          },
         },
-      });
+      );
     }
   }, [gamePhase, difficulty, gameHistory, setDifficulty]);
 
   // Show onboarding when first game starts
   useEffect(() => {
-    if (
-      gamePhase === "playing" &&
-      !onboardingDone &&
-      gamesPlayed === 0
-    ) {
+    if (gamePhase === "playing" && !onboardingDone && gamesPlayed === 0) {
       setShowOnboarding(true);
     }
   }, [gamePhase, onboardingDone, gamesPlayed]);
@@ -233,18 +206,8 @@ function App() {
   }, [theme, setTheme]);
 
   const activeCharacters = characters || DEFAULT_CHARACTERS;
-
-  // ========== CONFIDENCE (server-provided) ==========
   const confidence = reasoning?.confidence ?? 0;
-
   const effectiveRemaining = serverRemaining;
-
-  // ========== SYNC STATUS ==========
-  useEffect(() => {
-    setSyncStatus(getSyncStatus());
-    const unsubscribe = onSyncStatusChange(setSyncStatus);
-    return unsubscribe;
-  }, []);
 
   // ========== KEEP SCREEN AWAKE DURING ACTIVE PLAY ==========
   useWakeLock(gamePhase === "playing" || gamePhase === "guessing");
@@ -256,9 +219,9 @@ function App() {
   const { updateAvailable, reload: reloadForUpdate } = useSWUpdate();
   useEffect(() => {
     if (!updateAvailable) return;
-    toast('Update available', {
-      description: 'A new version of Andernator is ready.',
-      action: { label: 'Reload', onClick: reloadForUpdate },
+    toast("Update available", {
+      description: "A new version of Andernator is ready.",
+      action: { label: "Reload", onClick: reloadForUpdate },
       duration: Infinity,
     });
   }, [updateAvailable, reloadForUpdate]);
@@ -272,35 +235,24 @@ function App() {
     if (target) target.focus({ preventScroll: true });
   }, [gamePhase]);
 
-  // ========== ELIMINATION FEEDBACK ==========
-  useEffect(() => {
-    const eliminated = prevPossibleCount.current - serverRemaining;
-    if (prevPossibleCount.current > 0 && eliminated > 0) {
-      setEliminatedCount(eliminated);
-      setTimeout(() => setEliminatedCount(null), 2000);
-      remainingHistoryRef.current = [...remainingHistoryRef.current, serverRemaining];
-    }
-    prevPossibleCount.current = serverRemaining;
-  }, [serverRemaining]);
-
   // ========== PARSE URL CHALLENGE ON MOUNT ==========
   useEffect(() => {
     const payload = parseUrlChallenge();
     if (payload) {
       setChallenge(payload);
       navigate("challenge");
-      // Clear hash so it doesn't persist on reload
-      globalThis.history.replaceState(null, "", globalThis.location.pathname);
+      globalThis.history.replaceState(
+        null,
+        "",
+        globalThis.location.pathname,
+      );
     }
   }, [navigate]);
-
-  // Server manages question flow — no client-side auto-generation needed
 
   // ========== GAME START ==========
   const startGame = async () => {
     setIsNewPersonalBest(false);
-    remainingHistoryRef.current = [];
-    prevPossibleCount.current = 0;
+    resetElimination();
     await startServerGame(categories, difficulty);
   };
 
@@ -309,17 +261,17 @@ function App() {
     dispatch({ type: "ANSWER", value });
     playAnswer();
     hapticLight();
-
     await handleServerAnswer(value);
   };
 
   // ========== GAME OUTCOME HANDLERS ==========
-
   const handleCorrectGuess = () => {
     const isNewBest = updateBest(gameSteps.length);
     setIsNewPersonalBest(isNewBest);
     dispatch({ type: "CORRECT_GUESS" });
-    analytics().then((m) => m.trackGameEnd(true, difficulty, gameSteps.length, guessCount));
+    analytics().then((m) =>
+      m.trackGameEnd(true, difficulty, gameSteps.length, guessCount),
+    );
     playCorrectGuess();
     hapticSuccess();
     toast.success("🎉 I got it right!");
@@ -347,7 +299,9 @@ function App() {
   };
 
   const handleSurrender = () => {
-    analytics().then((m) => m.trackGameEnd(false, difficulty, gameSteps.length, guessCount));
+    analytics().then((m) =>
+      m.trackGameEnd(false, difficulty, gameSteps.length, guessCount),
+    );
     postServerResult(false);
     refreshStats();
     setShowQuitDialog(false);
@@ -449,41 +403,14 @@ function App() {
 
   // Challenge view is a standalone screen — render before the main layout
   if (gamePhase === "challenge" && challenge) {
-    const ANSWER_EMOJI: Record<string, string> = { yes: "🟢", no: "🔴", maybe: "🟡" };
-    const answerBar = challenge.steps.map((s) => ANSWER_EMOJI[s.answer] ?? "⚪").join("");
     return (
-      <>
-        <Toaster position="top-center" richColors />
-        <div className="min-h-screen bg-background flex items-center justify-center p-4">
-          <div className="max-w-md w-full space-y-6 text-center">
-            <SparkleIcon size={64} weight="fill" className="mx-auto text-accent animate-float" />
-            <h1 className="text-3xl font-bold text-foreground">Challenge!</h1>
-            <p className="text-muted-foreground text-lg">
-              {challenge.won
-                ? `Andernator figured out ${challenge.characterName} in ${challenge.questionCount} questions!`
-                : `Someone stumped Andernator thinking of ${challenge.characterName}!`}
-            </p>
-            <div className="text-2xl tracking-wider">{answerBar}</div>
-            <div className="flex flex-wrap gap-2 justify-center">
-              <span className="inline-flex items-center rounded-full bg-accent/20 px-3 py-1 text-sm font-medium text-accent">
-                {challenge.difficulty.charAt(0).toUpperCase() + challenge.difficulty.slice(1)}
-              </span>
-              <span className="inline-flex items-center rounded-full bg-muted px-3 py-1 text-sm font-medium text-muted-foreground">
-                {challenge.questionCount} questions
-              </span>
-            </div>
-            <p className="text-foreground font-semibold text-lg">Can you do better?</p>
-            <Button
-              onClick={() => { setChallenge(null); navigate("welcome"); }}
-              size="lg"
-              className="h-14 px-8 text-lg bg-accent hover:bg-accent/90 text-accent-foreground shadow-lg shadow-accent/20 hover:scale-105 transition-transform"
-            >
-              <PlayIcon size={24} weight="fill" className="mr-2" />
-              Play Now
-            </Button>
-          </div>
-        </div>
-      </>
+      <ChallengeView
+        challenge={challenge}
+        onPlay={() => {
+          setChallenge(null);
+          navigate("welcome");
+        }}
+      />
     );
   }
 
@@ -495,7 +422,10 @@ function App() {
         {/* Ambient confidence reactor — brightens as the AI homes in */}
         <div
           className="absolute inset-0 bg-cosmic-hot-glow transition-opacity duration-1000 ease-out"
-          style={{ opacity: gamePhase === 'playing' ? (confidence / 100) * 0.18 : 0 }}
+          style={{
+            opacity:
+              gamePhase === "playing" ? (confidence / 100) * 0.18 : 0,
+          }}
           aria-hidden="true"
         />
 
@@ -522,7 +452,10 @@ function App() {
               aria-live="polite"
               className="flex items-center justify-center gap-2 bg-yellow-500/10 border-b border-yellow-500/30 px-4 py-2 text-sm text-yellow-400"
             >
-              <span className="inline-block w-2 h-2 rounded-full bg-yellow-400 animate-pulse" aria-hidden="true" />
+              <span
+                className="inline-block w-2 h-2 rounded-full bg-yellow-400 animate-pulse"
+                aria-hidden="true"
+              />
               You&rsquo;re offline — new games are unavailable until you reconnect.
             </div>
           )}
@@ -543,253 +476,58 @@ function App() {
                 (gameWon
                   ? "Correct! I got it right!"
                   : surrendered
-                  ? "Game ended early."
-                  : "Wrong guess. You stumped me!")}
+                    ? "Game ended early."
+                    : "Wrong guess. You stumped me!")}
             </div>
 
-            <AnimatePresence mode="wait">
-              {gamePhase === "welcome" && (
-                <WelcomeScreen
-                  startGame={startGame}
-                  serverTotal={serverTotal}
-                  online={online}
-                  maxQuestions={maxQuestions}
-                  gameHistory={gameHistory}
-                  gamesPlayed={gamesPlayed}
-                  hasSavedSession={hasSavedSession}
-                  resumeSession={resumeSession}
-                  clearSession={clearSession}
-                  showDevTools={showDevTools}
-                  navigate={navigate}
-                  characters={characters}
-                  globalStats={globalStats}
-                  difficulty={difficulty}
-                  setDifficulty={setDifficulty}
-                  categories={categories}
-                  setCategories={setCategories}
-                  streak={dailyStreak}
-                  personalBest={personalBest}
-                  achievements={achievements}
-                  weeklyRecap={weeklyRecap}
-                />
-              )}
-
-              {gamePhase === "playing" && (
-                <PlayingScreen
-                  answers={answers}
-                  maxQuestions={maxQuestions}
-                  confidence={confidence}
-                  effectiveRemaining={effectiveRemaining}
-                  eliminatedCount={eliminatedCount}
-                  possibleCharacters={possibleCharacters}
-                  currentQuestion={currentQuestion}
-                  isThinking={isThinking}
-                  reasoning={reasoning}
-                  handleAnswer={handleAnswer}
-                  dispatch={dispatch}
-                  gameSteps={gameSteps}
-                  gamesPlayed={gamesPlayed}
-                  showOnboarding={showOnboarding}
-                  setShowOnboarding={setShowOnboarding}
-                  activeCharacters={activeCharacters}
-                  readiness={serverReadiness}
-                  onRetry={retryAfterReject}
-                  onSkip={handleSkip}
-                  onGiveUp={handleGiveUp}
-                />
-              )}
-
-              {gamePhase === "guessing" && finalGuess && (
-                <motion.div
-                  key="guessing"
-                  initial={{ opacity: 0, y: 12 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -12 }}
-                  transition={{ duration: 0.25 }}
-                >
-                  <div className="max-w-2xl mx-auto">
-                    <GuessReveal
-                      character={finalGuess}
-                      confidence={confidence}
-                      guessNumber={guessCount}
-                      onCorrect={handleCorrectGuess}
-                      onIncorrect={handleIncorrectGuess}
-                      onRejectGuess={handleRejectGuess}
-                    />
-                  </div>
-                </motion.div>
-              )}
-
-              {gamePhase === "gameOver" && (
-                <motion.div
-                  key="gameOver"
-                  initial={{ opacity: 0, y: 12 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -12 }}
-                  transition={{ duration: 0.25 }}
-                >
-                  <div className="max-w-2xl mx-auto">
-                    <GameOver
-                      won={gameWon}
-                      exhausted={exhausted}
-                      surrendered={surrendered}
-                      character={finalGuess}
-                      maxQuestions={maxQuestions}
-                      questionsAsked={gameSteps.length}
-                      guessesUsed={guessCount}
-                      remainingCharacters={effectiveRemaining}
-                      gamesPlayed={gamesPlayed}
-                      onPlayAgain={startGame}
-                      onNewGame={() => navigate("welcome")}
-                      onTeachMode={
-                        gameWon ? undefined : () => navigate("teaching")
-                      }
-                      onViewHistory={() => navigate("history")}
-                      onViewStats={() => navigate("stats")}
-                      onShare={handleShare}
-                      onCopyLink={handleCopyLink}
-                      answeredQuestions={answers.map((a, i) => {
-                        const q = (questions || DEFAULT_QUESTIONS).find(
-                          (q) => q.id === a.questionId,
-                        );
-                        const hist = remainingHistoryRef.current;
-                        const eliminated = i === 0
-                          ? 0
-                          : (hist[i - 1] ?? 0) - (hist[i] ?? hist[i - 1] ?? 0);
-                        return { question: q?.text || "", answer: a.value, eliminated };
-                      })}
-                      onReveal={gameWon ? undefined : handleReveal}
-                      persona={persona}
-                      isPersonalBest={isNewPersonalBest}
-                      personalBest={personalBest}
-                    />
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-
-            {gamePhase === "teaching" && (
-              <div className="max-w-2xl mx-auto">
-                <Suspense fallback={<Skeleton className="h-96 w-full" />}>
-                  <TeachingMode
-                    answers={answers}
-                    existingCharacters={characters || DEFAULT_CHARACTERS}
-                    onAddCharacter={handleAddCharacter}
-                    onAddQuestions={handleAddQuestions}
-                    onPlayAgain={startGame}
-                    onGoHome={() => navigate("welcome")}
-                  />
-                </Suspense>
-              </div>
-            )}
-
-            {gamePhase === "describeYourself" && (
-              <div className="max-w-xl mx-auto">
-                <Suspense fallback={<Skeleton className="h-96 w-full" />}>
-                  <DescribeYourselfScreen
-                    questions={questions || DEFAULT_QUESTIONS}
-                    characters={activeCharacters}
-                    persona={persona}
-                    onClose={() => navigate("welcome")}
-                  />
-                </Suspense>
-              </div>
-            )}
-
-            {gamePhase === "manage" && (
-              <div className="max-w-4xl mx-auto space-y-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h2 className="text-3xl font-bold text-foreground">
-                      Question Pool Manager
-                    </h2>
-                    <p className="text-muted-foreground mt-1">
-                      Generate new questions from user-taught characters
-                    </p>
-                  </div>
-                  <Button onClick={() => navigate("welcome")} variant="outline">
-                    Back to Game
-                  </Button>
-                </div>
-                <Suspense fallback={<Skeleton className="h-96 w-full" />}>
-                  <QuestionManager
-                    characters={characters || DEFAULT_CHARACTERS}
-                    questions={questions || DEFAULT_QUESTIONS}
-                    onAddQuestions={handleAddQuestions}
-                  />
-                </Suspense>
-                <div className="bg-card/50 backdrop-blur-sm border border-border/50 rounded-lg p-6">
-                  <h3 className="text-lg font-semibold text-foreground mb-3">
-                    Current Statistics
-                  </h3>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                    <div className="bg-background/50 rounded-lg p-4">
-                      <div className="text-2xl font-bold text-accent">
-                        {(characters || DEFAULT_CHARACTERS).length}
-                      </div>
-                      <div className="text-sm text-muted-foreground">
-                        Total Characters
-                      </div>
-                    </div>
-                    <div className="bg-background/50 rounded-lg p-4">
-                      <div className="text-2xl font-bold text-accent">
-                        {(questions || DEFAULT_QUESTIONS).length}
-                      </div>
-                      <div className="text-sm text-muted-foreground">
-                        Total Questions
-                      </div>
-                    </div>
-                    <div className="bg-background/50 rounded-lg p-4">
-                      <div className="text-2xl font-bold text-accent">
-                        {
-                          (characters || DEFAULT_CHARACTERS).filter((c) =>
-                            c.id.startsWith("char-"),
-                          ).length
-                        }
-                      </div>
-                      <div className="text-sm text-muted-foreground">
-                        User-Taught
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {gamePhase === "stats" && (
-              <div className="max-w-4xl mx-auto">
-                <Suspense fallback={<Skeleton className="h-96 w-full" />}>
-                  <StatsDashboard
-                    stats={globalStats}
-                    loading={statsLoading}
-                    onBack={() => navigate("welcome")}
-                  />
-                </Suspense>
-              </div>
-            )}
-
-            {gamePhase === "history" && (
-              <div className="max-w-4xl mx-auto">
-                <Suspense fallback={<Skeleton className="h-96 w-full" />}>
-                  <GameHistory
-                    history={gameHistory}
-                    loading={statsLoading}
-                    onBack={() => navigate("welcome")}
-                  />
-                </Suspense>
-              </div>
-            )}
-
-            {gamePhase === "compare" && (
-              <div className="max-w-4xl mx-auto">
-                <Suspense fallback={<Skeleton className="h-96 w-full" />}>
-                  <CharacterComparison
-                    characters={characters || DEFAULT_CHARACTERS}
-                    onBack={() => navigate("welcome")}
-                  />
-                </Suspense>
-              </div>
-            )}
+            <GamePhaseRouter
+              game={game}
+              dispatch={dispatch}
+              navigate={navigate}
+              difficulty={difficulty}
+              setDifficulty={setDifficulty}
+              categories={categories}
+              setCategories={setCategories}
+              persona={persona}
+              maxQuestions={maxQuestions}
+              characters={characters}
+              questions={questions}
+              activeCharacters={activeCharacters}
+              serverTotal={serverTotal}
+              serverReadiness={serverReadiness}
+              effectiveRemaining={effectiveRemaining}
+              confidence={confidence}
+              globalStats={globalStats}
+              gameHistory={gameHistory}
+              gamesPlayed={gamesPlayed}
+              statsLoading={statsLoading}
+              hasSavedSession={hasSavedSession}
+              resumeSession={resumeSession}
+              clearSession={clearSession}
+              online={online}
+              eliminatedCount={eliminatedCount}
+              remainingHistoryRef={remainingHistoryRef}
+              isNewPersonalBest={isNewPersonalBest}
+              personalBest={personalBest}
+              dailyStreak={dailyStreak}
+              achievements={achievements}
+              weeklyRecap={weeklyRecap}
+              showOnboarding={showOnboarding}
+              setShowOnboarding={setShowOnboarding}
+              startGame={startGame}
+              handleAnswer={handleAnswer}
+              handleSkip={handleSkip}
+              handleGiveUp={handleGiveUp}
+              handleCorrectGuess={handleCorrectGuess}
+              handleIncorrectGuess={handleIncorrectGuess}
+              handleRejectGuess={handleRejectGuess}
+              retryAfterReject={retryAfterReject}
+              handleShare={handleShare}
+              handleCopyLink={handleCopyLink}
+              handleReveal={handleReveal}
+              handleAddCharacter={handleAddCharacter}
+              handleAddQuestions={handleAddQuestions}
+            />
           </main>
         </div>
       </div>
@@ -805,7 +543,9 @@ function App() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="flex-col sm:flex-row gap-2">
-            <AlertDialogCancel className="sm:mr-auto">Keep Playing</AlertDialogCancel>
+            <AlertDialogCancel className="sm:mr-auto">
+              Keep Playing
+            </AlertDialogCancel>
             <AlertDialogAction
               onClick={handleSurrender}
               className="bg-amber-500 hover:bg-amber-600 text-white border-0"
