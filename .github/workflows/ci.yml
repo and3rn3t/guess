@@ -54,6 +54,8 @@ jobs:
               - 'tailwind.config.js'
               - 'components.json'
               - 'wrangler.toml'
+              - '.github/workflows/ci.yml'
+              - '.github/actions/setup/action.yml'
             frontend:
               - 'src/**'
               - 'packages/**'
@@ -175,6 +177,7 @@ jobs:
   deploy-preview:
     needs: [checks, build, test-e2e]
     if: |
+      !cancelled() &&
       github.event_name == 'pull_request' &&
       needs.checks.result == 'success' &&
       needs.build.result == 'success' &&
@@ -190,7 +193,7 @@ jobs:
       url: ${{ steps.deploy.outputs.deployment-url }}
     steps:
       - uses: actions/checkout@v6
-      - uses: pnpm/action-setup@v6
+      - uses: ./.github/actions/setup
       - uses: actions/download-artifact@v8
         with:
           name: dist
@@ -232,6 +235,7 @@ jobs:
   deploy-production:
     needs: [checks, build, test-e2e]
     if: |
+      !cancelled() &&
       github.event_name == 'push' &&
       github.ref == 'refs/heads/main' &&
       needs.checks.result == 'success' &&
@@ -247,7 +251,7 @@ jobs:
       url: https://guess.andernet.dev
     steps:
       - uses: actions/checkout@v6
-      - uses: pnpm/action-setup@v6
+      - uses: ./.github/actions/setup
       - uses: actions/download-artifact@v8
         with:
           name: dist
