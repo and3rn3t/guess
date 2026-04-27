@@ -190,7 +190,7 @@ jobs:
       url: ${{ steps.deploy.outputs.deployment-url }}
     steps:
       - uses: actions/checkout@v6
-      - uses: pnpm/action-setup@v6
+      - uses: ./.github/actions/setup
       - uses: actions/download-artifact@v8
         with:
           name: dist
@@ -247,7 +247,7 @@ jobs:
       url: https://guess.andernet.dev
     steps:
       - uses: actions/checkout@v6
-      - uses: pnpm/action-setup@v6
+      - uses: ./.github/actions/setup
       - uses: actions/download-artifact@v8
         with:
           name: dist
