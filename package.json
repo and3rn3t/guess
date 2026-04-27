@@ -82,8 +82,8 @@
     ]
   },
   "devDependencies": {
-    "@aws-sdk/client-s3": "^3.1032.0",
-    "@cloudflare/workers-types": "^4.20260416.2",
+    "@aws-sdk/client-s3": "^3.1038.0",
+    "@cloudflare/workers-types": "^4.20260426.1",
     "@eslint/js": "^9.21.0",
     "@playwright/test": "^1.59.1",
     "@size-limit/preset-app": "^12.0.0",
@@ -96,16 +96,16 @@
     "@types/react-dom": "^19.0.4",
     "@types/sharp": "^0.32.0",
     "@vitejs/plugin-react-swc": "^4.2.2",
-    "@vitest/coverage-v8": "^4.1.4",
+    "@vitest/coverage-v8": "^4.1.5",
     "better-sqlite3": "^12.9.0",
     "eslint": "^9.28.0",
     "eslint-plugin-jsx-a11y": "^6.10.2",
     "eslint-plugin-react-hooks": "^5.2.0",
-    "eslint-plugin-react-refresh": "^0.4.19",
+    "eslint-plugin-react-refresh": "^0.5.2",
     "fake-indexeddb": "^6.2.5",
     "globals": "^17.5.0",
     "husky": "^9.1.7",
-    "jsdom": "^29.0.2",
+    "jsdom": "^29.1.0",
     "lint-staged": "^16.4.0",
     "msw": "^2.13.4",
     "sharp": "^0.34.5",
@@ -113,10 +113,10 @@
     "tailwindcss": "^4.1.11",
     "tsx": "^4.21.0",
     "typescript": "~6.0.3",
-    "typescript-eslint": "^8.38.0",
+    "typescript-eslint": "^8.59.1",
     "vite": "^7.2.6",
-    "vitest": "^4.1.4",
-    "wrangler": "^4.83.0"
+    "vitest": "^4.1.5",
+    "wrangler": "^4.85.0"
   },
   "size-limit": [
     {
