@@ -90,8 +90,9 @@ describe('llmWithMeta', () => {
     const [url, init] = mockFetch.mock.calls[0]
     expect(url).toBe('/api/llm')
     expect(init.method).toBe('POST')
-    expect(init.headers['Content-Type']).toBe('application/json')
-    expect(init.headers['X-User-Id']).toBeTruthy()
+    const headers = new Headers(init.headers)
+    expect(headers.get('Content-Type')).toBe('application/json')
+    expect(headers.get('X-User-Id')).toBeTruthy()
 
     const body = JSON.parse(init.body)
     expect(body.prompt).toBe('test prompt')
@@ -189,7 +190,7 @@ describe('llmWithMeta', () => {
     const { llmWithMeta } = await import('./llm')
     await llmWithMeta({ prompt: 'test', model: 'gpt-4o' })
 
-    const userId = mockFetch.mock.calls[0][1].headers['X-User-Id']
+    const userId = new Headers(mockFetch.mock.calls[0][1].headers).get('X-User-Id')
     expect(userId).toBeTruthy()
   })
 })

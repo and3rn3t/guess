@@ -1,12 +1,11 @@
 import { LLM_MAX_RETRIES, LLM_NON_RETRYABLE_CODES, LLM_RETRYABLE_STATUSES, LLM_RETRY_BASE_MS } from './constants'
+import { createHttpClient } from './http'
 import { getUserId } from './utils'
 
-function commonHeaders(): Record<string, string> {
-  return {
-    'Content-Type': 'application/json',
-    'X-User-Id': getUserId(),
-  }
-}
+const commonHeaders = (): Record<string, string> => ({
+  'Content-Type': 'application/json',
+  'X-User-Id': getUserId(),
+})
 
 export interface LlmOptions {
   prompt: string
@@ -53,6 +52,40 @@ async function parseErrorResponse(response: Response): Promise<LlmError> {
   return new LlmError(errorMsg, code, response.status, retryable)
 }
 
+/** Wrap raw network/transport failures so callers see a friendly LlmError with code='NETWORK'. */
+function wrapTransportError(err: unknown): never {
+  if (err instanceof LlmError) throw err
+  if (err instanceof TypeError) {
+    throw new LlmError(
+      'Network error — check your internet connection and try again.',
+      'NETWORK',
+      0,
+      false,
+    )
+  }
+  throw err
+}
+
+/** Retry-capable client for /api/llm. Retries on retryable LlmErrors and network errors. */
+const llmJsonClient = createHttpClient({
+  defaultHeaders: commonHeaders,
+  parseError: parseErrorResponse,
+  retry: {
+    maxAttempts: LLM_MAX_RETRIES + 1,
+    baseDelayMs: LLM_RETRY_BASE_MS,
+    isRetryable: (err) => {
+      if (err instanceof LlmError) return err.retryable
+      return err instanceof TypeError
+    },
+  },
+})
+
+/** No-retry client for /api/llm-stream — partial streams can't be safely replayed. */
+const llmStreamClient = createHttpClient({
+  defaultHeaders: commonHeaders,
+  parseError: parseErrorResponse,
+})
+
 /** Send a prompt to the LLM API and return the response text. */
 export async function llm(prompt: string, model: string, jsonMode?: boolean): Promise<string> {
   const result = await llmWithMeta({ prompt, model, jsonMode })
@@ -61,59 +94,38 @@ export async function llm(prompt: string, model: string, jsonMode?: boolean): Pr
 
 /** Send a prompt to the LLM API with automatic retry (up to 2×) on transient failures. Returns content, token usage, and cache status. */
 export async function llmWithMeta(options: LlmOptions): Promise<LlmResult> {
-  let lastError: Error | undefined
-
-  for (let attempt = 0; attempt <= LLM_MAX_RETRIES; attempt++) {
-    if (attempt > 0) {
-      await new Promise(r => setTimeout(r, LLM_RETRY_BASE_MS * 2 ** (attempt - 1)))
-    }
-
-    let response: Response
-    try {
-      response = await fetch('/api/llm', {
-        method: 'POST',
-        headers: commonHeaders(),
-        signal: options.signal,
-        body: JSON.stringify({
-          prompt: options.prompt,
-          model: options.model,
-          jsonMode: options.jsonMode,
-          systemPrompt: options.systemPrompt,
-        }),
-      })
-    } catch {
-      lastError = new LlmError('Network error — check your internet connection and try again.', 'NETWORK', 0, true)
-      continue
-    }
-
-    if (!response.ok) {
-      const err = await parseErrorResponse(response)
-      if (err.retryable && attempt < LLM_MAX_RETRIES) {
-        lastError = err
-        continue
-      }
-      throw err
-    }
-
-    const content = await response.text()
-
-    // Parse token usage from header
-    let usage: LlmResult['usage']
-    const usageHeader = response.headers.get('X-Token-Usage')
-    if (usageHeader) {
-      try {
-        usage = JSON.parse(usageHeader)
-      } catch {
-        // Ignore malformed header
-      }
-    }
-
-    const cached = response.headers.get('X-Cache') === 'HIT'
-
-    return { content, usage, cached }
+  let response: Response
+  try {
+    response = await llmJsonClient.requestOrThrow('/api/llm', {
+      method: 'POST',
+      signal: options.signal,
+      body: JSON.stringify({
+        prompt: options.prompt,
+        model: options.model,
+        jsonMode: options.jsonMode,
+        systemPrompt: options.systemPrompt,
+      }),
+    })
+  } catch (err) {
+    wrapTransportError(err)
   }
 
-  throw lastError ?? new LlmError('LLM request failed after retries', 'MAX_RETRIES', 0, false)
+  const content = await response.text()
+
+  // Parse token usage from header
+  let usage: LlmResult['usage']
+  const usageHeader = response.headers.get('X-Token-Usage')
+  if (usageHeader) {
+    try {
+      usage = JSON.parse(usageHeader)
+    } catch {
+      // Ignore malformed header
+    }
+  }
+
+  const cached = response.headers.get('X-Cache') === 'HIT'
+
+  return { content, usage, cached }
 }
 
 const SSE_DONE = Symbol('done')
@@ -135,18 +147,19 @@ function parseSSEToken(line: string): string | typeof SSE_DONE | null {
 
 /** Stream LLM responses token by token via SSE */
 export async function* llmStream(options: Omit<LlmOptions, 'jsonMode'>): AsyncGenerator<string> {
-  const response = await fetch('/api/llm-stream', {
-    method: 'POST',
-    headers: commonHeaders(),
-    body: JSON.stringify({
-      prompt: options.prompt,
-      model: options.model,
-      systemPrompt: options.systemPrompt,
-    }),
-  })
-
-  if (!response.ok) {
-    throw await parseErrorResponse(response)
+  let response: Response
+  try {
+    response = await llmStreamClient.requestOrThrow('/api/llm-stream', {
+      method: 'POST',
+      signal: options.signal,
+      body: JSON.stringify({
+        prompt: options.prompt,
+        model: options.model,
+        systemPrompt: options.systemPrompt,
+      }),
+    })
+  } catch (err) {
+    wrapTransportError(err)
   }
 
   if (!response.body) {

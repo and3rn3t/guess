@@ -1,16 +1,11 @@
 import { KV_CHARACTERS_CACHE, KV_QUESTIONS_CACHE, SYNC_CACHE_TTL } from './constants'
+import { httpClient } from './http'
 import type { Character, CharacterCategory, Question, Difficulty } from './types'
 import { getUserId } from './utils'
 
 export type SyncStatus = 'synced' | 'pending' | 'error' | 'offline'
 
 export { getUserId }
-
-function headers(): Record<string, string> {
-  return {
-    'Content-Type': 'application/json',
-  }
-}
 
 // ===== Characters =====
 
@@ -19,9 +14,9 @@ export async function fetchGlobalCharacters(): Promise<Character[]> {
   if (cached) return cached
 
   try {
-    const res = await fetch('/api/v2/characters', { headers: headers() })
-    if (!res.ok) throw new Error(`HTTP ${res.status}`)
-    const data = (await res.json()) as { characters: Array<Record<string, unknown>> }
+    const data = await httpClient.getJson<{ characters: Array<Record<string, unknown>> }>(
+      '/api/v2/characters',
+    )
     const characters: Character[] = data.characters.map((raw) => {
       let attributes: Record<string, boolean | null> = {}
       if (typeof raw.attributes_json === 'string') {
@@ -66,9 +61,9 @@ export async function fetchAdminCharacters(limit: number): Promise<Character[]> 
       pageSize: String(Math.min(500, Math.max(50, limit))),
       page: '1',
     })
-    const res = await fetch(`/api/admin/characters?${params.toString()}`, { headers: headers() })
-    if (!res.ok) throw new Error(`HTTP ${res.status}`)
-    const data = (await res.json()) as { characters: AdminCharacterRow[] }
+    const data = await httpClient.getJson<{ characters: AdminCharacterRow[] }>(
+      `/api/admin/characters?${params.toString()}`,
+    )
     return (data.characters ?? []).map((r) => ({
       id: r.id,
       name: r.name,
@@ -94,9 +89,9 @@ interface AdminCharacterDetail {
  */
 export async function fetchAdminCharacterById(id: string): Promise<Character | null> {
   try {
-    const res = await fetch(`/api/admin/characters/${encodeURIComponent(id)}`, { headers: headers() })
-    if (!res.ok) return null
-    const data = (await res.json()) as AdminCharacterDetail
+    const data = await httpClient.getJson<AdminCharacterDetail>(
+      `/api/admin/characters/${encodeURIComponent(id)}`,
+    )
     const attributes: Record<string, boolean | null> = Object.fromEntries(
       Object.entries(data.attributes).map(([k, v]) => [k, v === 1 ? true : v === 0 ? false : null])
     )
@@ -116,9 +111,9 @@ export async function submitCharacter(
   newQuestions?: Array<{ text: string; attribute: string }>
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    const res = await fetch('/api/v2/characters', {
+    const res = await httpClient.request('/api/v2/characters', {
       method: 'POST',
-      headers: headers(),
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         name: character.name,
         category: character.category,
@@ -151,9 +146,7 @@ export async function fetchGlobalQuestions(): Promise<Question[]> {
   if (cached) return cached
 
   try {
-    const res = await fetch('/api/v2/questions', { headers: headers() })
-    if (!res.ok) throw new Error(`HTTP ${res.status}`)
-    const questions = (await res.json()) as Question[]
+    const questions = await httpClient.getJson<Question[]>('/api/v2/questions')
     setCache(KV_QUESTIONS_CACHE, questions)
     return questions
   } catch {
@@ -166,11 +159,7 @@ export async function submitQuestions(
 ): Promise<void> {
   for (const q of questions) {
     try {
-      await fetch('/api/questions', {
-        method: 'POST',
-        headers: headers(),
-        body: JSON.stringify(q),
-      })
+      await httpClient.postJson('/api/questions', q)
     } catch {
       // Fire-and-forget — don't block on individual question failures
     }
@@ -186,10 +175,11 @@ export async function recordGameResult(
   difficulty: Difficulty
 ): Promise<void> {
   try {
-    await fetch('/api/stats', {
-      method: 'POST',
-      headers: headers(),
-      body: JSON.stringify({ characterId, won, questionsAsked, difficulty }),
+    await httpClient.postJson('/api/stats', {
+      characterId,
+      won,
+      questionsAsked,
+      difficulty,
     })
   } catch {
     // Fire-and-forget
@@ -207,9 +197,9 @@ export async function submitCorrection(
   suggestedValue: boolean
 ): Promise<{ success: boolean; autoApplied?: boolean; error?: string }> {
   try {
-    const res = await fetch('/api/corrections', {
+    const res = await httpClient.request('/api/corrections', {
       method: 'POST',
-      headers: headers(),
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ characterId, attribute, currentValue, suggestedValue }),
     })
     if (!res.ok) {
