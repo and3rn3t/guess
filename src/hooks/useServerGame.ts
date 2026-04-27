@@ -17,6 +17,21 @@ const analytics = () => import("@/lib/analytics");
 
 const SERVER_SESSION_KEY = "server-session-id";
 
+/** Carries the HTTP status alongside the failure message so analytics can
+ *  distinguish network failures (status 0) from server errors. */
+class HttpError extends Error {
+  constructor(public readonly status: number, message: string) {
+    super(message);
+    this.name = "HttpError";
+  }
+}
+
+function reportFetchError(endpoint: string, err: unknown): void {
+  const status = err instanceof HttpError ? err.status : 0;
+  const message = err instanceof Error ? err.message : String(err);
+  void analytics().then((m) => m.trackServerError(endpoint, status, message));
+}
+
 // ── Server response types ────────────────────────────────────
 
 interface StartResponse {
@@ -209,7 +224,8 @@ export function useServerGame(dispatch: React.Dispatch<GameAction>) {
         });
 
         toast.success("Previous session restored");
-      } catch {
+      } catch (err) {
+        reportFetchError("/api/v2/game/resume", err);
         persistSessionId(null);
       }
     })();
@@ -233,7 +249,7 @@ export function useServerGame(dispatch: React.Dispatch<GameAction>) {
             characterId: characterId ?? undefined,
           }),
         });
-        if (!res.ok) throw new Error("Failed to start");
+        if (!res.ok) throw new HttpError(res.status, "Failed to start");
         const data = (await res.json()) as StartResponse;
         persistSessionId(data.sessionId);
         setServerRemainingSync(data.totalCharacters);
@@ -249,7 +265,8 @@ export function useServerGame(dispatch: React.Dispatch<GameAction>) {
         analytics().then((m) =>
           m.trackGameStart(difficulty, data.totalCharacters),
         );
-      } catch {
+      } catch (err) {
+        reportFetchError("/api/v2/game/start", err);
         toast.error(
           "Failed to start server game — try again or switch to local mode",
         );
@@ -272,7 +289,7 @@ export function useServerGame(dispatch: React.Dispatch<GameAction>) {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ sessionId: serverSessionId, value }),
         });
-        if (!res.ok) throw new Error("Failed to process answer");
+        if (!res.ok) throw new HttpError(res.status, "Failed to process answer");
         const data = (await res.json()) as AnswerResponse;
 
         if (data.type === "contradiction") {
@@ -320,7 +337,8 @@ export function useServerGame(dispatch: React.Dispatch<GameAction>) {
             toast.success(`Answer recorded: ${value}`);
           }
         }
-      } catch {
+      } catch (err) {
+        reportFetchError("/api/v2/game/answer", err);
         toast.error("Failed to process answer — try again");
         dispatch({ type: "UNDO_LAST_ANSWER" });
       } finally {
@@ -366,7 +384,7 @@ export function useServerGame(dispatch: React.Dispatch<GameAction>) {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ sessionId: serverSessionId, characterId }),
         });
-        if (!res.ok) throw new Error("Failed to reject guess");
+        if (!res.ok) throw new HttpError(res.status, "Failed to reject guess");
         const data = (await res.json()) as RejectGuessResponse;
 
         if (data.type === "exhausted") {
@@ -406,7 +424,8 @@ export function useServerGame(dispatch: React.Dispatch<GameAction>) {
           // Unexpected response shape — treat as error so user can retry
           throw new Error("Unexpected server response after rejecting guess");
         }
-      } catch {
+      } catch (err) {
+        reportFetchError("/api/v2/game/reject-guess", err);
         toast.error("Something went wrong — tap 'Try Again' to continue");
       } finally {
         dispatch({ type: "SET_THINKING", isThinking: false });
@@ -436,7 +455,7 @@ export function useServerGame(dispatch: React.Dispatch<GameAction>) {
         dispatch({ type: "SET_EXHAUSTED" });
         return;
       }
-      if (!res.ok) throw new Error("Failed to skip question");
+      if (!res.ok) throw new HttpError(res.status, "Failed to skip question");
       const data = (await res.json()) as SkipResponse;
       dispatch({
         type: "SET_QUESTION",
@@ -444,7 +463,8 @@ export function useServerGame(dispatch: React.Dispatch<GameAction>) {
         reasoning: data.reasoning,
       });
       setServerRemainingSync(data.remaining ?? serverRemainingRef.current);
-    } catch {
+    } catch (err) {
+      reportFetchError("/api/v2/game/skip", err);
       toast.error("Failed to skip — try again");
       dispatch({ type: "SET_THINKING", isThinking: false });
     }

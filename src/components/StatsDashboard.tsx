@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
+import { useQuestionCoverage } from '@/hooks/useQuestionCoverage'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
 import { Badge } from '@/components/ui/badge'
@@ -32,27 +33,8 @@ export function StatsDashboard({ stats, loading, onBack }: StatsDashboardProps) 
   const [_activeTab, setActiveTab] = useState('games')
 
   // AN.3 / AN.6: lazy-load question coverage when those tabs are visited
-  const [questionData, setQuestionData] = useState<Array<{
-    id: string
-    text: string
-    attribute_key: string
-    priority: number
-    total_characters: number
-    filled_count: number
-    coverage_pct: number
-  }> | null>(null)
-  const [questionLoading, setQuestionLoading] = useState(false)
-
-  useEffect(() => {
-    if ((_activeTab === 'questions' || _activeTab === 'coverage') && questionData === null && !questionLoading) {
-      setQuestionLoading(true)
-      fetch('/api/v2/questions?coverage=true')
-        .then((r) => (r.ok ? r.json() : Promise.reject(r.status)))
-        .then((data) => setQuestionData(data as typeof questionData))
-        .catch(() => setQuestionData([]))
-        .finally(() => setQuestionLoading(false))
-    }
-  }, [_activeTab, questionData, questionLoading])
+  const coverageEnabled = _activeTab === 'questions' || _activeTab === 'coverage'
+  const { data: questionData, loading: questionLoading } = useQuestionCoverage(coverageEnabled)
 
   const gs = stats?.gameStats
   const readiness = gs?.readiness

@@ -833,4 +833,76 @@ describe('selectBestQuestionMCTS', () => {
     const attrs = questions.map((q) => q.attribute)
     expect(attrs).toContain(result?.attribute)
   })
+
+  // ── 2-step lookahead path (pool > MCTS_MIN_POOL_SIZE=15, ≥4 questions) ──────
+  describe('2-step lookahead path', () => {
+    // Build a 20-character pool with 6 attributes so we exceed the pool/question
+    // gates and actually run the MCTS body.
+    const ATTRS = ['a1', 'a2', 'a3', 'a4', 'a5', 'a6'] as const
+    const bigChars: Character[] = Array.from({ length: 20 }, (_, i) => {
+      const attrs: Record<string, boolean | null> = {}
+      for (let j = 0; j < ATTRS.length; j++) {
+        // Deterministic mix: each attribute true for ~half, false for ~half,
+        // null for ~10% so the unknown branch is exercised.
+        const pick = (i + j) % 10
+        attrs[ATTRS[j]] = pick === 9 ? null : (pick % 2 === 0)
+      }
+      return { id: `c${i}`, name: `Char${i}`, category: 'movies', attributes: attrs }
+    })
+    const bigQuestions: Question[] = ATTRS.map((a) => ({ id: a, text: `${a}?`, attribute: a }))
+
+    it('returns a question from the candidate set when MCTS body runs', () => {
+      const result = selectBestQuestionMCTS(bigChars, [], bigQuestions, { progress: 0.1 })
+      expect(result).not.toBeNull()
+      expect(bigQuestions.map((q) => q.attribute)).toContain(result!.attribute)
+    })
+
+    it('does not return an already-asked attribute under MCTS', () => {
+      const answers: Answer[] = [{ questionId: 'a1', value: 'yes' }]
+      const result = selectBestQuestionMCTS(bigChars, answers, bigQuestions, { progress: 0.1 })
+      expect(result?.attribute).not.toBe('a1')
+    })
+
+    it('respects custom candidate / followupCandidates limits', () => {
+      const result = selectBestQuestionMCTS(bigChars, [], bigQuestions, {
+        progress: 0.1,
+        candidates: 2,
+        followupCandidates: 2,
+      })
+      expect(result).not.toBeNull()
+      expect(bigQuestions.map((q) => q.attribute)).toContain(result!.attribute)
+    })
+
+    it('delegates to greedy when mctsEndgameThreshold is lowered below progress', () => {
+      const result = selectBestQuestionMCTS(bigChars, [], bigQuestions, {
+        progress: 0.5,
+        mctsEndgameThreshold: 0.4,
+      })
+      expect(result).not.toBeNull()
+      expect(bigQuestions.map((q) => q.attribute)).toContain(result!.attribute)
+    })
+
+    it('handles converged distribution (entropy ≈ 0) gracefully', () => {
+      // Drive distribution near a single character with consistent answers.
+      // Even with a large pool, scoring will collapse onto one survivor.
+      const target = bigChars[0]
+      const answers: Answer[] = ATTRS.slice(0, 4).map((a) => ({
+        questionId: a,
+        value: target.attributes[a] === true ? 'yes' : 'no',
+      }))
+      const result = selectBestQuestionMCTS(bigChars, answers, bigQuestions, { progress: 0.3 })
+      // Either returns a remaining question or null — must not throw
+      if (result !== null) {
+        expect(bigQuestions.map((q) => q.attribute)).toContain(result.attribute)
+      }
+    })
+
+    it('uses provided maybeRateMap without crashing', () => {
+      const result = selectBestQuestionMCTS(bigChars, [], bigQuestions, {
+        progress: 0.1,
+        maybeRateMap: { a1: 0.5, a2: 0.05, a3: 0.2 },
+      })
+      expect(result).not.toBeNull()
+    })
+  })
 })

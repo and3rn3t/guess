@@ -42,7 +42,7 @@ import type {
   Difficulty,
   Question,
 } from "@/lib/types";
-import { DIFFICULTIES, DIFFICULTY_TO_PERSONA } from "@/lib/types";
+import { DIFFICULTIES, DIFFICULTY_TO_PERSONA, sanitizeCategories } from "@/lib/types";
 import { PlayIcon, SparkleIcon } from "@phosphor-icons/react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useTheme } from "next-themes";
@@ -51,6 +51,7 @@ import {
   Suspense,
   useCallback,
   useEffect,
+  useMemo,
   useRef,
   useState,
 } from "react";
@@ -153,7 +154,8 @@ function App() {
 
   // ========== SETTINGS ==========
   const [difficulty, setDifficulty] = useKV<Difficulty>("pref:difficulty", "medium");
-  const [categories, setCategories] = useKV<CharacterCategory[]>("pref:categories", []);
+  const [rawCategories, setCategories] = useKV<CharacterCategory[]>("pref:categories", []);
+  const categories = useMemo(() => sanitizeCategories(rawCategories), [rawCategories]);
   const [challenge, setChallenge] = useState<SharePayload | null>(null);
   const {
     serverRemaining,

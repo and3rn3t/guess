@@ -15,6 +15,8 @@ vi.mock('@/lib/sounds', () => ({
 
 vi.mock('@/lib/analytics', () => ({
   trackGameStart: vi.fn(),
+  trackGameEnd: vi.fn(),
+  trackServerError: vi.fn(),
 }))
 
 const mockFetch = vi.fn()
