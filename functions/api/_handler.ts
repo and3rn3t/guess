@@ -77,21 +77,21 @@ export function defineHandler(
       return errorResponse('KV not configured', 503)
     }
 
-    let userId = ''
-    let setCookieHeader: string | undefined
-
-    if (requireUser) {
-      const result = await getOrCreateUserId(request, env)
-      userId = result.userId
-      setCookieHeader = result.setCookieHeader
-    }
-
-    if (rateLimit !== undefined && kv && userId) {
-      const { allowed } = await checkRateLimit(kv, userId, name, rateLimit)
-      if (!allowed) return errorResponse('Rate limit exceeded', 429)
-    }
-
     try {
+      let userId = ''
+      let setCookieHeader: string | undefined
+
+      if (requireUser) {
+        const result = await getOrCreateUserId(request, env)
+        userId = result.userId
+        setCookieHeader = result.setCookieHeader
+      }
+
+      if (rateLimit !== undefined && kv && userId) {
+        const { allowed } = await checkRateLimit(kv, userId, name, rateLimit)
+        if (!allowed) return errorResponse('Rate limit exceeded', 429)
+      }
+
       const response = await handler({
         env,
         request,
