@@ -5,6 +5,7 @@
  * `reportFetchError` helper that hands off to the lazy analytics module.
  * Hooks compose these calls and own the UI/state side effects.
  */
+import { httpClient, HttpError } from "@/lib/http";
 import type {
   AnswerValue,
   CharacterCategory,
@@ -14,19 +15,9 @@ import type {
   ReasoningExplanation,
 } from "@/lib/types";
 
-const analytics = () => import("@/lib/analytics");
+export { HttpError };
 
-/** Carries the HTTP status alongside the failure message so analytics can
- *  distinguish network failures (status 0) from server errors. */
-export class HttpError extends Error {
-  constructor(
-    public readonly status: number,
-    message: string,
-  ) {
-    super(message);
-    this.name = "HttpError";
-  }
-}
+const analytics = () => import("@/lib/analytics");
 
 export function reportFetchError(endpoint: string, err: unknown): void {
   const status = err instanceof HttpError ? err.status : 0;
@@ -123,27 +114,6 @@ export function normalizeReadiness(
 
 // ── Transport ────────────────────────────────────────────────
 
-const JSON_HEADERS = { "Content-Type": "application/json" } as const;
-
-async function postJson<T>(url: string, body: unknown): Promise<T> {
-  const res = await fetch(url, {
-    method: "POST",
-    headers: JSON_HEADERS,
-    body: JSON.stringify(body),
-  });
-  if (!res.ok) throw new HttpError(res.status, `Request failed: ${url}`);
-  return (await res.json()) as T;
-}
-
-/** Custom postJson that returns the raw Response so callers can inspect status. */
-async function postJsonRaw(url: string, body: unknown): Promise<Response> {
-  return fetch(url, {
-    method: "POST",
-    headers: JSON_HEADERS,
-    body: JSON.stringify(body),
-  });
-}
-
 export interface StartGameInput {
   categories: CharacterCategory[];
   difficulty: Difficulty;
@@ -151,7 +121,7 @@ export interface StartGameInput {
 }
 
 export function startGame(input: StartGameInput): Promise<StartResponse> {
-  return postJson<StartResponse>("/api/v2/game/start", {
+  return httpClient.postJson<StartResponse>("/api/v2/game/start", {
     categories: input.categories.length ? input.categories : undefined,
     difficulty: input.difficulty,
     characterId: input.characterId ?? undefined,
@@ -162,7 +132,7 @@ export function submitAnswer(
   sessionId: string,
   value: AnswerValue,
 ): Promise<AnswerResponse> {
-  return postJson<AnswerResponse>("/api/v2/game/answer", {
+  return httpClient.postJson<AnswerResponse>("/api/v2/game/answer", {
     sessionId,
     value,
   });
@@ -175,7 +145,11 @@ export function submitAnswer(
 export async function skipQuestion(
   sessionId: string,
 ): Promise<SkipResponse | null> {
-  const res = await postJsonRaw("/api/v2/game/skip", { sessionId });
+  const res = await httpClient.request("/api/v2/game/skip", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ sessionId }),
+  });
   if (res.status === 409) return null;
   if (!res.ok) throw new HttpError(res.status, "Failed to skip question");
   return (await res.json()) as SkipResponse;
@@ -185,27 +159,29 @@ export function rejectGuess(
   sessionId: string,
   characterId: string,
 ): Promise<RejectGuessResponse> {
-  return postJson<RejectGuessResponse>("/api/v2/game/reject-guess", {
-    sessionId,
-    characterId,
-  });
+  return httpClient.postJson<RejectGuessResponse>(
+    "/api/v2/game/reject-guess",
+    { sessionId, characterId },
+  );
 }
 
 export function submitResult(
   sessionId: string,
   correct: boolean,
 ): Promise<Response> {
-  return fetch("/api/v2/game/result", {
+  return httpClient.request("/api/v2/game/result", {
     method: "POST",
-    headers: JSON_HEADERS,
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ sessionId, correct }),
   });
 }
 
 export function resumeGame(sessionId: string): Promise<ResumeResponse | null> {
-  return fetch("/api/v2/game/resume", {
-    method: "POST",
-    headers: JSON_HEADERS,
-    body: JSON.stringify({ sessionId }),
-  }).then((res) => (res.ok ? (res.json() as Promise<ResumeResponse>) : null));
+  return httpClient
+    .request("/api/v2/game/resume", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ sessionId }),
+    })
+    .then((res) => (res.ok ? (res.json() as Promise<ResumeResponse>) : null));
 }
