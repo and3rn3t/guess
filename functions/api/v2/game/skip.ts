@@ -3,6 +3,7 @@ import {
   jsonResponse,
   errorResponse,
   parseJsonBody,
+  logError,
 } from '../../_helpers'
 import {
   filterPossibleCharacters,
@@ -28,6 +29,7 @@ interface SkipRequest {
 // Returns the next best question from the remaining un-skipped pool.
 
 export const onRequestPost: PagesFunction<Env> = async (context) => {
+  try {
   const kv = context.env.GUESS_KV
   if (!kv) return errorResponse('KV not configured', 503)
 
@@ -111,4 +113,10 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     questionCount,
     skippedCount: session.skippedQuestions.length,
   })
+  } catch (err) {
+    console.error('POST /api/v2/game/skip error:', err)
+    context.waitUntil(logError(context.env.GUESS_DB, 'skip', 'error', 'skip failed', err))
+    const message = err instanceof Error ? err.message : 'Unknown error'
+    return errorResponse(`Skip failed: ${message}`, 500)
+  }
 }

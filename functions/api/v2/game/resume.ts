@@ -5,6 +5,7 @@ import {
   parseJsonBody,
   d1First,
   d1Query,
+  logError,
 } from '../../_helpers'
 import {
   type GameSession,
@@ -127,6 +128,7 @@ async function reconstructFromD1(
 // Resumes an existing server session from KV, falling back to D1 backup
 
 export const onRequestPost: PagesFunction<Env> = async (context) => {
+  try {
   const kv = context.env.GUESS_KV
   if (!kv) return errorResponse('KV not configured', 503)
 
@@ -197,4 +199,10 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       value: a.value,
     })),
   })
+  } catch (err) {
+    console.error('POST /api/v2/game/resume error:', err)
+    context.waitUntil(logError(context.env.GUESS_DB, 'resume', 'error', 'resume failed', err))
+    const message = err instanceof Error ? err.message : 'Unknown error'
+    return errorResponse(`Resume failed: ${message}`, 500)
+  }
 }

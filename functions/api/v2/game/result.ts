@@ -6,6 +6,7 @@ import {
   getOrCreateUserId,
   withSetCookie,
   d1Run,
+  logError,
 } from '../../_helpers'
 import { loadSession, deleteSession, getBestGuess } from '../_game-engine'
 
@@ -21,6 +22,7 @@ interface ResultRequest {
 // Records game outcome (win/loss) and cleans up the session
 
 export const onRequestPost: PagesFunction<Env> = async (context) => {
+  try {
   const kv = context.env.GUESS_KV
   const db = context.env.GUESS_DB
   if (!kv) return errorResponse('KV not configured', 503)
@@ -115,4 +117,10 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       guessesUsed: session.guessCount,
     },
   }), setCookieHeader)
+  } catch (err) {
+    console.error('POST /api/v2/game/result error:', err)
+    context.waitUntil(logError(context.env.GUESS_DB, 'result', 'error', 'result recording failed', err))
+    const message = err instanceof Error ? err.message : 'Unknown error'
+    return errorResponse(`Result recording failed: ${message}`, 500)
+  }
 }

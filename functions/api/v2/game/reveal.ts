@@ -13,6 +13,7 @@ import {
   d1Batch,
   kvGetArray,
   kvPut,
+  logError,
 } from '../../_helpers'
 
 // ── Types ────────────────────────────────────────────────────
@@ -48,6 +49,7 @@ interface CorrectionVote {
 // - Stores a game_reveals record for audit/batch refinement
 
 export const onRequestPost: PagesFunction<Env> = async (context) => {
+  try {
   const db = context.env.GUESS_DB
   const kv = context.env.GUESS_KV
   if (!kv) return errorResponse('KV not configured', 503)
@@ -188,4 +190,10 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     }),
     setCookieHeader
   )
+  } catch (err) {
+    console.error('POST /api/v2/game/reveal error:', err)
+    context.waitUntil(logError(context.env.GUESS_DB, 'reveal', 'error', 'reveal failed', err))
+    const message = err instanceof Error ? err.message : 'Unknown error'
+    return errorResponse(`Reveal failed: ${message}`, 500)
+  }
 }
