@@ -839,7 +839,7 @@ async function runAdversarialValidation(
     return 0;
   }
 
-  let rawDisputes: StagingDispute[] = [];
+  let rawDisputes: StagingDispute[];
   try {
     const response = await withRetry(
       () => callLLM(
