@@ -1,5 +1,6 @@
 import { useReducer, useCallback, useRef, useEffect } from 'react'
 import type { Character, Question, Answer, AnswerValue, ReasoningExplanation, GameHistoryStep } from '@/lib/types'
+import { GameStateSchema } from '@/lib/schemas'
 
 const SESSION_KEY = 'kv:game-session'
 
@@ -206,7 +207,12 @@ function loadSession(): GameState | null {
   try {
     const raw = localStorage.getItem(SESSION_KEY)
     if (!raw) return null
-    const saved = JSON.parse(raw) as GameState
+    const parsed = GameStateSchema.safeParse(JSON.parse(raw))
+    if (!parsed.success) {
+      localStorage.removeItem(SESSION_KEY)
+      return null
+    }
+    const saved = parsed.data
     // Only restore active game sessions
     if (ACTIVE_PHASES.has(saved.phase)) return saved
     // Stale session — clean up

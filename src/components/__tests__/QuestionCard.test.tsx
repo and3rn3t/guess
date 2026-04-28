@@ -5,8 +5,8 @@ import userEvent from '@testing-library/user-event'
 import { QuestionCard, ThinkingCard } from '../QuestionCard'
 import type { Question } from '@/lib/types'
 
-// Mock framer-motion to avoid animation issues in tests
-vi.mock('framer-motion', () => ({
+// Mock motion/react to avoid animation issues in tests
+vi.mock('motion/react', () => ({
   motion: {
     div: ({ children, initial: _, animate: _a, exit: _e, transition: _t, drag: _dr, dragConstraints: _dc, dragElastic: _de, onDragEnd: _od, style: _s, ...rest }: React.PropsWithChildren<Record<string, unknown>>) => {
       return <div {...rest}>{children}</div>

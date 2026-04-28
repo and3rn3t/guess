@@ -6,8 +6,9 @@ import {
   kvGetArray,
   kvPut,
   logError,
-  parseJsonBody,
+  parseJsonBodyWithSchema,
 } from './_helpers'
+import { SubmitCorrectionRequestSchema } from './_schemas'
 
 interface CorrectionVote {
   attribute: string
@@ -46,25 +47,9 @@ export const onRequestGet = defineHandler(
 export const onRequestPost = defineHandler(
   { name: 'corrections', rateLimit: 20 },
   async ({ env, request, userId, waitUntil }) => {
-    const body = await parseJsonBody<{
-      characterId?: string
-      attribute?: string
-      currentValue?: boolean | null
-      suggestedValue?: boolean
-    }>(request)
-
-    if (!body) return errorResponse('Invalid JSON body', 400)
-
-    const { characterId, attribute, suggestedValue } = body
-    if (!characterId || typeof characterId !== 'string') {
-      return errorResponse('Missing characterId', 400)
-    }
-    if (!attribute || typeof attribute !== 'string') {
-      return errorResponse('Missing attribute', 400)
-    }
-    if (typeof suggestedValue !== 'boolean') {
-      return errorResponse('suggestedValue must be boolean', 400)
-    }
+    const parsed = await parseJsonBodyWithSchema(request, SubmitCorrectionRequestSchema)
+    if (!parsed.success) return parsed.response
+    const { characterId, attribute, suggestedValue, currentValue } = parsed.data
 
     const kv = env.GUESS_KV
     const key = `corrections:${characterId}`
@@ -83,7 +68,7 @@ export const onRequestPost = defineHandler(
 
     const vote: CorrectionVote = {
       attribute,
-      currentValue: body.currentValue ?? null,
+      currentValue: currentValue ?? null,
       suggestedValue,
       userId,
       createdAt: Date.now(),

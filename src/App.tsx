@@ -12,6 +12,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useAchievements } from "@/hooks/useAchievements";
+import { useAdaptiveDifficulty } from "@/hooks/useAdaptiveDifficulty";
 import { useDailyStreak } from "@/hooks/useDailyStreak";
 import { useEliminationTracker } from "@/hooks/useEliminationTracker";
 import { useGameState } from "@/hooks/useGameState";
@@ -41,6 +42,7 @@ import {
   playCorrectGuess,
   playIncorrectGuess,
 } from "@/lib/sounds";
+import { revealCharacter } from "@/lib/gameApi";
 import type {
   AnswerValue,
   Character,
@@ -55,7 +57,7 @@ import {
 } from "@/lib/types";
 import { startViewTransition } from "@/lib/view-transitions";
 import { useTheme } from "next-themes";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast, Toaster } from "sonner";
 
 const analytics = () => import("@/lib/analytics");
@@ -157,42 +159,7 @@ function App() {
   const [showOnboarding, setShowOnboarding] = useState(false);
 
   // Adaptive difficulty suggestion — show once per session when win rate ≥ 80% over last 10 games
-  const adaptiveToastShownRef = useRef(false);
-  useEffect(() => {
-    if (gamePhase !== "welcome") return;
-    if (adaptiveToastShownRef.current) return;
-    if (difficulty === "hard") return;
-    if (!gameHistory || gameHistory.length < 10) return;
-
-    const nextDifficulty: Record<string, string> = {
-      easy: "Medium",
-      medium: "Hard",
-    };
-    const next = nextDifficulty[difficulty];
-    if (!next) return;
-
-    const last10 = gameHistory
-      .filter((g) => g.difficulty === difficulty)
-      .slice(-10);
-    if (last10.length < 10) return;
-
-    const winRate = last10.filter((g) => g.won).length / last10.length;
-    if (winRate >= 0.8) {
-      adaptiveToastShownRef.current = true;
-      const wins = Math.round(winRate * 10);
-      toast(
-        `You've won ${wins}/10 on ${DIFFICULTIES[difficulty].label} — ready for ${next}?`,
-        {
-          duration: 6000,
-          action: {
-            label: `Try ${next}`,
-            onClick: () =>
-              setDifficulty(difficulty === "easy" ? "medium" : "hard"),
-          },
-        },
-      );
-    }
-  }, [gamePhase, difficulty, gameHistory, setDifficulty]);
+  useAdaptiveDifficulty(gamePhase, difficulty, gameHistory, setDifficulty);
 
   // Show onboarding when first game starts
   useEffect(() => {
@@ -312,10 +279,6 @@ function App() {
     handleServerSkip();
   };
 
-  const handleGiveUp = () => {
-    handleSurrender();
-  };
-
   // ========== SHARE HANDLERS ==========
   const getSharePayload = (): SharePayload | null => {
     if (!finalGuess) return null;
@@ -367,28 +330,15 @@ function App() {
 
   const handleReveal = async (
     characterName: string,
-  ): Promise<{
-    found: boolean;
-    characterName?: string | null;
-    attributesFilled?: number;
-  }> => {
-    const res = await fetch("/api/v2/game/reveal", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
+  ) => {
+    try {
+      return await revealCharacter(
         characterName,
-        answers: answers.map((a) => ({
-          questionId: a.questionId,
-          value: a.value,
-        })),
-      }),
-    });
-    if (!res.ok) return { found: false };
-    return res.json() as Promise<{
-      found: boolean;
-      characterName?: string | null;
-      attributesFilled?: number;
-    }>;
+        answers.map((a) => ({ questionId: a.questionId, value: a.value })),
+      );
+    } catch {
+      return { found: false };
+    }
   };
 
   // ========== DATA HANDLERS ==========
@@ -517,7 +467,7 @@ function App() {
               startGame={startGame}
               handleAnswer={handleAnswer}
               handleSkip={handleSkip}
-              handleGiveUp={handleGiveUp}
+              handleGiveUp={handleSurrender}
               handleCorrectGuess={handleCorrectGuess}
               handleIncorrectGuess={handleIncorrectGuess}
               handleRejectGuess={handleRejectGuess}

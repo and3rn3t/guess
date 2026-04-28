@@ -2,52 +2,16 @@ import {
   type Env,
   jsonResponse,
   errorResponse,
-  parseJsonBody,
+  parseJsonBodyWithSchema,
   checkRateLimit,
   getOrCreateUserId,
   withSetCookie,
   d1Run,
 } from '../_helpers'
+import { ClientEventSchema, EventsBatchRequestSchema } from '../_schemas'
 
-// ── Types ────────────────────────────────────────────────────
 
-interface ClientEvent {
-  id: string          // client-generated UUID (used for idempotency)
-  sessionId?: string  // game session ID (optional — may fire pre-game)
-  eventType: string   // 'game_start' | 'game_end' | 'share' | 'feature_use' | etc.
-  data?: unknown      // free-form event payload
-  clientTs?: number   // client timestamp (ms since epoch)
-}
-
-interface EventsRequest {
-  events: ClientEvent[]
-}
-
-// ── Guards ───────────────────────────────────────────────────
-
-const ALLOWED_EVENT_TYPES = new Set([
-  'game_start',
-  'game_end',
-  'share',
-  'feature_use',
-  'question_skip',
-  'guess_rejected',
-])
-
-const MAX_EVENTS_PER_BATCH = 50
 const MAX_BATCH_BYTES = 64 * 1024  // 64 KB
-
-function isValidEventId(id: unknown): id is string {
-  return typeof id === 'string' && /^[0-9a-f-]{36}$/i.test(id)
-}
-
-function isValidEventType(type: unknown): type is string {
-  return typeof type === 'string' && ALLOWED_EVENT_TYPES.has(type)
-}
-
-function isValidSessionId(id: unknown): id is string {
-  return typeof id === 'string' && /^[0-9a-f-]{36}$/i.test(id)
-}
 
 // ── POST /api/v2/events ──────────────────────────────────────
 // Receives a batch of client-side analytics events and persists them to D1.
@@ -73,21 +37,14 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       return withSetCookie(errorResponse('Rate limit exceeded', 429), setCookieHeader)
     }
 
-    const body = await parseJsonBody<EventsRequest>(context.request)
-    if (!body?.events || !Array.isArray(body.events)) {
-      return withSetCookie(errorResponse('Invalid request: events array required', 400), setCookieHeader)
-    }
+    const parsed = await parseJsonBodyWithSchema(context.request, EventsBatchRequestSchema)
+    if (!parsed.success) return withSetCookie(parsed.response, setCookieHeader)
 
-    if (body.events.length > MAX_EVENTS_PER_BATCH) {
-      return withSetCookie(errorResponse(`Too many events (max ${MAX_EVENTS_PER_BATCH} per batch)`, 400), setCookieHeader)
-    }
-
-    // Validate and filter events
-    const validEvents = body.events.filter((e): e is ClientEvent => {
-      if (!isValidEventId(e.id)) return false
-      if (!isValidEventType(e.eventType)) return false
-      if (e.sessionId != null && !isValidSessionId(e.sessionId)) return false
-      return true
+    // Validate and filter individual events — invalid items are silently dropped
+    // so a single malformed event does not fail the whole batch.
+    const validEvents = parsed.data.events.flatMap((e) => {
+      const r = ClientEventSchema.safeParse(e)
+      return r.success ? [r.data] : []
     })
 
     if (validEvents.length === 0) {

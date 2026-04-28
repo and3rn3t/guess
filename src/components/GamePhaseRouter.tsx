@@ -23,7 +23,7 @@ import type {
   Persona,
   Question,
 } from "@/lib/types";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion } from "motion/react";
 import { lazy, Suspense, type Dispatch, type RefObject } from "react";
 
 const TeachingMode = lazy(() =>

@@ -1,14 +1,12 @@
 import { defineHandler } from './_handler'
 import {
-  ValidationError,
   errorResponse,
-  isValidCategory,
   jsonResponse,
   kvGetArray,
   kvPut,
-  parseJsonBody,
-  validateString,
+  parseJsonBodyWithSchema,
 } from './_helpers'
+import { CreateCharacterRequestSchema } from './_schemas'
 
 const DEPRECATION_HEADERS = {
   Deprecation: 'true',
@@ -44,41 +42,9 @@ export const onRequestGet = defineHandler(
 export const onRequestPost = defineHandler(
   { name: 'characters', rateLimit: MAX_PER_HOUR },
   async ({ env, request, userId }) => {
-    const body = await parseJsonBody<{
-      name?: string
-      category?: string
-      attributes?: Record<string, boolean | null>
-    }>(request)
-
-    if (!body) return errorResponse('Invalid JSON body', 400)
-
-    let name: string
-    try {
-      name = validateString(body.name, 'name', 2, 50)
-    } catch (err) {
-      if (err instanceof ValidationError) return errorResponse(err.message, 400)
-      throw err
-    }
-
-    if (!body.category || !isValidCategory(body.category)) {
-      return errorResponse('Invalid category', 400)
-    }
-    const category: string = body.category
-
-    const attributes = body.attributes
-    if (!attributes || typeof attributes !== 'object') {
-      return errorResponse('Missing or invalid "attributes"', 400)
-    }
-
-    const nonNullCount = Object.values(attributes).filter(
-      (v) => v !== null,
-    ).length
-    if (nonNullCount < 5) {
-      return errorResponse(
-        'Character must have at least 5 non-null attributes',
-        400,
-      )
-    }
+    const parsed = await parseJsonBodyWithSchema(request, CreateCharacterRequestSchema)
+    if (!parsed.success) return parsed.response
+    const { name, category, attributes } = parsed.data
 
     const kv = env.GUESS_KV
     const existing = await kvGetArray<StoredCharacter>(kv, KV_KEY)

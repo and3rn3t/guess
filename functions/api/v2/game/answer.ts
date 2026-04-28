@@ -2,12 +2,12 @@ import {
   type Env,
   jsonResponse,
   errorResponse,
-  parseJsonBody,
+  parseJsonBodyWithSchema,
   d1Run,
   logError,
 } from '../../_helpers'
+import { AnswerRequestSchema } from '../../_schemas'
 import {
-  type AnswerValue,
   filterPossibleCharacters,
   detectContradictions,
   evaluateGuessReadiness,
@@ -17,16 +17,11 @@ import {
   calculateProbabilities,
   loadSession,
   saveSessionState,
-  VALID_ANSWERS,
+  loadAdaptiveData,
+  getOrBuildCoverageMap,
+  buildQuestionOptions,
 } from '../_game-engine'
 import { rephraseQuestion } from '../_llm-rephrase'
-
-// ── Types ────────────────────────────────────────────────────
-
-interface AnswerRequest {
-  sessionId: string
-  value: AnswerValue
-}
 
 // ── POST /api/v2/game/answer ─────────────────────────────────
 // Processes the user's answer, returns next question or a guess
@@ -36,13 +31,12 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   const kv = context.env.GUESS_KV
   if (!kv) return errorResponse('KV not configured', 503)
 
-  const body = await parseJsonBody<AnswerRequest>(context.request)
-  if (!body?.sessionId || !body?.value || !VALID_ANSWERS.has(body.value)) {
-    return errorResponse('Invalid request: sessionId and valid answer value required', 400)
-  }
+  const parsed = await parseJsonBodyWithSchema(context.request, AnswerRequestSchema)
+  if (!parsed.success) return parsed.response
+  const { sessionId, value } = parsed.data
 
   // Load session
-  const session = await loadSession(kv, body.sessionId)
+  const session = await loadSession(kv, sessionId)
   if (!session) {
     return errorResponse('Session not found or expired', 404)
   }
@@ -54,24 +48,14 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   // Record answer (questionId is the attribute key)
   const newAnswer = {
     questionId: session.currentQuestion.attribute,
-    value: body.value,
+    value,
   }
   session.answers.push(newAnswer)
 
   // Filter characters (hard elimination + rejected guesses)
   const filtered = filterPossibleCharacters(session.characters, session.answers, session.rejectedGuesses)
 
-  // Use pre-computed coverage map stored in the session pool at game start (immutable per game).
-  // Fall back to recomputation for sessions created before this optimization.
-  let coverageMap = session.coverageMap
-  if (!coverageMap) {
-    coverageMap = new Map<string, number>()
-    const charCount = session.characters.length
-    for (const q of session.questions) {
-      const known = session.characters.filter((c) => c.attributes[q.attribute] != null).length
-      coverageMap.set(q.attribute, known / charCount)
-    }
-  }
+  const coverageMap = getOrBuildCoverageMap(session)
   const scoring = { coverageMap, popularityMap: session.popularityMap }
 
   // Pre-compute probabilities once — reused by evaluateGuessReadiness and selectBestQuestion
@@ -166,46 +150,16 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
   // Load runtime adaptive data (parallel — best-effort, failures are non-fatal)
   const db = context.env.GUESS_DB
-  const [maybeRatesRaw, netGainsRaw, confusionRaw, disputeRows] = await Promise.allSettled([
-    kv.get('kv:attribute-maybe-rates', 'json') as Promise<Record<string, number> | null>,
-    kv.get('kv:attribute-net-gains', 'json') as Promise<Record<string, number> | null>,
-    kv.get('kv:confusion-discriminators', 'json') as Promise<Record<string, string[]> | null>,
-    db
-      ? db.prepare(`SELECT character_id, attribute_key, confidence FROM attribute_disputes WHERE status = 'open'`)
-           .all<{ character_id: string; attribute_key: string; confidence: number }>()
-           .then((r) => r.results)
-      : Promise.resolve([] as Array<{ character_id: string; attribute_key: string; confidence: number }>),
-  ])
-
-  const maybeRateMap = maybeRatesRaw.status === 'fulfilled' ? (maybeRatesRaw.value ?? undefined) : undefined
-  const netGainMap = netGainsRaw.status === 'fulfilled' ? (netGainsRaw.value ?? undefined) : undefined
-  const confusionDiscriminators = confusionRaw.status === 'fulfilled' ? (confusionRaw.value ?? undefined) : undefined
-
-  let disputeMap: Record<string, Record<string, number>> | undefined
-  if (disputeRows.status === 'fulfilled' && disputeRows.value.length > 0) {
-    disputeMap = {}
-    for (const row of disputeRows.value) {
-      disputeMap[row.character_id] ??= {}
-      disputeMap[row.character_id]![row.attribute_key] = row.confidence
-    }
-  }
+  const adaptive = await loadAdaptiveData(kv, db)
 
   // Select next question (pass progress + pre-computed probs for efficiency)
   const progress = questionCount / session.maxQuestions
   const recentCategories = session.answers.slice(-3)
     .map((a) => session.questions.find((q) => q.attribute === a.questionId)?.category)
     .filter((c): c is string => c != null)
-  const nextQuestion = selectBestQuestion(filtered, session.answers, session.questions, {
-    progress,
-    recentCategories,
-    scoring: { ...scoring, disputeMap },
-    probs,
-    mctsEndgameThreshold: session.difficulty === 'hard' ? 0.70 : undefined,
-    gameDifficulty: session.difficulty as 'easy' | 'medium' | 'hard',
-    maybeRateMap: maybeRateMap ?? undefined,
-    netGainMap: netGainMap ?? undefined,
-    confusionDiscriminators: confusionDiscriminators ?? undefined,
-  })
+  const nextQuestion = selectBestQuestion(filtered, session.answers, session.questions,
+    buildQuestionOptions(session, scoring, adaptive, { progress, probs, recentCategories })
+  )
 
   if (!nextQuestion) {
     // No more questions — force a guess

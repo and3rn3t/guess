@@ -5,6 +5,7 @@ import {
   parseJsonBody,
   d1First,
   d1Query,
+  logError,
 } from '../../_helpers'
 import {
   type GameSession,
@@ -19,6 +20,7 @@ import {
   saveSessionState,
   loadCachedQuestions,
   storeCachedQuestions,
+  parseAttrsJson,
 } from '../_game-engine'
 import { rephraseQuestionWithCache } from '../_llm-rephrase'
 import type {
@@ -38,22 +40,6 @@ type D1SessionRow = Omit<GameSessionsRow, 'user_id' | 'completed_at'>
 type CharacterRow = Pick<CharactersRow, 'id' | 'name' | 'category' | 'image_url'> & { attributes_json: string }
 
 type QuestionRow = Pick<QuestionsRow, 'id' | 'text' | 'attribute_key'>
-
-/** Parse the denormalized attributes_json column into a typed attribute map. */
-function parseAttrsJson(json: string): Record<string, boolean | null> {
-  try {
-    const raw = JSON.parse(json) as Record<string, number>
-    const result: Record<string, boolean | null> = {}
-    for (const [key, val] of Object.entries(raw)) {
-      if (val === 1) { result[key] = true }
-      else if (val === 0) { result[key] = false }
-      else { result[key] = null }
-    }
-    return result
-  } catch {
-    return {}
-  }
-}
 
 // ── D1 fallback: reconstruct session from backup ─────────────
 
@@ -142,6 +128,7 @@ async function reconstructFromD1(
 // Resumes an existing server session from KV, falling back to D1 backup
 
 export const onRequestPost: PagesFunction<Env> = async (context) => {
+  try {
   const kv = context.env.GUESS_KV
   if (!kv) return errorResponse('KV not configured', 503)
 
@@ -212,4 +199,10 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       value: a.value,
     })),
   })
+  } catch (err) {
+    console.error('POST /api/v2/game/resume error:', err)
+    context.waitUntil(logError(context.env.GUESS_DB, 'resume', 'error', 'resume failed', err))
+    const message = err instanceof Error ? err.message : 'Unknown error'
+    return errorResponse(`Resume failed: ${message}`, 500)
+  }
 }

@@ -30,13 +30,12 @@ jobs:
       - uses: actions/checkout@v6
       - uses: ./.github/actions/setup
 
-      # characters.json + questions.json are gitignored (too large).
-      # Export them from production D1 so regression always runs in CI.
-      - name: Export simulation data from D1
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: pnpm simulate:export --env production
+      # characters.json + questions.json are gitignored (too large for git).
+      # regression.ts automatically falls back to scripts/simulate/ci-data/ (committed
+      # top-2000 snapshot) when the live-exported data/ is absent.
+      # Refresh the snapshot locally with:
+      #   pnpm simulate:export && pnpm simulate:regression --update-baseline
+      # then commit scripts/simulate/ci-data/ and scripts/simulate/baseline.jsonl.
 
       # baseline.jsonl must be committed — fail hard if missing.
       - name: Verify baseline exists

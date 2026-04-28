@@ -2,7 +2,7 @@ import {
   type Env,
   jsonResponse,
   errorResponse,
-  parseJsonBody,
+  parseJsonBodyWithSchema,
   isValidCategory,
   d1Query,
   d1First,
@@ -11,6 +11,7 @@ import {
   withSetCookie,
   logError,
 } from '../../_helpers'
+import { StartRequestSchema } from '../../_schemas'
 import {
   type GameSession,
   type ServerCharacter,
@@ -20,6 +21,7 @@ import {
   storeSession,
   loadCachedQuestions,
   storeCachedQuestions,
+  parseAttrsJson,
   POOL_SIZE,
   MIN_ATTRIBUTES,
   DIFFICULTY_MAP,
@@ -30,32 +32,9 @@ import type { CharactersRow, QuestionsRow } from '../../_db-types'
 
 // ── Types ────────────────────────────────────────────────────
 
-interface StartRequest {
-  categories?: string[]
-  difficulty?: string
-  /** Optional: pin the answer character (used for daily challenge). */
-  characterId?: string
-}
-
 type CharacterRow = Pick<CharactersRow, 'id' | 'name' | 'category' | 'image_url' | 'popularity'> & { attributes_json: string }
 
 type QuestionRow = Pick<QuestionsRow, 'id' | 'text' | 'attribute_key'>
-
-/** Parse the denormalized attributes_json column into a typed attribute map. */
-function parseAttrsJson(json: string): Record<string, boolean | null> {
-  try {
-    const raw = JSON.parse(json) as Record<string, number>
-    const result: Record<string, boolean | null> = {}
-    for (const [key, val] of Object.entries(raw)) {
-      if (val === 1) { result[key] = true }
-      else if (val === 0) { result[key] = false }
-      else { result[key] = null }
-    }
-    return result
-  } catch {
-    return {}
-  }
-}
 
 export const DIFFICULTY_TO_PERSONA: Record<string, string> = {
   easy: 'poirot',
@@ -72,18 +51,15 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   const kv = context.env.GUESS_KV
   if (!db || !kv) return errorResponse('D1/KV not configured', 503)
 
-  const body = await parseJsonBody<StartRequest>(context.request)
-  const categories = body?.categories?.filter(isValidCategory) ?? []
-  const difficulty =
-    body?.difficulty && body.difficulty in DIFFICULTY_MAP ? body.difficulty : 'medium'
+  const parsed = await parseJsonBodyWithSchema(context.request, StartRequestSchema)
+  if (!parsed.success) return parsed.response
+  const categories = (parsed.data.categories ?? []).filter(isValidCategory)
+  const difficulty = parsed.data.difficulty ?? 'medium'
   const maxQuestions = DIFFICULTY_MAP[difficulty]
   const persona = DIFFICULTY_TO_PERSONA[difficulty] ?? 'watson'
 
   // Validate optional pinned character ID (daily challenge)
-  const pinnedCharId =
-    typeof body?.characterId === 'string' && /^[a-z0-9_-]+$/.test(body.characterId)
-      ? body.characterId
-      : null
+  const pinnedCharId = parsed.data.characterId ?? null
 
   // Build category filter
   const conditions: string[] = []

@@ -5,7 +5,7 @@ import userEvent from '@testing-library/user-event'
 import { WelcomeScreen } from '../WelcomeScreen'
 import type { Character, GameHistoryEntry } from '@/lib/types'
 
-vi.mock('framer-motion', () => ({
+vi.mock('motion/react', () => ({
   motion: {
     div: ({ children, initial: _, animate: _a, exit: _e, transition: _t, ...rest }: React.PropsWithChildren<Record<string, unknown>>) => {
       return <div {...rest}>{children}</div>

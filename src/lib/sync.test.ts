@@ -20,7 +20,7 @@ beforeEach(() => {
 
 describe('getUserId', () => {
   it('generates and persists a user ID', async () => {
-    const { getUserId } = await import('./sync')
+    const { getUserId } = await import('./utils')
     const id = getUserId()
     expect(id).toBe('test-user-id-abc')
     expect(store['kv:user-id']).toBe('test-user-id-abc')
@@ -28,7 +28,7 @@ describe('getUserId', () => {
 
   it('returns existing user ID from localStorage', async () => {
     store['kv:user-id'] = 'existing-id-456'
-    const { getUserId } = await import('./sync')
+    const { getUserId } = await import('./utils')
     const id = getUserId()
     expect(id).toBe('existing-id-456')
   })
@@ -62,7 +62,7 @@ describe('fetchGlobalCharacters', () => {
     store['kv:characters-cache:ts'] = String(Date.now() - 11 * 60 * 1000) // 11 min old
 
     mockFetch.mockResolvedValueOnce(new Response(
-      JSON.stringify({ characters: [{ id: 'mario', name: 'Mario' }] }),
+      JSON.stringify({ characters: [{ id: 'mario', name: 'Mario', category: 'video-games' }] }),
       { status: 200, headers: { 'Content-Type': 'application/json' } },
     ))
 

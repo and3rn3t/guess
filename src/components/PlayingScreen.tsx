@@ -16,7 +16,7 @@ import type {
 } from "@/lib/types";
 import { llmStream } from "@/lib/llm";
 import { ClockCounterClockwiseIcon } from "@phosphor-icons/react";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion } from "motion/react";
 import { memo, useCallback, useEffect, useRef, useState, useMemo } from "react";
 
 interface PlayingScreenProps {

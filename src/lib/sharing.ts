@@ -1,4 +1,5 @@
 import type { Difficulty, GameHistoryStep } from '@/lib/types'
+import { CompactChallengeSchema } from '@/lib/schemas'
 
 export interface SharePayload {
   characterId: string
@@ -36,9 +37,9 @@ export function decodeChallenge(hash: string): SharePayload | null {
   try {
     const padded = hash.replace(/-/g, '+').replace(/_/g, '/') + '=='.slice(0, (4 - (hash.length % 4)) % 4)
     const json = atob(padded)
-    const compact = JSON.parse(json)
-
-    if (!compact.c || !compact.n || compact.d === undefined) return null
+    const parsed = CompactChallengeSchema.safeParse(JSON.parse(json))
+    if (!parsed.success) return null
+    const compact = parsed.data
 
     const difficultyMap: Record<string, Difficulty> = { e: 'easy', m: 'medium', h: 'hard' }
     const difficulty = difficultyMap[compact.d]
@@ -50,7 +51,7 @@ export function decodeChallenge(hash: string): SharePayload | null {
       m: 'maybe',
       u: 'unknown',
     }
-    const steps: GameHistoryStep[] = (Array.isArray(compact.s) ? compact.s : []).map((step: { a?: string; v?: string }) => ({
+    const steps: GameHistoryStep[] = (compact.s ?? []).map((step) => ({
       questionText: '',
       attribute: step.a || '',
       answer: answerMap[step.v || ''] || 'unknown',
@@ -61,7 +62,7 @@ export function decodeChallenge(hash: string): SharePayload | null {
       characterName: compact.n,
       won: compact.w === 1,
       difficulty,
-      questionCount: compact.q,
+      questionCount: compact.q ?? 0,
       steps,
     }
   } catch {

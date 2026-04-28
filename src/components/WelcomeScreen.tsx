@@ -23,7 +23,7 @@ import {
   TreeStructureIcon,
   WrenchIcon,
 } from "@phosphor-icons/react";
-import { motion } from "framer-motion";
+import { motion } from "motion/react";
 
 interface WelcomeScreenProps {
   startGame: () => void;

@@ -1,86 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import type { Difficulty, GameHistoryEntry, GameHistoryStep } from '@/lib/types'
+import type { GameHistoryEntry } from '@/lib/types'
+import { GlobalStatsSchema, HistoryApiResponseSchema } from '@/lib/schemas'
+import type { z } from 'zod'
 
 // ── Server response types ────────────────────────────────────
 
-export interface GlobalStats {
-  characters: number
-  attributes: number
-  questions: number
-  characterAttributes: {
-    total: number
-    filled: number
-    fillRate: number
-  }
-  byCategory: Array<{ category: string; count: number }>
-  bySource: Array<{ source: string; count: number }>
-  gameStats: {
-    totalGames: number
-    wins: number
-    winRate: number
-    avgQuestions: number
-    avgPoolSize: number
-    byDifficulty: Array<{
-      difficulty: string
-      games: number
-      wins: number
-      winRate: number
-      avgQuestions: number
-    }>
-    recentGames: Array<{
-      won: boolean
-      difficulty: string
-      questionsAsked: number
-      poolSize: number
-      timestamp: number
-    }>
-    readiness: {
-      instrumentedGames: number
-      recentInstrumentedGames: number
-      avgConfidence: number
-      avgQuestionsAtGuess: number
-      strictReadinessWinRate: number | null
-      highCertaintyWinRate: number | null
-      forcedGuessRate: number
-      forcedGuessWinRate: number | null
-      earlyGuessWinRate: number | null
-      lowAmbiguityWinRate: number | null
-      maxQuestionGuessRate: number
-    } | null
-  } | null
-  /** AN.7: Top character confusion pairs from sim_game_stats */
-  confusion: Array<{
-    targetName: string
-    secondBestName: string
-    count: number
-    lossRate: number
-  }> | null
-  /** AN.8: Real vs. sim calibration by difficulty */
-  calibration: Array<{
-    difficulty: string
-    realGames: number
-    realWinRate: number
-    realAvgQ: number
-    simGames: number
-    simWinRate: number
-    simAvgQ: number
-  }> | null
-}
-
-interface HistoryResponse {
-  games: Array<{
-    id: string
-    characterId: string
-    characterName: string
-    won: boolean
-    difficulty: Difficulty
-    questionsAsked: number
-    poolSize: number
-    steps: GameHistoryStep[]
-    timestamp: number
-  }>
-  total: number
-}
+export type GlobalStats = z.infer<typeof GlobalStatsSchema>
 
 // ── Module-level cache (stale-while-revalidate) ─────────────
 
@@ -110,7 +35,7 @@ export function useGlobalStats() {
         credentials: 'same-origin',
       })
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
-      const data = (await res.json()) as GlobalStats
+      const data = GlobalStatsSchema.parse(await res.json())
       cachedStats = data
       setStats(data)
     } catch (e) {
@@ -126,7 +51,7 @@ export function useGlobalStats() {
         credentials: 'same-origin',
       })
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
-      const data = (await res.json()) as HistoryResponse
+      const data = HistoryApiResponseSchema.parse(await res.json())
 
       const entries: GameHistoryEntry[] = data.games.map((g) => ({
         id: g.id,

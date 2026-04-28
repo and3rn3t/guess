@@ -2,36 +2,30 @@ import {
   type Env,
   jsonResponse,
   errorResponse,
-  parseJsonBody,
+  parseJsonBodyWithSchema,
   getOrCreateUserId,
   withSetCookie,
   d1Run,
+  logError,
 } from '../../_helpers'
+import { ResultRequestSchema } from '../../_schemas'
 import { loadSession, deleteSession, getBestGuess } from '../_game-engine'
-
-// ── Types ────────────────────────────────────────────────────
-
-interface ResultRequest {
-  sessionId: string
-  correct: boolean
-  actualCharacterId?: string
-}
 
 // ── POST /api/v2/game/result ─────────────────────────────────
 // Records game outcome (win/loss) and cleans up the session
 
 export const onRequestPost: PagesFunction<Env> = async (context) => {
+  try {
   const kv = context.env.GUESS_KV
   const db = context.env.GUESS_DB
   if (!kv) return errorResponse('KV not configured', 503)
 
-  const body = await parseJsonBody<ResultRequest>(context.request)
-  if (!body?.sessionId || typeof body.correct !== 'boolean') {
-    return errorResponse('Invalid request: sessionId and correct required', 400)
-  }
+  const parsed = await parseJsonBodyWithSchema(context.request, ResultRequestSchema)
+  if (!parsed.success) return parsed.response
+  const { sessionId, correct, actualCharacterId: _actualCharacterId } = parsed.data
 
   // Load session
-  const session = await loadSession(kv, body.sessionId)
+  const session = await loadSession(kv, sessionId)
   if (!session) {
     return errorResponse('Session not found or expired', 404)
   }
@@ -68,7 +62,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           userId,
-          body.correct ? 1 : 0,
+          correct ? 1 : 0,
           session.difficulty,
           session.answers.length,
           session.characters.length,
@@ -94,12 +88,12 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   }
 
   // Clean up session + pool from KV
-  await deleteSession(kv, body.sessionId)
+  await deleteSession(kv, sessionId)
 
   // Mark D1 backup as completed (non-blocking)
   if (db) {
     context.waitUntil(
-      d1Run(db, 'UPDATE game_sessions SET completed_at = ?, dropped_at_phase = NULL WHERE id = ?', [Date.now(), body.sessionId])
+      d1Run(db, 'UPDATE game_sessions SET completed_at = ?, dropped_at_phase = NULL WHERE id = ?', [Date.now(), sessionId])
         .catch(() => {/* non-critical */})
     )
   }
@@ -107,7 +101,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   return withSetCookie(jsonResponse({
     success: true,
     summary: {
-      won: body.correct,
+      won: correct,
       difficulty: session.difficulty,
       questionsAsked: session.answers.length,
       maxQuestions: session.maxQuestions,
@@ -115,4 +109,10 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       guessesUsed: session.guessCount,
     },
   }), setCookieHeader)
+  } catch (err) {
+    console.error('POST /api/v2/game/result error:', err)
+    context.waitUntil(logError(context.env.GUESS_DB, 'result', 'error', 'result recording failed', err))
+    const message = err instanceof Error ? err.message : 'Unknown error'
+    return errorResponse(`Result recording failed: ${message}`, 500)
+  }
 }

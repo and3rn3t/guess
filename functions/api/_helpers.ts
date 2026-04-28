@@ -206,6 +206,30 @@ export async function parseJsonBody<T = unknown>(request: Request): Promise<T | 
   }
 }
 
+/**
+ * Parse and schema-validate the JSON request body.
+ * Returns the parsed + validated data on success, or a 400 Response on failure.
+ * Usage: const result = await parseJsonBodyWithSchema(request, MySchema)
+ *        if (!result.success) return result.response
+ */
+export async function parseJsonBodyWithSchema<T>(
+  request: Request,
+  schema: import('zod').ZodType<T>,
+): Promise<{ success: true; data: T } | { success: false; response: Response }> {
+  const raw = await parseJsonBody<unknown>(request)
+  if (raw === null) {
+    return { success: false, response: errorResponse('Invalid or missing JSON body', 400) }
+  }
+  const result = schema.safeParse(raw)
+  if (!result.success) {
+    return {
+      success: false,
+      response: jsonResponse({ error: 'Invalid request', details: result.error.flatten() }, 400),
+    }
+  }
+  return { success: true, data: result.data }
+}
+
 /** Standard JSON response helper */
 export function jsonResponse(data: unknown, status = 200): Response {
   return new Response(JSON.stringify(data), {

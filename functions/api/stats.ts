@@ -1,12 +1,12 @@
 import { defineHandler } from './_handler'
 import {
-  errorResponse,
   jsonResponse,
   kvGetArray,
   kvGetObject,
   kvPut,
-  parseJsonBody,
+  parseJsonBodyWithSchema,
 } from './_helpers'
+import { RecordStatRequestSchema } from './_schemas'
 
 interface CharacterStats {
   characterId: string
@@ -55,25 +55,9 @@ export const onRequestGet = defineHandler(
 export const onRequestPost = defineHandler(
   { name: 'stats', rateLimit: 30 },
   async ({ env, request }) => {
-    const body = await parseJsonBody<{
-      characterId?: string
-      won?: boolean
-      questionsAsked?: number
-      difficulty?: string
-    }>(request)
-
-    if (!body) return errorResponse('Invalid JSON body', 400)
-
-    const characterId = body.characterId
-    if (!characterId || typeof characterId !== 'string') {
-      return errorResponse('Missing characterId', 400)
-    }
-    if (typeof body.won !== 'boolean') {
-      return errorResponse('Missing or invalid "won" field', 400)
-    }
-    if (typeof body.questionsAsked !== 'number' || body.questionsAsked < 0) {
-      return errorResponse('Missing or invalid "questionsAsked"', 400)
-    }
+    const parsed = await parseJsonBodyWithSchema(request, RecordStatRequestSchema)
+    if (!parsed.success) return parsed.response
+    const { characterId, won, questionsAsked, difficulty: diff } = parsed.data
 
     const kv = env.GUESS_KV
     const key = `stats:${characterId}`
@@ -81,20 +65,19 @@ export const onRequestPost = defineHandler(
       (await kvGetObject<CharacterStats>(kv, key)) || emptyStats(characterId)
 
     stats.timesPlayed++
-    stats.totalQuestions += body.questionsAsked
-    if (body.won) {
+    stats.totalQuestions += questionsAsked
+    if (won) {
       stats.wins++
       stats.timesGuessed++
     } else {
       stats.losses++
     }
 
-    const diff = body.difficulty || 'medium'
     if (!stats.byDifficulty[diff]) {
       stats.byDifficulty[diff] = { played: 0, won: 0 }
     }
     stats.byDifficulty[diff].played++
-    if (body.won) stats.byDifficulty[diff].won++
+    if (won) stats.byDifficulty[diff].won++
 
     await kvPut(kv, key, stats)
 

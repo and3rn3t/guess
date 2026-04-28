@@ -147,26 +147,27 @@ export function showStats(): void {
 
 // CLI entry point
 if (process.argv[1]?.endsWith('upload.ts') || process.argv[1]?.endsWith('upload.js')) {
-  const action = process.argv[2] ?? 'stats';
+  async function runCli() {
+    const action = process.argv[2] ?? 'stats';
 
-  if (action === 'stats') {
-    showStats();
+    if (action === 'stats') {
+      showStats();
+    } else if (action === 'generate') {
+      const minPop = parseFloat(process.argv[3] ?? '0');
+      const limit = parseInt(process.argv[4] ?? '0');
+      await generateUploadSQL({ minPopularity: minPop, limit, outputFile: 'migrations/0005_ingest_characters.sql' });
+    } else if (action === 'apply') {
+      const env = (process.argv[3] ?? 'production') as 'production' | 'preview';
+      await applyToD1('migrations/0005_ingest_characters.sql', env);
+    } else {
+      console.log('Usage: npx tsx scripts/ingest/upload.ts [stats|generate|apply] [options]');
+      console.log('  stats                         Show staging DB statistics');
+      console.log('  generate [minPop] [limit]     Generate SQL migration');
+      console.log('  apply [production|preview]    Apply migration to D1');
+    }
+
     closeDb();
-  } else if (action === 'generate') {
-    const minPop = parseFloat(process.argv[3] ?? '0');
-    const limit = parseInt(process.argv[4] ?? '0');
-    generateUploadSQL({ minPopularity: minPop, limit, outputFile: 'migrations/0005_ingest_characters.sql' })
-      .then(() => closeDb())
-      .catch(err => { console.error(err); process.exit(1); });
-  } else if (action === 'apply') {
-    const env = (process.argv[3] ?? 'production') as 'production' | 'preview';
-    applyToD1('migrations/0005_ingest_characters.sql', env)
-      .then(() => closeDb())
-      .catch(err => { console.error(err); process.exit(1); });
-  } else {
-    console.log('Usage: npx tsx scripts/ingest/upload.ts [stats|generate|apply] [options]');
-    console.log('  stats              - Show staging DB statistics');
-    console.log('  generate [minPop] [limit] - Generate SQL migration');
-    console.log('  apply [production|preview] - Apply migration to D1');
   }
+
+  runCli().catch(err => { console.error(err); process.exit(1); });
 }

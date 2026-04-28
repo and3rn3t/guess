@@ -1,13 +1,13 @@
 name: Setup Node + pnpm
-description: Checkout, install pnpm, set up Node 22 with pnpm cache, and install dependencies.
+description: Checkout, install pnpm, set up Node 24 with pnpm cache, and install dependencies.
 
 runs:
   using: composite
   steps:
-    - uses: pnpm/action-setup@v4
-    - uses: actions/setup-node@v4
+    - uses: pnpm/action-setup@v6
+    - uses: actions/setup-node@v6
       with:
-        node-version: 22
+        node-version: 24
         cache: pnpm
     - run: pnpm install --frozen-lockfile
       shell: bash

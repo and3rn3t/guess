@@ -26,6 +26,14 @@ vi.mock('../../_helpers', () => ({
     headers: { 'Content-Type': 'application/json' },
   }),
   parseJsonBody: async <T>(request: Request) => request.json() as Promise<T>,
+  parseJsonBodyWithSchema: async <T>(request: Request, schema: { safeParse: (v: unknown) => { success: true; data: T } | { success: false; error: unknown } }) => {
+    const raw = await request.json()
+    const result = schema.safeParse(raw)
+    if (!result.success) {
+      return { success: false, response: new Response(JSON.stringify({ error: 'Invalid request' }), { status: 400 }) }
+    }
+    return { success: true, data: result.data }
+  },
   withSetCookie: (response: Response, setCookieHeader?: string) => {
     if (!setCookieHeader) return response
     const nextResponse = new Response(response.body, response)
@@ -59,8 +67,9 @@ describe('POST /api/v2/game/result', () => {
   })
 
   it('persists guess readiness analytics into game_stats and schedules session completion backup', async () => {
+    const sessionId = '12345678-1234-1234-1234-000000000123'
     loadSessionMock.mockResolvedValue({
-      id: 'sess-123',
+      id: sessionId,
       characters: [
         {
           id: 'mario',
@@ -106,13 +115,13 @@ describe('POST /api/v2/game/result', () => {
       request: new Request('https://example.com/api/v2/game/result', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sessionId: 'sess-123', correct: true }),
+        body: JSON.stringify({ sessionId, correct: true }),
       }),
       waitUntil,
-    } as Parameters<typeof onRequestPost>[0])
+    } as unknown as Parameters<typeof onRequestPost>[0])
 
     expect(response.status).toBe(200)
-    expect(deleteSessionMock).toHaveBeenCalledWith(expect.anything(), 'sess-123')
+    expect(deleteSessionMock).toHaveBeenCalledWith(expect.anything(), sessionId)
     expect(d1RunMock).toHaveBeenNthCalledWith(
       1,
       expect.anything(),
@@ -149,7 +158,7 @@ describe('POST /api/v2/game/result', () => {
       2,
       expect.anything(),
       'UPDATE game_sessions SET completed_at = ?, dropped_at_phase = NULL WHERE id = ?',
-      [expect.any(Number), 'sess-123']
+      [expect.any(Number), sessionId]
     )
     expect(waitUntil).toHaveBeenCalledTimes(2)
   })

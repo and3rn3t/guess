@@ -2,26 +2,23 @@ import {
   type Env,
   jsonResponse,
   errorResponse,
-  parseJsonBody,
+  parseJsonBodyWithSchema,
   d1Run,
+  logError,
 } from '../../_helpers'
+import { RejectGuessRequestSchema } from '../../_schemas'
 import {
   filterPossibleCharacters,
   selectBestQuestion,
   generateReasoning,
   loadSession,
   saveSessionState,
+  loadAdaptiveData,
+  buildQuestionOptions,
   BONUS_QUESTIONS_PER_REJECT,
   DIFFICULTY_MAP,
 } from '../_game-engine'
 import { rephraseQuestion } from '../_llm-rephrase'
-
-// ── Types ────────────────────────────────────────────────────
-
-interface RejectGuessRequest {
-  sessionId: string
-  characterId: string
-}
 
 // ── POST /api/v2/game/reject-guess ───────────────────────────
 // User rejected the AI's guess. Exclude that character, extend
@@ -29,22 +26,22 @@ interface RejectGuessRequest {
 // exhaustion if no viable candidates remain.
 
 export const onRequestPost: PagesFunction<Env> = async (context) => {
+  try {
   const kv = context.env.GUESS_KV
   if (!kv) return errorResponse('KV not configured', 503)
 
-  const body = await parseJsonBody<RejectGuessRequest>(context.request)
-  if (!body?.sessionId || !body?.characterId) {
-    return errorResponse('Invalid request: sessionId and characterId required', 400)
-  }
+  const parsed = await parseJsonBodyWithSchema(context.request, RejectGuessRequestSchema)
+  if (!parsed.success) return parsed.response
+  const { sessionId, characterId: rejectedCharId } = parsed.data
 
-  const session = await loadSession(kv, body.sessionId)
+  const session = await loadSession(kv, sessionId)
   if (!session) {
     return errorResponse('Session not found or expired', 404)
   }
 
   // Add rejected character
-  if (!session.rejectedGuesses.includes(body.characterId)) {
-    session.rejectedGuesses.push(body.characterId)
+  if (!session.rejectedGuesses.includes(rejectedCharId)) {
+    session.rejectedGuesses.push(rejectedCharId)
   }
 
   // Extend question budget (bonus per rejection, capped at base × 2)
@@ -84,39 +81,11 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
   // Load runtime adaptive data (parallel — best-effort, failures are non-fatal)
   const db = context.env.GUESS_DB
-  const [maybeRatesRaw, netGainsRaw, confusionRaw, disputeRows] = await Promise.allSettled([
-    kv.get('kv:attribute-maybe-rates', 'json') as Promise<Record<string, number> | null>,
-    kv.get('kv:attribute-net-gains', 'json') as Promise<Record<string, number> | null>,
-    kv.get('kv:confusion-discriminators', 'json') as Promise<Record<string, string[]> | null>,
-    db
-      ? db.prepare(`SELECT character_id, attribute_key, confidence FROM attribute_disputes WHERE status = 'open'`)
-           .all<{ character_id: string; attribute_key: string; confidence: number }>()
-           .then((r) => r.results)
-      : Promise.resolve([] as Array<{ character_id: string; attribute_key: string; confidence: number }>),
-  ])
+  const adaptive = await loadAdaptiveData(kv, db)
 
-  const maybeRateMap = maybeRatesRaw.status === 'fulfilled' ? (maybeRatesRaw.value ?? undefined) : undefined
-  const netGainMap = netGainsRaw.status === 'fulfilled' ? (netGainsRaw.value ?? undefined) : undefined
-  const confusionDiscriminators = confusionRaw.status === 'fulfilled' ? (confusionRaw.value ?? undefined) : undefined
-
-  let disputeMap: Record<string, Record<string, number>> | undefined
-  if (disputeRows.status === 'fulfilled' && disputeRows.value.length > 0) {
-    disputeMap = {}
-    for (const row of disputeRows.value) {
-      disputeMap[row.character_id] ??= {}
-      disputeMap[row.character_id]![row.attribute_key] = row.confidence
-    }
-  }
-
-  const nextQuestion = selectBestQuestion(filtered, session.answers, session.questions, {
-    progress,
-    scoring: { ...scoring, disputeMap },
-    mctsEndgameThreshold: session.difficulty === 'hard' ? 0.70 : undefined,
-    gameDifficulty: session.difficulty as 'easy' | 'medium' | 'hard',
-    maybeRateMap: maybeRateMap ?? undefined,
-    netGainMap: netGainMap ?? undefined,
-    confusionDiscriminators: confusionDiscriminators ?? undefined,
-  })
+  const nextQuestion = selectBestQuestion(filtered, session.answers, session.questions,
+    buildQuestionOptions(session, scoring, adaptive, { progress })
+  )
 
   if (!nextQuestion) {
     // No more unanswered questions but candidates remain — exhausted
@@ -173,4 +142,10 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     guessCount: session.guessCount,
     rejectCooldownRemaining: session.postRejectCooldown,
   })
+  } catch (err) {
+    console.error('POST /api/v2/game/reject-guess error:', err)
+    context.waitUntil(logError(context.env.GUESS_DB, 'reject-guess', 'error', 'reject-guess failed', err))
+    const message = err instanceof Error ? err.message : 'Unknown error'
+    return errorResponse(`Reject-guess failed: ${message}`, 500)
+  }
 }

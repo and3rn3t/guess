@@ -76,21 +76,12 @@ export interface Question {
   category?: string
 }
 
-export type AnswerValue = 'yes' | 'no' | 'maybe' | 'unknown'
+export type { AnswerValue } from '@guess/game-engine'
+import type { AnswerValue } from '@guess/game-engine'
 
 export interface Answer {
   questionId: string
   value: AnswerValue
-}
-
-export interface GameState {
-  currentQuestion: Question | null
-  answers: Answer[]
-  possibleCharacters: Character[]
-  confidence: number
-  questionCount: number
-  isComplete: boolean
-  finalGuess: Character | null
 }
 
 export interface ReasoningExplanation {
@@ -106,6 +97,7 @@ export type GuessReadinessTrigger =
   | 'max_questions'
   | 'high_certainty'
   | 'strict_readiness'
+  | 'time_pressure'
   | 'insufficient_data'
 
 export interface GuessReadinessSnapshot {

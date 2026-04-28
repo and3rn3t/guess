@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import { AdminDataContext } from './AdminDataContext'
 import { DEFAULT_CHARACTERS, DEFAULT_QUESTIONS } from '@/lib/database'
-import { fetchAdminCharacters, fetchGlobalQuestions } from '@/lib/sync'
+import { fetchAdminCharacters } from '@/lib/adminApi'
+import { fetchGlobalQuestions } from '@/lib/sync'
 import type { Character, Question } from '@/lib/types'
 
 export function AdminDataProvider({ children }: { children: React.ReactNode }): React.JSX.Element {
