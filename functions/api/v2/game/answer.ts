@@ -2,12 +2,12 @@ import {
   type Env,
   jsonResponse,
   errorResponse,
-  parseJsonBody,
+  parseJsonBodyWithSchema,
   d1Run,
   logError,
 } from '../../_helpers'
+import { AnswerRequestSchema } from '../../_schemas'
 import {
-  type AnswerValue,
   filterPossibleCharacters,
   detectContradictions,
   evaluateGuessReadiness,
@@ -20,16 +20,8 @@ import {
   loadAdaptiveData,
   getOrBuildCoverageMap,
   buildQuestionOptions,
-  VALID_ANSWERS,
 } from '../_game-engine'
 import { rephraseQuestion } from '../_llm-rephrase'
-
-// ── Types ────────────────────────────────────────────────────
-
-interface AnswerRequest {
-  sessionId: string
-  value: AnswerValue
-}
 
 // ── POST /api/v2/game/answer ─────────────────────────────────
 // Processes the user's answer, returns next question or a guess
@@ -39,13 +31,12 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   const kv = context.env.GUESS_KV
   if (!kv) return errorResponse('KV not configured', 503)
 
-  const body = await parseJsonBody<AnswerRequest>(context.request)
-  if (!body?.sessionId || !body?.value || !VALID_ANSWERS.has(body.value)) {
-    return errorResponse('Invalid request: sessionId and valid answer value required', 400)
-  }
+  const parsed = await parseJsonBodyWithSchema(context.request, AnswerRequestSchema)
+  if (!parsed.success) return parsed.response
+  const { sessionId, value } = parsed.data
 
   // Load session
-  const session = await loadSession(kv, body.sessionId)
+  const session = await loadSession(kv, sessionId)
   if (!session) {
     return errorResponse('Session not found or expired', 404)
   }
@@ -57,7 +48,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   // Record answer (questionId is the attribute key)
   const newAnswer = {
     questionId: session.currentQuestion.attribute,
-    value: body.value,
+    value,
   }
   session.answers.push(newAnswer)
 

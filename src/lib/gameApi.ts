@@ -6,6 +6,14 @@
  * Hooks compose these calls and own the UI/state side effects.
  */
 import { httpClient, HttpError } from "@/lib/http";
+import {
+  StartResponseSchema,
+  AnswerResponseSchema,
+  SkipResponseSchema,
+  RejectGuessResponseSchema,
+  ResumeResponseSchema,
+  RevealResponseSchema,
+} from "@/lib/schemas";
 import type {
   AnswerValue,
   CharacterCategory,
@@ -121,21 +129,25 @@ export interface StartGameInput {
 }
 
 export function startGame(input: StartGameInput): Promise<StartResponse> {
-  return httpClient.postJson<StartResponse>("/api/v2/game/start", {
-    categories: input.categories.length ? input.categories : undefined,
-    difficulty: input.difficulty,
-    characterId: input.characterId ?? undefined,
-  });
+  return httpClient
+    .postJson<unknown>("/api/v2/game/start", {
+      categories: input.categories.length ? input.categories : undefined,
+      difficulty: input.difficulty,
+      characterId: input.characterId ?? undefined,
+    })
+    .then((raw) => StartResponseSchema.parse(raw));
 }
 
 export function submitAnswer(
   sessionId: string,
   value: AnswerValue,
 ): Promise<AnswerResponse> {
-  return httpClient.postJson<AnswerResponse>("/api/v2/game/answer", {
-    sessionId,
-    value,
-  });
+  return httpClient
+    .postJson<unknown>("/api/v2/game/answer", {
+      sessionId,
+      value,
+    })
+    .then((raw) => AnswerResponseSchema.parse(raw));
 }
 
 /**
@@ -152,17 +164,19 @@ export async function skipQuestion(
   });
   if (res.status === 409) return null;
   if (!res.ok) throw new HttpError(res.status, "Failed to skip question");
-  return (await res.json()) as SkipResponse;
+  return SkipResponseSchema.parse(await res.json());
 }
 
 export function rejectGuess(
   sessionId: string,
   characterId: string,
 ): Promise<RejectGuessResponse> {
-  return httpClient.postJson<RejectGuessResponse>(
-    "/api/v2/game/reject-guess",
-    { sessionId, characterId },
-  );
+  return httpClient
+    .postJson<unknown>(
+      "/api/v2/game/reject-guess",
+      { sessionId, characterId },
+    )
+    .then((raw) => RejectGuessResponseSchema.parse(raw));
 }
 
 export function submitResult(
@@ -183,7 +197,13 @@ export function resumeGame(sessionId: string): Promise<ResumeResponse | null> {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ sessionId }),
     })
-    .then((res) => (res.ok ? (res.json() as Promise<ResumeResponse>) : null));
+    .then((res) =>
+      res.ok
+        ? (res.json() as Promise<unknown>).then((raw) =>
+            ResumeResponseSchema.parse(raw),
+          )
+        : null,
+    );
 }
 
 export interface RevealResponse {
@@ -198,8 +218,10 @@ export function revealCharacter(
   characterName: string,
   answers: Array<{ questionId: string; value: string }>,
 ): Promise<RevealResponse> {
-  return httpClient.postJson<RevealResponse>("/api/v2/game/reveal", {
-    characterName,
-    answers,
-  });
+  return httpClient
+    .postJson<unknown>("/api/v2/game/reveal", {
+      characterName,
+      answers,
+    })
+    .then((raw) => RevealResponseSchema.parse(raw));
 }

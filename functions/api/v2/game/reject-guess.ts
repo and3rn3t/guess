@@ -2,10 +2,11 @@ import {
   type Env,
   jsonResponse,
   errorResponse,
-  parseJsonBody,
+  parseJsonBodyWithSchema,
   d1Run,
   logError,
 } from '../../_helpers'
+import { RejectGuessRequestSchema } from '../../_schemas'
 import {
   filterPossibleCharacters,
   selectBestQuestion,
@@ -19,13 +20,6 @@ import {
 } from '../_game-engine'
 import { rephraseQuestion } from '../_llm-rephrase'
 
-// ── Types ────────────────────────────────────────────────────
-
-interface RejectGuessRequest {
-  sessionId: string
-  characterId: string
-}
-
 // ── POST /api/v2/game/reject-guess ───────────────────────────
 // User rejected the AI's guess. Exclude that character, extend
 // question budget, and return the next question — or signal
@@ -36,19 +30,18 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   const kv = context.env.GUESS_KV
   if (!kv) return errorResponse('KV not configured', 503)
 
-  const body = await parseJsonBody<RejectGuessRequest>(context.request)
-  if (!body?.sessionId || !body?.characterId) {
-    return errorResponse('Invalid request: sessionId and characterId required', 400)
-  }
+  const parsed = await parseJsonBodyWithSchema(context.request, RejectGuessRequestSchema)
+  if (!parsed.success) return parsed.response
+  const { sessionId, characterId: rejectedCharId } = parsed.data
 
-  const session = await loadSession(kv, body.sessionId)
+  const session = await loadSession(kv, sessionId)
   if (!session) {
     return errorResponse('Session not found or expired', 404)
   }
 
   // Add rejected character
-  if (!session.rejectedGuesses.includes(body.characterId)) {
-    session.rejectedGuesses.push(body.characterId)
+  if (!session.rejectedGuesses.includes(rejectedCharId)) {
+    session.rejectedGuesses.push(rejectedCharId)
   }
 
   // Extend question budget (bonus per rejection, capped at base × 2)

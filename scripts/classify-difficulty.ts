@@ -26,6 +26,7 @@ import { execSync } from 'child_process'
 import Database from 'better-sqlite3'
 import * as fs from 'fs'
 import * as path from 'path'
+import { z } from 'zod'
 
 const STAGING_DB = 'data/staging.db'
 const OUTPUT_JSONL = 'data/question-difficulty.jsonl'
@@ -74,12 +75,14 @@ interface QuestionInput {
   current_difficulty: string | null
 }
 
-interface Classification {
-  attribute_key: string
-  question: string
-  difficulty: 'easy' | 'medium' | 'hard'
-  reason: string
-}
+const ClassificationSchema = z.object({
+  attribute_key: z.string(),
+  question: z.string(),
+  difficulty: z.enum(['easy', 'medium', 'hard']),
+  reason: z.string(),
+})
+
+type Classification = z.infer<typeof ClassificationSchema>
 
 function sleep(ms: number) {
   return new Promise((r) => setTimeout(r, ms))
@@ -148,10 +151,11 @@ async function classifyBatch(batch: QuestionInput[]): Promise<Classification[]> 
 
   const text = response.choices[0]?.message?.content ?? '[]'
   try {
-    return JSON.parse(text) as Classification[]
+    const raw = JSON.parse(text)
+    return z.array(ClassificationSchema).parse(raw)
   } catch {
     const cleaned = text.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '')
-    return JSON.parse(cleaned) as Classification[]
+    return z.array(ClassificationSchema).parse(JSON.parse(cleaned))
   }
 }
 

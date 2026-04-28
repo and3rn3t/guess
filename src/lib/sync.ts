@@ -1,6 +1,7 @@
 import { KV_CHARACTERS_CACHE, KV_QUESTIONS_CACHE, SYNC_CACHE_TTL } from './constants'
 import { httpClient } from './http'
 import type { Character, Question, Difficulty } from './types'
+import { SyncCharacterRowSchema } from './schemas'
 
 export type SyncStatus = 'synced' | 'pending' | 'error' | 'offline'
 
@@ -14,17 +15,21 @@ export async function fetchGlobalCharacters(): Promise<Character[]> {
     const data = await httpClient.getJson<{ characters: Array<Record<string, unknown>> }>(
       '/api/v2/characters',
     )
-    const characters: Character[] = data.characters.map((raw) => {
+    const characters: Character[] = data.characters.flatMap((raw) => {
+      const rowResult = SyncCharacterRowSchema.safeParse(raw)
+      if (!rowResult.success) return []
+      const row = rowResult.data
       let attributes: Record<string, boolean | null> = {}
-      if (typeof raw.attributes_json === 'string') {
+      if (typeof row.attributes_json === 'string') {
         try {
-          const parsed = JSON.parse(raw.attributes_json) as Record<string, number | null>
+          const parsed = JSON.parse(row.attributes_json) as Record<string, number | null>
           attributes = Object.fromEntries(
             Object.entries(parsed).map(([k, v]) => [k, v === 1 ? true : v === 0 ? false : null])
           )
         } catch { /* keep empty */ }
       }
-      return { ...(raw as unknown as Character), attributes }
+      const { attributes_json: _dropped, ...rest } = row
+      return [{ ...rest, attributes } as Character]
     })
     setCache(KV_CHARACTERS_CACHE, characters)
     return characters

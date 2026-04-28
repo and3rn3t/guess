@@ -16,3 +16,11 @@ export {
   generateReasoning,
   detectContradictions,
 } from './guess-readiness.js'
+export {
+  AnswerValueSchema,
+  PersonaSchema,
+  GuessTriggerSchema,
+  GameCharacterSchema,
+  GameQuestionSchema,
+  GameAnswerSchema,
+} from './schemas.js'

@@ -1,5 +1,7 @@
 import type { Character, Question } from './types'
 import { llm } from './llm'
+import { GeneratedQuestionSchema } from './schemas'
+import { z } from 'zod'
 
 export async function analyzeAndGenerateQuestions(
   characters: Character[],
@@ -71,11 +73,12 @@ Example format:
     const response = await llm(prompt, 'gpt-4o-mini', true)
     const parsed = JSON.parse(response)
 
-    if (!parsed.questions || !Array.isArray(parsed.questions)) {
+    const questionsResult = z.array(GeneratedQuestionSchema).safeParse(parsed.questions)
+    if (!questionsResult.success) {
       throw new Error('Invalid response format')
     }
 
-    const newQuestions: Question[] = parsed.questions.map((q: Record<string, string>, index: number) => ({
+    const newQuestions: Question[] = questionsResult.data.map((q, index) => ({
       id: `generated-${Date.now()}-${index}`,
       text: q.text,
       attribute: q.attribute,

@@ -1,5 +1,7 @@
 import { ALL_KNOWN_ATTRIBUTES, type AttributeRecommendation } from './attributeRecommender'
 import { llm } from './llm'
+import { AttributeRecommendationSchema } from './schemas'
+import { z } from 'zod'
 
 export type { AttributeRecommendation }
 
@@ -237,7 +239,8 @@ Provide up to 10 recommendations focused specifically on ${categoryDef.descripti
   try {
     const response = await llm(prompt, 'gpt-4o', true)
     const parsed = JSON.parse(response)
-    return (parsed.recommendations || []).slice(0, 10)
+    const result = z.array(AttributeRecommendationSchema).safeParse(parsed.recommendations)
+    return result.success ? result.data.slice(0, 10) : []
   } catch (error) {
     console.error('AI category recommendation failed:', error)
     return []

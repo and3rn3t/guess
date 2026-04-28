@@ -2,9 +2,10 @@ import {
   type Env,
   jsonResponse,
   errorResponse,
-  parseJsonBody,
+  parseJsonBodyWithSchema,
   logError,
 } from '../../_helpers'
+import { SkipRequestSchema } from '../../_schemas'
 import {
   filterPossibleCharacters,
   generateReasoning,
@@ -18,11 +19,6 @@ import {
 } from '../_game-engine'
 import { rephraseQuestion } from '../_llm-rephrase'
 
-// ── Types ────────────────────────────────────────────────────
-
-interface SkipRequest {
-  sessionId: string
-}
 
 // ── POST /api/v2/game/skip ───────────────────────────────────
 // Skips the current question (free — does not decrement questionsRemaining).
@@ -33,12 +29,11 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   const kv = context.env.GUESS_KV
   if (!kv) return errorResponse('KV not configured', 503)
 
-  const body = await parseJsonBody<SkipRequest>(context.request)
-  if (!body?.sessionId) {
-    return errorResponse('Invalid request: sessionId required', 400)
-  }
+  const parsed = await parseJsonBodyWithSchema(context.request, SkipRequestSchema)
+  if (!parsed.success) return parsed.response
+  const { sessionId } = parsed.data
 
-  const session = await loadSession(kv, body.sessionId)
+  const session = await loadSession(kv, sessionId)
   if (!session) {
     return errorResponse('Session not found or expired', 404)
   }
