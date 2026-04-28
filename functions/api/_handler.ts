@@ -89,7 +89,15 @@ export function defineHandler(
 
       if (rateLimit !== undefined && kv && userId) {
         const { allowed } = await checkRateLimit(kv, userId, name, rateLimit)
-        if (!allowed) return errorResponse('Rate limit exceeded', 429)
+        if (!allowed) {
+          // Apply Set-Cookie to the 429 too — otherwise a freshly minted
+          // user-id never reaches the client on rate-limited requests, and
+          // the next attempt re-mints another fresh user.
+          return withSetCookie(
+            errorResponse('Rate limit exceeded', 429),
+            setCookieHeader,
+          )
+        }
       }
 
       const response = await handler({

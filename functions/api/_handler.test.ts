@@ -160,6 +160,58 @@ describe('defineHandler', () => {
     )
   })
 
+  it('catches getOrCreateUserId failures (e.g. missing COOKIE_SECRET) as 500 + logError', async () => {
+    getOrCreateUserIdMock.mockRejectedValueOnce(
+      new Error('COOKIE_SECRET is not configured'),
+    )
+    const handler = defineHandler({ name: 'test' }, async () =>
+      new Response('ok'),
+    )
+    const ctx = makeContext()
+    const res = await handler(ctx)
+    expect(res.status).toBe(500)
+    expect(logErrorMock).toHaveBeenCalledWith(
+      ctx.env.GUESS_DB,
+      'test',
+      'error',
+      'test handler error',
+      expect.any(Error),
+    )
+  })
+
+  it('catches checkRateLimit failures (e.g. KV outage) as 500 + logError', async () => {
+    checkRateLimitMock.mockRejectedValueOnce(new Error('KV unavailable'))
+    const handler = defineHandler(
+      { name: 'test', rateLimit: 10 },
+      async () => new Response('ok'),
+    )
+    const ctx = makeContext()
+    const res = await handler(ctx)
+    expect(res.status).toBe(500)
+    expect(logErrorMock).toHaveBeenCalledWith(
+      ctx.env.GUESS_DB,
+      'test',
+      'error',
+      'test handler error',
+      expect.any(Error),
+    )
+  })
+
+  it('appends Set-Cookie on rate-limited 429 response', async () => {
+    getOrCreateUserIdMock.mockResolvedValueOnce({
+      userId: 'fresh-user',
+      setCookieHeader: '__gu_id=signed; Path=/',
+    })
+    checkRateLimitMock.mockResolvedValueOnce({ allowed: false, remaining: 0 })
+    const handler = defineHandler(
+      { name: 'test', rateLimit: 10 },
+      async () => new Response('ok'),
+    )
+    const res = await handler(makeContext())
+    expect(res.status).toBe(429)
+    expect(res.headers.get('Set-Cookie')).toBe('__gu_id=signed; Path=/')
+  })
+
   it('pre-parses url for the handler', async () => {
     let captured: URL | undefined
     const handler = defineHandler({ name: 'test' }, async (ctx) => {
