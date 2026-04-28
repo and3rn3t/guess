@@ -113,6 +113,7 @@ export async function setupApiMocks(page: Page) {
         remaining: 90 - answerCount * 20,
         eliminated: 10 + answerCount * 20,
         questionCount: answerCount + 2,
+        skippedCount: 1,
       }),
     }),
   )
