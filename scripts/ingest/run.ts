@@ -69,118 +69,132 @@ async function runAll(maxParam?: number) {
   return results;
 }
 
-async function main() {
-  const action = process.argv[2] ?? 'stats';
-  const param = parseInt(process.argv[3] ?? '0') || undefined;
+// ===== Arg-parsing helpers =====
 
-  try {
-    if (action === 'stats') {
-      showStats();
-    } else if (action === 'dedup') {
-      await runDedup();
-      showStats();
-    } else if (action === 'upload') {
-      // Skip non-numeric args (e.g. 'generate')
-      const args = process.argv.slice(3).filter(a => !isNaN(parseFloat(a)));
-      const minPop = parseFloat(args[0] ?? '0');
-      const limit = parseInt(args[1] ?? '0');
-      await generateUploadSQL({ minPopularity: minPop, limit, outputFile: 'migrations/0005_ingest_characters.sql' });
-    } else if (action === 'apply') {
-      const remote = process.argv.includes('--remote');
-      const envArg = process.argv.find(a => a === 'production' || a === 'preview');
-      const env = (envArg ?? 'production') as 'production' | 'preview';
-      await applyToD1('migrations/0005_ingest_characters.sql', env, remote);
-    } else if (action === 'enrich') {
-      const batchSize = param ?? 5;
-      const limit = process.argv.includes('--limit')
-        ? parseInt(process.argv[process.argv.indexOf('--limit') + 1])
-        : undefined;
-      const concurrency = process.argv.includes('--concurrency')
-        ? parseInt(process.argv[process.argv.indexOf('--concurrency') + 1])
-        : undefined;
-      const catIdx = process.argv.indexOf('--category');
-      const category = catIdx >= 0 ? process.argv[catIdx + 1] as Category : undefined;
-      const minPop = process.argv.includes('--min-pop')
-        ? parseFloat(process.argv[process.argv.indexOf('--min-pop') + 1])
-        : undefined;
-      const dryRun = process.argv.includes('--dry-run');
-      const newAttrsOnly = process.argv.includes('--new-attrs-only');
-      const validate = process.argv.includes('--validate');
-      const model2Idx = process.argv.indexOf('--model2');
-      const model2 = model2Idx >= 0 ? process.argv[model2Idx + 1] : undefined;
-      await runEnrichment({ batchSize, concurrency, limit, category, minPopularity: minPop, dryRun, newAttrsOnly, model2, validate });
-    } else if (action === 'enrich-stats') {
-      showEnrichStats();
-    } else if (action === 'enrich-upload') {
-      const outputFile = 'migrations/0006_character_attributes.sql';
-      generateEnrichUploadSQL({ outputFile });
-      if (process.argv.includes('--apply')) {
-        const remote = process.argv.includes('--remote');
-        const envArg = process.argv.find(a => a === 'production' || a === 'preview');
-        const env = (envArg ?? 'production') as 'production' | 'preview';
-        await applyToD1(outputFile, env, remote);
-      }
-    } else if (action === 'disputes-upload') {
-      const disputeLimit = process.argv.includes('--limit')
-        ? parseInt(process.argv[process.argv.indexOf('--limit') + 1], 10)
-        : 1000;
-      const sql = generateDisputeUploadSQL(disputeLimit);
-      const outputFile = 'migrations/0026b_dispute_upload.sql';
-      writeFileSync(outputFile, sql);
-      console.log(`Wrote ${outputFile}`);
-      if (process.argv.includes('--apply')) {
-        const remote = process.argv.includes('--remote');
-        const envArg = process.argv.find(a => a === 'production' || a === 'preview');
-        const env = (envArg ?? 'production') as 'production' | 'preview';
-        await applyToD1(outputFile, env, remote);
-      }
-    } else if (action === 'enrich-retry') {
-      const batchSize = param ?? 5;
-      const concurrency = process.argv.includes('--concurrency')
-        ? parseInt(process.argv[process.argv.indexOf('--concurrency') + 1])
-        : undefined;
-      await retryFailed({ batchSize, concurrency });
-    } else if (action === 'images') {
-      const limit = process.argv.includes('--limit')
-        ? parseInt(process.argv[process.argv.indexOf('--limit') + 1])
-        : undefined;
-      const concurrency = process.argv.includes('--concurrency')
-        ? parseInt(process.argv[process.argv.indexOf('--concurrency') + 1])
-        : undefined;
-      const sourceIdx = process.argv.indexOf('--source');
-      const source = sourceIdx >= 0 ? process.argv[sourceIdx + 1] : undefined;
-      await processImages({ limit, concurrency, source });
-    } else if (action === 'images-stats') {
-      showImageStats();
-    } else if (action === 'images-update-urls') {
-      const r2Url = process.argv.includes('--r2-url')
-        ? process.argv[process.argv.indexOf('--r2-url') + 1]
-        : undefined;
-      generateImageUrlSQL({ r2PublicUrl: r2Url });
-      if (process.argv.includes('--apply')) {
-        const remote = process.argv.includes('--remote');
-        const envArg = process.argv.find(a => a === 'production' || a === 'preview');
-        const env = (envArg ?? 'production') as 'production' | 'preview';
-        await applyToD1('migrations/0007_image_urls.sql', env, remote);
-      }
-    } else if (action === 'images-retry') {
-      retryFailedImages();
-    } else if (action === 'source-overlap') {
-      await runSourceOverlap();
-    } else if (action === 'discover-attrs') {
-      const sampleIdx = process.argv.indexOf('--sample');
-      const sampleSize = sampleIdx >= 0 ? parseInt(process.argv[sampleIdx + 1], 10) : 50;
-      const limitIdx = process.argv.indexOf('--limit');
-      const discoverLimit = limitIdx >= 0 ? parseInt(process.argv[limitIdx + 1], 10) : 50;
-      const dryRun = process.argv.includes('--dry-run');
-      const apply = process.argv.includes('--apply');
-      await runDiscoverAttributes({ sampleSize, limit: discoverLimit, dryRun, apply });
-    } else if (action === 'all') {
-      await runAll(param);
-    } else if (action in SOURCES) {
-      await runSource(action as SourceName, param);
-    } else {
-      console.log(`
+function hasFlag(argv: string[], flag: string): boolean {
+  return argv.includes(flag);
+}
+
+function getFlagValue(argv: string[], flag: string): string | undefined {
+  const idx = argv.indexOf(flag);
+  return idx >= 0 ? argv[idx + 1] : undefined;
+}
+
+function getIntFlag(argv: string[], flag: string): number | undefined {
+  const val = getFlagValue(argv, flag);
+  return val !== undefined ? parseInt(val, 10) : undefined;
+}
+
+function getFloatFlag(argv: string[], flag: string): number | undefined {
+  const val = getFlagValue(argv, flag);
+  return val !== undefined ? parseFloat(val) : undefined;
+}
+
+function getEnv(argv: string[]): 'production' | 'preview' {
+  return (argv.find(a => a === 'production' || a === 'preview') ?? 'production') as 'production' | 'preview';
+}
+
+// ===== Action dispatch table =====
+
+type ActionHandler = (argv: string[], param: number | undefined) => Promise<void> | void;
+
+const ACTIONS: Record<string, ActionHandler> = {
+  stats: () => showStats(),
+
+  dedup: async () => {
+    await runDedup();
+    showStats();
+  },
+
+  upload: async (argv) => {
+    const args = argv.slice(3).filter(a => !isNaN(parseFloat(a)));
+    const minPop = parseFloat(args[0] ?? '0');
+    const limit = parseInt(args[1] ?? '0');
+    await generateUploadSQL({ minPopularity: minPop, limit, outputFile: 'migrations/0005_ingest_characters.sql' });
+  },
+
+  apply: async (argv) => {
+    await applyToD1('migrations/0005_ingest_characters.sql', getEnv(argv), hasFlag(argv, '--remote'));
+  },
+
+  enrich: async (argv, param) => {
+    await runEnrichment({
+      batchSize: param ?? 5,
+      concurrency: getIntFlag(argv, '--concurrency'),
+      limit: getIntFlag(argv, '--limit'),
+      category: getFlagValue(argv, '--category') as Category | undefined,
+      minPopularity: getFloatFlag(argv, '--min-pop'),
+      dryRun: hasFlag(argv, '--dry-run'),
+      newAttrsOnly: hasFlag(argv, '--new-attrs-only'),
+      model2: getFlagValue(argv, '--model2'),
+      validate: hasFlag(argv, '--validate'),
+    });
+  },
+
+  'enrich-stats': () => showEnrichStats(),
+
+  'enrich-upload': async (argv) => {
+    const outputFile = 'migrations/0006_character_attributes.sql';
+    generateEnrichUploadSQL({ outputFile });
+    if (hasFlag(argv, '--apply')) {
+      await applyToD1(outputFile, getEnv(argv), hasFlag(argv, '--remote'));
+    }
+  },
+
+  'disputes-upload': async (argv) => {
+    const disputeLimit = getIntFlag(argv, '--limit') ?? 1000;
+    const sql = generateDisputeUploadSQL(disputeLimit);
+    const outputFile = 'migrations/0026b_dispute_upload.sql';
+    writeFileSync(outputFile, sql);
+    console.log(`Wrote ${outputFile}`);
+    if (hasFlag(argv, '--apply')) {
+      await applyToD1(outputFile, getEnv(argv), hasFlag(argv, '--remote'));
+    }
+  },
+
+  'enrich-retry': async (argv, param) => {
+    await retryFailed({ batchSize: param ?? 5, concurrency: getIntFlag(argv, '--concurrency') });
+  },
+
+  images: async (argv) => {
+    await processImages({
+      limit: getIntFlag(argv, '--limit'),
+      concurrency: getIntFlag(argv, '--concurrency'),
+      source: getFlagValue(argv, '--source'),
+    });
+  },
+
+  'images-stats': () => showImageStats(),
+
+  'images-update-urls': async (argv) => {
+    generateImageUrlSQL({ r2PublicUrl: getFlagValue(argv, '--r2-url') });
+    if (hasFlag(argv, '--apply')) {
+      await applyToD1('migrations/0007_image_urls.sql', getEnv(argv), hasFlag(argv, '--remote'));
+    }
+  },
+
+  'images-retry': () => retryFailedImages(),
+
+  'source-overlap': async () => {
+    await runSourceOverlap();
+  },
+
+  'discover-attrs': async (argv) => {
+    await runDiscoverAttributes({
+      sampleSize: getIntFlag(argv, '--sample') ?? 50,
+      limit: getIntFlag(argv, '--limit') ?? 50,
+      dryRun: hasFlag(argv, '--dry-run'),
+      apply: hasFlag(argv, '--apply'),
+    });
+  },
+
+  all: async (_argv, param) => {
+    await runAll(param);
+  },
+};
+
+function printUsage(): void {
+  console.log(`
 Usage: npx tsx scripts/ingest/run.ts <command> [options]
 
 Commands:
@@ -228,7 +242,21 @@ Image options:
   --source <src>            Only process images from specific source
   --r2-url <url>            R2 public URL base (for images-update-urls)
   --apply [--remote]        Apply SQL to D1 (for images-update-urls)
-      `);
+  `);
+}
+
+async function main() {
+  const argv = process.argv;
+  const action = argv[2] ?? 'stats';
+  const param = parseInt(argv[3] ?? '0') || undefined;
+
+  try {
+    if (action in ACTIONS) {
+      await ACTIONS[action](argv, param);
+    } else if (action in SOURCES) {
+      await runSource(action as SourceName, param);
+    } else {
+      printUsage();
     }
   } finally {
     closeDb();
