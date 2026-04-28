@@ -123,7 +123,13 @@
     {
       "name": "vendor-ui",
       "path": "dist/assets/vendor-ui-*.js",
-      "limit": "160 kB",
+      "limit": "100 kB",
+      "gzip": true
+    },
+    {
+      "name": "vendor-charts",
+      "path": "dist/assets/vendor-charts-*.js",
+      "limit": "80 kB",
       "gzip": true
     },
     {

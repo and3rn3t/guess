@@ -1,4 +1,4 @@
-import { CostDashboard } from '@/components/CostDashboard'
+import { CostDashboard } from '@/components/admin/CostDashboard'
 
 export default function CostRoute(): React.JSX.Element {
   return (

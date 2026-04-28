@@ -4,27 +4,10 @@ import { PlayingScreen } from "@/components/PlayingScreen";
 import { WelcomeScreen } from "@/components/WelcomeScreen";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import type { Achievement } from "@/hooks/useAchievements";
-import type {
-  GameAction,
-  GamePhase,
-  GameState,
-} from "@/hooks/useGameState";
-import type { GlobalStats } from "@/hooks/useGlobalStats";
-import type { WeeklyRecap } from "@/hooks/useWeeklyRecap";
+import { useGameContext } from "@/contexts/GameContext";
 import { DEFAULT_CHARACTERS, DEFAULT_QUESTIONS } from "@/lib/database";
-import type {
-  AnswerValue,
-  Character,
-  CharacterCategory,
-  Difficulty,
-  GameHistoryEntry,
-  GuessReadinessSnapshot,
-  Persona,
-  Question,
-} from "@/lib/types";
 import { AnimatePresence, motion } from "motion/react";
-import { lazy, Suspense, type Dispatch, type RefObject } from "react";
+import { lazy, Suspense } from "react";
 
 const TeachingMode = lazy(() =>
   import("@/components/TeachingMode").then((m) => ({ default: m.TeachingMode })),
@@ -53,83 +36,13 @@ const GameHistory = lazy(() =>
   import("@/components/GameHistory").then((m) => ({ default: m.GameHistory })),
 );
 
-interface RevealResult {
-  found: boolean;
-  characterName?: string | null;
-  attributesFilled?: number;
-}
-
-export interface GamePhaseRouterProps {
-  // Game state
-  game: GameState;
-  dispatch: Dispatch<GameAction>;
-  navigate: (phase: GamePhase, character?: Character) => void;
-
-  // Settings
-  difficulty: Difficulty;
-  setDifficulty: (d: Difficulty) => void;
-  categories: CharacterCategory[];
-  setCategories: (c: CharacterCategory[]) => void;
-  persona: Persona;
-  maxQuestions: number;
-
-  // Data collections
-  characters: Character[] | null;
-  questions: Question[] | null;
-  activeCharacters: Character[];
-
-  // Server-game derived state
-  serverTotal: number | null;
-  serverReadiness: GuessReadinessSnapshot | null;
-  effectiveRemaining: number;
-  confidence: number;
-
-  // Global stats
-  globalStats: GlobalStats | null;
-  gameHistory: GameHistoryEntry[];
-  gamesPlayed: number;
-  statsLoading: boolean;
-
-  // Session
-  hasSavedSession: boolean;
-  resumeSession: () => void;
-  clearSession: () => void;
-
-  // Transient UI state
-  online: boolean;
-  eliminatedCount: number | null;
-  remainingHistoryRef: RefObject<number[]>;
-  isNewPersonalBest: boolean;
-  personalBest: number | null;
-  dailyStreak: number;
-  achievements: Achievement[];
-  weeklyRecap: WeeklyRecap | null;
-  showOnboarding: boolean;
-  setShowOnboarding: (show: boolean) => void;
-
-  // Handlers
-  startGame: () => void | Promise<void>;
-  handleAnswer: (value: AnswerValue) => void | Promise<void>;
-  handleSkip: () => void;
-  handleGiveUp: () => void;
-  handleCorrectGuess: () => void;
-  handleIncorrectGuess: () => void;
-  handleRejectGuess: () => void;
-  retryAfterReject: () => void;
-  handleShare: () => void | Promise<void>;
-  handleCopyLink: () => void | Promise<void>;
-  handleReveal: (name: string) => Promise<RevealResult>;
-  handleAddCharacter: (c: Character) => void;
-  handleAddQuestions: (q: Question[]) => void;
-}
-
 /**
  * Routes the current game phase to its screen.
  *
  * App.tsx owns the data; this component owns the per-phase rendering and
  * lazy-loading. Keep effects and state in App.tsx.
  */
-export function GamePhaseRouter(props: GamePhaseRouterProps) {
+export function GamePhaseRouter() {
   const {
     game,
     dispatch,
@@ -177,7 +90,7 @@ export function GamePhaseRouter(props: GamePhaseRouterProps) {
     handleReveal,
     handleAddCharacter,
     handleAddQuestions,
-  } = props;
+  } = useGameContext();
 
   const {
     phase: gamePhase,

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { AdminDataContext } from './AdminDataContext'
 import { DEFAULT_CHARACTERS, DEFAULT_QUESTIONS } from '@/lib/database'
-import { fetchAdminCharacters } from '@/lib/adminApi'
+import { fetchAdminCharacters } from '@/lib/admin/adminApi'
 import { fetchGlobalQuestions } from '@/lib/sync'
 import type { Character, Question } from '@/lib/types'
 

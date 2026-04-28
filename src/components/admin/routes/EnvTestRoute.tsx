@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import type { Character } from '@/lib/types'
-import { EnvironmentTest } from '@/components/EnvironmentTest'
+import { EnvironmentTest } from '@/components/admin/EnvironmentTest'
 import { CharacterPicker } from '../CharacterPicker'
 import { useAdminData } from '../AdminDataContext'
 

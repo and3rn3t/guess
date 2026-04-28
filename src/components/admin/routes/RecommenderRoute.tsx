@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import type { Character } from '@/lib/types'
-import { AttributeRecommender } from '@/components/AttributeRecommender'
+import { AttributeRecommender } from '@/components/admin/AttributeRecommender'
 import { CharacterPicker } from '../CharacterPicker'
 import { useAdminData } from '../AdminDataContext'
 

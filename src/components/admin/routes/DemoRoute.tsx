@@ -1,4 +1,4 @@
-import { QuestionGeneratorDemo } from '@/components/QuestionGeneratorDemo'
+import { QuestionGeneratorDemo } from '@/components/admin/QuestionGeneratorDemo'
 import { useAdminData } from '../AdminDataContext'
 
 export default function DemoRoute(): React.JSX.Element {

@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom'
-import { MultiCategoryEnhancer } from '@/components/MultiCategoryEnhancer'
+import { MultiCategoryEnhancer } from '@/components/admin/MultiCategoryEnhancer'
 import { useAdminData } from '../AdminDataContext'
 import type { Character } from '@/lib/types'
 

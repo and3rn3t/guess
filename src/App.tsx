@@ -1,6 +1,7 @@
 import { AppHeader } from "@/components/AppHeader";
 import { ChallengeView } from "@/components/ChallengeView";
 import { GamePhaseRouter } from "@/components/GamePhaseRouter";
+import { GameContext } from "@/contexts/GameContext";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -430,54 +431,58 @@ function App() {
                     : "Wrong guess. You stumped me!")}
             </div>
 
-            <GamePhaseRouter
-              game={game}
-              dispatch={dispatch}
-              navigate={navigate}
-              difficulty={difficulty}
-              setDifficulty={setDifficulty}
-              categories={categories}
-              setCategories={setCategories}
-              persona={persona}
-              maxQuestions={maxQuestions}
-              characters={characters}
-              questions={questions}
-              activeCharacters={activeCharacters}
-              serverTotal={serverTotal}
-              serverReadiness={serverReadiness}
-              effectiveRemaining={effectiveRemaining}
-              confidence={confidence}
-              globalStats={globalStats}
-              gameHistory={gameHistory}
-              gamesPlayed={gamesPlayed}
-              statsLoading={statsLoading}
-              hasSavedSession={hasSavedSession}
-              resumeSession={resumeSession}
-              clearSession={clearSession}
-              online={online}
-              eliminatedCount={eliminatedCount}
-              remainingHistoryRef={remainingHistoryRef}
-              isNewPersonalBest={isNewPersonalBest}
-              personalBest={personalBest}
-              dailyStreak={dailyStreak}
-              achievements={achievements}
-              weeklyRecap={weeklyRecap}
-              showOnboarding={showOnboarding}
-              setShowOnboarding={setShowOnboarding}
-              startGame={startGame}
-              handleAnswer={handleAnswer}
-              handleSkip={handleSkip}
-              handleGiveUp={handleSurrender}
-              handleCorrectGuess={handleCorrectGuess}
-              handleIncorrectGuess={handleIncorrectGuess}
-              handleRejectGuess={handleRejectGuess}
-              retryAfterReject={retryAfterReject}
-              handleShare={handleShare}
-              handleCopyLink={handleCopyLink}
-              handleReveal={handleReveal}
-              handleAddCharacter={handleAddCharacter}
-              handleAddQuestions={handleAddQuestions}
-            />
+            <GameContext.Provider
+              value={{
+                game,
+                dispatch,
+                navigate,
+                difficulty,
+                setDifficulty,
+                categories,
+                setCategories,
+                persona,
+                maxQuestions,
+                characters,
+                questions,
+                activeCharacters,
+                serverTotal,
+                serverReadiness,
+                effectiveRemaining,
+                confidence,
+                globalStats,
+                gameHistory,
+                gamesPlayed,
+                statsLoading,
+                hasSavedSession,
+                resumeSession,
+                clearSession,
+                online,
+                eliminatedCount,
+                remainingHistoryRef,
+                isNewPersonalBest,
+                personalBest,
+                dailyStreak,
+                achievements,
+                weeklyRecap,
+                showOnboarding,
+                setShowOnboarding,
+                startGame,
+                handleAnswer,
+                handleSkip,
+                handleGiveUp: handleSurrender,
+                handleCorrectGuess,
+                handleIncorrectGuess,
+                handleRejectGuess,
+                retryAfterReject,
+                handleShare,
+                handleCopyLink,
+                handleReveal,
+                handleAddCharacter,
+                handleAddQuestions,
+              }}
+            >
+              <GamePhaseRouter />
+            </GameContext.Provider>
           </main>
         </div>
       </div>

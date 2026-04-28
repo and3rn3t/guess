@@ -1,4 +1,4 @@
-import { DataHygiene } from '@/components/DataHygiene'
+import { DataHygiene } from '@/components/admin/DataHygiene'
 import { useAdminData } from '../AdminDataContext'
 import type { Character, Question } from '@/lib/types'
 

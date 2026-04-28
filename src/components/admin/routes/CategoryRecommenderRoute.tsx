@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import type { Character } from '@/lib/types'
-import { CategoryRecommender } from '@/components/CategoryRecommender'
+import { CategoryRecommender } from '@/components/admin/CategoryRecommender'
 import { CharacterPicker } from '../CharacterPicker'
 import { useAdminData } from '../AdminDataContext'
 

@@ -27,10 +27,10 @@ export default defineConfig({
           if (id.includes('node_modules/motion')) {
             return 'vendor-motion';
           }
-          if (
-            id.includes('node_modules/recharts') ||
-            id.includes('node_modules/@radix-ui/')
-          ) {
+          if (id.includes('node_modules/recharts') || id.includes('node_modules/d3-')) {
+            return 'vendor-charts';
+          }
+          if (id.includes('node_modules/@radix-ui/')) {
             return 'vendor-ui';
           }
         },
