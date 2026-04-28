@@ -1,6 +1,6 @@
 import { useCallback, useRef } from 'react'
-import { useMotionValue, useTransform } from 'framer-motion'
-import type { PanInfo } from 'framer-motion'
+import { useMotionValue, useTransform } from 'motion/react'
+import type { PanInfo } from 'motion/react'
 import { hapticMedium } from '@/lib/sounds'
 
 const SWIPE_THRESHOLD = 100

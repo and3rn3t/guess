@@ -1,5 +1,5 @@
 import { memo, useMemo, useState, useCallback } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence } from "motion/react";
 import { Users } from "@phosphor-icons/react";
 import { Card } from "@/components/ui/card";
 import type { Character, Answer } from "@/lib/types";

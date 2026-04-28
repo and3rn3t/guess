@@ -1,8 +1,8 @@
 import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence } from "motion/react";
 import { XIcon } from "@phosphor-icons/react";
 import type { WeeklyRecap } from "@/hooks/useWeeklyRecap";
-import { useReducedMotion } from "framer-motion";
+import { useReducedMotion } from "motion/react";
 
 interface WeeklyRecapCardProps {
   recap: WeeklyRecap;

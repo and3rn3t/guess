@@ -3,7 +3,7 @@ import { reformulateForSelf, selfMatchNarrative_v1 } from "@/lib/prompts";
 import type { Character, Persona, Question } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { ArrowRight, CheckCircle, XCircle, Minus } from "@phosphor-icons/react";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion } from "motion/react";
 import { useCallback, useEffect, useState } from "react";
 
 interface SelfAnswer {

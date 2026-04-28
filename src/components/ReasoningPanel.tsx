@@ -1,5 +1,5 @@
 import { memo, useState } from 'react'
-import { motion, AnimatePresence, useSpring, useTransform } from 'framer-motion'
+import { motion, AnimatePresence, useSpring, useTransform } from 'motion/react'
 import { Brain, Lightbulb, Sparkle, CaretDown, Trophy } from '@phosphor-icons/react'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'

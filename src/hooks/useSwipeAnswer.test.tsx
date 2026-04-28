@@ -1,11 +1,11 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { renderHook } from '@testing-library/react'
-import type { PanInfo } from 'framer-motion'
+import type { PanInfo } from 'motion/react'
 import { useSwipeAnswer } from './useSwipeAnswer'
 
-// Mock framer-motion motion values
-vi.mock('framer-motion', () => ({
+// Mock motion/react motion values
+vi.mock('motion/react', () => ({
   useMotionValue: (init: number) => ({ get: () => init, set: vi.fn() }),
   useTransform: () => ({ get: () => 0 }),
 }))
