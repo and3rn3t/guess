@@ -1,7 +1,7 @@
 -- Migration 0023: Proposed attributes queue for AD.8
 -- Stores LLM-proposed (or admin-proposed) attribute definitions awaiting review.
 
-CREATE TABLE proposed_attributes (
+CREATE TABLE IF NOT EXISTS proposed_attributes (
   id               INTEGER PRIMARY KEY AUTOINCREMENT,
   key              TEXT    NOT NULL,
   display_text     TEXT    NOT NULL,

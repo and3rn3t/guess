@@ -5,6 +5,7 @@ import {
   getUserId,
   checkRateLimit,
   sanitizeString,
+  logError,
 } from './_helpers'
 
 const MAX_PROMPT_LENGTH = 50_000
@@ -90,6 +91,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     if (!openaiResponse.ok) {
       const errorText = await openaiResponse.text().catch(() => 'Unknown error')
       console.error('OpenAI stream error:', openaiResponse.status, errorText)
+      context.waitUntil(logError(context.env.GUESS_DB, 'llm-stream', 'error', `OpenAI stream error ${openaiResponse.status}`, errorText))
 
       if (openaiResponse.status === 429) {
         const isQuota = errorText.includes('insufficient_quota')
@@ -139,6 +141,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         }
       } catch (err) {
         console.error('Stream processing error:', err)
+        await logError(context.env.GUESS_DB, 'llm-stream', 'error', 'Stream processing error', err)
       } finally {
         await writer.close()
       }
@@ -156,6 +159,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     })
   } catch (error) {
     console.error('LLM stream error:', error)
+    context.waitUntil(logError(context.env.GUESS_DB, 'llm-stream', 'error', 'LLM stream error', error))
     return Response.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

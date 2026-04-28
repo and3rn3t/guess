@@ -87,7 +87,7 @@ jobs:
       - uses: ./.github/actions/setup
       - run: pnpm lint
       - run: tsc -b
-      - run: pnpm test
+      - run: pnpm test:coverage
 
   test-e2e:
     needs: [changes, build]
