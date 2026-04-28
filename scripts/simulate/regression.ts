@@ -19,7 +19,7 @@
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { simulateGame, DIFFICULTY_MAP } from './engine.js'
+import { simulateGame, buildScoringMaps, DIFFICULTY_MAP } from './engine.js'
 import type { SimCharacter, SimQuestion, SimGameResult } from './engine.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
@@ -34,6 +34,12 @@ const AVG_Q_TOLERANCE    = 0.5   // questions
 /** Fixed seed-based deterministic sample size for fast CI runs. */
 const SAMPLE_SIZE = 150
 const DIFFICULTY: keyof typeof DIFFICULTY_MAP = 'medium'
+/**
+ * Cap the character pool used for scoring/MCTS to the top-N most popular chars.
+ * The full 18k+ pool makes MCTS excessively slow (~15+ min for 150 games in CI).
+ * 2000 covers the realistic game-time population and matches pnpm simulate --pool-size 2000.
+ */
+const POOL_CAP = 2000
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -97,19 +103,24 @@ async function main(): Promise<void> {
   const allChars = JSON.parse(readFileSync(charsPath, 'utf8')) as SimCharacter[]
   const questions = JSON.parse(readFileSync(questionsPath, 'utf8')) as SimQuestion[]
 
-  if (allChars.length < SAMPLE_SIZE) {
-    console.error(`✗  Not enough characters (${allChars.length} < ${SAMPLE_SIZE})`)
+  // Cap pool to top-N by popularity (already sorted DESC by export-data.ts).
+  // Keeps MCTS cost bounded in CI without sacrificing representative coverage.
+  const pool = allChars.length > POOL_CAP ? allChars.slice(0, POOL_CAP) : allChars
+
+  if (pool.length < SAMPLE_SIZE) {
+    console.error(`✗  Not enough characters (${pool.length} < ${SAMPLE_SIZE})`)
     process.exit(1)
   }
 
-  const sample = seededSample(allChars, SAMPLE_SIZE)
+  const sample = seededSample(pool, SAMPLE_SIZE)
   const runId = `regression-${Date.now()}`
-  const options = { difficulty: DIFFICULTY as keyof typeof DIFFICULTY_MAP }
+  const precomputedScoring = buildScoringMaps(pool, questions)
+  const options = { difficulty: DIFFICULTY as keyof typeof DIFFICULTY_MAP, precomputedScoring }
 
-  console.log(`Running ${SAMPLE_SIZE} simulations (difficulty: ${DIFFICULTY}) …`)
+  console.log(`Running ${SAMPLE_SIZE} simulations (difficulty: ${DIFFICULTY}, pool: ${pool.length}) …`)
 
   const results: SimGameResult[] = sample.map((target) =>
-    simulateGame(target, allChars, questions, runId, options)
+    simulateGame(target, pool, questions, runId, options)
   )
 
   const current = extractMetrics(results)

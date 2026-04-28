@@ -13,6 +13,7 @@ import type {
   GameAnswer,
   GuessTrigger,
   ScoringOptions,
+  ScoringWeights,
   StructuralWeights,
 } from "@guess/game-engine";
 import {
