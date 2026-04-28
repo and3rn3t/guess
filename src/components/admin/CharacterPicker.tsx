@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import type { Character } from '@/lib/types'
 import { useAdminData } from './AdminDataContext'
-import { fetchAdminCharacterById } from '@/lib/sync'
+import { fetchAdminCharacterById } from '@/lib/adminApi'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 

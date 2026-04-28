@@ -185,3 +185,21 @@ export function resumeGame(sessionId: string): Promise<ResumeResponse | null> {
     })
     .then((res) => (res.ok ? (res.json() as Promise<ResumeResponse>) : null));
 }
+
+export interface RevealResponse {
+  found: boolean;
+  characterId?: string | null;
+  characterName?: string | null;
+  attributesFilled?: number;
+  discrepancies?: number;
+}
+
+export function revealCharacter(
+  characterName: string,
+  answers: Array<{ questionId: string; value: string }>,
+): Promise<RevealResponse> {
+  return httpClient.postJson<RevealResponse>("/api/v2/game/reveal", {
+    characterName,
+    answers,
+  });
+}
