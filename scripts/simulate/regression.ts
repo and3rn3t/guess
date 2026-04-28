@@ -24,6 +24,8 @@ import type { SimCharacter, SimQuestion, SimGameResult } from './engine.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const DATA_DIR = join(__dirname, 'data')
+/** Committed snapshot used in CI when the live-exported data/ dir is absent. */
+const CI_DATA_DIR = join(__dirname, 'ci-data')
 const BASELINE_PATH = join(__dirname, 'baseline.jsonl')
 
 // ── Thresholds ────────────────────────────────────────────────────────────────
@@ -89,15 +91,23 @@ function seededSample<T>(arr: T[], n: number, seed = 42): T[] {
 async function main(): Promise<void> {
   const updateBaseline = process.argv.includes('--update-baseline')
 
-  const charsPath = join(DATA_DIR, 'characters.json')
-  const questionsPath = join(DATA_DIR, 'questions.json')
+  // Prefer live-exported data (data/) over committed snapshot (ci-data/).
+  // Falls back to ci-data/ automatically in CI when the D1 export is unavailable.
+  const dataDir = existsSync(join(DATA_DIR, 'characters.json')) ? DATA_DIR : CI_DATA_DIR
+  const charsPath = join(dataDir, 'characters.json')
+  const questionsPath = join(dataDir, 'questions.json')
 
   if (!existsSync(charsPath) || !existsSync(questionsPath)) {
     console.error(
       '✗  Simulation data not found.\n' +
-      '   Run `pnpm simulate:export` first to generate characters.json and questions.json.'
+      '   Run `pnpm simulate:export` to generate data/characters.json and data/questions.json,\n' +
+      '   or commit scripts/simulate/ci-data/ as a fallback snapshot.'
     )
     process.exit(1)
+  }
+
+  if (dataDir === CI_DATA_DIR) {
+    console.log('  (using committed ci-data/ snapshot)')
   }
 
   const allChars = JSON.parse(readFileSync(charsPath, 'utf8')) as SimCharacter[]
