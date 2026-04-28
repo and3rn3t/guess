@@ -257,6 +257,103 @@ export function filterPossibleCharacters(
   })
 }
 
+// ── Server utilities ──────────────────────────────────────────────────────────
+
+/** Parse the denormalized attributes_json column into a typed attribute map.
+ *  Shared by game/start.ts and game/resume.ts. */
+export function parseAttrsJson(json: string): Record<string, boolean | null> {
+  try {
+    const raw = JSON.parse(json) as Record<string, number>
+    const result: Record<string, boolean | null> = {}
+    for (const [key, val] of Object.entries(raw)) {
+      if (val === 1) { result[key] = true }
+      else if (val === 0) { result[key] = false }
+      else { result[key] = null }
+    }
+    return result
+  } catch {
+    return {}
+  }
+}
+
+/** Shape of the adaptive runtime data loaded from KV + D1 each turn.
+ *  All fields are optional — fetch failures are non-fatal. */
+export interface AdaptiveData {
+  maybeRateMap: Record<string, number> | undefined
+  netGainMap: Record<string, number> | undefined
+  confusionDiscriminators: Record<string, string[]> | undefined
+  disputeMap: Record<string, Record<string, number>> | undefined
+}
+
+type DisputeRow = { character_id: string; attribute_key: string; confidence: number }
+
+/** Load runtime adaptive data in parallel — best-effort; failures degrade gracefully.
+ *  Called on every answer, skip, and reject-guess turn. */
+export async function loadAdaptiveData(
+  kv: KVNamespace,
+  db: D1Database | undefined
+): Promise<AdaptiveData> {
+  const [maybeRatesRaw, netGainsRaw, confusionRaw, disputeRows] = await Promise.allSettled([
+    kv.get('kv:attribute-maybe-rates', 'json') as Promise<Record<string, number> | null>,
+    kv.get('kv:attribute-net-gains', 'json') as Promise<Record<string, number> | null>,
+    kv.get('kv:confusion-discriminators', 'json') as Promise<Record<string, string[]> | null>,
+    db
+      ? db.prepare(`SELECT character_id, attribute_key, confidence FROM attribute_disputes WHERE status = 'open'`)
+           .all<DisputeRow>()
+           .then((r) => r.results)
+      : Promise.resolve([] as DisputeRow[]),
+  ])
+
+  const maybeRateMap = maybeRatesRaw.status === 'fulfilled' ? (maybeRatesRaw.value ?? undefined) : undefined
+  const netGainMap = netGainsRaw.status === 'fulfilled' ? (netGainsRaw.value ?? undefined) : undefined
+  const confusionDiscriminators = confusionRaw.status === 'fulfilled' ? (confusionRaw.value ?? undefined) : undefined
+
+  let disputeMap: Record<string, Record<string, number>> | undefined
+  if (disputeRows.status === 'fulfilled' && disputeRows.value.length > 0) {
+    disputeMap = {}
+    for (const row of disputeRows.value) {
+      disputeMap[row.character_id] ??= {}
+      disputeMap[row.character_id]![row.attribute_key] = row.confidence
+    }
+  }
+
+  return { maybeRateMap, netGainMap, confusionDiscriminators, disputeMap }
+}
+
+/** Return the session's pre-computed coverage map, or build it on-the-fly for
+ *  sessions created before the coverage map optimization. */
+export function getOrBuildCoverageMap(session: GameSession): Map<string, number> {
+  if (session.coverageMap) return session.coverageMap
+  const coverageMap = new Map<string, number>()
+  const charCount = session.characters.length
+  for (const q of session.questions) {
+    const known = session.characters.filter((c) => c.attributes[q.attribute] != null).length
+    coverageMap.set(q.attribute, known / charCount)
+  }
+  return coverageMap
+}
+
+/** Build the MCTSOptions object for selectBestQuestion from session context + adaptive data.
+ *  Pass extras for per-turn values (progress, pre-computed probs, recent question categories). */
+export function buildQuestionOptions(
+  session: GameSession,
+  scoring: ScoringOptions,
+  adaptive: AdaptiveData,
+  extras?: { progress?: number; probs?: Map<string, number>; recentCategories?: string[] }
+): MCTSOptions {
+  return {
+    progress: extras?.progress,
+    recentCategories: extras?.recentCategories,
+    scoring: { ...scoring, disputeMap: adaptive.disputeMap },
+    probs: extras?.probs,
+    mctsEndgameThreshold: session.difficulty === 'hard' ? 0.70 : undefined,
+    gameDifficulty: session.difficulty as 'easy' | 'medium' | 'hard',
+    maybeRateMap: adaptive.maybeRateMap,
+    netGainMap: adaptive.netGainMap,
+    confusionDiscriminators: adaptive.confusionDiscriminators,
+  }
+}
+
 // ── Session storage (split pool / mutable state) ──────────────────────────────
 // The immutable pool (characters + questions) is stored separately
 // so that each answer only rewrites the small mutable session.

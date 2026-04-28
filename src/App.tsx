@@ -312,10 +312,6 @@ function App() {
     handleServerSkip();
   };
 
-  const handleGiveUp = () => {
-    handleSurrender();
-  };
-
   // ========== SHARE HANDLERS ==========
   const getSharePayload = (): SharePayload | null => {
     if (!finalGuess) return null;
@@ -517,7 +513,7 @@ function App() {
               startGame={startGame}
               handleAnswer={handleAnswer}
               handleSkip={handleSkip}
-              handleGiveUp={handleGiveUp}
+              handleGiveUp={handleSurrender}
               handleCorrectGuess={handleCorrectGuess}
               handleIncorrectGuess={handleIncorrectGuess}
               handleRejectGuess={handleRejectGuess}

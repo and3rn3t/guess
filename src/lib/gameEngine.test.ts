@@ -8,7 +8,7 @@ import {
   getBestGuess,
   generateReasoning,
   detectContradictions,
-} from './gameEngine'
+} from '@guess/game-engine'
 import type { Character, Question, Answer } from './types'
 
 // --- Test fixtures ---

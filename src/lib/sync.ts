@@ -1,11 +1,8 @@
 import { KV_CHARACTERS_CACHE, KV_QUESTIONS_CACHE, SYNC_CACHE_TTL } from './constants'
 import { httpClient } from './http'
 import type { Character, CharacterCategory, Question, Difficulty } from './types'
-import { getUserId } from './utils'
 
 export type SyncStatus = 'synced' | 'pending' | 'error' | 'offline'
-
-export { getUserId }
 
 // ===== Characters =====
 
