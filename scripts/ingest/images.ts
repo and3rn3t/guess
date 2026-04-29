@@ -207,8 +207,17 @@ export async function processImages(opts: ProcessOpts = {}): Promise<void> {
   };
 
   function getLimiter(url: string): RateLimiter {
-    if (url.includes('anilist.co')) return limiters['anilist'];
-    if (url.includes('wikimedia.org') || url.includes('wikipedia.org')) return limiters['wikimedia'];
+    let host: string;
+    try {
+      host = new URL(url).hostname.toLowerCase();
+    } catch {
+      return limiters['default'];
+    }
+    if (host === 'anilist.co' || host.endsWith('.anilist.co')) return limiters['anilist'];
+    if (
+      host === 'wikimedia.org' || host.endsWith('.wikimedia.org') ||
+      host === 'wikipedia.org' || host.endsWith('.wikipedia.org')
+    ) return limiters['wikimedia'];
     return limiters['default'];
   }
 

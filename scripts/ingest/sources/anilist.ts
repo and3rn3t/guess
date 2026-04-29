@@ -100,6 +100,17 @@ async function fetchPage(page: number, perPage = 50): Promise<{ characters: AniL
   };
 }
 
+function stripTagsRepeatedly(input: string): string {
+  let prev = input;
+   
+  while (true) {
+    const next = prev.replaceAll(/<[^>]+>/g, '');
+    if (next === prev) break;
+    prev = next;
+  }
+  return prev;
+}
+
 function toRawCharacter(char: AniListCharacter, maxFavourites: number): RawCharacter {
   const name = char.name.full || char.name.native || `AniList-${char.id}`;
   const topMedia = char.media.nodes[0];
@@ -113,9 +124,11 @@ function toRawCharacter(char: AniListCharacter, maxFavourites: number): RawChara
     }
   }
 
-  // Clean AniList HTML description
+  // Clean AniList HTML description.
+  // Apply the tag-stripping regex repeatedly until stable so nested/overlapping
+  // tags can't survive a single pass. (CodeQL: js/incomplete-multi-character-sanitization)
   const cleanDesc = char.description
-    ? char.description.replace(/<[^>]+>/g, '').replace(/~!.*?!~/gs, '').trim()
+    ? stripTagsRepeatedly(char.description).replaceAll(/~!.*?!~/gs, '').trim()
     : null;
 
   return {

@@ -54,10 +54,21 @@ async function cvFetch<T>(resource: string, params: Record<string, string> = {})
   }, 3, 10_000);
 }
 
+function stripTagsRepeatedly(input: string): string {
+  let prev = input;
+   
+  while (true) {
+    const next = prev.replaceAll(/<[^>]+>/g, '');
+    if (next === prev) break;
+    prev = next;
+  }
+  return prev;
+}
+
 function toRawCharacter(char: CvCharacter, maxAppearances: number): RawCharacter {
-  // Clean HTML from description
+  // Clean HTML from description (CodeQL: js/incomplete-multi-character-sanitization)
   const cleanDesc = char.deck || (char.description
-    ? char.description.replace(/<[^>]+>/g, '').slice(0, 500)
+    ? stripTagsRepeatedly(char.description).slice(0, 500)
     : null);
 
   return {

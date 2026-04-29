@@ -716,14 +716,20 @@ function appendEnrichChangelog(entry: ChangelogEntry): void {
     `${entry.failed} | ${entry.promptTokens.toLocaleString()} | ` +
     `${entry.completionTokens.toLocaleString()} | $${entry.cost.toFixed(4)} | ${elapsed}s |\n`;
 
-  if (!existsSync(CHANGELOG_FILE)) {
-    const header =
-      `# Enrichment Run Log\n\n` +
-      `| Date (UTC) | Mode | Enriched | Failed | Prompt Tokens | Completion Tokens | Cost | Elapsed |\n` +
-      `|---|---|---|---|---|---|---|---|\n`;
-    writeFileSync(CHANGELOG_FILE, header + row);
-  } else {
+  // Use appendFileSync with try/create-on-ENOENT to avoid TOCTOU between
+  // existsSync and the subsequent write. (CodeQL: js/file-system-race)
+  try {
     appendFileSync(CHANGELOG_FILE, row);
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException).code === 'ENOENT') {
+      const header =
+        `# Enrichment Run Log\n\n` +
+        `| Date (UTC) | Mode | Enriched | Failed | Prompt Tokens | Completion Tokens | Cost | Elapsed |\n` +
+        `|---|---|---|---|---|---|---|---|\n`;
+      writeFileSync(CHANGELOG_FILE, header + row);
+    } else {
+      throw err;
+    }
   }
 }
 

@@ -31,9 +31,21 @@ export function getLlmHeaders(env: Env): Record<string, string> {
   return headers
 }
 
-/** Sanitize user input string — strip HTML tags and trim */
+/** Sanitize user input string — strip HTML tags and trim.
+ *
+ * Applies the tag-stripping regex repeatedly until the string is stable so that
+ * malformed/nested tags such as `<scr<script>ipt>` cannot survive a single pass.
+ * (CodeQL: js/incomplete-multi-character-sanitization)
+ */
 export function sanitizeString(input: string): string {
-  return input.replace(/<[^>]*>/g, '').trim()
+  let prev = input
+   
+  while (true) {
+    const next = prev.replaceAll(/<[^>]*>/g, '')
+    if (next === prev) break
+    prev = next
+  }
+  return prev.trim()
 }
 
 /** Validate that input is a non-empty string within length bounds */

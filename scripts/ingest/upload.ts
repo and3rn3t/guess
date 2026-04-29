@@ -6,7 +6,7 @@ import { getDb, closeDb } from './db.js';
 import { writeFileSync, mkdirSync, readFileSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
-import { execSync } from 'child_process';
+import { execFileSync } from 'child_process';
 import { formatElapsed } from './utils.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -93,7 +93,6 @@ export async function applyToD1(sqlFile: string, env: 'production' | 'preview' =
   const statements = fullSql.split('\n').filter(l => l.startsWith('INSERT'));
   const totalChunks = Math.ceil(statements.length / CHUNK_SIZE);
 
-  const remoteFlag = remote ? ' --remote' : '';
   console.log(`[Upload] Applying ${statements.length} INSERTs to D1 (env=${env}, remote=${remote}) in ${totalChunks} chunks...`);
 
   const chunkDir = join(PROJECT_ROOT, 'migrations', 'chunks');
@@ -108,8 +107,11 @@ export async function applyToD1(sqlFile: string, env: 'production' | 'preview' =
     console.log(`[Upload] Chunk ${chunkNum}/${totalChunks} (${chunk.length} statements)...`);
 
     try {
-      const cmd = `npx wrangler d1 execute GUESS_DB --env ${env}${remoteFlag} --file="${chunkFile}" --yes`;
-      execSync(cmd, {
+      // Use execFileSync with array args (no shell) so chunkFile / env can't be
+      // shell-injected. (CodeQL: js/indirect-command-line-injection)
+      const args = ['wrangler', 'd1', 'execute', 'GUESS_DB', '--env', env, `--file=${chunkFile}`, '--yes'];
+      if (remote) args.splice(6, 0, '--remote');
+      execFileSync('npx', args, {
         cwd: PROJECT_ROOT,
         stdio: 'pipe',
         timeout: 120_000,

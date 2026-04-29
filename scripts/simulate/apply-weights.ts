@@ -157,12 +157,18 @@ if (PHASE === '1') {
     process.exit(0)
   }
 
-  if (!existsSync(CONSTANTS_PATH)) {
-    console.error(`✗  constants.ts not found at ${CONSTANTS_PATH}`)
-    process.exit(1)
+  // Read directly and handle ENOENT — avoids TOCTOU between existsSync and
+  // readFileSync. (CodeQL: js/file-system-race)
+  let source: string
+  try {
+    source = readFileSync(CONSTANTS_PATH, 'utf8')
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException).code === 'ENOENT') {
+      console.error(`✗  constants.ts not found at ${CONSTANTS_PATH}`)
+      process.exit(1)
+    }
+    throw err
   }
-
-  let source = readFileSync(CONSTANTS_PATH, 'utf8')
   const patches: Record<string, number> = {}
   if (best.weights.match    !== PROD.match)      patches['SCORE_MATCH']     = best.weights.match!
   if (best.weights.mismatch !== PROD.mismatch)   patches['SCORE_MISMATCH']  = best.weights.mismatch!
@@ -264,12 +270,17 @@ if (PHASE === '2') {
 
   // Phase 2 patches the ?? fallback values in question-selection.ts
   const QS_PATH = join(__dirname, '..', '..', 'packages', 'game-engine', 'src', 'question-selection.ts')
-  if (!existsSync(QS_PATH)) {
-    console.error(`✗  question-selection.ts not found at ${QS_PATH}`)
-    process.exit(1)
+  // Read directly and handle ENOENT — avoids TOCTOU. (CodeQL: js/file-system-race)
+  let source: string
+  try {
+    source = readFileSync(QS_PATH, 'utf8')
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException).code === 'ENOENT') {
+      console.error(`✗  question-selection.ts not found at ${QS_PATH}`)
+      process.exit(1)
+    }
+    throw err
   }
-
-  let source = readFileSync(QS_PATH, 'utf8')
 
   // Each constant has a pattern like: ?? 0.75  or  ?? 2.0
   // We match against the field name in a nearby comment or the ?? expression.

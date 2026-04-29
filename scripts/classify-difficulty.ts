@@ -22,7 +22,7 @@
  *   ADMIN_SECRET     required for --apply
  */
 
-import { execSync } from 'child_process'
+import { execFileSync } from 'node:child_process'
 import Database from 'better-sqlite3'
 import * as fs from 'fs'
 import * as path from 'path'
@@ -50,9 +50,11 @@ const BATCH_SIZE = 30
 const CONCURRENCY = 3
 
 function d1Query(sql: string): unknown[] {
-  const escaped = sql.replace(/"/g, '\\"')
-  const out = execSync(
-    `npx wrangler d1 execute ${DB_NAME} --env ${ENV_FLAG} --remote --json --command "${escaped}"`,
+  // Use execFileSync with array args (no shell) to avoid command injection and
+  // brittle quoting. (CodeQL: js/indirect-command-line-injection, js/incomplete-sanitization)
+  const out = execFileSync(
+    'npx',
+    ['wrangler', 'd1', 'execute', DB_NAME, '--env', ENV_FLAG, '--remote', '--json', '--command', sql],
     { encoding: 'utf8', maxBuffer: 50 * 1024 * 1024 }
   )
   const parsed = JSON.parse(out) as Array<{ results: unknown[]; success: boolean }>

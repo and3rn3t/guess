@@ -10,7 +10,7 @@
  *   scripts/simulate/data/questions.json
  */
 
-import { execSync } from 'node:child_process'
+import { execFileSync } from 'node:child_process'
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -25,16 +25,20 @@ const envIdx = args.indexOf('--env')
 const env: string = envIdx !== -1 ? (args[envIdx + 1] ?? 'production') : 'production'
 
 const DB_NAME = env === 'production' ? 'guess-db' : 'guess-db-preview'
-const ENV_FLAG = env === 'production' ? '--env production' : '--env preview'
+const ENV_NAME = env === 'production' ? 'production' : 'preview'
 
 console.log(`Exporting from ${DB_NAME} (${env})...`)
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function d1Query(sql: string): unknown[] {
-  const escaped = sql.replace(/"/g, '\\"')
-  const cmd = `npx wrangler d1 execute ${DB_NAME} ${ENV_FLAG} --remote --command "${escaped}" --json`
-  const raw = execSync(cmd, { encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'], maxBuffer: 512 * 1024 * 1024 })
+  // Use execFileSync with array args (no shell) to avoid command injection and
+  // brittle quoting. (CodeQL: js/indirect-command-line-injection, js/incomplete-sanitization)
+  const raw = execFileSync(
+    'npx',
+    ['wrangler', 'd1', 'execute', DB_NAME, '--env', ENV_NAME, '--remote', '--command', sql, '--json'],
+    { encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'], maxBuffer: 512 * 1024 * 1024 }
+  )
   // wrangler returns an array of result sets; take the first results
   const parsed = JSON.parse(raw) as Array<{ results?: unknown[] }>
   return parsed[0]?.results ?? []

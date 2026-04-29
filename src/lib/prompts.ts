@@ -10,8 +10,17 @@ export const PROMPT_VERSION = "2026-04-A"
 
 /** Sanitize user-provided text before embedding in prompts */
 export function sanitizeForPrompt(input: string): string {
-  return input
-    .replaceAll(/<[^>]*>/g, '')  // strip HTML
+  // Repeatedly strip HTML-like tags until the string is stable so that
+  // overlapping/nested constructs (e.g. `<scr<script>ipt>`) cannot survive.
+  // (CodeQL: js/incomplete-multi-character-sanitization)
+  let stripped = input
+   
+  while (true) {
+    const next = stripped.replaceAll(/<[^>]*>/g, '')
+    if (next === stripped) break
+    stripped = next
+  }
+  return stripped
     .replaceAll('`', "'")        // replace backticks
     .replaceAll('\n', ' ')       // flatten newlines
     .trim()
