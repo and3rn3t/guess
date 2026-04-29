@@ -13,10 +13,13 @@ on:
       - "packages/game-engine/**"
       - "scripts/simulate/**"
       - "functions/api/**"
+  workflow_dispatch:
 
 concurrency:
   group: engine-regression-${{ github.ref }}
   cancel-in-progress: true
+
+permissions: {}
 
 jobs:
   regression:

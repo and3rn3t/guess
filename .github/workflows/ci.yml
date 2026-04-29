@@ -23,6 +23,11 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+permissions: {}
+
+env:
+  WRANGLER_VERSION: "4.83.0"
+
 jobs:
   # ── Detect which parts of the codebase changed ─────────────
   changes:
@@ -99,7 +104,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - uses: ./.github/actions/setup
-      - uses: actions/download-artifact@v8
+      - uses: actions/download-artifact@v4
         with:
           name: dist
           path: dist
@@ -113,9 +118,10 @@ jobs:
         if: steps.playwright-cache.outputs.cache-hit != 'true'
         run: npx playwright install chromium firefox
       - name: Install Playwright system dependencies
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
         run: npx playwright install-deps chromium firefox
       - run: npx playwright test
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@v4
         if: ${{ !cancelled() }}
         with:
           name: playwright-report
@@ -147,18 +153,18 @@ jobs:
       - name: Check named chunk budgets
         run: pnpm size
 
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@v4
         with:
           name: dist
           path: dist/
           retention-days: 3
 
-  # ── DB type drift check (DX.11) ────────────────────────────
-  db-drift:
+  # ── DB checks: type drift + migration idempotency ──────────
+  db-checks:
     needs: [changes]
     if: needs.changes.outputs.db == 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 8
     permissions:
       contents: read
     steps:
@@ -172,18 +178,6 @@ jobs:
             echo "::error::Generated DB types (functions/api/_db-types.ts) are out of sync with the schema. Run 'pnpm db:types' and commit the result."
             exit 1
           fi
-
-  # ── Migration idempotency check (DX.12) ───────────────────
-  migrate-validate:
-    needs: [changes]
-    if: needs.changes.outputs.db == 'true'
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    permissions:
-      contents: read
-    steps:
-      - uses: actions/checkout@v6
-      - uses: ./.github/actions/setup
       - name: Validate migration idempotency
         run: pnpm migrate:validate
 
@@ -206,9 +200,7 @@ jobs:
       name: preview
       url: ${{ steps.deploy.outputs.deployment-url }}
     steps:
-      - uses: actions/checkout@v6
-      - uses: ./.github/actions/setup
-      - uses: actions/download-artifact@v8
+      - uses: actions/download-artifact@v4
         with:
           name: dist
           path: dist
@@ -218,7 +210,7 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          wranglerVersion: "4.83.0"
+          wranglerVersion: ${{ env.WRANGLER_VERSION }}
           command: pages deploy dist --project-name=guess --branch=${{ github.head_ref }}
 
       - name: Smoke test
@@ -264,9 +256,7 @@ jobs:
       name: production
       url: https://guess.andernet.dev
     steps:
-      - uses: actions/checkout@v6
-      - uses: ./.github/actions/setup
-      - uses: actions/download-artifact@v8
+      - uses: actions/download-artifact@v4
         with:
           name: dist
           path: dist
@@ -275,15 +265,15 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          wranglerVersion: "4.83.0"
+          wranglerVersion: ${{ env.WRANGLER_VERSION }}
           command: pages deploy dist --project-name=guess
 
       - name: Smoke test
         run: |
-          URL="https://guess.andernet.dev"
-          echo "Smoke-testing $URL …"
+          BASE="https://guess.andernet.dev"
+          echo "Smoke-testing $BASE …"
           for i in 1 2 3 4 5; do
-            STATUS=$(curl -s -o /tmp/body -w '%{http_code}' "$URL")
+            STATUS=$(curl -s -o /tmp/body -w '%{http_code}' "$BASE")
             if [ "$STATUS" = "200" ]; then break; fi
             echo "  Attempt $i: HTTP $STATUS — retrying in 10s"
             sleep 10
@@ -298,6 +288,13 @@ jobs:
             echo "::error::Root element not found in response"
             exit 1
           fi
+          echo "Checking Worker API …"
+          API_STATUS=$(curl -s -o /dev/null -w '%{http_code}' "$BASE/api/v2/stats")
+          if [ "$API_STATUS" != "200" ]; then
+            echo "::error::Worker API check failed — HTTP $API_STATUS"
+            exit 1
+          fi
+          echo "✓ Worker API OK"
 
   # ── PR report (bundle stats + preview link) ─────────────────
   pr-report:
@@ -308,7 +305,7 @@ jobs:
     permissions:
       pull-requests: write
     steps:
-      - uses: actions/download-artifact@v8
+      - uses: actions/download-artifact@v4
         with:
           name: dist
           path: dist
@@ -392,6 +389,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     continue-on-error: true
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v6
       - uses: treosh/lighthouse-ci-action@v12
