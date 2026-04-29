@@ -7,9 +7,9 @@ AI-powered guessing game deployed on **Cloudflare Pages**. The AI asks strategic
 
 ## Tech Stack
 - **Cloudflare Pages** static site + Workers API
-- React 19 + TypeScript (strict null checks) + Vite 7
+- React 19 + TypeScript (strict null checks) + Vite 8
 - Tailwind CSS v4 + shadcn/ui (new-york style, `components.json`)
-- Framer Motion for animations
+- `motion/react` for animations (migrated from `framer-motion`)
 - Phosphor Icons (`@phosphor-icons/react`) for custom icons, Lucide for shadcn defaults
 - Recharts + D3 for data visualization
 
