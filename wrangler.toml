@@ -49,8 +49,13 @@ bucket_name = "guess-images"
 [env.preview]
 
 [env.preview.vars]
-# Uses same AI Gateway for preview — switch to a separate gateway if needed.
-CLOUDFLARE_AI_GATEWAY = "https://gateway.ai.cloudflare.com/v1/362c458c58efc6b65b7005148383403d/andernet-ai/openai/chat/completions"
+# Dedicated preview AI Gateway (BX.5/I.1) — keeps preview LLM calls out of
+# production cost dashboards and rate-limit buckets.
+# ACTION REQUIRED: create the `andernet-ai-preview` gateway in the Cloudflare
+# AI Gateway dashboard before first preview deploy. Until then this URL will
+# 404 and preview LLM calls will fail loudly (which is preferable to silently
+# polluting the prod gateway).
+CLOUDFLARE_AI_GATEWAY = "https://gateway.ai.cloudflare.com/v1/362c458c58efc6b65b7005148383403d/andernet-ai-preview/openai/chat/completions"
 
 [[env.preview.kv_namespaces]]
 binding = "GUESS_KV"

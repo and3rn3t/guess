@@ -38,6 +38,15 @@ export function useServerGame(dispatch: React.Dispatch<GameAction>) {
   const [serverMaxQuestions, setServerMaxQuestions] = useState(0);
   const [serverReadiness, setServerReadiness] =
     useState<GuessReadinessSnapshot | null>(null);
+  // Transient (non-fatal) error from the most recent server action.
+  // Surfaced as an inline alert with a retry button rather than tripping
+  // the React ErrorBoundary, which is reserved for unrecoverable errors.
+  const [lastError, setLastError] = useState<{
+    message: string;
+    action: 'answer' | 'skip';
+    payload?: AnswerValue;
+  } | null>(null);
+  const clearLastError = useCallback(() => setLastError(null), []);
   const resumeAttempted = useRef(false);
   const isSubmittingAnswer = useRef(false);
 
@@ -167,6 +176,7 @@ export function useServerGame(dispatch: React.Dispatch<GameAction>) {
     async (value: AnswerValue) => {
       if (isSubmittingAnswer.current) return;
       isSubmittingAnswer.current = true;
+      setLastError(null);
       dispatch({ type: "SET_THINKING", isThinking: true });
       try {
         const data = await submitAnswer(serverSessionId ?? "", value);
@@ -218,7 +228,10 @@ export function useServerGame(dispatch: React.Dispatch<GameAction>) {
         }
       } catch (err) {
         reportFetchError("/api/v2/game/answer", err);
-        toast.error("Failed to process answer — try again");
+        const message =
+          err instanceof Error ? err.message : "Failed to process answer";
+        setLastError({ message, action: "answer", payload: value });
+        toast.error("Failed to process answer — tap Retry below");
         dispatch({ type: "UNDO_LAST_ANSWER" });
       } finally {
         isSubmittingAnswer.current = false;
@@ -310,6 +323,7 @@ export function useServerGame(dispatch: React.Dispatch<GameAction>) {
 
   const handleServerSkip = useCallback(async () => {
     if (!serverSessionId) return;
+    setLastError(null);
     dispatch({ type: "SKIP_QUESTION" });
     try {
       const data = await skipQuestion(serverSessionId);
@@ -326,10 +340,20 @@ export function useServerGame(dispatch: React.Dispatch<GameAction>) {
       setServerRemainingSync(data.remaining ?? serverRemainingRef.current);
     } catch (err) {
       reportFetchError("/api/v2/game/skip", err);
-      toast.error("Failed to skip — try again");
+      const message = err instanceof Error ? err.message : "Failed to skip";
+      setLastError({ message, action: "skip" });
+      toast.error("Failed to skip — tap Retry below");
       dispatch({ type: "SET_THINKING", isThinking: false });
     }
   }, [dispatch, serverSessionId, setServerRemainingSync]);
+
+  const retryLastAction = useCallback(() => {
+    if (!lastError) return;
+    const { action, payload } = lastError;
+    setLastError(null);
+    if (action === "answer" && payload) void handleServerAnswer(payload);
+    else if (action === "skip") void handleServerSkip();
+  }, [lastError, handleServerAnswer, handleServerSkip]);
 
   return {
     serverSessionId,
@@ -344,5 +368,8 @@ export function useServerGame(dispatch: React.Dispatch<GameAction>) {
     postServerResult,
     rejectGuess,
     retryAfterReject,
+    lastError,
+    clearLastError,
+    retryLastAction,
   };
 }

@@ -18,6 +18,7 @@ const QuestionsRoute = lazy(() => import('./routes/QuestionsRoute'))
 const EnrichmentRoute = lazy(() => import('./routes/EnrichmentRoute'))
 const PipelineRoute = lazy(() => import('./routes/PipelineRoute'))
 const AnalyticsRoute = lazy(() => import('./routes/AnalyticsRoute'))
+const FunnelRoute = lazy(() => import('./routes/FunnelRoute'))
 const EnrichDashboardRoute = lazy(() => import('./routes/EnrichDashboardRoute'))
 const ProposedAttrsRoute = lazy(() => import('./routes/ProposedAttrsRoute'))
 const DisputesRoute = lazy(() => import('./routes/DisputesRoute'))
@@ -62,6 +63,7 @@ export function AdminApp(): React.JSX.Element {
             <Route path="enrichment" element={<RouteWrapper><EnrichmentRoute /></RouteWrapper>} />
             <Route path="pipeline" element={<RouteWrapper><PipelineRoute /></RouteWrapper>} />
             <Route path="analytics" element={<RouteWrapper><AnalyticsRoute /></RouteWrapper>} />
+            <Route path="funnel" element={<RouteWrapper><FunnelRoute /></RouteWrapper>} />
             <Route path="confusion" element={<RouteWrapper><ConfusionRoute /></RouteWrapper>} />
             <Route path="matrix" element={<RouteWrapper><MatrixRoute /></RouteWrapper>} />
             <Route path="stress-test" element={<RouteWrapper><StressTestRoute /></RouteWrapper>} />

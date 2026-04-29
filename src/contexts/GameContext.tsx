@@ -81,6 +81,11 @@ export interface GameContextValue {
   handleIncorrectGuess: () => void;
   handleRejectGuess: () => void;
   retryAfterReject: () => void;
+  // Transient (non-fatal) error from the most recent server action.
+  // Surfaced as an inline alert; null when the last action succeeded.
+  serverLastError: { message: string; action: 'answer' | 'skip' } | null;
+  clearServerError: () => void;
+  retryServerAction: () => void;
   handleShare: () => void | Promise<void>;
   handleCopyLink: () => void | Promise<void>;
   handleReveal: (name: string) => Promise<RevealResult>;

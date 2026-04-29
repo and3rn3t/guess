@@ -97,4 +97,43 @@ describe('convenience trackers', () => {
     const feature = events.find((e: { event: string }) => e.event === 'feature_use')
     expect(feature!.data).toEqual({ feature: 'teaching_mode' })
   })
+
+  it('trackQuestionSkip records question and pool state', async () => {
+    const { trackQuestionSkip } = await import('./analytics')
+    trackQuestionSkip({
+      questionId: 'q-42',
+      attribute: 'isHuman',
+      questionsAsked: 5,
+      candidatesRemaining: 17,
+    })
+
+    const events = JSON.parse(store['kv:analytics'])
+    const skip = events.find((e: { event: string }) => e.event === 'question_skip')
+    expect(skip).toBeDefined()
+    expect(skip!.data).toEqual({
+      questionId: 'q-42',
+      attribute: 'isHuman',
+      questionsAsked: 5,
+      candidatesRemaining: 17,
+    })
+  })
+
+  it('trackQuestionSkip omits attribute when not provided', async () => {
+    const { trackQuestionSkip } = await import('./analytics')
+    trackQuestionSkip({ questionId: 'q-1', questionsAsked: 1, candidatesRemaining: 100 })
+
+    const events = JSON.parse(store['kv:analytics'])
+    const skip = events.find((e: { event: string }) => e.event === 'question_skip')
+    expect(skip!.data).toEqual({ questionId: 'q-1', questionsAsked: 1, candidatesRemaining: 100 })
+    expect(skip!.data.attribute).toBeUndefined()
+  })
+
+  it('trackGameAbandon records reason, phase, and progress', async () => {
+    const { trackGameAbandon } = await import('./analytics')
+    trackGameAbandon({ reason: 'quit', questionsAsked: 3, phase: 'playing' })
+
+    const events = JSON.parse(store['kv:analytics'])
+    const abandon = events.find((e: { event: string }) => e.event === 'game_abandon')
+    expect(abandon!.data).toEqual({ reason: 'quit', questionsAsked: 3, phase: 'playing' })
+  })
 })

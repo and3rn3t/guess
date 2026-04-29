@@ -193,6 +193,11 @@
   animation: shimmer 1.8s ease-in-out infinite;
 }
 
+/* Stagger sibling skeleton rows so they pulse in sequence. */
+.skeleton-row-0 { animation-delay: 0s; }
+.skeleton-row-1 { animation-delay: 0.12s; }
+.skeleton-row-2 { animation-delay: 0.24s; }
+
 .animate-radial-burst {
   animation: radial-burst 1.4s ease-out infinite;
 }

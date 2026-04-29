@@ -5,6 +5,7 @@ import { AnswerStrip } from "@/components/AnswerStrip";
 import { ReasoningPanel } from "@/components/ReasoningPanel";
 import { PossibilityGrid } from "@/components/PossibilityGrid";
 import { PossibilitySpaceChart } from "@/components/PossibilitySpaceChart";
+import { InlineError } from "@/components/InlineError";
 import type { GameAction } from "@/hooks/useGameState";
 import type {
   Answer,
@@ -41,6 +42,9 @@ interface PlayingScreenProps {
   onRetry?: () => void;
   onSkip?: () => void;
   onGiveUp?: () => void;
+  inlineError?: { message: string; action: 'answer' | 'skip' } | null;
+  onClearInlineError?: () => void;
+  onRetryInlineError?: () => void;
 }
 
 function PlayingScreenBase({
@@ -64,6 +68,9 @@ function PlayingScreenBase({
   onRetry,
   onSkip,
   onGiveUp,
+  inlineError,
+  onClearInlineError,
+  onRetryInlineError,
 }: Readonly<PlayingScreenProps>) {
   const [isUndoing, setIsUndoing] = useState(false);
 
@@ -389,6 +396,14 @@ In 1-2 sentences, react in character to this answer and what it reveals. Be conc
               gamesPlayed={gamesPlayed}
             />
             <AnimatePresence mode="wait">
+              {inlineError && (
+                <InlineError
+                  key="inline-error"
+                  message={inlineError.message || 'Something went wrong — please retry.'}
+                  onRetry={onRetryInlineError}
+                  onDismiss={onClearInlineError}
+                />
+              )}
               {currentQuestion && (
                 <QuestionCard
                   question={currentQuestion}

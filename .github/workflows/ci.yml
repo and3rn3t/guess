@@ -180,6 +180,14 @@ jobs:
           fi
       - name: Validate migration idempotency
         run: pnpm migrate:validate
+      - name: D1 migration dry-run (preview)
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        # `--dry-run` parses each pending migration against the live preview
+        # schema without applying it — catches column drift, CHECK violations,
+        # and unparsable SQL before they ever reach a real apply. (DX.12)
+        run: pnpm migrate:dry-run:preview
 
   # ── Deploy preview (PRs) ────────────────────────────────────
   deploy-preview:

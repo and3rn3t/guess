@@ -143,6 +143,9 @@ function App() {
     postServerResult,
     rejectGuess,
     retryAfterReject,
+    lastError: serverLastError,
+    clearLastError: clearServerError,
+    retryLastAction: retryServerAction,
   } = useServerGame(dispatch);
   const { muted, toggle: toggleMute } = useSound();
   const [showQuitDialog, setShowQuitDialog] = useState(false);
@@ -225,6 +228,46 @@ function App() {
     await startServerGame(categories, difficulty);
   };
 
+  // ========== GLOBAL KEYBOARD SHORTCUTS ==========
+  // Esc: dismiss inline error / quit dialog / return from guessing → playing.
+  // R: restart a finished game from the gameOver screen.
+  // Letter shortcuts (Y/N/M/U/?) are handled within QuestionCard.
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement | null)?.tagName?.toLowerCase();
+      if (tag === "input" || tag === "textarea" || tag === "select") return;
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+
+      if (e.key === "Escape") {
+        if (serverLastError) {
+          clearServerError();
+          e.preventDefault();
+          return;
+        }
+        if (showQuitDialog) {
+          setShowQuitDialog(false);
+          e.preventDefault();
+          return;
+        }
+        if (gamePhase === "guessing") {
+          dispatch({ type: "REJECT_GUESS" });
+          e.preventDefault();
+        }
+        return;
+      }
+
+      if ((e.key === "r" || e.key === "R") && gamePhase === "gameOver") {
+        e.preventDefault();
+        void startGame();
+      }
+    };
+    globalThis.addEventListener("keydown", handler);
+    return () => globalThis.removeEventListener("keydown", handler);
+    // startGame is stable enough for our purposes; including it would re-bind
+    // the listener every render due to the closed-over async function identity.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gamePhase, serverLastError, showQuitDialog, clearServerError, dispatch]);
+
   // ========== ANSWER HANDLER ==========
   const handleAnswer = async (value: AnswerValue) => {
     dispatch({ type: "ANSWER", value });
@@ -268,9 +311,14 @@ function App() {
   };
 
   const handleSurrender = () => {
-    analytics().then((m) =>
-      m.trackGameEnd(false, difficulty, gameSteps.length, guessCount),
-    );
+    analytics().then((m) => {
+      m.trackGameEnd(false, difficulty, gameSteps.length, guessCount);
+      m.trackGameAbandon({
+        reason: "quit",
+        questionsAsked: gameSteps.length,
+        phase: gamePhase,
+      });
+    });
     postServerResult(false);
     refreshStats();
     setShowQuitDialog(false);
@@ -278,6 +326,16 @@ function App() {
   };
 
   const handleSkip = () => {
+    if (currentQuestion) {
+      analytics().then((m) =>
+        m.trackQuestionSkip({
+          questionId: currentQuestion.id,
+          attribute: currentQuestion.attribute,
+          questionsAsked: gameSteps.length,
+          candidatesRemaining: serverRemaining,
+        }),
+      );
+    }
     handleServerSkip();
   };
 
@@ -475,6 +533,9 @@ function App() {
                 handleIncorrectGuess,
                 handleRejectGuess,
                 retryAfterReject,
+                serverLastError,
+                clearServerError,
+                retryServerAction,
                 handleShare,
                 handleCopyLink,
                 handleReveal,

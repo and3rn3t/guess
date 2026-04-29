@@ -85,6 +85,9 @@ export function GamePhaseRouter() {
     handleIncorrectGuess,
     handleRejectGuess,
     retryAfterReject,
+    serverLastError,
+    clearServerError,
+    retryServerAction,
     handleShare,
     handleCopyLink,
     handleReveal,
@@ -188,6 +191,9 @@ export function GamePhaseRouter() {
             onRetry={retryAfterReject}
             onSkip={handleSkip}
             onGiveUp={handleGiveUp}
+            inlineError={serverLastError}
+            onClearInlineError={clearServerError}
+            onRetryInlineError={retryServerAction}
           />
           </motion.div>
         )}

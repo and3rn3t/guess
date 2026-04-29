@@ -98,6 +98,42 @@ export function trackFeatureUse(feature: string) {
 }
 
 /**
+ * Player skipped the current question (AN.1 funnel).
+ * `candidatesRemaining` is captured at skip time so we can correlate skip
+ * frequency with how narrowed the pool already was.
+ */
+export function trackQuestionSkip(args: {
+  questionId: string
+  attribute?: string
+  questionsAsked: number
+  candidatesRemaining: number
+}) {
+  const data: Record<string, string | number | boolean> = {
+    questionId: args.questionId,
+    questionsAsked: args.questionsAsked,
+    candidatesRemaining: args.candidatesRemaining,
+  }
+  if (args.attribute) data.attribute = args.attribute
+  trackEvent('question_skip', data)
+}
+
+/**
+ * Player abandoned a game in progress (AN.1 funnel).
+ * `reason` distinguishes an explicit quit from a forced reset/route-away.
+ */
+export function trackGameAbandon(args: {
+  reason: 'quit' | 'reset' | 'navigate'
+  questionsAsked: number
+  phase: string
+}) {
+  trackEvent('game_abandon', {
+    reason: args.reason,
+    questionsAsked: args.questionsAsked,
+    phase: args.phase,
+  })
+}
+
+/**
  * Record a server API error — endpoint, HTTP status (0 if network/abort),
  * and a short error code/message. Used by `useServerGame` to surface backend
  * issues without spamming the console.

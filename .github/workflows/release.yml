@@ -1,0 +1,44 @@
+name: Release
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - "docs/**"
+      - "**/*.md"
+      - ".github/workflows/!(release).yml"
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions: {}
+
+jobs:
+  release:
+    name: Version & tag
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          persist-credentials: true
+      - uses: ./.github/actions/setup
+      # Opens (or updates) a "Version Packages" PR consuming queued
+      # `.changeset/*.md` files. When that PR is merged, this same job
+      # tags + creates a GitHub release for the new version.
+      # Repo is private (no npm publish) — `publish` script is a no-op so
+      # the action only handles versioning + tagging.
+      - name: Create release PR or tag
+        uses: changesets/action@v1
+        with:
+          version: pnpm run version-packages
+          publish: pnpm run release
+          commit: "chore(release): version packages"
+          title: "chore(release): version packages"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
