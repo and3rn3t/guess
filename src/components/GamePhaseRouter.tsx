@@ -7,7 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useGameContext } from "@/contexts/GameContext";
 import { DEFAULT_CHARACTERS, DEFAULT_QUESTIONS } from "@/lib/database";
 import { AnimatePresence, motion } from "motion/react";
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useEffect, useRef } from "react";
 
 const TeachingMode = lazy(() =>
   import("@/components/TeachingMode").then((m) => ({ default: m.TeachingMode })),
@@ -108,8 +108,14 @@ export function GamePhaseRouter() {
     surrendered,
   } = game;
 
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    containerRef.current?.focus();
+  }, [gamePhase]);
+
   return (
-    <>
+    <div ref={containerRef} tabIndex={-1} className="outline-none">
       <AnimatePresence mode="wait">
         {gamePhase === "welcome" && (
           <WelcomeScreen
@@ -359,6 +365,6 @@ export function GamePhaseRouter() {
           </Suspense>
         </div>
       )}
-    </>
+    </div>
   );
 }

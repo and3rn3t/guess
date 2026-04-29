@@ -173,6 +173,20 @@ jobs:
             exit 1
           fi
 
+  # ── Migration idempotency check (DX.12) ───────────────────
+  migrate-validate:
+    needs: [changes]
+    if: needs.changes.outputs.db == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v6
+      - uses: ./.github/actions/setup
+      - name: Validate migration idempotency
+        run: pnpm migrate:validate
+
   # ── Deploy preview (PRs) ────────────────────────────────────
   deploy-preview:
     needs: [checks, build, test-e2e]
