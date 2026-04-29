@@ -8,6 +8,10 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+---
+
+## [1.5.0] — 2026-04-28
+
 ### Added
 
 - **Blur-to-reveal on GuessReveal (U.6)** — both character images in `GuessReveal` now animate from `blur(20–24px) scale(1.15)` to sharp over 1.5s using Framer Motion, paired with the existing spring-physics scale entrance
