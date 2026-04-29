@@ -8,7 +8,12 @@ import type { Answer, AnswerValue, Question } from '@/lib/types'
 
 vi.mock('@phosphor-icons/react', () => {
   const Icon = () => <span />
-  return { ClockCounterClockwiseIcon: Icon }
+  return {
+    ClockCounterClockwiseIcon: Icon,
+    CheckCircle: Icon,
+    XCircle: Icon,
+    Question: Icon,
+  }
 })
 
 vi.mock('@/components/CoachMark', () => ({ CoachMark: () => null }))

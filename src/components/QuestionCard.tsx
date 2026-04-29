@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
-import { motion } from 'motion/react'
+import { motion, useReducedMotion } from 'motion/react'
 import { CheckCircle, XCircle, Question as QuestionIcon, Keyboard } from '@phosphor-icons/react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -172,14 +172,6 @@ export function QuestionCard({
         >
           MAYBE
         </motion.span>
-        {/* MAYBE hint label */}
-        <motion.span
-          aria-hidden
-          className="absolute inset-x-0 top-4 z-20 pointer-events-none font-bold text-2xl text-amber-400 border-2 border-amber-400 rounded-lg px-3 py-1 mx-auto w-fit"
-          style={{ opacity: maybeLabelOpacity }}
-        >
-          MAYBE
-        </motion.span>
         {/* YES hint label */}
         <motion.span
           aria-hidden
@@ -214,7 +206,7 @@ export function QuestionCard({
               </h2>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="hidden lg:grid grid-cols-2 gap-3">
               {answerButtons.map(({ value, label, icon: Icon }, idx) => (
                 <motion.div key={value} whileTap={{ scale: 0.93 }} transition={{ type: 'spring', stiffness: 500, damping: 20 }}>
                   <Button
@@ -302,6 +294,7 @@ export function QuestionCard({
 }
 
 export function ThinkingCard() {
+  const shouldReduceMotion = useReducedMotion();
   return (
     <Card className="p-6 md:p-8 bg-linear-to-br from-card via-card/60 to-primary/5 backdrop-blur-md border-2 border-accent/40 shadow-xl">
       <div className="space-y-4 md:space-y-6">
@@ -320,8 +313,8 @@ export function ThinkingCard() {
             <motion.div
               key={i}
               className="aspect-square rounded-full bg-accent/25"
-              animate={{ opacity: [0.15, 0.9, 0.15], scale: [0.75, 1.1, 0.75] }}
-              transition={{
+              animate={shouldReduceMotion ? { opacity: 0.4, scale: 1 } : { opacity: [0.15, 0.9, 0.15], scale: [0.75, 1.1, 0.75] }}
+              transition={shouldReduceMotion ? {} : {
                 duration: 1.4,
                 repeat: Infinity,
                 delay: (i % 8) * 0.1 + Math.floor(i / 8) * 0.04,
@@ -333,18 +326,18 @@ export function ThinkingCard() {
         <div className="flex items-center justify-center gap-2 text-sm text-accent/70">
           <motion.div
             className="w-2 h-2 rounded-full bg-accent"
-            animate={{ opacity: [0.3, 1, 0.3] }}
-            transition={{ duration: 1, repeat: Infinity, delay: 0 }}
+            animate={shouldReduceMotion ? { opacity: 0.6 } : { opacity: [0.3, 1, 0.3] }}
+            transition={shouldReduceMotion ? {} : { duration: 1, repeat: Infinity, delay: 0 }}
           />
           <motion.div
             className="w-2 h-2 rounded-full bg-accent"
-            animate={{ opacity: [0.3, 1, 0.3] }}
-            transition={{ duration: 1, repeat: Infinity, delay: 0.2 }}
+            animate={shouldReduceMotion ? { opacity: 0.6 } : { opacity: [0.3, 1, 0.3] }}
+            transition={shouldReduceMotion ? {} : { duration: 1, repeat: Infinity, delay: 0.2 }}
           />
           <motion.div
             className="w-2 h-2 rounded-full bg-accent"
-            animate={{ opacity: [0.3, 1, 0.3] }}
-            transition={{ duration: 1, repeat: Infinity, delay: 0.4 }}
+            animate={shouldReduceMotion ? { opacity: 0.6 } : { opacity: [0.3, 1, 0.3] }}
+            transition={shouldReduceMotion ? {} : { duration: 1, repeat: Infinity, delay: 0.4 }}
           />
           <span className="ml-1">Analyzing possibilities...</span>
         </div>

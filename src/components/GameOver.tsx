@@ -18,6 +18,7 @@ import {
 } from "@phosphor-icons/react";
 import { motion } from "motion/react";
 import { useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
 
 interface RevealResult {
   found: boolean;
@@ -105,7 +106,12 @@ export function GameOver({
         /* fall through to clipboard */
       }
     }
-    await navigator.clipboard.writeText(emojiText);
+    try {
+      await navigator.clipboard.writeText(emojiText);
+      toast.success("Copied to clipboard!");
+    } catch {
+      toast.error("Could not copy to clipboard");
+    }
   };
 
   const handleRevealSubmit = async () => {
@@ -375,9 +381,17 @@ export function GameOver({
                       onChange={(e) => setRevealInput(e.target.value)}
                       placeholder="Character name…"
                       disabled={revealStatus === "loading"}
-                      className="h-9 text-sm"
+                      className="h-11 text-base"
                       maxLength={200}
                       autoComplete="off"
+                      inputMode="text"
+                      enterKeyHint="done"
+                      autoCapitalize="words"
+                      autoCorrect="on"
+                      onFocus={(e) => {
+                        const el = e.currentTarget;
+                        setTimeout(() => el.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 300);
+                      }}
                     />
                     <Button
                       type="submit"
@@ -478,7 +492,7 @@ export function GameOver({
 
           {/* Tertiary row */}
           {(onViewStats || onViewHistory || onNewGame) && (
-            <div className="flex gap-3 justify-center">
+            <div className="flex flex-wrap gap-3 justify-center">
               {onViewStats && (
                 <Button
                   onClick={onViewStats}

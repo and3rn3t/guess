@@ -18,6 +18,7 @@ vi.mock('motion/react', () => ({
   AnimatePresence: ({ children }: React.PropsWithChildren) => <>{children}</>,
   useMotionValue: () => ({ get: () => 0, set: vi.fn() }),
   useTransform: () => ({ get: () => 0 }),
+  useReducedMotion: () => false,
 }))
 
 vi.mock('@phosphor-icons/react', () => ({

@@ -106,7 +106,7 @@ function AppHeaderBase({
                   variant="outline"
                   size="sm"
                   aria-label="Statistics"
-                  className="flex items-center gap-2 bg-accent/10 hover:bg-accent/20 border-accent/30 touch-target"
+                  className="hidden lg:flex items-center gap-2 bg-accent/10 hover:bg-accent/20 border-accent/30 touch-target"
                 >
                   <ChartBarIcon size={20} />
                   <span className="hidden sm:inline" aria-hidden="true">Statistics</span>
@@ -118,7 +118,7 @@ function AppHeaderBase({
                   }}
                   variant="outline"
                   size="sm"
-                  className="flex items-center gap-2 touch-target"
+                  className="hidden lg:flex items-center gap-2 touch-target"
                 >
                   <ClockCounterClockwiseIcon size={20} />
                   <span className="hidden sm:inline">History</span>
@@ -130,7 +130,7 @@ function AppHeaderBase({
                   }}
                   variant="outline"
                   size="sm"
-                  className="flex items-center gap-2 touch-target"
+                  className="hidden lg:flex items-center gap-2 touch-target"
                 >
                   <UsersIcon size={20} />
                   <span className="hidden sm:inline">Compare</span>
@@ -152,7 +152,7 @@ function AppHeaderBase({
                     variant="outline"
                     size="sm"
                     aria-label="Install app"
-                    className="flex items-center gap-2 touch-target border-accent/30 text-accent hover:bg-accent/20"
+                    className="hidden lg:flex items-center gap-2 touch-target border-accent/30 text-accent hover:bg-accent/20"
                   >
                     <DeviceMobileIcon size={20} />
                     <span className="hidden sm:inline">Install</span>
@@ -162,7 +162,7 @@ function AppHeaderBase({
                   href="/admin"
                   aria-label="Admin panel"
                   title="Admin panel"
-                  className="inline-flex items-center justify-center h-8 w-8 rounded-md border border-border/50 text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors touch-target"
+                  className="hidden lg:inline-flex items-center justify-center h-8 w-8 rounded-md border border-border/50 text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors touch-target"
                 >
                   <GearSixIcon size={16} weight="duotone" />
                 </a>
@@ -211,7 +211,7 @@ function AppHeaderBase({
                     onClick={() => navigate(tab.phase)}
                     variant={gamePhase === tab.phase ? "default" : "outline"}
                     size="sm"
-                    className={`flex items-center gap-2 touch-target ${gamePhase === tab.phase ? "bg-accent text-accent-foreground" : ""}`}
+                    className={`hidden lg:flex items-center gap-2 touch-target ${gamePhase === tab.phase ? "bg-accent text-accent-foreground" : ""}`}
                   >
                     <tab.icon size={18} />
                     <span className="hidden sm:inline">{tab.label}</span>

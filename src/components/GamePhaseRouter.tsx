@@ -110,6 +110,26 @@ export function GamePhaseRouter() {
 
   const containerRef = useRef<HTMLDivElement>(null);
 
+  // Direction tracking for slide transitions (forward = right-to-left, back = left-to-right)
+  const PHASE_ORDER: Partial<Record<typeof gamePhase, number>> = {
+    welcome: 0, playing: 1, guessing: 2, gameOver: 3,
+  };
+  const prevPhaseRef = useRef<typeof gamePhase | null>(null);
+  const directionRef = useRef<1 | -1>(1);
+  if (prevPhaseRef.current !== null && prevPhaseRef.current !== gamePhase) {
+    const fromIdx = PHASE_ORDER[prevPhaseRef.current] ?? -1;
+    const toIdx = PHASE_ORDER[gamePhase] ?? -1;
+    if (fromIdx !== -1 && toIdx !== -1) {
+      directionRef.current = toIdx >= fromIdx ? 1 : -1;
+    }
+  }
+  prevPhaseRef.current = gamePhase;
+
+  const slideEase = [0.32, 0.72, 0, 1] as const;
+  const slideIn = { opacity: 0, x: directionRef.current * 56 };
+  const slideOut = { opacity: 0, x: directionRef.current * -56 };
+  const slideTrans = { duration: 0.3, ease: slideEase };
+
   useEffect(() => {
     containerRef.current?.focus();
   }, [gamePhase]);
@@ -118,6 +138,7 @@ export function GamePhaseRouter() {
     <div ref={containerRef} tabIndex={-1} className="outline-none">
       <AnimatePresence mode="wait">
         {gamePhase === "welcome" && (
+          <motion.div key="welcome" initial={slideIn} animate={{ opacity: 1, x: 0 }} exit={slideOut} transition={slideTrans}>
           <WelcomeScreen
             startGame={() => void startGame()}
             serverTotal={serverTotal}
@@ -141,9 +162,11 @@ export function GamePhaseRouter() {
             achievements={achievements}
             weeklyRecap={weeklyRecap}
           />
+          </motion.div>
         )}
 
         {gamePhase === "playing" && (
+          <motion.div key="playing" initial={slideIn} animate={{ opacity: 1, x: 0 }} exit={slideOut} transition={slideTrans}>
           <PlayingScreen
             answers={answers}
             maxQuestions={maxQuestions}
@@ -166,15 +189,16 @@ export function GamePhaseRouter() {
             onSkip={handleSkip}
             onGiveUp={handleGiveUp}
           />
+          </motion.div>
         )}
 
         {gamePhase === "guessing" && finalGuess && (
           <motion.div
             key="guessing"
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -12 }}
-            transition={{ duration: 0.25 }}
+            initial={slideIn}
+            animate={{ opacity: 1, x: 0 }}
+            exit={slideOut}
+            transition={slideTrans}
           >
             <div className="max-w-2xl mx-auto">
               <GuessReveal
@@ -192,10 +216,10 @@ export function GamePhaseRouter() {
         {gamePhase === "gameOver" && (
           <motion.div
             key="gameOver"
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -12 }}
-            transition={{ duration: 0.25 }}
+            initial={slideIn}
+            animate={{ opacity: 1, x: 0 }}
+            exit={slideOut}
+            transition={slideTrans}
           >
             <div className="max-w-2xl mx-auto">
               <GameOver

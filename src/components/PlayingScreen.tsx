@@ -1,6 +1,7 @@
 import { CoachMark } from "@/components/CoachMark";
 import { OnboardingOverlay } from "@/components/OnboardingOverlay";
 import { QuestionCard, ThinkingCard } from "@/components/QuestionCard";
+import { AnswerStrip } from "@/components/AnswerStrip";
 import { ReasoningPanel } from "@/components/ReasoningPanel";
 import { PossibilityGrid } from "@/components/PossibilityGrid";
 import { PossibilitySpaceChart } from "@/components/PossibilitySpaceChart";
@@ -224,14 +225,8 @@ In 1-2 sentences, react in character to this answer and what it reveals. Be conc
         : "I’m still narrowing down the strongest candidates before guessing.";
 
   return (
-    <motion.div
-      key="playing"
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -12 }}
-      transition={{ duration: 0.25 }}
-    >
-      <div className="max-w-7xl mx-auto space-y-4 lg:space-y-0">
+    <>
+      <div className="max-w-7xl mx-auto space-y-4 lg:space-y-0 pb-20 lg:pb-0">
         <AnimatePresence>
           {showOnboarding && (
             <OnboardingOverlay onComplete={() => setShowOnboarding(false)} />
@@ -425,21 +420,21 @@ In 1-2 sentences, react in character to this answer and what it reveals. Be conc
               )}
             </AnimatePresence>
             {currentQuestion && onSkip && (
-              <div className="text-center pt-1">
+              <div className="text-center pt-1 hidden lg:flex justify-center">
                 <button
                   onClick={onSkip}
                   data-testid="skip-btn"
-                  className="text-xs text-muted-foreground hover:text-foreground transition-colors underline-offset-2 hover:underline"
+                  className="min-h-[44px] px-3 inline-flex items-center text-xs text-muted-foreground hover:text-foreground transition-colors underline-offset-2 hover:underline"
                 >
                   Skip this question
                 </button>
               </div>
             )}
             {answers.length >= 5 && onGiveUp && (
-              <div className="text-center pt-2">
+              <div className="text-center pt-2 hidden lg:flex justify-center">
                 <button
                   onClick={onGiveUp}
-                  className="text-xs text-muted-foreground/60 hover:text-destructive transition-colors underline-offset-2 hover:underline"
+                  className="min-h-[44px] px-3 inline-flex items-center text-xs text-muted-foreground/60 hover:text-destructive transition-colors underline-offset-2 hover:underline"
                 >
                   Give up
                 </button>
@@ -469,7 +464,19 @@ In 1-2 sentences, react in character to this answer and what it reveals. Be conc
           </div>
         </div>
       </div>
-    </motion.div>
+
+      {/* Mobile answer strip — fixed at bottom thumb zone, hidden on lg+ */}
+      {currentQuestion && (
+        <AnswerStrip
+          onAnswer={handleAnswer}
+          isProcessing={isThinking}
+          showSkip={!!onSkip}
+          onSkip={onSkip}
+          showGiveUp={answers.length >= 5 && !!onGiveUp}
+          onGiveUp={onGiveUp}
+        />
+      )}
+    </>
   );
 }
 

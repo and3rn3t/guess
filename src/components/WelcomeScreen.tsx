@@ -23,7 +23,6 @@ import {
   TreeStructureIcon,
   WrenchIcon,
 } from "@phosphor-icons/react";
-import { motion } from "motion/react";
 
 interface WelcomeScreenProps {
   startGame: () => void;
@@ -80,13 +79,7 @@ export function WelcomeScreen({
           .reduce((sum, c) => sum + c.count, 0) ?? null;
 
   return (
-    <motion.div
-      key="welcome"
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -12 }}
-      transition={{ duration: 0.25 }}
-    >
+    <>
       <div className="max-w-2xl mx-auto space-y-6">
         {/* Hero */}
         <div className="text-center space-y-3">
@@ -184,7 +177,7 @@ export function WelcomeScreen({
                   )
                 }
                 aria-pressed={active}
-                className={`px-3 py-1 rounded-full text-xs font-medium border transition-all ${
+                className={`px-3 py-2 min-h-[44px] rounded-full text-xs font-medium border transition-all inline-flex items-center ${
                   active
                     ? "bg-accent text-accent-foreground border-accent shadow-sm"
                     : "bg-card/50 text-muted-foreground border-border/60 hover:border-accent/50 hover:text-foreground"
@@ -211,7 +204,7 @@ export function WelcomeScreen({
             onClick={() => navigate("describeYourself")}
             variant="ghost"
             size="sm"
-            className="text-muted-foreground hover:text-foreground text-xs"
+            className="text-muted-foreground hover:text-foreground text-xs touch-target"
           >
             Or: which character are <em>you</em>? →
           </Button>
@@ -337,6 +330,6 @@ export function WelcomeScreen({
           </div>
         )}
       </div>
-    </motion.div>
+    </>
   );
 }

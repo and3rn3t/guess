@@ -1,4 +1,5 @@
 import { AppHeader } from "@/components/AppHeader";
+import { BottomNav } from "@/components/BottomNav";
 import { ChallengeView } from "@/components/ChallengeView";
 import { GamePhaseRouter } from "@/components/GamePhaseRouter";
 import { GameContext } from "@/contexts/GameContext";
@@ -414,7 +415,7 @@ function App() {
           <main
             role="main"
             aria-label="Game content"
-            className="container mx-auto px-4 py-8 md:py-12"
+            className={`container mx-auto px-4 py-8 md:py-12 ${["welcome", "stats", "history", "compare"].includes(gamePhase) ? "pb-24 lg:pb-12" : ""}`}
           >
             <div className="sr-only" aria-live="polite" aria-atomic="true">
               {gamePhase === "playing" &&
@@ -483,6 +484,16 @@ function App() {
             >
               <GamePhaseRouter />
             </GameContext.Provider>
+            <BottomNav
+              gamePhase={gamePhase}
+              navigate={navigate}
+              muted={muted}
+              toggleMute={toggleMute}
+              theme={theme}
+              toggleTheme={toggleTheme}
+              canInstall={canInstall}
+              promptInstall={promptInstall}
+            />
           </main>
         </div>
       </div>

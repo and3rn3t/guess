@@ -7,7 +7,7 @@ import {
   Sparkle,
   XCircle,
 } from "@phosphor-icons/react";
-import { AnimatePresence, motion } from "motion/react";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useEffect, useMemo, useState } from "react";
 import { RadarChart, Radar, PolarGrid, PolarAngleAxis, ResponsiveContainer } from "recharts";
 
@@ -30,16 +30,25 @@ export function GuessReveal({
 }: Readonly<GuessRevealProps>) {
   const [stage, setStage] = useState<"analyzing" | "confidence" | "reveal">("analyzing");
   const [displayedName, setDisplayedName] = useState("");
+  const shouldReduceMotion = useReducedMotion();
 
   useEffect(() => {
+    if (shouldReduceMotion) {
+      setStage("reveal");
+      return;
+    }
     const t1 = setTimeout(() => setStage("confidence"), 1200);
     const t2 = setTimeout(() => setStage("reveal"), 2200);
     return () => { clearTimeout(t1); clearTimeout(t2); };
-  }, []);
+  }, [shouldReduceMotion]);
 
   // Typewriter reveal — letter by letter at ~80ms/char starting when reveal stage begins
   useEffect(() => {
     if (stage !== "reveal") return;
+    if (shouldReduceMotion) {
+      setDisplayedName(character.name);
+      return;
+    }
     setDisplayedName("");
     let i = 0;
     const interval = setInterval(() => {
@@ -48,7 +57,7 @@ export function GuessReveal({
       if (i >= character.name.length) clearInterval(interval);
     }, 80);
     return () => clearInterval(interval);
-  }, [stage, character.name]);
+  }, [stage, character.name, shouldReduceMotion]);
 
   // Build radar data from character attributes bucketed by group
   const radarData = useMemo(() => {
@@ -70,9 +79,9 @@ export function GuessReveal({
 
   return (
     <motion.div
-      initial={{ opacity: 0, scale: 0.8, rotateY: -15 }}
+      initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, scale: 0.8, rotateY: -15 }}
       animate={{ opacity: 1, scale: 1, rotateY: 0 }}
-      transition={{ duration: 0.5, type: "spring" }}
+      transition={{ duration: shouldReduceMotion ? 0.2 : 0.5, type: "spring" }}
     >
       <Card
         className="p-5 sm:p-8 bg-linear-to-br from-primary/20 to-accent/10 backdrop-blur-sm border-2 border-accent shadow-2xl focus:outline-none"
@@ -216,7 +225,7 @@ export function GuessReveal({
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ duration: 0.2, delay: 0.1 }}
-                  className="text-5xl md:text-6xl font-bold text-gradient-win min-h-[1.2em]"
+                  className="text-4xl md:text-5xl lg:text-6xl font-bold text-gradient-win min-h-[1.2em] break-words"
                   aria-label={character.name}
                 >
                   {displayedName}
