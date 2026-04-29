@@ -95,7 +95,7 @@ importers:
         version: 3.1038.0
       '@cloudflare/workers-types':
         specifier: ^4.20260426.1
-        version: 4.20260426.1
+        version: 4.20260429.1
       '@eslint/js':
         specifier: ^10.0.0
         version: 10.0.1(eslint@10.2.1(jiti@2.6.1))
@@ -194,7 +194,7 @@ importers:
         version: 4.1.5(@types/node@25.6.0)(@vitest/coverage-v8@4.1.5)(jsdom@29.1.0)(msw@2.13.6(@types/node@25.6.0)(typescript@6.0.3))(vite@8.0.10(@types/node@25.6.0)(esbuild@0.27.7)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.3))
       wrangler:
         specifier: ^4.86.0
-        version: 4.86.0(@cloudflare/workers-types@4.20260426.1)
+        version: 4.86.0(@cloudflare/workers-types@4.20260429.1)
 
   packages/game-engine:
     dependencies:
@@ -376,6 +376,7 @@ packages:
   '@aws-sdk/xml-builder@3.972.20':
     resolution: {integrity: sha512-MDcUfroaMAnDAHn29vN781t0wudR8zjfgg+r3s5otx8TJXFWg01NZB7HvHkBbOf7UUmKEwIZf5kHxiaVUgwjlQ==}
     engines: {node: '>=20.0.0'}
+    deprecated: 'upgrade to @aws-sdk/xml-builder@3.972.21+ to address a module compatibility issue: https://github.com/aws/aws-sdk-js-v3/issues/7967'
 
   '@aws/lambda-invoke-store@0.2.4':
     resolution: {integrity: sha512-iY8yvjE0y651BixKNPgmv1WrQc+GZ142sb0z4gYnChDDY2YqI4P/jsSopBWrKfAt7LOJAkOXt7rC/hms+WclQQ==}
@@ -503,8 +504,8 @@ packages:
     cpu: [x64]
     os: [win32]
 
-  '@cloudflare/workers-types@4.20260426.1':
-    resolution: {integrity: sha512-cBYeQaWwv/jFV8ualmwp6wIxmAf0rDe2DPPQwPbslKmPHqgv861YpAvm45r05K40QboZgxNQVIPgNkmtHqZeJQ==}
+  '@cloudflare/workers-types@4.20260429.1':
+    resolution: {integrity: sha512-WtwRki7i/RnkzXkJXhI9PmrmMpftpwDocRdeBQ29aHOOSCwV7nAlh163XRzjftnQGuW9nDEnu7Om+RJMn46N+Q==}
 
   '@cspotcode/source-map-support@0.8.1':
     resolution: {integrity: sha512-IchNf6dN4tHoMFIn/7OE8LWZ19Y6q/67Bmf6vnGREv8RSbBVb9LPJxEcnwrcwX6ixSvaiGoomAUvu4YSxXrVgw==}
@@ -5205,7 +5206,7 @@ snapshots:
   '@cloudflare/workerd-windows-64@1.20260426.1':
     optional: true
 
-  '@cloudflare/workers-types@4.20260426.1': {}
+  '@cloudflare/workers-types@4.20260429.1': {}
 
   '@cspotcode/source-map-support@0.8.1':
     dependencies:
@@ -9250,7 +9251,7 @@ snapshots:
       '@cloudflare/workerd-linux-arm64': 1.20260426.1
       '@cloudflare/workerd-windows-64': 1.20260426.1
 
-  wrangler@4.86.0(@cloudflare/workers-types@4.20260426.1):
+  wrangler@4.86.0(@cloudflare/workers-types@4.20260429.1):
     dependencies:
       '@cloudflare/kv-asset-handler': 0.4.2
       '@cloudflare/unenv-preset': 2.16.1(unenv@2.0.0-rc.24)(workerd@1.20260426.1)
@@ -9261,7 +9262,7 @@ snapshots:
       unenv: 2.0.0-rc.24
       workerd: 1.20260426.1
     optionalDependencies:
-      '@cloudflare/workers-types': 4.20260426.1
+      '@cloudflare/workers-types': 4.20260429.1
       fsevents: 2.3.3
     transitivePeerDependencies:
       - bufferutil
