@@ -33,13 +33,17 @@ export default defineConfig({
         'functions/api/v2/questions.ts',
         'functions/api/v2/stats.ts',
         // Admin-only LLM tools — require live AI API, not unit testable
-        'src/lib/attributeRecommender.ts',
-        'src/lib/categoryRecommender.ts',
-        'src/lib/dataCleanup.ts',
+        'src/lib/admin/attributeRecommender.ts',
+        'src/lib/admin/categoryRecommender.ts',
+        'src/lib/admin/dataCleanup.ts',
+        'src/lib/admin/adminApi.ts',
         // Browser-only APIs with no jest-dom equivalent
         'src/lib/sounds.ts',
+        'src/lib/view-transitions.ts',
         'src/hooks/use-mobile.ts',
         'src/hooks/useGlobalStats.ts',
+        'src/hooks/useSyncStatus.ts',
+        'src/hooks/useWakeLock.ts',
         // Complex game-lifecycle hook — covered by Playwright e2e
         'src/hooks/useGameState.ts',
         // Barrel re-exports and pure type declarations — no runtime logic
