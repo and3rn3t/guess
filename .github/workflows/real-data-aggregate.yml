@@ -1,0 +1,135 @@
+name: Real-game signal aggregation
+
+# Aggregates real-game telemetry from D1 into adaptive KV blobs that the
+# engine consumes at runtime (kv:attribute-trust, kv:character-popularity,
+# kv:question-empirical-gain) and into the character_confusions table.
+#
+# Mirrors .github/workflows/adaptive-data-refresh.yml but sources its data
+# from production D1 instead of simulation runs. Cloudflare Pages does not
+# support cron triggers natively, so this lives as a scheduled GitHub Action.
+
+on:
+  schedule:
+    # Daily at 00:15 UTC (15 min after the simulation refresh so we don't
+    # contend on the same wrangler API tokens).
+    - cron: '15 0 * * *'
+  workflow_dispatch:
+    inputs:
+      env:
+        description: 'Target environment'
+        required: true
+        default: 'production'
+        type: choice
+        options:
+          - production
+          - preview
+      days:
+        description: 'Aggregation window in days'
+        required: false
+        default: '30'
+
+permissions:
+  contents: read
+
+jobs:
+  aggregate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Aggregate real-game signals
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          ENV_FLAG="${{ github.event.inputs.env || 'production' }}"
+          DAYS="${{ github.event.inputs.days || '30' }}"
+          npx tsx scripts/aggregate-real-game-signals.ts --env "$ENV_FLAG" --days "$DAYS"
+
+      - name: Upload attribute-trust to KV
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          ENV_FLAG="${{ github.event.inputs.env || 'production' }}"
+          pnpm wrangler kv key put \
+            --binding GUESS_KV \
+            --path data/real/attribute-trust.json \
+            --env "$ENV_FLAG" \
+            --remote \
+            "kv:attribute-trust"
+
+      - name: Upload character-popularity to KV
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          ENV_FLAG="${{ github.event.inputs.env || 'production' }}"
+          pnpm wrangler kv key put \
+            --binding GUESS_KV \
+            --path data/real/character-popularity.json \
+            --env "$ENV_FLAG" \
+            --remote \
+            "kv:character-popularity"
+
+      - name: Upload question-empirical-gain to KV
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          ENV_FLAG="${{ github.event.inputs.env || 'production' }}"
+          pnpm wrangler kv key put \
+            --binding GUESS_KV \
+            --path data/real/question-empirical-gain.json \
+            --env "$ENV_FLAG" \
+            --remote \
+            "kv:question-empirical-gain"
+
+      - name: Apply character-confusions UPSERTs to D1
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          ENV_FLAG="${{ github.event.inputs.env || 'production' }}"
+          DB_NAME=$([ "$ENV_FLAG" = "production" ] && echo "guess-db" || echo "guess-db-preview")
+          if [ -s data/real/character-confusions.sql ] && ! grep -q '^-- no rows' data/real/character-confusions.sql; then
+            pnpm wrangler d1 execute "$DB_NAME" \
+              --env "$ENV_FLAG" \
+              --remote \
+              --file data/real/character-confusions.sql
+          else
+            echo "No confusion pairs in this window — skipping D1 upsert."
+          fi
+
+      - name: Print summary
+        run: |
+          echo "### Real-game signal refresh" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "| File | Size |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|------|------|" >> "$GITHUB_STEP_SUMMARY"
+          for f in attribute-trust character-popularity question-empirical-gain; do
+            if [ -f "data/real/${f}.json" ]; then
+              SIZE=$(wc -c < "data/real/${f}.json")
+              echo "| ${f}.json | ${SIZE} bytes |" >> "$GITHUB_STEP_SUMMARY"
+            fi
+          done
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "Uploaded to: \`kv:attribute-trust\`, \`kv:character-popularity\`, \`kv:question-empirical-gain\`" >> "$GITHUB_STEP_SUMMARY"
+          if [ -f data/real/character-confusions.sql ]; then
+            LINES=$(grep -c '^INSERT' data/real/character-confusions.sql || echo 0)
+            echo "Upserted **${LINES}** rows into \`character_confusions\`." >> "$GITHUB_STEP_SUMMARY"
+          fi

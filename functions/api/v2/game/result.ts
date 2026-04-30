@@ -58,8 +58,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     context.waitUntil(
       d1Run(
         db,
-        `INSERT INTO game_stats (user_id, won, difficulty, questions_asked, character_pool_size, character_id, character_name, steps, guesses_used, confidence_at_guess, entropy_at_guess, remaining_at_guess, answer_distribution, guess_trigger, forced_guess, gap_at_guess, alive_count_at_guess, questions_remaining_at_guess, created_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO game_stats (user_id, won, difficulty, questions_asked, character_pool_size, character_id, character_name, steps, guesses_used, confidence_at_guess, entropy_at_guess, remaining_at_guess, answer_distribution, guess_trigger, forced_guess, gap_at_guess, alive_count_at_guess, questions_remaining_at_guess, variant, selector, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           userId,
           correct ? 1 : 0,
@@ -81,6 +81,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
           session.guessAnalytics?.gap ?? null,
           session.guessAnalytics?.aliveCount ?? null,
           session.guessAnalytics?.questionsRemaining ?? null,
+          session.variant ?? 'control',
+          session.selector ?? 'mcts',
           Date.now(),
         ]
       ).catch(() => { /* non-critical */ })

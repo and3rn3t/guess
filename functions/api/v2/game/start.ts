@@ -27,6 +27,7 @@ import {
   DIFFICULTY_MAP,
 } from '../_game-engine'
 import { rephraseQuestionWithCache } from '../_llm-rephrase'
+import { assignVariant } from '../_ab'
 
 import type { CharactersRow, QuestionsRow } from '../../_db-types'
 
@@ -205,6 +206,13 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     getOrCreateUserId(context.request, context.env),
   ])
   if (rephrased) firstQuestion.displayText = rephrased
+
+  // A/B variant assignment — deterministic per (userId, day). Re-stores session
+  // with stamped variant + selector. Cheap (one extra KV put on a small lean blob).
+  const assignment = await assignVariant(kv, userId)
+  session.variant = assignment.variant
+  session.selector = assignment.selector
+  context.waitUntil(storeSession(kv, session))
 
   // D1 backup — fire-and-forget (game still works via KV if this fails)
   context.waitUntil(

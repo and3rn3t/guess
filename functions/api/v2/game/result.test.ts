@@ -151,6 +151,8 @@ describe('POST /api/v2/game/result', () => {
         0.41,
         2,
         4,
+        'control',
+        'mcts',
         expect.any(Number),
       ]
     )

@@ -50,10 +50,40 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     questionId: session.currentQuestion.attribute,
     value,
   }
+  const questionIndex = session.answers.length // 0-based index of this answer
+  const askedQuestion = session.currentQuestion
+  const candidatesBefore = filterPossibleCharacters(
+    session.characters,
+    session.answers,
+    session.rejectedGuesses
+  ).length
   session.answers.push(newAnswer)
 
   // Filter characters (hard elimination + rejected guesses)
   const filtered = filterPossibleCharacters(session.characters, session.answers, session.rejectedGuesses)
+
+  // Persist question_attempts row (fire-and-forget). Powers per-question empirical
+  // info-gain analytics (kv:question-empirical-gain) and per-question skip/maybe rates.
+  const dbForAttempt = context.env.GUESS_DB
+  if (dbForAttempt) {
+    context.waitUntil(
+      d1Run(
+        dbForAttempt,
+        `INSERT INTO question_attempts (session_id, question_id, attribute, answer, probability_delta, candidates_before, candidates_after, question_index, created_at)
+         VALUES (?, ?, ?, ?, NULL, ?, ?, ?, ?)`,
+        [
+          sessionId,
+          askedQuestion.id,
+          askedQuestion.attribute,
+          value,
+          candidatesBefore,
+          filtered.length,
+          questionIndex,
+          Date.now(),
+        ]
+      ).catch(() => { /* non-critical */ })
+    )
+  }
 
   const coverageMap = getOrBuildCoverageMap(session)
   const scoring = { coverageMap, popularityMap: session.popularityMap }
@@ -158,7 +188,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     .map((a) => session.questions.find((q) => q.attribute === a.questionId)?.category)
     .filter((c): c is string => c != null)
   const nextQuestion = selectBestQuestion(filtered, session.answers, session.questions,
-    buildQuestionOptions(session, scoring, adaptive, { progress, probs, recentCategories })
+    buildQuestionOptions(session, scoring, adaptive, { progress, probs, recentCategories }),
+    session.selector ?? 'mcts'
   )
 
   if (!nextQuestion) {
