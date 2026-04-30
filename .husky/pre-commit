@@ -1,1 +1,10 @@
 npx lint-staged
+
+# DX.17 — secret scanning. Block commits that contain credentials.
+# Skip silently when gitleaks isn't installed locally so contributors aren't blocked
+# from committing; CI is the hard gate.
+if command -v gitleaks >/dev/null 2>&1; then
+  gitleaks protect --staged --redact --no-banner
+else
+  echo "[pre-commit] gitleaks not installed — skipping secret scan. Install with 'brew install gitleaks' to enable." >&2
+fi
