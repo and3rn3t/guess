@@ -427,6 +427,32 @@ when the OpenAI secret is present and the PR is same-repo. Per-character
 mismatches and per-attribute agreement percentages are uploaded as a workflow
 artifact.
 
+### Schema Drift Detector (DQ.21)
+
+A network-free CI step that asserts the canonical attribute schema and every
+place that names attributes stays in lockstep. The harness lives at
+`scripts/schema-drift.ts` and is wired up at
+`.github/workflows/schema-drift.yml`.
+
+Source of truth: `data/enrich-cache/attribute_definitions.json` (mirror of the
+D1 `attribute_definitions` table). The detector validates:
+
+1. Schema shape — every entry has a camelCase `key`, non-empty `displayText`,
+   and `categories` is null, a JSON-encoded string array, or an array. Each
+   category string must be a member of the canonical `Category` union.
+2. No duplicate keys.
+3. Every `INSERT INTO attribute_definitions` row across `migrations/*.sql`
+   declares a key in the schema, and every schema key has at least one
+   migration declaring it.
+4. Every key in `data/data-quality-golden.json` `expected` blocks exists in
+   the schema (DQ.1).
+5. Every key in the `VISION_TARGET_ATTRS` literal of
+   `scripts/vision-validate.ts` exists in the schema (DQ.2).
+
+Run locally with `pnpm schema:check`. Exits non-zero with a per-error report
+on drift. The workflow triggers on PRs touching the schema cache, golden set,
+migrations, the vision script, the drift script itself, or the workflow file.
+
 ---
 
 ## LLM Pipeline

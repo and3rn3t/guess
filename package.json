@@ -52,6 +52,7 @@
     "vision:check": "tsx scripts/vision-validate.ts --check",
     "vision:cache-images": "tsx scripts/vision-validate.ts --cache-images",
     "vision:validate": "tsx scripts/vision-validate.ts",
+    "schema:check": "tsx scripts/schema-drift.ts",
     "simulate:export": "tsx scripts/simulate/export-data.ts",
     "simulate": "tsx scripts/simulate/run.ts",
     "simulate:grid": "tsx scripts/simulate/grid-search.ts",

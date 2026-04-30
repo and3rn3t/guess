@@ -1,0 +1,41 @@
+name: Schema Drift Detector (DQ.21)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "data/enrich-cache/attribute_definitions.json"
+      - "data/data-quality-golden.json"
+      - "migrations/**.sql"
+      - "scripts/vision-validate.ts"
+      - "scripts/schema-drift.ts"
+      - ".github/workflows/schema-drift.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "data/enrich-cache/attribute_definitions.json"
+      - "data/data-quality-golden.json"
+      - "migrations/**.sql"
+      - "scripts/vision-validate.ts"
+      - "scripts/schema-drift.ts"
+      - ".github/workflows/schema-drift.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: schema-drift-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions: {}
+
+jobs:
+  drift:
+    name: Detect schema drift
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+      - uses: ./.github/actions/setup
+      - name: Schema drift check
+        run: pnpm schema:check
