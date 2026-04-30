@@ -2,305 +2,530 @@
 
 > Portfolio project — the goal is a delightful, frictionless experience and a showcase of creative AI integration. Not monetized; not mass-scale. Every item here should make the game *more fun* or *less annoying*, not more complex.
 
-**Current version**: 1.4.0 — See [CHANGELOG.md](../CHANGELOG.md) for what's shipped.  
-**Archive**: The v1.4 roadmap (fully annotated with shipped items) is preserved at [docs/ROADMAP-archive-v1.4.md](ROADMAP-archive-v1.4.md).
+**Current version**: 1.5.0 — see [CHANGELOG.md](CHANGELOG.md) for what's shipped.
+
+**Companion docs**
+
+- [docs/ROADMAP-icebox.md](docs/ROADMAP-icebox.md) — long-tail explorations, pipe dreams, and moonshots (no timelines).
+- [docs/ROADMAP-archive-v1.5.md](docs/ROADMAP-archive-v1.5.md) — full prior roadmap snapshot before this cleanup.
+- [docs/ROADMAP-archive-v1.4.md](docs/ROADMAP-archive-v1.4.md) — earlier annotated archive.
 
 ---
 
 ## Contents
 
-- **Guiding Principles**
-- **Open Items in Flight** — carried from prior roadmap, not yet shipped
-- **Infrastructure** — Cloudflare platform features, reliability, observability
-- **Database** — new migrations, schema evolution, D1 improvements
-- **AI & LLM Layer** — remaining prompt and model work
-- **Gameplay Depth** — new mechanics (Phase 2)
-- **Social & Replayability** — sharing, community (Phase 3)
-- **Portfolio Polish** — showcase finishing touches (Phase 4)
-- **UI/UX** — interaction polish, onboarding, emerging interaction paradigms
-- **Modern Web Platform** — browser APIs, CSS features
-- **Developer Experience** — tooling and test gaps
-- **Admin Panel Pipe Dreams** — mission control extensions
-- **Enrichment Pipe Dreams** — data pipeline extensions
-- **Icebox** — good ideas, no rush
-- **Moonshots** — alternate futures; no timelines
-- **Decision Log**
+- [Roadmap](#roadmap)
+  - [Contents](#contents)
+  - [Guiding Principles](#guiding-principles)
+  - [How to use this roadmap](#how-to-use-this-roadmap)
+    - [Pick the next item](#pick-the-next-item)
+    - [Track status in-flight](#track-status-in-flight)
+    - [Definition of done (universal)](#definition-of-done-universal)
+    - [Where things live](#where-things-live)
+    - [Commit conventions for roadmap edits](#commit-conventions-for-roadmap-edits)
+  - [Data Quality (Priority One)](#data-quality-priority-one)
+    - [Continuous Validation Loop](#continuous-validation-loop)
+    - [Multi-Source Triangulation](#multi-source-triangulation)
+    - [Vision-Backed Visual Truth](#vision-backed-visual-truth)
+    - [Active Learning from Players](#active-learning-from-players)
+    - [Adversarial \& Constraint Hardening](#adversarial--constraint-hardening)
+    - [Catalog Curation Automation](#catalog-curation-automation)
+    - [Trust \& Transparency Surfaces](#trust--transparency-surfaces)
+  - [Now](#now)
+    - [In Progress / Up Next](#in-progress--up-next)
+    - [Wave 1 — Foundation (start here, ~1 week of focused work)](#wave-1--foundation-start-here-1-week-of-focused-work)
+    - [Wave 2 — Data Quality Foundation (priority one, ~2 weeks)](#wave-2--data-quality-foundation-priority-one-2-weeks)
+    - [Wave 3 — Operational Readiness (~1 week)](#wave-3--operational-readiness-1-week)
+    - [Wave 4 — Insight \& Refinement (~2 weeks)](#wave-4--insight--refinement-2-weeks)
+    - [Wave 5 — Polish, Sharing \& Depth (open-ended)](#wave-5--polish-sharing--depth-open-ended)
+    - [Cut line — actively considered, not yet scheduled](#cut-line--actively-considered-not-yet-scheduled)
+  - [Infrastructure](#infrastructure)
+    - [Near-Term (≤ 1 day each)](#near-term--1-day-each)
+    - [Medium-Term (1–3 days each)](#medium-term-13-days-each)
+  - [Database](#database)
+    - [Planned Migrations](#planned-migrations)
+    - [Schema Improvements](#schema-improvements)
+    - [Query Performance \& Maintenance](#query-performance--maintenance)
+  - [AI \& LLM Layer](#ai--llm-layer)
+  - [Gameplay Depth](#gameplay-depth)
+  - [Social \& Replayability](#social--replayability)
+  - [Portfolio Polish](#portfolio-polish)
+  - [Hardening \& Hygiene](#hardening--hygiene)
+    - [SEO \& Sharing](#seo--sharing)
+    - [Observability \& Operations](#observability--operations)
+    - [Resilience \& Safety](#resilience--safety)
+    - [Accessibility \& Inclusion](#accessibility--inclusion)
+  - [UI / UX](#ui--ux)
+    - [Near-Term Polish (1–2 days each)](#near-term-polish-12-days-each)
+    - [Medium-Term UX Projects (2–4 days each)](#medium-term-ux-projects-24-days-each)
+  - [Modern Web Platform](#modern-web-platform)
+    - [CSS \& Layout](#css--layout)
+    - [Browser APIs](#browser-apis)
+    - [Accessibility Gaps](#accessibility-gaps)
+  - [Developer Experience](#developer-experience)
+    - [Test, Lint \& Verification](#test-lint--verification)
+    - [Release \& Versioning](#release--versioning)
+    - [Developer Loop \& Tooling](#developer-loop--tooling)
+    - [Code Generation \& Type Safety](#code-generation--type-safety)
+    - [Visualization \& Insight](#visualization--insight)
+    - [Productivity \& Quality of Life](#productivity--quality-of-life)
+  - [Enrichment](#enrichment)
+    - [Near-Term Improvements](#near-term-improvements)
+    - [Medium-Term Architecture](#medium-term-architecture)
+    - [Pipeline Quality \& Observability](#pipeline-quality--observability)
+    - [Confidence, Provenance \& Self-Healing](#confidence-provenance--self-healing)
+    - [Catalog Discovery \& Expansion](#catalog-discovery--expansion)
+    - [Multimodal \& Vision](#multimodal--vision)
+    - [Pipeline Architecture](#pipeline-architecture)
+    - [Player-Facing Enrichment Surfaces](#player-facing-enrichment-surfaces)
+  - [Admin Panel](#admin-panel)
+    - [Polish \& Wiring Audit](#polish--wiring-audit)
+    - [Near-Term Analytics](#near-term-analytics)
+    - [Player-Behavior Insights](#player-behavior-insights)
+    - [Engine Self-Tuning Loops](#engine-self-tuning-loops)
+    - [Catalog \& Question Quality](#catalog--question-quality)
+    - [Operations \& Live Telemetry](#operations--live-telemetry)
+    - [Experimentation Platform](#experimentation-platform)
+  - [Decision Log](#decision-log)
 
 ---
 
 ## Guiding Principles
 
-- **Remove friction first** — if a player has to stop and think about the UI, something's wrong
-- **Reward curiosity** — surfacing the AI's reasoning is the core hook; lean into it
-- **Small, shippable slices** — each item should be completable in a weekend session
-- **Portfolio-quality polish** — the kind of detail that makes a recruiter say "whoa"
+- **Remove friction first** — if a player has to stop and think about the UI, something's wrong.
+- **Reward curiosity** — surfacing the AI's reasoning is the core hook; lean into it.
+- **Small, shippable slices** — each item should be completable in a weekend session.
+- **Portfolio-quality polish** — the kind of detail that makes a recruiter say "whoa".
 
 ---
 
-## Open Items in Flight
+## How to use this roadmap
 
-Items carried from the prior roadmap that are not yet shipped. Everything that shipped lives in [CHANGELOG.md](../CHANGELOG.md).
+This is a **living document** and the canonical source of truth for what's next. Read it; don't re-derive it. Future Copilot sessions and humans alike should follow this loop:
 
-| # | Item | Area | Effort |
-|---|------|------|--------|
-| BX.5 | **Separate AI Gateway for preview vs. prod** | Infra | Low |
-| B.4 | **Question deduplication via embeddings** | AI | Medium |
-| C.4 | **Adaptive question strategy** — `playerStyle` hint into prompt | AI | Medium |
-| C.6 | **Question quality scoring feedback loop** | AI | Medium |
-| C.8 | **Semantic character search in teaching mode** | AI | Medium |
-| EN.1 | **Live enrichment progress dashboard** (`/admin/enrich` SSE stream) | Admin | Medium |
-| AN.1 | **Question skip & frustration funnel** | Analytics | Low |
-| AN.3 | **Answer distribution dashboard** — "maybe" rate per question | Analytics | Medium |
-| AN.6 | **Attribute coverage heatmap** — % non-null per attribute | Analytics | Medium |
-| AN.7 | **Confusion matrix** — most-confused character pairs from `game_stats` | Analytics | Medium |
-| AN.8 | **Real-world calibration overlay** — real vs. simulator metrics side-by-side | Analytics | Medium |
-| DX.3 | **`@cloudflare/vitest-pool-workers`** for Workers handler tests | DX | Medium |
-| DX.4 | **MSW for API-dependent component tests** | DX | Medium |
-| DX.10 | **Automated CHANGELOG + release tagging** via changesets | DX | Low |
+### Pick the next item
+
+1. Start at the top of the [In Progress / Up Next](#in-progress--up-next) block in the [Now](#now) section. If something is `🟡 in progress`, finish it before pulling new work.
+2. Otherwise pull the topmost `⬜` row from the active wave. **Do not skip ahead** — waves are ordered so each unblocks the next. If you genuinely need to skip, record why in the Decision Log first.
+3. Wave 1 → Wave 2 → Wave 3 → Wave 4 → Wave 5. Wave 5 is unordered; pick by mood within a cluster.
+
+### Track status in-flight
+
+- When you start an item, change its `⬜` to `🟡` **and** add it to the [In Progress / Up Next](#in-progress--up-next) block. Same commit as the first code change.
+- When you ship it, change `🟡` to `✅ YYYY-MM-DD`, remove it from the In Progress block, and promote the next `⬜` into Up Next. Same commit as the merge / deploy.
+- If scope expands, splits, or moves between waves, add a one-line Decision Log row with the date and reason.
+
+### Definition of done (universal)
+
+An item is `✅` only when **all** of these are true:
+
+- [ ] Code shipped to `main` and deployed (or, for non-code items: artifact committed, doc merged, dashboard live).
+- [ ] `pnpm validate` passes locally (type-check + lint + test).
+- [ ] Both builds green: `pnpm build && pnpm build:worker`.
+- [ ] CHANGELOG.md updated under the next unreleased version (or current if patch).
+- [ ] Roadmap row updated to `✅ YYYY-MM-DD` in the same commit as the work.
+- [ ] Any new env var, binding, secret, or migration is documented in [ARCHITECTURE.md](ARCHITECTURE.md) (or the relevant doc) **and** mirrored in `wrangler.toml` / `.dev.vars.example`.
+
+### Where things live
+
+- **Active execution path** → [Now](#now) (the 5 waves). Pull from here.
+- **Reference catalog** → the themed sections below Now (Infrastructure, Database, AI & LLM, Hardening, DX, Enrichment, Admin, etc.). These hold the full description of every numbered item; the wave tables only carry the short rationale. Click an item ID (e.g. `DX.11`) and search the doc for it to get full context.
+- **Not scheduled / parked / wild ideas** → [docs/ROADMAP-icebox.md](docs/ROADMAP-icebox.md). Promote into a section here when an idea earns scheduling.
+- **Why we did or didn't do something** → [Decision Log](#decision-log). Append-only, most recent at bottom. One row per non-obvious choice.
+
+### Commit conventions for roadmap edits
+
+- Roadmap-only edits: `docs(roadmap): <verb> <what>` — e.g. `docs(roadmap): mark DX.11 in progress`, `docs(roadmap): ship I.1 ✅`.
+- When a code commit also flips a roadmap row, keep them in **the same commit** so status and reality never diverge.
+- Decision Log entries belong with the commit that triggered the decision, not in a separate cleanup pass.
+
+---
+
+## Data Quality (Priority One)
+
+The catalog is the foundation. Every other system — the engine, the question selector, the analytics, the UI — multiplies whatever quality (or lack thereof) lives in `characters` + `character_attributes`. A wrong `isHuman` flag on one popular character poisons hundreds of games. Sparse attributes silently shrink the engine's effective question set.
+
+Today's pipeline ships a single LLM pass with no cross-validation, no vision corroboration for visually obvious attributes, no logical constraint checking, and no continuous re-verification. Players are the first line of QA — that's backwards.
+
+**Goal:** every attribute in `character_attributes` should have a measurable confidence score, a citable evidence trail, and a self-healing path when it drifts. Sparse attributes should fill themselves in. Wrong attributes should surface within days, not months.
+
+The work is organized below into seven loops, each closing a specific hole in the data layer. The five flagged items in the [Now](#now) shortlist are the highest-leverage starting points.
+
+### Continuous Validation Loop
+
+| # | Item | Effort | Notes |
+|---|------|--------|-------|
+| <a id="dq-1"></a>**DQ.1** | **Golden character regression set + CI gate** | Medium | 50 hand-curated characters with verified attribute values committed to `data/data-quality-golden.json`. Every PR that touches enrichment code, prompt templates, or `attribute_definitions` runs the pipeline against the golden set; >3% deviation fails the build. The "ground truth that never moves" — without this, no other DQ improvement can be measured. Foundational for DQ.2–DQ.5. |
+| <a id="dq-6"></a>DQ.6 | **Nightly attribute reconciliation Cron** | Medium | Once daily, sample 50 random characters, re-fetch from all 5 source APIs (TMDb, AniList, IGDB, ComicVine, Wikidata), and compare to stored values. Flips logged to `attribute_drift` (per AN.26); confidence drops on conflicts; admin sees a "today's drift" widget. Catches upstream source changes (Wikidata edits, IGDB re-classifications) within 24h instead of never. |
+| <a id="dq-7"></a>DQ.7 | **Continuous quality dashboard** | Low | Single `/admin/data-quality` page: % of attributes filled per character, per-attribute coverage %, per-attribute agreement %, drift events last 7d, disputes open / resolved, golden-set pass rate trend. The "is the data getting better or worse over time?" view. One number rolls up everything: a `data_health_score` between 0–100. |
+| DQ.8 | **Per-attribute SLA & alerting** | Low | Each attribute gets a target coverage % (e.g. `isHuman: 100%`, `personality: 60%`). When coverage drops below SLA (new characters added without that attribute filled), an alert fires via AN.33 anomaly system. Coverage gaps stop being silent. |
+
+### Multi-Source Triangulation
+
+| # | Item | Effort | Notes |
+|---|------|--------|-------|
+| <a id="dq-3"></a>**DQ.3** | **Cross-source agreement scorecard per attribute** | Medium | For each (character, attribute) pair, compute agreement across the 5 source APIs + LLM. Store as `agreement_score REAL` on `character_attributes`. Score < 0.6 = contested → engine down-weights, admin queue surfaces, second LLM pass with explicit conflict context attempts resolution. Today, a single source can silently override consensus from four others. |
+| DQ.9 | **Source-strength weighting per attribute class** | Medium | Empirical study (one-time, 200-character sample): which source is most accurate for which attribute? TMDb wins on movie character ages; AniList on anime moralities; ComicVine on comic-character first-appearance years. Encode as `source_weights[attr_key][source]` in `enrich.ts`. Weighted vote replaces "first source wins." Pairs with EN.11; this is the data behind it. |
+| DQ.10 | **Wikidata SPARQL secondary cross-check** | Medium | For each character with a `wikidata_id`, run a SPARQL query asking for the same attributes via structured facts (P31 = instance of, P21 = sex/gender, P509 = cause of death, etc.). Compare to LLM extraction. SPARQL never hallucinates. Costs nothing (Wikidata is free). |
+| DQ.11 | **Disagreement triage queue** | Low | New `/admin/data-quality/conflicts` view: every open `agreement_score < 0.6` case, sorted by character popularity × attribute importance. One-click "accept majority", "accept minority + provide evidence", "mark genuinely ambiguous (lock value)". Replaces ad-hoc dispute review. |
+
+### Vision-Backed Visual Truth
+
+| # | Item | Effort | Notes |
+|---|------|--------|-------|
+| <a id="dq-2"></a>**DQ.2** | **Vision-derived visual attributes** | Medium | Pass each character's `thumb.webp` through a vision model (`@cf/llava-1.5-7b-hf` via Workers AI, or GPT-4o-mini vision). Extract: `hairColor`, `eyeColor`, `wearsGlasses`, `hasBeard`, `hasMustache`, `hasMask`, `isWearingHat`, `dominantOutfitColor`, `isHumanoid`, `hasAnimalFeatures`, approximate `apparentAgeRange`. These are visually obvious to humans and currently fabricated by text-only enrichment with high error rates. Vision model has zero-shot accuracy advantage; replaces a known-bad data source with a known-good one. **The single highest-impact DQ item.** Pairs with DQ.3 — vision becomes the tiebreaker source for visual attributes. |
+| DQ.12 | **Image-attribute consistency audit** | Medium | For every character, vision model re-evaluates whether the stored attribute matches the image. `hasGlasses: true` but no glasses visible? Surface in admin as either (a) wrong attribute or (b) wrong image. The "your image and your data disagree" finder. Low-frequency Cron — runs through full catalog over a month. |
+| DQ.13 | **Multi-image vision consensus** | Medium | When multiple source URLs exist for a character (TMDb, IGDB, ComicVine all return images), run vision on each independently and majority-vote. Eliminates "the one weird picture where they're not wearing their costume" as a data source. |
+| DQ.14 | **Style-of-art classifier** | Low | Vision model tags each image: `live_action | 3d_animation | 2d_animation | comic_art | game_render | photo`. Stored on`characters.image_style`. Powers grid filters, future "guess the medium" game modes, and a quality signal (mismatched art styles in the catalog look bad). |
+
+### Active Learning from Players
+
+| # | Item | Effort | Notes |
+|---|------|--------|-------|
+| <a id="dq-5"></a>**DQ.5** | **Player-answer corroboration loop** | Medium | Every time a player answers a question during a real game, that answer is a (weak) human label. After N=20 player answers per (character, attribute) pair, compare aggregate to stored value; >70% disagreement auto-files an `attribute_disputes` row. Players become a continuous QA workforce — for free. Builds on existing `question_attempts` (migration 0032). Closes the loop AN.26 / EN.9 open. |
+| DQ.15 | **One-tap "report wrong attribute" affordance** | Low | After every game, a tiny "🚩 something wrong about this character?" link surfaces a 3-tap form: which attribute, what should it be, optional 1-line reason. Submissions hit `attribute_disputes`. Currently the only feedback channel is a GitHub issue. Pairs with H.14 privacy controls (anonymous user_id is enough). |
+| DQ.16 | **Reputation-weighted player labels** | Medium | Players whose corrections (DQ.15) consistently get accepted get higher weight; serial false-flaggers get muted. `user_reputation(user_id, accepted_count, rejected_count, score)`. Same player_id cookie that already powers stats. Gamification follow-on: "data steward" badge. |
+| DQ.17 | **Implicit corrections from game outcomes** | Medium | When the engine guesses wrong because a single attribute was pivotal, log the (attribute, character, expected_answer, observed_answer) into `implicit_corrections`. After 10 implicit corrections in agreement, auto-update the stored value and credit the contributing players. Catches errors no one explicitly reports. |
+
+### Adversarial & Constraint Hardening
+
+| # | Item | Effort | Notes |
+|---|------|--------|-------|
+| <a id="dq-4"></a>**DQ.4** | **Logical-constraint validator + auto-repair pass** | Medium | Define a constraints DSL (`isHuman ∧ isAlien = false`, `isVillain ∨ isHero ∨ isAntiHero ∨ isNeutral = true`, `hasMagic ⇒ ¬isHuman ∨ isMythical`, `firstAppearedYear ≤ currentYear`). Validator runs on every enrichment write; violations trigger a second constrained LLM pass that must satisfy the constraint or escalate to dispute. Catches contradictions the model emits with high confidence. Constraints in `data/attribute-constraints.yaml`. |
+| DQ.18 | **Adversarial enrichment pass (skeptic model)** | Medium | Second pass with a different model family (current pass = GPT-4o-mini → skeptic = Claude Haiku, or vice versa) sees the first pass's output and is prompted: "The previous model claimed X about <character>. Identify weaknesses in this claim before agreeing or disagreeing." Disagreements file disputes. Diversity of failure modes catches what self-consistency can't. |
+| DQ.19 | **Counter-factual probe set** | Medium | For each character, a small set of edge-case probes: "If <character> were stripped of their powers, would they still be `isHero`?" "Without the suit, is <Iron Man> still `isHumanoid`?" Tests robustness rather than facts. Catches over-fit attribute extraction (model labels everyone with a cape `isHero: true`). 5-question probe per character; flags inconsistent reasoning. |
+| DQ.20 | **Chain-of-verification (CoVe) prompt template** | Low | Replace single-shot extraction with the [Chain-of-Verification](https://arxiv.org/abs/2309.11495) pattern: model drafts → model generates verification questions for its own draft → model answers verification questions independently → model revises draft. Roughly 2.5× tokens, but published to reduce hallucination ~40% on factual tasks. A/B against DQ.1 golden set; ship if delta is real. |
+| <a id="dq-21"></a>DQ.21 | **Schema drift detector (constraints + prompt)** | Low | CI step compares `attribute_definitions` table against the prompt template + constraint DSL. Fails if the prompt asks for attributes not in DB, the constraints reference missing attributes, or the DB has attributes neither prompted nor constrained. Eliminates the "added an attribute, forgot half the pipeline" failure mode. |
+
+### Catalog Curation Automation
+
+| # | Item | Effort | Notes |
+|---|------|--------|-------|
+| <a id="dq-22"></a>DQ.22 | **Sparse-attribute auto-fill Cron** | Medium | Nightly, find the top-N (character, attribute) pairs where attribute is NULL and character is popular. Re-run enrichment scoped to just those gaps. The catalog gets denser without anyone running a script. Pairs with EN.7 schema drift detector — when a new attribute is added, this fills it across the catalog automatically. |
+| DQ.23 | **Duplicate character detector** | Medium | Embed character name + brief description via `@cf/baai/bge-base-en-v1.5`; cosine similarity > 0.92 = likely duplicate. Surfaces in admin as merge candidates ("Spider-Man" vs "Peter Parker", "Mr. Robot" vs "Elliot Alderson"). Catches dupes that exact-string matching misses. |
+| DQ.24 | **Stale character detection** | Low | Cron flags characters where source APIs return 404 / null for ≥3 consecutive checks. Stored as `characters.upstream_status`. Admin reviews — usually means wrong source ID or upstream removal. Currently fails silently. |
+| DQ.25 | **Catalog gap analysis vs. cultural lists** | Low | Cron compares catalog against IMDb Top 250 lead characters, IGN Top 100 video game characters, MyAnimeList top 100, Wikipedia "List of fictional X" pages. Generates `data/catalog-gaps-YYYY-MM.md` weekly. The "obvious omissions" report. Same engine as EN.16. |
+| DQ.26 | **Era / decade balance audit** | Low | Distribution of characters by `firstAppearedYear`. If 80% of catalog is post-2000, surfaces in admin as a balance warning. Drives intentional curation decisions. |
+
+### Trust & Transparency Surfaces
+
+| # | Item | Effort | Notes |
+|---|------|--------|-------|
+| DQ.27 | **Public data quality page** | Low | `/about/data-quality` shows live: catalog size, attribute coverage %, golden-set pass rate, median time to resolve disputes, last reconciliation Cron run, total player corrections accepted. Holds the project publicly accountable to its own quality standards — and is a strong portfolio proof point ("this isn't a demo, it's measured"). |
+| <a id="dq-28"></a>DQ.28 | **Per-attribute evidence trail** | Medium | Extend `character_attributes` (migration 0037 adds `source` + `updated_at`; this completes the picture) with `evidence TEXT`: the exact source quote or URL the model cited. Click an attribute in admin → see "Wikipedia paragraph 3 of 'Frodo Baggins': ‹quoted text›". Removes "trust the model" from the data layer. Prerequisite for DQ.4 explainable disputes. |
+| DQ.29 | **Confidence visible in admin tables** | Low | Every attribute cell in admin tables renders with a small confidence badge (green ≥0.9, amber 0.6–0.9, red <0.6). One-glance "what's well-known vs what's a coin flip" view. Sorting by confidence reveals where to focus manual curation. |
+| DQ.30 | **Show your work to players (optional)** | Low | "Nerd mode" toggle in player settings. When on, the reasoning panel includes attribute confidences ("I think they're human because: 4 sources agree, vision confirmed, confidence 0.97") instead of just the value. Educates players on what's underneath the game and builds trust in the tech. |
+
+---
+
+## Now
+
+The active execution plan, sequenced by **priority × ease**. Pull items top-down — each wave's foundation unblocks the next. Items below the cut line are tracked in their owning sections but aren't ready to start (blocked, lower leverage, or out of scope for the current focus).
+
+**Effort key:** **S** ≤ ½ day · **M** ½–2 days · **L** 2–5 days
+
+**Status key:** ⬜ not started · 🟡 in progress · ✅ shipped (with date)
+
+### In Progress / Up Next
+
+> **Maintain this block first.** It's the single answer to "what should I work on?" — agents and humans check it before scanning tables. Update in the same commit as the work it describes.
+
+- 🟡 **In progress:** *none*
+- ▶ **Up next:** Wave 1 #1 — **[I.1](#i-1)** Separate AI Gateway for preview vs. prod (S)
+- 🧫 **Blocked / waiting on:** _none_
+- 🎯 **Current wave focus:** Wave 1 — Foundation (10 items, all S, ~1 week)
+- ✅ **Recently shipped:** [DX.42](#dx-42) AGENTS.md (2026-04-30)
+
+### Wave 1 — Foundation (start here, ~1 week of focused work)
+
+Quick wins that unblock everything else, cost almost nothing, and make the rest of the work measurable. Do these in order.
+
+| Status | Order | # | Item | Effort | Why first | Done when |
+|---|---|---|------|--------|-----------|-----------|
+| ⬜ | 1 | [I.1](#i-1) | Separate AI Gateway for preview vs. prod | S | Today, preview LLM calls pollute prod cost dashboards. Fix before any other LLM work — every cost number after this becomes trustworthy. | Production AI Gateway dashboard shows zero preview-environment requests over a 24h window. |
+| ⬜ | 2 | [DX.11](#dx-11) | `pnpm validate` pre-push git hook | S | `lint-staged.config.mjs` already exists. 30 min to wire `simple-git-hooks`. Catches every type/lint regression before it leaves your laptop. | `git push` aborts on a fresh `pnpm validate` failure; passes silently when clean. |
+| ⬜ | 3 | [DX.17](#dx-17) | Pre-commit secret scanning (`gitleaks`) | S | Same hook as DX.11. Costs minutes, prevents catastrophic leaks. | Committing a fake AWS key locally is blocked; clean commits unaffected. |
+| ⬜ | 4 | [DX.12](#dx-12) | D1 migration dry-run in CI | S | One step in `.github/workflows/ci.yml`. Catches migration regressions for free. | CI fails when a malformed migration is added to a PR; passes for valid ones. |
+| ⬜ | 5 | [H.3](#h-3) | Cron Worker entry (`functions/cron/index.ts`) | S | Prerequisite for migrations 0036–0039 and most DQ Cron items. Three lines in `wrangler.toml` + a stub `scheduled()` handler. Unblocks DQ.6, DQ.22, EN.13. | `wrangler tail` shows the cron handler firing on its schedule. |
+| ⬜ | 6 | [H.4](#h-4) | Source map upload | S | Without this, every `error_logs` row is unreadable minified gibberish. Fix before any production debugging session. | A thrown error in prod surfaces with original file/line in `error_logs`. |
+| ⬜ | 7 | [I.8](#i-8) | Workers Smart Placement | S | Three lines in `wrangler.toml`. 50–200ms latency win for non-US players. Zero risk. | Smart Placement enabled in `wrangler.toml`; CF dashboard confirms placement decisions. |
+| ⬜ | 8 | [I.9](#i-9) | AI Gateway semantic caching | S | Toggle in CF dashboard. 20–40% LLM cost cut for question generation. Zero code. | AI Gateway dashboard shows ≥20% cache hit rate over a rolling 7-day window. |
+| ⬜ | 9 | [H.1](#h-1) | OG + Twitter card image and meta | S | One PNG + 6 meta tags. Required for any sharing surface (Wave 4). | Pasting the prod URL into Twitter/Slack/iMessage renders the OG card preview. |
+| ⬜ | 10 | [H.2](#h-2) | `robots.txt` + `sitemap.xml` | S | Two static files. Stops search engines from indexing `/admin`. | `curl /robots.txt` and `/sitemap.xml` return valid content; Google Search Console accepts the sitemap. |
+
+### Wave 2 — Data Quality Foundation (priority one, ~2 weeks)
+
+Catalog quality multiplies through every downstream system. Wave 2 is non-negotiable before Wave 3 — analytics on bad data is theater.
+
+| Status | Order | # | Item | Effort | Why this order | Done when |
+|---|---|---|------|--------|----------------|-----------|
+| ⬜ | 11 | [**DQ.1**](#dq-1) | Golden character regression set + CI gate | M | Ground truth that nothing else can be measured without. 50 hand-curated characters, committed JSON, CI step. Foundational for DQ.2–DQ.5. | `data/data-quality-golden.json` exists with 50 characters; CI step blocks any PR that regresses >3% vs. the golden set. |
+| ⬜ | 12 | [**DQ.2**](#dq-2) | Vision-derived visual attributes | M | **Single highest-impact DQ item.** Replaces fabricated `hairColor`/`wearsGlasses`/etc. with vision-model truth. Measurable against the golden set built in step 11. | Vision pass writes `hairColor`/`wearsGlasses`/etc. for top 100 characters; agreement vs. golden set ≥90%. |
+| ⬜ | 13 | [DQ.21](#dq-21) | Schema drift detector | S | Cheap CI step; ensures the prompt template, constraints, and `attribute_definitions` table never diverge. Pairs with EN.7. | CI fails a PR that adds an attribute to the prompt without a matching constraint or DB row (and vice versa). |
+| ⬜ | 14 | [DQ.28](#dq-28) | Per-attribute evidence trail | M | Adds `evidence TEXT` to `character_attributes`. Every later DQ item ("why is this disputed?") needs the citation. | Every new attribute write includes a non-empty `evidence` field; admin row click renders the cited quote. |
+| ⬜ | 15 | [**DQ.3**](#dq-3) | Cross-source agreement scorecard | M | Stores `agreement_score REAL`. The numerical input that powers DQ.4 dispute prioritization, DQ.11 triage queue, and engine confidence weighting. | `agreement_score` populated on every `character_attributes` row; admin tables sortable by it. |
+| ⬜ | 16 | [**DQ.4**](#dq-4) | Logical-constraint validator + auto-repair | M | Catches contradictions the model emits with high confidence. Constraints live in `data/attribute-constraints.yaml`. | Constraints YAML enforced on every enrichment write; violations either auto-repaired or filed as disputes. |
+| ⬜ | 17 | [DQ.7](#dq-7) | Continuous quality dashboard (`/admin/data-quality`) | S | The "is the data getting better or worse?" view. Required to make DQ work visible. Rolls up into a single `data_health_score`. | `/admin/data-quality` route renders `data_health_score` plus 4 trend charts; refreshes daily. |
+| ⬜ | 18 | [**DQ.5**](#dq-5) | Player-answer corroboration loop | M | Turns every game answer into a free QA signal via existing `question_attempts`. Long-running compounding return. | After 20 player answers per (character, attribute) pair, >70% disagreement auto-files an `attribute_disputes` row. |
+| ⬜ | 19 | [DQ.6](#dq-6) | Nightly attribute reconciliation Cron | M | Depends on H.3. Catches upstream source changes within 24h. | Cron runs nightly; `attribute_drift` rows accumulate with reconciliation events. |
+| ⬜ | 20 | [DQ.22](#dq-22) | Sparse-attribute auto-fill Cron | M | Depends on H.3 and DQ.21. Catalog gets denser overnight without anyone running a script. | Cron runs nightly; sparse-attribute coverage % measurably increases week over week. |
+
+### Wave 3 — Operational Readiness (~1 week)
+
+Once data is trustworthy, you need to know when it (or anything else) breaks.
+
+| Status | Order | # | Item | Effort | Why now | Done when |
+|---|---|---|------|--------|---------|-----------|
+| ⬜ | 21 | [I.2](#i-2) | Workers Analytics Engine for LLM costs | M | Replace the brittle `costs:{userId}:{date}` KV pattern. Powers AN.31 cost-per-game ribbon. | Every LLM call writes one Analytics Engine row; KV `costs:*` keys deprecated. |
+| ⬜ | 22 | [I.4](#i-4) | Tail Worker observability | M | Structured rows for every invocation. Powers AN.29 latency budget panel and AN.30 live ops strip. | Tail Worker emits structured JSON for every Worker invocation; queryable in CF dashboard. |
+| ⬜ | 23 | [AP.1](#ap-1) | Admin route smoke-test sweep (Playwright) | M | Single spec catches "the admin route silently broke" regressions across all 24 routes. Covers wiring before polish. | Playwright spec covers all 24 admin routes; CI fails if any route returns 500 or renders an error boundary. |
+| ⬜ | 24 | [AP.2](#ap-2) | Admin action round-trip tests | M | Vitest integration tests for every admin POST/DELETE. Catches the "button does nothing in prod" class of bug. | Vitest spec exercises every admin POST/DELETE end-to-end against a test D1; CI gates merges. |
+| ⬜ | 25 | [AP.5](#ap-5) | Per-route error boundary with Retry | S | Stops one route's failure from unmounting the sidebar. | Throwing inside one admin route renders a Retry boundary, not a white screen; sidebar stays mounted. |
+| ⬜ | 26 | [AN.30](#an-30) | Live ops strip in admin header | M | Rolling 1h counters auto-refreshing every 30s. The "is the site healthy right now" view. | Admin header shows games/min, error rate, p95 latency over the last 1h, refreshing every 30s. |
+| ⬜ | 27 | [AN.33](#an-33) | Anomaly-trigger alerts | M | Statistical baselines per metric; webhook on cross. Catches "win rate dropped 30% overnight" without staring at charts. | Crossing a baseline threshold fires a webhook to Slack/Discord with metric name + delta + link to chart. |
+| ⬜ | 28 | [AP.20](#ap-20) | Health badge in shell header | S | Top-right green/amber/red dot. The 1-second glance. | Top-right dot in admin shell reflects live health (green/amber/red) tied to AN.30 metrics. |
+
+### Wave 4 — Insight & Refinement (~2 weeks)
+
+Now that data and ops are sound, extract insight and tune the loops.
+
+| Status | Order | # | Item | Effort | Why now | Done when |
+|---|---|---|------|--------|---------|-----------|
+| ⬜ | 29 | [AN.1](#an-1) | Question skip & frustration funnel | M | Surfaces questions that consistently kill momentum. Feeds AN.17 retirement queue. | `/admin/funnel` page shows skip rate + frustration signals per question, sortable. |
+| ⬜ | 30 | [AN.7](#an-7) | Confusion matrix from `game_stats` runner-ups | M | Direct fuel for question-selector up-weighting on confusion pairs. | `/admin/confusion` page renders matrix of confused-pair counts derived from `game_stats`. |
+| ⬜ | 31 | [AN.17](#an-17) | Question retirement queue | M | Composite score (skip rate × maybe rate × low rating × low info gain). Closes the loop. | `/admin/questions/retire` queue ranks questions by composite score; one-click retire writes back to DB. |
+| ⬜ | 32 | [C.6](#c-6) | Question quality scoring feedback loop (engine side) | M | Pairs with AN.17; the engine consumes the same signals. | Engine selector consumes the same retirement signals to down-weight low-quality questions at runtime. |
+| ⬜ | 33 | [B.4](#b-4) | Question deduplication via embeddings | M | Pairs with AN.20 embedding-based duplicate finder. | Embedding cosine similarity flags duplicate questions in an admin dedup queue; merge action available. |
+| ⬜ | 34 | [AN.11](#an-11) | "Aha moment" detector | M | Surfaces which questions consistently produce the posterior jump. The selector's real value. | Each game's reasoning panel highlights the question that produced the largest posterior jump. |
+| ⬜ | 35 | [AN.21](#an-21) | Catastrophic-failure replay queue | M | Auto-snapshots every game where the player's target wasn't in the engine's top 10. The most actionable training set. | Failure-replay queue auto-snapshots every game where the target wasn't in engine top 10; replayable in admin. |
+
+### Wave 5 — Polish, Sharing & Depth (open-ended)
+
+Pull from these once the foundation is solid. Ordered by ease within each cluster, not by absolute priority — pick whatever feels good.
+
+**Admin polish (cheap wins, do alongside other work):** AP.6 freshness pills · AP.11 breadcrumbs + page titles · AP.17 toast standardization · AP.10 `⌘K` palette · AP.14 universal CSV/JSON export · AP.22 `/admin/about` build card
+
+**DX leverage (each pays back fast):** DX.10 changesets · DX.27 `.vscode/` settings · DX.18 coverage diff PR comments · DX.22 per-PR preview URL · DX.30 generated D1 types · DX.34 dependency-cruiser auto-diagram
+
+**Player-facing portfolio gloss:** P.7 `/about` + `/credits` · P.8 light theme + toggle · EN.29 trivia card on reveal · P.9 daily challenge leaderboard · S.1 challenge-a-friend (pairs with H.5 PWA share target)
+
+**Infra graduation (when scale or polish demands):** I.7 Durable Objects for sessions · I.10 service-bindings split · I.11 OpenTelemetry tracing
+
+### Cut line — actively considered, not yet scheduled
+
+Everything in the sections below is real work, just not in the current execution path. Pull into a wave when its dependencies clear or its priority shifts. The Decision Log records why anything moves up or down.
 
 ---
 
 ## Infrastructure
 
-The Cloudflare platform has capabilities we're not fully leveraging. This section is ordered from "do it this weekend" to "do it when it matters."
+The Cloudflare platform has capabilities we're not fully leveraging. Larger explorations (Vectorize, Workflows, MCP server, WASM, AutoRAG, Containers, etc.) are in [docs/ROADMAP-icebox.md](docs/ROADMAP-icebox.md#infrastructure-explorations).
 
 ### Near-Term (≤ 1 day each)
 
 | # | Item | Files | Notes |
 |---|------|-------|-------|
-| I.1 | **Separate AI Gateway for preview** | `wrangler.toml` | Both `env.production` and `env.preview` share the same `CLOUDFLARE_AI_GATEWAY` URL. Preview LLM calls pollute production cost dashboards and share rate limits. Create a dedicated preview gateway in the Cloudflare AI Gateway dashboard and reference it in `[env.preview.vars]`. ~2 hours. |
-| I.2 | **Workers Analytics Engine for LLM costs** | `functions/api/llm.ts` | The `costs:{userId}:{date}` pattern stores costs as KV records — hard to aggregate and query across users or time ranges. Replace with the Workers Analytics Engine (columnar, time-series, free up to 100K data points/day). Query cost trends by model/user/date directly in the CF dashboard without manually enumerating KV keys. |
-| I.3 | **Enrichment pipeline SSE endpoint** | `functions/api/admin/` | `GET /api/admin/enrich/stream` pushes `{ character, status, tokensUsed, costSoFar, eta }` events. Pairs with `POST /api/admin/enrich/start` (KV flag + Cron/Queue dispatch) to make EN.1 (live enrichment dashboard) fully operational from the browser without a local terminal. |
-| I.8 | **Workers Smart Placement** | `wrangler.toml` | Three lines: `[placement]\nmode = "smart"`. Smart Placement analyzes where requests originate and where D1 lives, then routes each invocation to the PoP with the lowest total round-trip latency — not necessarily the one nearest the user. For D1-heavy endpoints (`/api/v2/game/answer`, `/api/v2/characters`), the Worker currently executes in the PoP nearest the player, which may be a different continent from D1. Empirically: 50–200ms latency reduction for non-US players. Zero code changes; ships in a `wrangler.toml` commit. |
-| I.9 | **AI Gateway Semantic Caching** | Cloudflare AI Gateway dashboard | AI Gateway now supports semantic caching: if a new LLM prompt is within a configurable cosine similarity threshold of a cached response, it returns the cache hit without a model call. For `dynamicQuestion_v1`, many prompts with the same attribute pool and difficulty level produce identical or near-identical questions. Enable in the AI Gateway dashboard (one toggle; threshold tunable per route). Monitor cache hit rate in the AI Gateway analytics tab. Expected: 20–40% cost reduction on question generation with zero code changes. |
+| <a id="i-1"></a>I.1 | **Separate AI Gateway for preview** | `wrangler.toml` | `env.production` and `env.preview` share the same `CLOUDFLARE_AI_GATEWAY` URL. Preview LLM calls pollute production cost dashboards and share rate limits. Create a dedicated preview gateway in the CF dashboard and reference it in `[env.preview.vars]`. |
+| <a id="i-2"></a>I.2 | **Workers Analytics Engine for LLM costs** | `functions/api/llm.ts` | Replace the `costs:{userId}:{date}` KV pattern with Workers Analytics Engine (columnar, time-series, free up to 100K data points/day). Aggregate by model/user/date in the CF dashboard without enumerating KV keys. |
+| I.3 | **Enrichment pipeline SSE endpoint** | `functions/api/admin/` | `GET /api/admin/enrich/stream` pushes `{ character, status, tokensUsed, costSoFar, eta }` events. Pairs with `POST /api/admin/enrich/start` (KV flag + Cron/Queue dispatch) so the live enrichment dashboard works fully from the browser. |
+| <a id="i-8"></a>I.8 | **Workers Smart Placement** | `wrangler.toml` | Three lines: `[placement]\nmode = "smart"`. Routes each invocation to the PoP with the lowest total round-trip latency to D1. Empirically: 50–200ms reduction for non-US players. Zero code changes. |
+| <a id="i-9"></a>I.9 | **AI Gateway semantic caching** | CF AI Gateway dashboard | Toggle on; tune cosine similarity threshold per route. Many `dynamicQuestion_v1` prompts with the same attribute pool produce near-identical outputs. Expected 20–40% cost reduction on question generation with zero code changes. |
 
 ### Medium-Term (1–3 days each)
 
 | # | Item | Files | Notes |
 |---|------|-------|-------|
-| I.4 | **Tail Worker observability layer** | New Worker | Deploy a separate Tail Worker that receives every invocation from the main Worker — errors, CPU time, response status, request path. Writes structured rows to Workers Analytics Engine: `{ path, status, cpuMs, error, timestamp }`. Zero changes to existing endpoint code. The entire observability stack runs inside Cloudflare and costs nothing beyond what's already deployed. Surfaces in `/admin/logs` (see Admin Pipe Dreams). |
-| I.5 | **R2 Event Notifications → dominant color extraction** | New Worker | When an admin uploads a character image to R2, an Event Notification fires a Worker. The Worker fetches the thumbnail, runs a 16-color median cut quantization over the pixel data in pure JS (no canvas API needed on Workers), and writes the dominant hex color to `characters.dominant_color` in D1. `GuessReveal` uses it for ambient card theming (P.3). Zero manual work per character — the upload pipeline becomes self-annotating. |
-| I.6 | **Cloudflare Queues for async teaching mode** | `functions/api/v2/characters.ts`, new consumer | `POST /api/v2/characters` currently runs D1 write + LLM attribute fill + KV cache bust synchronously in the response path. Queue it instead: write a minimal D1 record and push a job to a Cloudflare Queue. A separate consumer Worker handles enrichment (LLM calls, attribute filling, image upload, cache bust) asynchronously. The player sees "submitted — we'll add it shortly" rather than waiting on 3+ LLM calls. Teaches producer/consumer architecture. |
-| I.7 | **Durable Objects for game session state** | `functions/api/v2/game/` | Replace KV lean+pool session storage with a DO per game session. Every answer hits the same DO instance — strongly consistent, no KV serialization round-trip, no race condition on concurrent answer submissions. Trade-off: Workers Paid plan required ($5/mo). Teaches DO `state.storage`, `alarm()`, and the hibernation API. Revisit if session consistency bugs emerge; not urgent at current scale. |
-| I.10 | **Service Bindings architecture** | `wrangler.toml`, `functions/` | Split the monolithic Worker into focused micro-Workers connected via [Service Bindings](https://developers.cloudflare.com/workers/runtime-apis/bindings/service-bindings/) — zero-latency RPC with no HTTP overhead. Proposed decomposition: `guess-game` (session lifecycle, D1, Bayesian scoring), `guess-llm` (all LLM calls through AI Gateway — rate limiting and cost tracking centralized here), `guess-enrichment` (pipeline steps, Queue consumer), `guess-analytics` (Analytics Engine writes, daily Cron rollup). Each Worker deploys independently and has its own CPU budget. Swapping models or rewriting the prompt layer touches only `guess-llm` — `guess-game` ships unchanged. Type-safe stubs generated from each Worker's exported types. |
-| I.11 | **OpenTelemetry distributed tracing** | `functions/api/v2/`, `packages/game-engine/` | Workers now support the OTEL SDK natively. Instrument the full request path with named spans: `game.answer` → `engine.score_candidates` → `d1.query` → `llm.dynamic_question`. Each span captures timing and attributes (character pool size, question count, model, error). Export to Workers Observability (already enabled in `wrangler.toml`) or any OTEL-compatible backend. In a portfolio context: a waterfall trace showing exactly how a 180ms response breaks down (D1: 40ms, scoring: 12ms, LLM: 115ms, serialize: 13ms) is a rare demonstration that a solo developer thinks like a platform team. |
-
-### Infrastructure Explorations
-
-> 🧊 **Icebox** — Learning-oriented; no implementation timeline. Listed for portfolio narrative value.
-
-| # | Exploration | What you'd learn |
-|---|------------|-----------------|
-| IX.1 | **Cloudflare Vectorize as character index** | Replace the O(N×Q) Bayesian probability loop with approximate nearest-neighbor search. Embed the current answer state as a vector (`yes/no/maybe/null` per attribute → `float[]`); store all characters as pre-computed vectors in Vectorize; `POST /api/v2/game/answer` does a single `vectorize.query()` instead of iterating 500 characters × 50 attributes. Teaches: vector databases, ANN search, Vectorize API. Trade-off: loses per-character probability transparency (though re-derivable from similarity distances). |
-| IX.2 | **Cloudflare Workflows for the enrichment pipeline** | Rewrite `run-enrich.sh` as a Cloudflare Workflow: each character is a Workflow step; failures retry automatically with exponential backoff; the Workflow UI shows exactly where it stalled. Steps: `fetch → dedup → LLM enrich → image process → D1 upload → KV cache bust`. Teaches: durable execution patterns, Workflows API — concepts that transfer to any long-running job system. |
-| IX.3 | **Self-Tuning Engine via Cron Trigger** | A Cron Trigger Worker runs nightly: reads last 7 days of `game_stats`, computes actual win rate per trigger type vs. calibration targets, and applies a gradient step to `SCORE_MATCH`, `SCORE_MISMATCH`, `SCORE_MAYBE` stored as KV flags. The live Worker reads scoring constants from KV on every game start instead of compiled-in constants. The engine tunes itself while you sleep — without a code deploy. Teaches: Cron Triggers, KV as a live config store, gradient-based hyperparameter optimization in a production loop. |
-| IX.4 | **A/B Engine via KV Feature Flags** | Add a `variant` field to `game_stats`: `"control"` or `"experiment"`. On game start, read KV flag `ab:engine:experiment_pct` (e.g. `"20"`) and route that % of games to alternate scoring constants (also in KV). Both variants play live games; real-world win rates accumulate in D1 split by variant. After 500 games per arm, a calibration SQL query tells you which constants win in the real world. Zero-deploy A/B testing of the engine's core numerics. Teaches: feature flags as a system design pattern, statistical significance in A/B tests. |
-| IX.5 | **MCP Server — the character knowledge base as a composable AI tool** | The [Model Context Protocol](https://modelcontextprotocol.io) (Anthropic, 2024) is rapidly becoming the standard interface for exposing tools and data sources to LLM clients — Claude, Cursor, Windsurf, any MCP-compatible agent can call MCP servers as first-class tools. Deploy a Workers-based MCP server at `mcp.andernator.com` (or as a subdomain of the app). Expose: `search_character(query)` → fuzzy name + FTS search against D1; `get_character_attributes(id)` → full attribute profile with confidence scores; `find_confused_characters(a, b)` → the attributes that most distinguish two characters; `run_bayesian_game(answers[])` → run the full engine from a given answer state and return ranked candidates. Now Claude can play the guessing game as a tool call. Now Cursor can query the character DB mid-coding session when writing enrichment scripts. The entire knowledge base becomes AI-composable infrastructure — not just a web app. Workers are an excellent host for MCP servers: global edge deployment, D1 access, no cold starts. |
-| IX.6 | **WebAssembly scoring engine** | The Bayesian probability loop in `packages/game-engine/src/engine.ts` iterates O(N×Q): 500 characters × 50 attributes = 25,000 floating-point operations per `answer()` call, in JavaScript. Compile the hot path to WASM: write the scoring kernel in Rust (`wasm-pack`) or AssemblyScript, compile to `.wasm`, import into the Worker via `import scoring from './scoring.wasm'`. Workers support WASM natively — the module loads once, subsequent calls are near-native speed. At 500 characters the speedup is academic (~5ms → ~0.8ms); at 5,000 characters it becomes material. The real value: benchmarking identical logic in JS vs. WASM under real production traffic, in a Workers environment, is a compelling technical story. WASM on the edge is still uncommon enough to stand out. |
-| IX.7 | **Cloudflare AutoRAG** | AutoRAG is Cloudflare's fully managed RAG pipeline: point it at R2 objects or a URL list; it handles chunking, embedding via Workers AI, Vectorize indexing, and retrieval automatically — no Python script, no separate embedding service. Replace the manual Wikipedia enrichment pipeline (Enrichment Pipe Dreams section) with an AutoRAG configuration pointing at character description documents in R2. When the Bayesian engine is stuck (>10 candidates within 5% probability of each other), issue an AutoRAG query using the current answer set as the query string. AutoRAG retrieves the most semantically relevant characters from the full prose description space. Structured Bayesian scoring + AutoRAG semantic retrieval vote together — two complementary AI paradigms (symbolic + neural) collaborating in the same request. |
-| IX.8 | **Cloudflare Containers** | Cloudflare Containers (2025) runs Docker containers inside the Cloudflare network, co-located with Workers, accessible via Service Bindings. Three workloads that can't fit in Workers CPU limits: (1) a local `sentence-transformers` model for embedding — no Workers AI API call, no network hop, sub-millisecond latency per embed; (2) DuckDB queries against R2 NDJSON exports — admin analytics without loading data into D1, ad-hoc SQL over months of `game_stats` in seconds; (3) full Python image processing (dominant color extraction, aesthetics scoring via PIL/numpy) with the complete ML stack. Architecture: the Workers-based API handles HTTP and auth; the Container handles CPU-heavy work, invoked via Service Binding RPC. The enrichment pipeline becomes: AI Gateway (LLM) → Container (embedding + image) → D1 (write). Full ML stack at the edge, with zero cold-start penalty for warm containers. |
+| <a id="i-4"></a>I.4 | **Tail Worker observability** | New Worker | Receives every invocation from the main Worker; writes structured rows to Workers Analytics Engine: `{ path, status, cpuMs, error, timestamp }`. Zero changes to existing endpoints. Surfaces in `/admin/logs`. |
+| I.5 | **R2 Event Notifications → dominant color extraction** | New Worker | On admin image upload, a Worker fetches the thumbnail, runs 16-color median cut quantization in pure JS, and writes `characters.dominant_color` to D1. Powers `GuessReveal` ambient theming (P.3). Self-annotating upload pipeline. |
+| I.6 | **Cloudflare Queues for async teaching mode** | `functions/api/v2/characters.ts`, new consumer | `POST /api/v2/characters` writes a minimal D1 record and queues a job; consumer Worker handles enrichment + image + cache bust async. Player sees "submitted — we'll add it shortly" instead of waiting on 3+ LLM calls. |
+| I.7 | **Durable Objects for game session state** | `functions/api/v2/game/` | One DO per session — strongly consistent, no KV serialization, no race on concurrent answer submissions. Trade-off: Workers Paid required ($5/mo). Revisit if session consistency bugs emerge. |
+| I.10 | **Service Bindings architecture** | `wrangler.toml`, `functions/` | Split into focused micro-Workers (`guess-game`, `guess-llm`, `guess-enrichment`, `guess-analytics`) connected via [Service Bindings](https://developers.cloudflare.com/workers/runtime-apis/bindings/service-bindings/). Each deploys independently; swapping models touches only `guess-llm`. Type-safe stubs from each Worker's exported types. |
+| I.11 | **OpenTelemetry distributed tracing** | `functions/api/v2/`, `packages/game-engine/` | Workers support OTEL natively. Spans: `game.answer` → `engine.score_candidates` → `d1.query` → `llm.dynamic_question`. Export to Workers Observability. A waterfall trace breaking down a 180ms response is a rare demonstration that a solo developer thinks like a platform team. |
 
 ---
 
 ## Database
 
-Schema evolution and new migrations. The current latest is `0030_question_difficulty.sql`.
-
-> **Note on 0033**: Migration `0022_admin_panel.sql` already created `pipeline_runs` (with `INTEGER AUTOINCREMENT` PK, `run_batch` grouping, and CHECK constraints on `step`/`status`). The planned 0033 slot in the prior roadmap was a duplicate. Migrations below skip 0033 and continue from 0031.
+Schema evolution and new migrations. Latest applied is `0033_game_stats_variant.sql` (adds `variant` and `selector` columns to `game_stats` for IX.4 A/B experiments).
 
 ### Planned Migrations
 
 | Migration | Table / Change | Purpose |
 |-----------|---------------|---------|
-| **0031** | `character_confusions(character_a TEXT, character_b TEXT, confusion_count INTEGER, last_seen TEXT)` | Track which characters the engine most frequently confuses with each other. A weekly Cron Worker aggregates runner-up pairs from `game_stats`. A compound index on `(character_a, confusion_count DESC)` makes top-N lookups fast. Powers the confusion matrix (AN.7) and question-selector up-weighting for known confusion pairs. |
-| **0032** | `community_votes(id TEXT, character_id TEXT, attribute_key TEXT, vote INTEGER, user_hash TEXT, created_at TEXT)` | Per-attribute community yes/no votes (one per user hash per attribute). A nightly Cron Worker aggregates: ≥10 concordant votes → attribute auto-updated with `source: "community"`, `confidence: 0.85`. Unique constraint on `(character_id, attribute_key, user_hash)` prevents ballot stuffing. Foundational for the Crowdsourced Attribute Voting moonshot (M.2). |
-| **0034** | `character_relationships(character_a TEXT, character_b TEXT, relationship_type TEXT, created_at TEXT)` | Relationships between characters: `same_universe`, `same_franchise`, `same_creator`, `rivals`, `allies`. Populated by an LLM batch pass over the character pool. Enables universe-aware questions ("Do they share a universe with Batman?") impossible to generate from attribute space alone. Underpins the Genealogy Map moonshot (M.3). |
-| **0035** | `attribute_embeddings(attribute_key TEXT PRIMARY KEY, embedding BLOB, model TEXT, created_at TEXT)` | Workers AI embedding vectors per attribute key (`@cf/baai/bge-base-en-v1.5`). Enables semantic deduplication (Adaptive Attribute Taxonomy moonshot M.12) — nightly cosine similarity check flags near-duplicate attributes for merge review. Also powers B.4 question deduplication at write time and IX.1 (Vectorize character index). |
-| **0036** | `question_attempts(id INTEGER AUTOINCREMENT, session_id TEXT, question_id TEXT, answer TEXT, probability_delta REAL, candidates_before INTEGER, candidates_after INTEGER, created_at INTEGER)` | Denormalize `game_stats.steps` (a JSON blob) into queryable rows — one per question per game. Unlocks SQL-native analytics for C.6 and AN.1: `SELECT q.text, AVG(qa.probability_delta) FROM question_attempts qa JOIN questions q ON qa.question_id = q.id GROUP BY q.id ORDER BY 2 DESC`. Index on `(question_id, created_at)`. Backfill from existing `game_stats.steps` JSON via a one-time script; new games write both. |
-| **0037** | `daily_stats(date TEXT PRIMARY KEY, games INTEGER, wins INTEGER, forced_guesses INTEGER, avg_questions REAL, median_confidence REAL, llm_errors INTEGER)` | Pre-aggregated daily rollup written by a nightly Cron Trigger Worker from `game_stats`. Every admin analytics query currently full-scans the entire `game_stats` table. With this table the Health Vitals Board (Admin Pipe Dreams) reads a single row per day range instead of scanning thousands. Cron runs at 00:05 UTC, aggregates yesterday, upserts. |
-| **0038** | `character_versions(id INTEGER AUTOINCREMENT, character_id TEXT, attribute_key TEXT, old_value INTEGER, new_value INTEGER, changed_by TEXT, changed_at INTEGER)` | Append-only audit log of every attribute value change — manual edits, LLM enrichment passes, community vote merges, dispute resolutions. One row per change. `changed_by` is the user_id, pipeline step name, or `"community"`. Required for: dispute resolution (what was the value before?), M.11 Temporal Character DB (reconstruct DB state at any date), and admin accountability. Index on `(character_id, changed_at DESC)`. |
-| **0039** | `user_preferences(user_id TEXT PRIMARY KEY, difficulty TEXT, reduced_motion INTEGER, language TEXT, updated_at INTEGER)` | Server-persisted preference row keyed by the anonymous cookie user_id. Currently preferences live only in `localStorage` — clearing cookies or switching devices loses them entirely. With this table, preferences survive clears: on game load, if localStorage is empty, fetch `/api/v2/preferences` and hydrate. Write-through on every preference change. No auth required; same anonymous user_id already in cookies. |
-| **0040** | `attribute_merge_log(id INTEGER AUTOINCREMENT, source_key TEXT, target_key TEXT, affected_count INTEGER, merged_by TEXT, merged_at INTEGER)` | Audit trail for M.12 Adaptive Attribute Taxonomy merges. When two near-duplicate attributes are consolidated (e.g. `isEvil` → `isVillain`), this table records what was merged, how many character rows were affected, and who approved it. Enables rollback (the old key's rows can be reconstructed from `character_versions`). |
-| **0041** | `feature_flags(key TEXT PRIMARY KEY, value TEXT, description TEXT, enabled INTEGER DEFAULT 1, created_at INTEGER, updated_at INTEGER)` | D1 as the source of truth for feature flags (A/B variants, kill switches, gradual rollout percentages). The read path remains KV (fast, cached at the edge); a Cron Worker syncs D1 → KV on every change. The admin panel reads from D1 to show history and allow edits without touching KV manually. Tracks `updated_at` so the admin can see when a flag last changed and by what value. |
-| **0042** | `schema_migrations(filename TEXT PRIMARY KEY, checksum TEXT, applied_at INTEGER)` | A self-describing migration ledger inside D1. The `create-migration.ts` script writes a row on each successful apply. Enables `pnpm db:status` — a command that reads this table from both prod and preview D1 and reports which migrations have and haven't been applied. Eliminates the current "did this migration run in preview?" ambiguity. |
+| **0034** | `character_relationships(character_a TEXT, character_b TEXT, relationship_type TEXT, created_at TEXT)` | Relationships between characters: `same_universe`, `same_franchise`, `same_creator`, `rivals`, `allies`. Populated by an LLM batch pass. Enables universe-aware questions ("Do they share a universe with Batman?") impossible from attribute space alone. |
+| **0035** | `attribute_embeddings(attribute_key TEXT PRIMARY KEY, embedding BLOB, model TEXT, created_at TEXT)` | Workers AI embedding vectors per attribute key (`@cf/baai/bge-base-en-v1.5`). Powers B.4 question dedup, semantic deduplication of attributes (M.12), and (eventually) Vectorize-based character lookups (IX.1). |
+| **0036** | `daily_stats(date TEXT PRIMARY KEY, games INTEGER, wins INTEGER, forced_guesses INTEGER, avg_questions REAL, median_confidence REAL, llm_errors INTEGER)` | Pre-aggregated daily rollup written by a nightly Cron Worker from `game_stats`. Admin analytics reads one row per day instead of full-scanning `game_stats`. Cron runs at 00:05 UTC. |
+| **0037** | `character_versions(id INTEGER AUTOINCREMENT, character_id TEXT, attribute_key TEXT, old_value INTEGER, new_value INTEGER, changed_by TEXT, changed_at INTEGER)` | Append-only audit log of every attribute value change — manual edits, LLM passes, community votes, dispute resolutions. Required for dispute resolution and admin accountability. Index on `(character_id, changed_at DESC)`. |
+| **0038** | `user_preferences(user_id TEXT PRIMARY KEY, difficulty TEXT, reduced_motion INTEGER, language TEXT, updated_at INTEGER)` | Server-persisted preferences keyed by the anonymous cookie user_id. Survives `localStorage` clears and device switches. No auth required — same anonymous cookie already in place. |
+| **0039** | `feature_flags(key TEXT PRIMARY KEY, value TEXT, description TEXT, enabled INTEGER DEFAULT 1, created_at INTEGER, updated_at INTEGER)` | D1 as the source of truth for feature flags; KV stays the read path (Cron syncs D1 → KV). Admin panel reads D1 to show history and edit without touching KV. |
+| **0040** | `schema_migrations(filename TEXT PRIMARY KEY, checksum TEXT, applied_at INTEGER)` | Self-describing migration ledger. Enables `pnpm db:status` reading prod and preview to show which migrations have been applied. Eliminates "did this migration run in preview?" ambiguity. |
+
+> The original "0032 community_votes" planned table is held until the M.2 Crowdsourced Attribute Voting moonshot is pursued. The original "0040 attribute_merge_log" table is held until M.12 Adaptive Attribute Taxonomy is pursued.
 
 ### Schema Improvements
 
-**`characters` table**
+**`characters`**
 
 | Column | Detail |
 |--------|--------|
-| `dominant_color TEXT` | Populated automatically by the R2 Event Notification Worker (I.5). Used by `GuessReveal` ambient theming (P.3) and character knowledge graph node coloring in Admin Pipe Dreams. |
-| `fingerprint TEXT` | A 3–5 word phrase that uniquely distinguishes a character from their nearest neighbor in attribute space. Generated by the enrichment pipeline (AI item A.7). Surfaced in `GuessReveal` below the character name. |
-| `known_since INTEGER` | Year the character first appeared in source material. Required by the Temporal Character DB moonshot (M.11). Populated via enrichment LLM pass or source API metadata. |
-| `archived_at INTEGER` | Soft-delete timestamp. `NULL` = active; set to `unixepoch()` when a character is removed. All game queries add `WHERE archived_at IS NULL`. Prevents hard-delete data loss — a wrongly removed character can be restored by clearing this field. |
+| `dominant_color TEXT` | Populated automatically by I.5. Used by `GuessReveal` ambient theming (P.3). |
+| `fingerprint TEXT` | 3–5 word phrase distinguishing a character from their nearest neighbor in attribute space. Generated by enrichment (A.7). Surfaced under the character name in `GuessReveal`. |
+| `known_since INTEGER` | Year of first appearance in source material. Required for the M.11 Temporal Character DB moonshot. |
+| `archived_at INTEGER` | Soft-delete timestamp. `NULL` = active. All game queries add `WHERE archived_at IS NULL`. Wrongly removed characters can be restored by clearing this field. |
 
-**`questions` table**
-
-| Column | Detail |
-|--------|--------|
-| `asked_count INTEGER DEFAULT 0` | Running total of how many times this question has been asked across all real games. Currently derived by parsing the `game_stats.steps` JSON blob — no denormalized count exists. Incremented server-side on every question selection. Required by C.6 (quality feedback loop: "asked 200+ times, near-zero info gain"). |
-| `skip_count INTEGER DEFAULT 0` | How many times players skipped or abandoned a game while this question was active. Written from `client_events` data (AN.1). A high skip rate is a signal the question is confusing or boring, independent of its information gain. |
-| `info_gain_avg REAL` | Rolling exponential moving average of information gain across the last N games. Currently C.6 has no place to persist this — it would have to recompute from `game_stats.steps` on every admin panel load. This column gives it a home. Updated by the same nightly Cron Worker that writes `daily_stats`. |
-| `last_asked_at INTEGER` | Unix timestamp of the most recent game in which this question was asked. Combined with `asked_count`, identifies stale questions (never asked in 30 days despite being active). |
-
-**`character_attributes` table**
+**`questions`**
 
 | Column | Detail |
 |--------|--------|
-| `source TEXT` | Who set this value: `'manual'`, `'llm-gpt4o-mini'`, `'llm-gpt4o'`, `'community'`, `'ingest-tmdb'`, etc. Currently implicit (confidence=1.0 means manual, lower means AI) — ambiguous when multiple models have run enrichment passes. This makes the source explicit and queryable: `SELECT * FROM character_attributes WHERE source = 'community'`. |
-| `updated_at INTEGER` | Timestamp of the last write to this row. Currently `character_attributes` has no timestamp column — there's no way to query "which attributes were changed in the last enrichment run." Required by `character_versions` (0038) backfill and by the admin Attribute DNA Matrix hover state. |
+| `asked_count INTEGER DEFAULT 0` | Running total across all real games. Currently derived by parsing `game_stats.steps` JSON. Required by C.6 ("asked 200+ times, near-zero info gain"). |
+| `skip_count INTEGER DEFAULT 0` | Times players skipped while this question was active (from `client_events`, AN.1). High skip rate = confusing/boring, independent of info gain. |
+| `info_gain_avg REAL` | Rolling EMA of information gain. Updated by the same nightly Cron that writes `daily_stats`. |
+| `last_asked_at INTEGER` | Combined with `asked_count`, identifies stale questions (active but never asked in 30 days). |
 
-**`game_stats` table**
+**`character_attributes`**
 
 | Column | Detail |
 |--------|--------|
-| `final_confidence REAL` | Engine confidence score at the moment of the final guess. Not currently persisted — the calibration SQL queries in `docs/guess-readiness-queries.sql` proxy this using `questions_asked` as a stand-in. Storing it directly enables: `SELECT AVG(final_confidence) WHERE won = 1` (calibration accuracy), median confidence at guess time (Admin Health Vitals), and regression detection. |
-| `variant TEXT` | A/B experiment variant label — `'control'`, `'experiment-a'`, etc. Required by IX.4 (KV Feature Flag A/B system). Without this column, variant attribution must be reconstructed from KV audit logs after the fact. With it: `SELECT variant, AVG(won) FROM game_stats GROUP BY variant`. |
+| `source TEXT` | `'manual'`, `'llm-gpt4o-mini'`, `'llm-gpt4o'`, `'community'`, `'ingest-tmdb'`, etc. Currently implicit via `confidence`. Makes provenance queryable: `SELECT * FROM character_attributes WHERE source = 'community'`. |
+| `updated_at INTEGER` | Last write timestamp. No timestamp column exists today; required by `character_versions` (0037) backfill and the admin Attribute DNA Matrix hover state. |
+
+**`game_stats`**
+
+| Column | Detail |
+|--------|--------|
+| `final_confidence REAL` | Engine confidence at the moment of the final guess. Calibration queries currently proxy via `questions_asked`. Storing it directly enables `SELECT AVG(final_confidence) WHERE won = 1` (calibration accuracy) and median-confidence-at-guess-time analytics. |
+
+> `variant` and `selector` columns shipped in migration 0033.
 
 ### Query Performance & Maintenance
 
 | Item | Detail |
 |------|--------|
-| **FTS expansion: `questions_fts`** | Migration 0018 added `characters_fts` for character name search. Extend to `questions_fts` — admin question search currently requires a LIKE scan. One `CREATE VIRTUAL TABLE questions_fts USING fts5(text, attribute_key, content='questions')` + `AFTER INSERT/UPDATE/DELETE` triggers. |
-| **Composite FTS: `knowledge_fts`** | A single FTS virtual table spanning `characters.name`, `characters.description`, `attribute_definitions.display_text`, and `questions.text`. Admin global search (`/admin/search?q=`) returns characters, attributes, and questions from one query rather than three. |
-| **`game_stats` archival** | `game_stats` grows unbounded. A monthly Cron Worker moves rows older than 6 months to `game_stats_archive` (identical schema) and writes a compressed NDJSON export to R2 (`exports/game_stats/YYYY-MM.ndjson.gz`). The live table stays small; `daily_stats` (0037) covers historical analytics. Ad-hoc older queries use DuckDB against R2 exports. |
-| **Deprecate v1 KV endpoints** | `functions/api/characters.ts`, `questions.ts`, `corrections.ts`, `stats.ts`, `sync.ts` are legacy KV-backed endpoints from before D1. Add `Deprecation: true` + `Sunset: 2027-01-01` response headers. No new features should touch v1; plan a cleanup migration to drop the handlers after sunset. |
-| **D1 → R2 nightly export** | A Cron Trigger Worker dumps `game_stats`, `sim_game_stats`, and `character_attributes` as NDJSON to R2 (`exports/YYYY-MM-DD/`). Enables ad-hoc analytics with DuckDB or Jupyter without live D1 queries. Schema evolution is visible in the export history. |
+| **FTS expansion: `questions_fts`** | Migration 0018 added `characters_fts`. Extend to `questions_fts` — admin question search currently does a LIKE scan. One `CREATE VIRTUAL TABLE questions_fts USING fts5(text, attribute_key, content='questions')` + `AFTER INSERT/UPDATE/DELETE` triggers. |
+| **Composite FTS: `knowledge_fts`** | A single FTS table spanning `characters.name`, `characters.description`, `attribute_definitions.display_text`, and `questions.text`. Admin global search (`/admin/search?q=`) returns characters, attributes, and questions from one query. |
+| **`game_stats` archival** | Monthly Cron moves rows older than 6 months to `game_stats_archive` and writes a compressed NDJSON export to R2 (`exports/game_stats/YYYY-MM.ndjson.gz`). The live table stays small; `daily_stats` (0036) covers historical analytics. Older queries use DuckDB against R2 exports. |
+| **Deprecate v1 KV endpoints** | `functions/api/{characters,questions,corrections,stats,sync}.ts` are legacy KV-backed endpoints from before D1. Add `Deprecation: true` + `Sunset: 2027-01-01` response headers; plan a cleanup migration to drop the handlers after sunset. |
+| **D1 → R2 nightly export** | Cron Worker dumps `game_stats`, `sim_game_stats`, and `character_attributes` as NDJSON to R2 (`exports/YYYY-MM-DD/`). Enables ad-hoc analytics with DuckDB or Jupyter without live D1 queries. |
 
 ---
 
 ## AI & LLM Layer
 
-Remaining open items from the B and C series, plus two new ideas.
-
-### Open (carried)
-
 | # | Item | Notes |
 |---|------|-------|
-| B.4 | **Question deduplication via embeddings** | Before storing a LLM-generated or user-submitted question, embed it (`@cf/baai/bge-base-en-v1.5`) and cosine-compare against existing embeddings in `attribute_embeddings`. Block if similarity > 0.92. Prevents semantic duplicates like "Is this character a villain?" / "Is this character evil?" — which waste the question budget without adding information. |
-| C.4 | **Adaptive question strategy** | Track answer distribution across games in `IndexedDB`: players who answer "maybe" > 40% of the time are ambiguity-prone; players who answer in < 3 seconds are decisive. Pass `playerStyle: "decisive" \| "hesitant" \| "literal"` into `dynamicQuestion_v1`. The AI adjusts phrasing — fewer double-negative questions for literal players, more direct binary framing for hesitant ones. |
-| C.6 | **Question quality feedback loop** | After each game, score every question by whether its answer changed the probability distribution meaningfully (information gain > threshold). Low-scoring questions (asked 200+ times, near-zero info gain) are surfaced monthly in the admin panel. An LLM pass suggests replacements. Self-improving question bank without manual curation. |
-| C.8 | **Semantic character search in teaching mode** | When the player types a character name, embed it in real time and return the 3 most semantically similar existing characters: "Did you mean: *Black Widow*, *Black Panther*, or *Black Adam*?" Prevents duplicate submissions without requiring exact-match. Uses Workers AI embeddings against the Vectorize index (IX.1) or a local cosine scan. |
+| <a id="b-4"></a>B.4 | **Question deduplication via embeddings** | Before storing a generated/submitted question, embed it (`@cf/baai/bge-base-en-v1.5`) and cosine-compare against `attribute_embeddings`. Block if similarity > 0.92. Prevents semantic dupes ("Is this character a villain?" / "Is this character evil?"). |
+| C.4 | **Adaptive question strategy** | Track answer style in IndexedDB: players who answer "maybe" > 40% are ambiguity-prone; players who answer in < 3s are decisive. Pass `playerStyle: "decisive" \| "hesitant" \| "literal"` into `dynamicQuestion_v1` so phrasing adapts (fewer double negatives for literal players, more direct framing for hesitant ones). |
+| <a id="c-6"></a>C.6 | **Question quality feedback loop** | After each game, score every question by information gain. Low-scoring questions (asked 200+ times, near-zero info gain) surfaced monthly in admin; LLM pass suggests replacements. Self-improving question bank without manual curation. |
+| C.8 | **Semantic character search in teaching mode** | When the player types a name, embed in real time and return the 3 most similar existing characters: "Did you mean: *Black Widow*, *Black Panther*, or *Black Adam*?" Prevents duplicate submissions without requiring exact match. |
+| A.7 | **Attribute fingerprint** | Per-character 3–5 word phrase generated at enrichment time, stored in `characters.fingerprint`: *"caped Gotham billionaire vigilante"*, *"web-slinging Queens high-schooler"*. Surfaced in `GuessReveal` as a one-glance summary of why the AI landed there. Generated in batch; cached indefinitely. |
 
-### New
-
-| # | Item | Notes |
-|---|------|-------|
-| A.6 | **Multi-modal character identification** | A `/identify` route. The player uploads a photo or pastes an image URL. The image is passed to a Workers AI vision model (`@cf/llava-1.5-7b-hf`). The model returns a character description; that description is embedded and matched against the character knowledge base. The AI returns its top-3 guesses with confidence scores and reasoning. Reverse mode for the entire guessing mechanic — the human submits photographic evidence; the AI deduces. |
-| A.7 | **Attribute fingerprint** | For each character, generate a 3–5 word phrase that uniquely distinguishes them from their nearest neighbor in attribute space: *"caped Gotham billionaire vigilante"* for Batman, *"web-slinging Queens high-schooler"* for Spider-Man. Stored in `characters.fingerprint` (D1 column, see DB section). Surfaced in `GuessReveal` below the character name — a one-glance summary of why the AI landed on this character. Generated in batch via the enrichment pipeline; cached indefinitely. |
+> **Multi-modal `/identify`** (uploading a photo so the AI deduces the character) is tracked as moonshot M.8 in [docs/ROADMAP-icebox.md](docs/ROADMAP-icebox.md#moonshots).
 
 ---
 
 ## Gameplay Depth
 
-Remaining unimplemented Phase 2 items. Completed items are in [CHANGELOG.md](../CHANGELOG.md).
-
 | # | Item | Why |
 |---|------|-----|
-| G.1 | **Reverse mode** | The player picks a character from the DB and the AI *defends* it — player asks yes/no questions; AI answers based on stored attributes. Complete role reversal. Tests whether the attribute DB is rich enough to be interrogated from the other side. |
-| G.2 | **Hint system** | Player requests a hint at any point: reveals one binary attribute ("this character can fly"). Costs 2 questions from the remaining budget. Adds strategy without breaking the core mechanic. |
-| G.3 | **Multi-guess with drama** | Instead of one final guess, the AI gets 3 guesses with ascending confidence thresholds. Dramatic reveal sequence; the last guess plays the full typewriter + ring animation. |
-| G.4 | **Speed mode** | 60-second countdown per session (not per question). Timer shown as a sweeping arc. Keyboard answers are essential — desktop-first. `Page Visibility API` pauses the countdown when the tab is hidden. |
+| G.1 | **Reverse mode** | Player picks a character; the AI defends it — player asks yes/no questions, AI answers from stored attributes. Tests whether the attribute DB is rich enough to be interrogated from the other side. |
+| G.2 | **Hint system** | Player requests a hint at any point: reveals one binary attribute ("this character can fly"). Costs 2 questions from the budget. Strategy without breaking the core mechanic. |
+| G.3 | **Multi-guess with drama** | Instead of one final guess, the AI gets 3 guesses with ascending confidence thresholds. Last guess plays the full typewriter + ring animation. |
+| G.4 | **Speed mode** | 60-second per-session countdown (not per question). Sweeping arc timer; keyboard answers essential — desktop-first. `Page Visibility API` pauses when the tab hides. |
 
 ---
 
 ## Social & Replayability
 
-Remaining unimplemented Phase 3 items.
-
 | # | Item | Why |
 |---|------|-----|
-| S.1 | **Challenge a friend link** | Encode a specific character ID + salt into a shareable URL. Friend plays the same character; results compared side-by-side. Uses existing `sharing.ts` base64 encoding. |
-| S.2 | **Custom character lists** | Named lists of character IDs stored in `localStorage`. Play against only a curated list — great for family/friend groups with shared fandoms. |
-| S.3 | **Improved teaching mode UX** | Redesign as a wizard: (1) character name, (2) confirm auto-detected attributes, (3) fill gaps manually, (4) submit. Progress indicator between steps. Pairs with I.6 (async queue) so submission is instant. |
-| S.4 | **Bento grid stats dashboard** | Replace flat stat rows in `StatsDashboard` with a CSS grid bento layout — large "Win Rate" tile, smaller supporting tiles. Stronger as a portfolio piece. |
-| S.5 | **Voice input (experimental)** | Web Speech API "Yes / No / Maybe" recognition — triggers only on user permission. Fully degradable if unsupported. A fun party trick with one clear use case. |
+| S.1 | **Challenge a friend link** | Encode a specific character ID + salt in a shareable URL. Friend plays the same character; results compared side-by-side. Uses existing `sharing.ts` base64 encoding. |
+| S.2 | **Custom character lists** | Named lists of character IDs in `localStorage`. Play against only a curated list — great for family/friend groups with shared fandoms. |
+| S.3 | **Improved teaching mode UX** | Wizard: (1) name, (2) confirm auto-detected attributes, (3) fill gaps, (4) submit. Pairs with I.6 (async queue) so submission is instant. |
+| S.4 | **Bento grid stats dashboard** | Replace flat stat rows in `StatsDashboard` with a CSS bento layout — large "Win Rate" tile, smaller supporting tiles. Stronger as a portfolio piece. |
+| S.5 | **Voice input (experimental)** | Web Speech API "Yes / No / Maybe" recognition; permission-gated; fully degradable. A fun party trick. |
 
 ---
 
 ## Portfolio Polish
 
-Remaining unimplemented Phase 4 items.
-
 | # | Item | Why |
 |---|------|-----|
-| P.1 | **"How the AI thinks" explainer page** | A static `/how-it-works` route with a step-by-step Bayesian scoring walkthrough and a live embedded mini-demo. Strong for portfolio conversations with non-technical audiences. |
-| P.2 | **Replay mode** | After a game, re-animate the full question sequence with probability scores updating in real time. Shareable link encodes the replay. Demonstrates the Bayesian engine visually without requiring a live game. |
-| P.3 | **Ambient character color theming** | Use `characters.dominant_color` (populated by I.5) as the accent tint on `GuessReveal` — the card background, character name gradient, and ring animation all adapt to the character. The UI literally becomes the character. |
-| P.4 | **Character suggestion page** | A `/suggest` route — visitors nominate characters via a simple form stored in D1. Review and merge from the admin panel. Passive visitor → passive contributor, no auth required. |
-| P.5 | **Offline-first full game** | Bundle a representative 100-character subset into the service worker cache. Full game playable on a plane. Currently PWA-registered but not fully offline-capable. |
-| P.6 | **AI-generated character portraits** | For characters missing an R2 image, call `@cf/stabilityai/stable-diffusion-xl-base-1.0` via Workers AI. Generate, resize via `sharp`, and cache a portrait to R2. Zero manual asset work per character. |
+| P.1 | **"How the AI thinks" explainer** | Static `/how-it-works` route with a Bayesian walkthrough and a live mini-demo. Strong for portfolio conversations with non-technical audiences. |
+| P.2 | **Replay mode** | After a game, re-animate the full question sequence with probability scores updating in real time. Shareable link encodes the replay. Demonstrates the engine visually without requiring a live game. |
+| P.3 | **Ambient character color theming** | `characters.dominant_color` (from I.5) tints `GuessReveal` — card background, name gradient, ring animation. The UI literally becomes the character. |
+| P.4 | **Character suggestion page** | `/suggest` route — visitors nominate characters via a simple D1-backed form. Review and merge from admin. Passive contributor, no auth required. |
+| P.5 | **Offline-first full game** | Bundle a representative 100-character subset into the service worker cache. Full game playable on a plane. PWA already registered but not fully offline-capable. |
+| P.6 | **AI-generated character portraits** | For characters missing an R2 image, call `@cf/stabilityai/stable-diffusion-xl-base-1.0` via Workers AI. Generate, resize via `sharp`, cache to R2. Zero manual asset work per character. |
+| P.7 | **`/about` + `/credits` pages** | Static routes: a one-screen project story (stack, design choices, links to repo + ARCHITECTURE.md) and an attribution page crediting character image sources, the five ingestion APIs (TMDb, AniList, IGDB, ComicVine, Wikidata), and the open-source dependencies. Required for ethical reuse of source-API images and a strong portfolio touch. |
+| P.8 | **Light theme + theme toggle** | `next-themes` is already in `dependencies` but unwired. Add a 3-state toggle (system / dark / light) in `AppHeader`; mirror cosmic palette to a light variant via Tailwind CSS variables; persist in `localStorage`. Required for accessibility (some users find dark UIs unreadable) and demonstrates the design system holds up under inversion. |
+| P.9 | **Daily challenge global leaderboard** | `useDailyChallenge` exists but results aren't shared. New `daily_results(date, user_id, won, questions_asked, completed_at)` table; `GET /api/v2/daily/leaderboard?date=YYYY-MM-DD` returns the top 20 fastest wins. Anonymous user_id, no auth — same cookie that already powers stats. Today-only, resets daily; collisions on user_id (incognito visitors) are a non-issue at portfolio scale. |
 
 ---
 
-## UI/UX
+## Hardening & Hygiene
 
-Interaction quality, onboarding clarity, and emerging interaction paradigms. Distinct from the browser API catalog in Modern Web Platform — this section is organized around *user experience outcomes*, not underlying APIs.
+Real gaps in observability, security posture, sharing surface, and operational drills. Lower headline value than gameplay items, but each closes a specific hole that's currently open.
 
----
+### SEO & Sharing
 
-### Near-Term Polish
+| # | Item | Files | Notes |
+|---|------|-------|-------|
+| <a id="h-1"></a>H.1 | **Open Graph + Twitter card** | `index.html`, new `public/og-image.png`, build script | Current `index.html` only has the basic description meta. Generate a 1200×630 portfolio-style OG image (Andernator wordmark + tagline + character grid backdrop) once via Figma or a build-time script; add `og:title`, `og:description`, `og:image`, `og:url`, `og:type=website`, `twitter:card=summary_large_image`. Required so a shared challenge link renders as a card, not a naked URL, on Slack / iMessage / X. |
+| <a id="h-2"></a>H.2 | **`robots.txt` + `sitemap.xml`** | `public/robots.txt`, `public/sitemap.xml` | `robots.txt` allows `/`, disallows `/admin/` and `/api/`. Static `sitemap.xml` lists `/`, `/about`, `/credits`, `/how-it-works`, `/suggest` (once added). Without these, search engines index the admin panel and skip semantic priority — basic hygiene for a portfolio site. |
+| H.5 | **Web App Manifest share target** | `public/manifest.json`, new `functions/api/share-target.ts` | Add `"share_target": { "action": "/share", "method": "GET", "params": { "url": "shared_url" } }` so the installed PWA appears in the OS share sheet. A friend shares a challenge URL → user picks Andernator → game opens pre-seeded. Pairs with S.1 challenge-a-friend. |
+| H.6 | **Print stylesheet for game results** | `src/styles/print.css` | A `@media print` block that strips the chrome (header, nav, reasoning panel) and renders `GuessReveal` as a printable card: large character portrait, question history, final stats. Free wallpaper / share-to-paper. Few players will use it — those who do will remember it. |
 
-Small, targeted improvements to friction points in the current interaction model. Each is 1–2 days of work with immediately visible payoff.
+### Observability & Operations
 
-**Swipe gestures for Yes/No** — on mobile, swipe right for Yes, left for No (same axis as most card-based games). Implement with `pointer` events and a CSS `translate` + `rotate` transform — no library required. A spring-back animation cancels on release within the threshold; a committed swipe triggers the answer with the same haptic as the button tap. The question buttons stay visible as the fallback — swipe is an enhancement, not a replacement. First-time players see a one-shot animation hint ("← No / Yes →") that dismisses after one swipe.
+| # | Item | Files | Notes |
+|---|------|-------|-------|
+| <a id="h-3"></a>H.3 | **Cron Worker entry** | `functions/cron/index.ts`, `wrangler.toml` `[triggers]` | Several planned migrations and features assume a Cron Worker (`daily_stats` rollup, popularity decay, `game_stats` archival, D1→KV `feature_flags` sync, `info_gain_avg` updates). None of these can ship until a `[triggers] crons = ["5 0 * * *"]` entry and a `scheduled()` handler exist. Make this the prerequisite for migrations 0036–0039. |
+| <a id="h-4"></a>H.4 | **Source map upload for `error_logs`** | `vite.config.ts`, deploy script | Build emits source maps already; Cloudflare Pages doesn't ingest them by default. Either upload to Sentry (free tier) on each deploy and rewrite `error_logs.stack` server-side via the Sentry API, or persist `dist/assets/*.map` in R2 (`maps/{commit_sha}/`) and add an admin viewer that fetches the map and pretty-prints stacks on-demand. Without this, every entry in `/admin/error-logs` is unreadable minified gibberish. |
+| H.7 | **D1 backup restore drill** | `scripts/restore-from-r2.ts`, `docs/disaster-recovery.md` | The nightly D1 → R2 export (Database section) is only as good as the restore path. Write the inverse script: stream NDJSON from R2 back into a fresh D1 database; verify row counts match the export manifest. Document a quarterly drill in `docs/disaster-recovery.md`. Run it once on `guess-db-preview` to prove the path works. |
+| H.8 | **Admin action audit log** | `functions/api/admin/_helpers.ts`, new `admin_audit_log` table | `character_versions` (migration 0037) tracks data changes; admin actions themselves (delete character, approve attribute dispute, push enrichment, rotate the basic-auth secret, run the deterministic simulator) currently leave no trace. New table: `admin_audit_log(id, actor, action, target_id, payload_json, ip, ua, created_at)`. A wrapper around all `/api/admin/*` POST/DELETE handlers writes one row per action. Surfaces in `/admin/audit`. |
+| H.9 | **CSP report viewer** | `/admin/csp-reports` | The `/api/csp-report` endpoint exists and accepts violations; nothing surfaces them. Persist incoming reports to a new `csp_reports(directive, blocked_uri, source_file, line, column, ua, created_at)` table; add `/admin/csp-reports` to view recent violations grouped by directive + blocked URI. Validates that the existing CSP isn't silently blocking legitimate resources. |
+| H.10 | **Lighthouse CI on every PR** | `.github/workflows/lighthouse.yml` | `size-limit` covers bundle bytes; doesn't catch LCP / CLS / INP regressions. Use `treosh/lighthouse-ci-action`: budget LCP ≤ 2.0s mobile, CLS ≤ 0.05, INP ≤ 200ms. Fail the PR check on regression beyond ±5%. Reports posted as a PR comment. |
 
-**Haptic feedback via Vibration API** — short, distinct vibration patterns on mobile for: correct guess (70ms buzz), wrong guess (two 40ms pulses with a 60ms gap), question answered (10ms tap, nearly imperceptible). Gated behind `navigator.vibrate` availability and a `localStorage` opt-out toggle. Zero impact on desktop. Costs a handful of `navigator.vibrate()` calls wired to existing game events — no animation changes required.
+### Resilience & Safety
 
-**Skeleton loading states** — replace the spinner on game start with a skeleton layout matching the `QuestionCard` + `ReasoningPanel` structure: a pulsing shimmer rectangle where the question text goes, three probability bar placeholders below. The page layout doesn't shift when data arrives — the skeleton and the real content occupy the same space. Implemented with Tailwind's `animate-pulse` + placeholder divs; removed from the render tree once the first question loads.
+| # | Item | Files | Notes |
+|---|------|-------|-------|
+| H.11 | **Engine self-recovery from corrupt session** | `functions/api/v2/game/_session.ts` | If KV session JSON deserialization fails (truncated write, schema drift between deploys, manual KV edit), all game endpoints return 500. Catch the parse error, log to `error_logs`, return a 410 Gone with `{ error: "session_corrupted", action: "restart" }`; the client treats it as a graceful new-game prompt instead of an error fallback. |
+| H.12 | **Teaching mode content moderation** | `functions/api/v2/characters.ts` | `POST /api/v2/characters` validates shape via Zod but accepts any name string. Add a moderation pass: regex against the [LDNOOBW](https://github.com/LDNOOBW/List-of-Dirty-Naughty-Obscene-and-Otherwise-Bad-Words) word list per detected language, plus an LLM moderation call (`@cf/meta/llama-guard-3-8b` via Workers AI, free tier) for gray-area submissions. Rejected names return 422 with a helpful message; the submission is logged for admin review at `/admin/community/rejected`. |
+| H.13 | **Per-IP submission throttle for teaching mode** | `functions/api/v2/characters.ts`, `_rate-limiter-do.ts` | Teaching-mode `POST` is currently behind only the global LLM rate limiter (intended for question generation). Add a dedicated `teaching:submit` bucket: 5 submissions per IP per hour, 20 per day. Prevents a single bad actor from polluting the community queue between admin reviews. |
+| H.14 | **Privacy controls: data export + delete** | New `/api/v2/me/{export,delete}.ts`, `/settings` page | Anonymous user_id makes both trivial. `GET /api/v2/me/export` returns a JSON bundle: game history, achievements, preferences. `DELETE /api/v2/me` clears `game_stats`, `user_preferences`, `daily_results`, etc. for the cookie's user_id. A small `/settings` page exposes both with one-click downloads. Good citizenship and a strong portfolio talking point about privacy-by-design. |
 
-**First-time onboarding overlay** — a `localStorage`-gated single-use tooltip sequence (not a blocking modal). On first visit: (1) the question card has a floating annotation "The AI asks yes/no questions"; (2) the reasoning panel has "See the AI's probability scores in real time"; (3) the answer buttons have "Answer honestly — or try to trick it." Each annotation auto-dismisses after 4 seconds or on any interaction. Never shown again. Uses the Popover API (`popover="manual"`) — zero JS positioning, no third-party library.
+### Accessibility & Inclusion
 
-**Inline error states on each game phase** — currently errors bubble to the `ErrorFallback` full-page component. Instead, render inline contextual errors: a question fetch failure shows a retry button inside the `QuestionCard` frame (not a full page reset); a guess submission failure shows "Couldn't submit — try again" below the answer buttons with a spinner → error icon transition. The game session stays alive on transient errors. Errors that actually require a reset surface the full `ErrorFallback` as before.
-
-**Keyboard navigation throughout** — map `Y` / `N` / `M` to Yes / No / Maybe answer buttons (hint tooltip on first game via CSS `:has()` targeting focused buttons). `?` opens the keyboard shortcut reference popover. `Esc` closes all overlays. `R` on the end-game screen starts a new game. `Enter` on the character input in teaching mode submits. Every interactive flow should be completable without a mouse — required for accessibility, and makes speed-running the game feel snappy.
-
-**Probability bar micro-animations on update** — when a new answer narrows candidates, each probability bar in `ReasoningPanel` smoothly transitions its width using CSS `transition: width 400ms cubic-bezier(0.34, 1.56, 0.64, 1)` (a slight overshoot for a "settling" feel). Characters dropping out of the top list animate their bar to 0% before the row fades out. Characters jumping up animate in from their previous position. The reasoning panel becomes a living instrument — not a static list that replaces itself.
-
----
-
-### Medium-Term UX Projects
-
-Larger interaction model improvements. Each requires 2–4 days of design + implementation.
-
-**View Transitions API for phase changes** — wrap `Welcome → Playing → GuessReveal` phase transitions in the [View Transitions API](https://developer.chrome.com/docs/web-platform/view-transitions/). Currently Framer Motion drives phase animations. `document.startViewTransition()` hands the crossfade entirely to the browser: screenshot the old state, render the new state, animate between them in the compositor thread with zero JS on the critical path. Add `view-transition-name` to the question card and the character portrait — the character image morphs from the possibility grid thumbnail to the full `GuessReveal` portrait as a shared element transition. The guess reveal becomes cinematic at zero animation library cost. Fully progressive: browsers without support get the existing Framer Motion fallback.
-
-**Character portrait blur-up (LQIP from R2)** — the character portrait in the possibility grid and `GuessReveal` currently appears from nothing or flashes a broken-image icon while loading. Generate a 4×4 pixel placeholder thumbnail per character at enrichment time (8 bytes of base64 per image), store in `characters.lqip_base64`. On load: render the blurred placeholder at full size (CSS `filter: blur(20px) scale(1.1)` — the scale prevents blur edge artifacts) and crossfade to the full image when it loads. The portrait space is always occupied — no layout shift, no flash of emptiness. Sharp already runs during image processing; the LQIP is one additional `.resize(4,4).webp()` call.
-
-**Progressive disclosure of reasoning panel** — on mobile, the `ReasoningPanel` is currently always visible and takes vertical space below the question. On small screens, collapse it into a compact "AI confidence" bar (a single horizontal meter showing the top candidate's probability) that expands into the full panel on tap. A "See AI reasoning" label with a chevron communicates affordance clearly. On desktop (≥768px) the panel stays fully open as today. `localStorage` persists the user's expanded/collapsed preference. The question card gets its vertical space back on mobile — the core game interaction is front and center.
-
-**Personalized difficulty adaptation** — read the player's game history from `localStorage` (or `game_stats` if the session cookie is present): win rate, average questions to guess, number of forced guesses. Automatically suggest: "You've won 9 of your last 10 games on Standard — want to try Hard?" as a dismissible banner after a win streak. The banner uses `@starting-style` for a smooth entry, never interrupts the game, and stores its dismissal in `localStorage`. The UI responds to player skill instead of forcing manual difficulty selection. No backend changes — client-side logic reading existing stored stats.
-
-**Themed game modes with distinct visual identities** — each difficulty level gets a visual signature beyond label text: Easy has softer card borders and a lighter backdrop; Hard has a higher-contrast, sharper aesthetic with a countdown tension arc. A future Anime Mode, Villains Mode, or Speedrun Mode could each carry their own color palette token swap — swapping a `data-theme` attribute on `<html>` is enough with the current Tailwind CSS variable architecture. The groundwork is one `data-theme` attribute + 3 CSS variable overrides per theme.
-
-**Document Picture-in-Picture for multitasking** — the [Document Picture-in-Picture API](https://developer.chrome.com/docs/web-platform/document-picture-in-picture/) opens a real browser window (not a `<video>`) that stays on top while the user switches tabs. Eject the current `QuestionCard` + answer buttons into a PiP window — the game follows the user while they look something up. The PiP renders a self-contained mini-game view with the current question, answer buttons, and candidate count. Answer in the PiP; the main window's `ReasoningPanel` updates via `BroadcastChannel`. Progressive enhancement — the eject button only appears if `documentPictureInPicture` is supported.
-
-**Animated "confidence meter" ambient background** — a very subtle animated gradient behind the game card whose hue and saturation encode AI confidence: cool blue at 40 candidates, shifting through purple to warm amber as the pool narrows to 1–3 characters. Implemented as a CSS custom property animating via JavaScript (`document.documentElement.style.setProperty('--confidence-hue', hue)`) on each answer. Zero canvas, zero library — just a CSS radial gradient updating at 60fps via `requestAnimationFrame`. `prefers-reduced-motion` disables the transition and snaps to the final color. The background becomes a passive ambient display of the AI's certainty without the player having to read a number.
+| # | Item | Notes |
+|---|------|-------|
+| H.15 | **End-to-end WCAG 2.1 AA audit** | One pass through every screen with axe DevTools + manual screen-reader testing (VoiceOver on macOS / iOS, NVDA on Windows). Catalog issues with severity; fix blockers; file the rest as discrete items. Distinct from the spot-fixes already listed under Modern Web Platform. |
+| H.16 | **Question difficulty exposure** | Migration 0030 added `difficulty` (Easy/Medium/Hard) to `questions`; `scripts/classify-difficulty.ts` populates it; nothing surfaces it. Two surfaces: admin question list shows + filters by difficulty; player-facing difficulty setting biases question selection toward matching tier (Easy biases Easy questions, etc.) so the difficulty setting actually affects question feel, not just count. |
 
 ---
 
-### Experimental & Emerging Technologies
+## UI / UX
 
-No implementation timeline. Some of these APIs are newly available, some are proposals, some are just fun to think about.
+Larger experimental items (View Transitions API, Document PiP, WebXR, ambient sound, on-device LLM APIs, etc.) are in [docs/ROADMAP-icebox.md](docs/ROADMAP-icebox.md#experimental-ui--emerging-web-tech).
 
-**WebXR character recognition** — point your phone's camera at a real-world character (a poster, figure, or cosplay). A WebXR session with `ARModule` overlay detects the character via image recognition (Workers AI `@cf/microsoft/resnet-50` or an AI Gateway call to a vision model) and starts a game pre-seeded to that character. The physical world becomes a game controller. Currently viable on Android Chrome — iOS WebXR support is maturing. A stunning demo for a portfolio context: "point your phone at a Batman toy to play Batman."
+### Near-Term Polish (1–2 days each)
 
-**AI Summarizer API (browser-native)** — Chrome's built-in [Summarizer API](https://developer.chrome.com/docs/ai/summarizer-api) (`window.ai.summarizer`) runs a quantized LLM entirely on-device, no server call, no API key, no cost. Use it on the `GuessReveal` screen: feed it the answer history (questions + answers as a paragraph) and ask it to summarize why the AI guessed correctly (or where it went wrong). The summary appears as a "What gave it away?" panel below the reveal card — personalized, generated in milliseconds, completely offline. This is the only browser-native LLM API in production today.
+- **Swipe gestures for Yes/No** — `pointer` events + CSS `translate` + `rotate`; spring-back on cancel; one-shot first-time hint. Buttons stay as the fallback.
+- **Haptic feedback via Vibration API** — short distinct patterns: correct guess (70ms), wrong guess (40/60/40ms), question answered (10ms). Gated on `navigator.vibrate`; `localStorage` opt-out.
+- **Skeleton loading states** — replace the game-start spinner with a skeleton matching `QuestionCard` + `ReasoningPanel` structure. Tailwind `animate-pulse`. No layout shift on data arrival.
+- **First-time onboarding overlay** — `localStorage`-gated tooltip sequence using the Popover API (`popover="manual"`). Auto-dismiss after 4s or any interaction. Shown once.
+- **Inline error states per phase** — question fetch failure → retry inside `QuestionCard`; guess submission failure → message + spinner-to-error transition below answer buttons. Session stays alive on transient errors.
+- **Keyboard navigation throughout** — `Y` / `N` / `M` answers, `?` shortcut popover, `Esc` closes overlays, `R` restarts from end-game, `Enter` submits in teaching mode. Required for accessibility; makes speed-running snappy.
+- **Probability bar micro-animations** — `transition: width 400ms cubic-bezier(0.34, 1.56, 0.64, 1)` slight overshoot. Dropping characters animate to 0% before fading; jumpers animate from prior position. The reasoning panel becomes a living instrument.
 
-**Prompt API for on-device hint generation** — Chrome's [Prompt API](https://developer.chrome.com/docs/ai/built-in) (`window.ai.languageModel`) lets you run arbitrary prompts on-device. Rather than calling the Workers API for the G.2 hint system, generate hints locally: "Given that the character is [top candidate], generate a subtle yes/no hint that doesn't reveal the answer." Zero latency, zero server cost, zero rate limit concern. Graceful degradation: if `window.ai` is unavailable, the hint falls back to a server-side call.
+### Medium-Term UX Projects (2–4 days each)
 
-**Translator & Language Detector APIs** — Chrome's [Translation API](https://developer.chrome.com/docs/ai/translator-api) translates text on-device. Use it to localize question text and answer labels into the browser's preferred language without a translation service or locale bundle. `navigator.language` drives the target locale; the API handles the rest on-device. First-step toward the multilingual enrichment goal in the Enrichment section — players whose browser is set to Japanese automatically see Japanese question text, even if the attribute DB is English.
-
-**Ambient sound design with Web Audio API** — procedurally generated background audio that responds to game state. Not music — ambient texture: a soft low-frequency hum that increases in pitch and intensity as candidates narrow. When the AI is about to guess (1–2 candidates left), a subtle rising tone signals anticipation. On a correct guess: a short resolution chord. Implemented with the Web Audio API `OscillatorNode` + `GainNode` — no audio assets, no HTTP requests for sound files, ~50 lines of code. `prefers-reduced-motion` (as a proxy for reduced sensory preference) disables it; a sound toggle in the UI lets players opt out explicitly.
-
-**CSS Custom Highlight API for answer history** — use the [Custom Highlight API](https://developer.mozilla.org/en-US/docs/Web/API/CSS_Custom_Highlight_API) to highlight keywords in the answer history panel (character traits, attribute names) without wrapping them in `<span>` elements — ranges applied directly to the DOM's text nodes. The markup stays clean; the visual treatment is pure CSS. A small demo of a genuinely esoteric browser API — the kind of thing that signals deep platform knowledge in a portfolio context.
-
-**Eye tracking via WebGazeTracker (accessibility)** — [WebGazeTracker](https://webgazer.cs.brown.edu/) is an open-source JS library that estimates gaze position using the front-facing camera via `getUserMedia`. Map dwell time on the Yes/No buttons: 1.5 seconds of gaze on "Yes" triggers the answer. A compelling accessibility story (hands-free play for motor-impaired users) and a genuinely unusual interaction paradigm. Gated behind explicit permission flow: camera access dialog + opt-in toggle. No data ever leaves the device — all gaze estimation runs client-side.
-
-**Spatial/3D card reveal with CSS 3D transforms** — the `GuessReveal` card flips from face-down (back of a playing card with the game logo) to face-up (character portrait + reveal) using a CSS `perspective` + `rotateY(180deg)` 3D flip. The flip takes 600ms with a `preserve-3d` container. The back face has a subtle holographic shimmer animation via a `conic-gradient` that rotates slowly — a pure CSS effect, no canvas. The character "appears" from behind the card. Pairs with View Transitions shared element: the card flies from the possibility grid position to center screen, then flips. A tactile, physical metaphor for an otherwise purely digital reveal.
-
-**Window Management API for power users** — the [Window Management API](https://developer.chrome.com/docs/capabilities/web-apis/window-management) lets the app query all connected displays and open windows at precise screen coordinates. Offer a power mode: game on the primary display, `ReasoningPanel` floated as a frameless window on the secondary display. The probability visualization has all the room it needs; the game card is uncluttered. A multi-monitor setup becomes a dual-screen game system. A striking demo for a portfolio audience that has a two-monitor setup — "the AI's thinking is literally on another screen."
+- **View Transitions API for phase changes** — wrap `Welcome → Playing → GuessReveal` in `document.startViewTransition()`. Add `view-transition-name` to the question card and character portrait — the portrait morphs from grid thumbnail to `GuessReveal` as a shared element. Framer Motion fallback for unsupported browsers.
+- **Character portrait blur-up (LQIP from R2)** — generate a 4×4 placeholder per character at enrichment time (8 bytes base64), store in `characters.lqip_base64`. Render blurred at full size; crossfade on load. Portrait space is always occupied; no flash of empty.
+- **Progressive disclosure of `ReasoningPanel`** — on mobile, collapse to a compact "AI confidence" bar that expands on tap. Desktop (≥768px) stays open. `localStorage` persists the preference. Question card gets its vertical space back.
+- **Personalized difficulty adaptation** — read game history; suggest difficulty bumps after a win streak as a dismissible banner. `@starting-style` for entry. No backend changes — client-side from existing stored stats.
+- **Themed game modes with distinct visual identities** — `data-theme` attribute on `<html>` + 3 CSS variable overrides per theme. Easy / Hard / Anime / Villains / Speedrun each carry their own palette swap.
+- **Animated "confidence meter" ambient background** — subtle CSS radial gradient whose hue/saturation encodes AI confidence. Cool blue at 40 candidates → warm amber at 1–3. `requestAnimationFrame` updates a CSS custom property. `prefers-reduced-motion` snaps to the final color.
 
 ---
 
@@ -312,293 +537,294 @@ Underused browser capabilities with low implementation cost and high demo value.
 
 | Technique | Where | Benefit |
 |-----------|-------|---------|
-| **CSS Scroll-driven Animations** | Answer history pills, possibility grid rows | Entries animate in as they scroll into view — zero JS, respects `prefers-reduced-motion` automatically |
-| **`@starting-style`** | Toasts, overlays, newly inserted DOM elements | Entry animations (fade, slide) without JS — reduces the number of `AnimatePresence` wrappers needed |
-| **Container Queries** | `ReasoningPanel`, `QuestionCard` | These components should adapt to *their container*, not the viewport — container queries are the correct tool vs. breakpoints |
-| **CSS Anchor Positioning** | Keyboard shortcut popover, hint tooltip | Popovers that follow their trigger element without JS position calculation |
-| **`color-mix()`** | Theme tokens | Mix primary/accent colors at build time — cleaner than Tailwind opacity modifiers, more expressive |
+| **CSS scroll-driven animations** | Answer history pills, possibility grid rows | Entries animate in on scroll; respects `prefers-reduced-motion` automatically |
+| **`@starting-style`** | Toasts, overlays, newly inserted DOM | Entry animations without JS — fewer `AnimatePresence` wrappers |
+| **Container queries** | `ReasoningPanel`, `QuestionCard` | These should adapt to their container, not the viewport |
+| **CSS anchor positioning** | Keyboard shortcut popover, hint tooltip | Popovers that follow their trigger without JS positioning |
+| **`color-mix()`** | Theme tokens | Cleaner than Tailwind opacity modifiers |
 
 ### Browser APIs
 
 | API | Use case | Notes |
 |-----|---------|-------|
-| **`scheduler.postTask()`** | Question scoring, candidate filtering | Run heavy Bayesian scoring off the main thread with priority hints; keeps the UI responsive during AI "thinking" |
-| **`requestIdleCallback`** | Analytics flush, IndexedDB writes | Defer non-critical writes to idle time — free perceived performance |
-| **Page Visibility API** | Speed mode timer (G.4) | Pause countdown when tab is hidden; resume when visible |
-| **Speculation Rules API** | Welcome → Playing navigation | Prefetch `/api/v2/game/start` response speculatively when the user hovers "Start Game" |
-| **Canvas confetti** | Win state | Replace the current CSS-div confetti with a single `<canvas>` element — same visual, significantly fewer DOM nodes at peak particle count |
+| **`scheduler.postTask()`** | Question scoring, candidate filtering | Run heavy Bayesian work off the main thread with priority hints |
+| **`requestIdleCallback`** | Analytics flush, IndexedDB writes | Defer non-critical writes to idle time |
+| **Page Visibility API** | Speed mode timer (G.4) | Pause countdown when the tab is hidden |
+| **Speculation Rules API** | Welcome → Playing | Prefetch `/api/v2/game/start` on hover of "Start Game" |
+| **Canvas confetti** | Win state | Single `<canvas>` element instead of CSS-div particles — fewer DOM nodes at peak |
 
 ### Accessibility Gaps
 
 | Gap | Fix |
 |-----|-----|
-| Screen reader announcements | `aria-live="polite"` on question text so assistive tech reads new questions automatically |
-| Focus management on phase change | `useEffect` to `focus()` the first interactive element when the game phase transitions |
-| Color contrast on amber/rose buttons | Audit answer buttons against WCAG 2.1 AA — amber on dark backgrounds often fails |
-| `prefers-reduced-motion` on sparklines | Disable the confidence sparkline entry animation when motion is reduced |
+| Screen reader announcements | `aria-live="polite"` on question text |
+| Focus management on phase change | `useEffect` to focus the first interactive element |
+| Color contrast on amber/rose buttons | Audit answer buttons against WCAG 2.1 AA |
+| `prefers-reduced-motion` on sparklines | Disable confidence sparkline entry animation when motion is reduced |
 
 ---
 
 ## Developer Experience
 
-### Concrete Gaps
+Larger DX explorations (Storybook catalog, Zod contracts, Pact, Stryker, dev container, Turborepo, etc.) are in [docs/ROADMAP-icebox.md](docs/ROADMAP-icebox.md#dx-pipe-dreams).
+
+### Test, Lint & Verification
 
 | # | Item | Effort | Notes |
 |---|------|--------|-------|
-| DX.3 | **`@cloudflare/vitest-pool-workers` for Workers handler tests** | Medium | Runs Vitest inside Miniflare — real Workers runtime, local KV + D1 bindings, no mocking required. Every file in `functions/api/v2/game/**`, `questions.ts`, `characters.ts` is currently excluded from coverage because they require the CF Workers runtime. This closes that dark coverage zone. |
-| DX.4 | **MSW for API-dependent component tests** | Medium | Add `msw/node` in Vitest: intercept `fetch` at the network layer and return fixture responses. Component tests for `ReasoningPanel`, `QuestionCard`, and game hooks become self-contained and fast, with no server dependency. Fixtures generated from Zod schemas (DP pipe dream below). |
-| DX.10 | **Automated CHANGELOG + release tagging** | Low | Add [changesets](https://github.com/changesets/changesets): PR authors drop a changeset file; on merge to `main`, a GitHub Action commits the changelog entry and creates a semantic version tag. No more manual "what did I ship this week?" archaeology. |
-| DX.11 | **`pnpm validate` pre-push git hook** | Low | Add `lint-staged` + `simple-git-hooks` (already have `lint-staged.config.mjs`): run `pnpm validate` before every `git push`, not just in CI. Catches type errors and lint violations before they hit the remote. One `pnpm add -D simple-git-hooks` and a `prepare` script entry. |
-| DX.12 | **D1 migration dry-run in CI** | Low | Add a GitHub Actions step that runs `wrangler d1 migrations apply --dry-run` against the local schema on every PR. Catches migrations that reference non-existent columns or violate CHECK constraints before they reach preview or production. Zero extra infrastructure — Wrangler already supports `--dry-run`. |
-| DX.13 | **Strict Playwright test isolation** | Medium | Each E2E test currently shares implicit global state (cookies, KV rate-limit counters). Add a `beforeEach` fixture in `fixtures.ts` that seeds a fresh test session cookie and resets the rate-limiter Durable Object for the test's IP. Tests stop interfering with each other; parallel test runs become safe. |
-| DX.14 | **`tsx --watch` scripts dev loop** | Low | The enrichment scripts (`enrich.ts`, `upload-enrichment.ts`, `create-migration.ts`) are run ad-hoc with `npx tsx`. Add them to `package.json` scripts with proper `--watch` variants for the scripts that are iteratively edited. Also add `pnpm migration:new` as an alias for `tsx scripts/create-migration.ts` — the current command is not documented anywhere discoverable. |
-| DX.15 | **OpenTelemetry local trace viewer** | Medium | Instrument key Workers handlers with `@opentelemetry/api` spans (game start, question scoring, LLM call, D1 write). In local `wrangler dev`, pipe traces to a local Jaeger or Tempo instance via OTLP HTTP. Visualize the full request waterfall locally — where time actually goes in a game turn. Production traces already flow to CF Workers Observability (I.11); this extends the same instrumentation to the dev loop. |
+| DX.3 | **`@cloudflare/vitest-pool-workers` for handler tests** | Medium | Vitest inside Miniflare — real Workers runtime, local KV + D1 bindings, no mocking. Closes the coverage dark zone in `functions/api/v2/game/**`, `questions.ts`, `characters.ts`. |
+| DX.4 | **MSW for API-dependent component tests** | Medium | `msw/node` intercepts `fetch` at the network layer. Component tests for `ReasoningPanel`, `QuestionCard`, and game hooks become self-contained and fast. |
+| <a id="dx-11"></a>DX.11 | **`pnpm validate` pre-push git hook** | Low | `lint-staged` + `simple-git-hooks` (`lint-staged.config.mjs` already exists). Catches type/lint failures before they hit the remote. |
+| <a id="dx-12"></a>DX.12 | **D1 migration dry-run in CI** | Low | `wrangler d1 migrations apply --dry-run` step on every PR. Catches migrations that reference non-existent columns or violate CHECK constraints. |
+| DX.13 | **Strict Playwright test isolation** | Medium | `beforeEach` in `fixtures.ts` seeds a fresh test session cookie and resets the rate-limiter DO for the test's IP. Parallel runs become safe. |
+| DX.16 | **Component test coverage backfill** | Medium | 19 components have no tests: `AnswerStrip`, `BottomNav`, `ChallengeView`, `CharacterComparison`, `CharacterImage`, `CoachMark`, `ConfettiBurst`, `DescribeYourselfScreen`, `GameHistory`, `GameOver`, `GuessReveal`, `InlineError`, `OnboardingOverlay`, `PersonaSelector`, `PossibilityGrid`, `PossibilitySpaceChart`, `QuestionManager`, `TeachingMode`, `WeeklyRecapCard`. Backfill at minimum: render-without-crash + one happy-path interaction per component. Pairs with DX.4 (MSW) for the API-dependent ones. |
+| <a id="dx-17"></a>DX.17 | **Pre-commit secret scanning** | Low | Add `gitleaks` to `lint-staged` so committing `.env`, API keys, KV `admin:basic-auth` strings, or R2 credentials fails locally before push. Catches credential leaks at the only point they're cheap to fix. |
+| DX.18 | **Coverage diff in PR comments** | Low | `vitest --coverage` already runs; surface the delta. Use `davelosert/vitest-coverage-report-action` to post a PR comment showing coverage change per file. Red/green at a glance, no need to dig through the lcov report. |
+| DX.19 | **Type-coverage reporting** | Low | `type-coverage` package emits "98.4% of expressions are typed" with a per-file breakdown of `any`/`unknown`. Fail CI if it drops below baseline. Anti-`any` ratchet without a manual lint rule. |
+| DX.20 | **Markdown link checker** | Low | `lychee` action validates every link in `*.md` (ROADMAP, ARCHITECTURE, CHANGELOG, README, docs/) on every PR. Catches dead doc links — surprisingly common after rename refactors. |
 
-### DX Pipe Dreams
+### Release & Versioning
 
-> 🧊 **Icebox** — Best-in-class tooling; not currently scoped.
+| # | Item | Effort | Notes |
+|---|------|--------|-------|
+| DX.10 | **Automated CHANGELOG + release tagging** | Low | [changesets](https://github.com/changesets/changesets) (already a dep): PR drops a changeset; on merge, GitHub Action commits the changelog and tags. |
+| DX.21 | **Auto-generated release notes from commits** | Low | `release-please` reads conventional commits since the last tag and opens a PR with grouped notes (Features / Fixes / Docs / Chore). Zero manual changelog maintenance. Pairs with DX.10 — pick one or the other. |
+| DX.22 | **Preview deployment per PR with shareable URL** | Low | `pnpm deploy:preview` already exists; wire to a GitHub Action that runs on every PR, deploys to a unique Cloudflare Pages preview URL (e.g. `pr-123.guess.pages.dev`), and posts a comment with the link, screenshot, and Lighthouse scores. Reviewers can poke at the actual UI in 30 seconds. |
 
-**Full Storybook Component Catalog** — `@storybook/react-vite` documenting every component in `src/components/` in isolation. Stories cover every meaningful variant: `QuestionCard` with easy vs. hard questions, `GuessReveal` with and without an R2 image, `ReasoningPanel` with 3 candidates vs. 80. Interaction tests (`@storybook/addon-interactions`) automate the same flows Playwright covers — faster, no server dependency. Storybook build deploys as a CF Pages preview on every PR.
+### Developer Loop & Tooling
 
-**Zod API Contract Layer** — shared Zod schemas in `packages/game-engine/src/schemas.ts`. Workers handlers validate request/response shapes at the edge using `.parse()`. React hooks import the same schemas for response type inference — not `json as unknown as GameSession`, but `SessionSchema.parse(json)`. Schema mismatches between client and server caught at runtime + compile time from a single source of truth. Schemas also serve as MSW fixture generators for DX.4.
+| # | Item | Effort | Notes |
+|---|------|--------|-------|
+| DX.14 | **`tsx --watch` scripts dev loop** | Low | Add `pnpm migration:new` etc. as documented `package.json` scripts; `--watch` variants for iterated scripts. |
+| DX.15 | **OpenTelemetry local trace viewer** | Medium | Pipe `wrangler dev` traces to local Jaeger / Tempo via OTLP. Extends I.11's prod instrumentation to the dev loop. |
+| DX.23 | **`pnpm doctor` health check** | Low | Single command that verifies node version, pnpm version, wrangler login, D1 binding reachability, KV binding, R2 binding, all required env vars in `.dev.vars`. Prints a green/red checklist. New-machine setup goes from "an hour of cryptic errors" to one command. |
+| DX.24 | **Seed-from-prod-snapshot for local dev** | Medium | `pnpm db:seed-local` script that pulls the latest D1 nightly export from R2 (the one H.7 produces), strips PII, and loads it into a local `wrangler d1 execute --local` instance. Real data shape, real edge cases, no production credentials. |
+| DX.25 | **Wrangler tail with structured grep** | Low | `pnpm tail` wraps `wrangler tail --format=json` and pipes through a `tsx` filter that pretty-prints by route, redacts cookies/auth, and supports `--filter='status>=400'` and `--filter='path~/api/v2/game'`. Tail is borderline unreadable today. |
+| DX.26 | **Hot-reload for `functions/`** | Medium | `wrangler pages dev` reloads the SPA on edit but not Worker handlers — current loop requires manual restart. Wire `chokidar` watcher → `wrangler` SIGTERM + restart, or migrate to `wrangler dev` with the new `[pages]` config that supports HMR. |
+| DX.27 | **VS Code workspace settings + recommended extensions** | Low | Commit `.vscode/settings.json` (format on save, ESLint fix on save, Tailwind class regex, file nesting for `*.test.tsx`) and `.vscode/extensions.json` (recommended: ESLint, Tailwind, Vitest, Playwright, Wrangler). Onboarding is "open folder, click Install Recommended, done." |
+| DX.28 | **Dependabot / Renovate noise reduction** | Low | `renovate.json` exists; tune it: group all non-major dev deps into one weekly PR, auto-merge passing patches, separate group for `cloudflare/*` and `react`/`vite` majors. Right now ~half of weekly PRs are 1-line bumps. |
 
-**Turborepo Task Graph** — define a task pipeline (`test` depends on `build`, `build` depends on `game-engine#build`). Tasks that haven't changed since the last run are cache-hits and return instantly. CI benefits most: if only `src/` changed, `packages/game-engine` lint/type-check/test is skipped. Warm-cache runs after a small change are near-instant.
+### Code Generation & Type Safety
 
-**Playwright Visual Regression Baseline** — screenshot comparison after each phase transition. Any pixel-level layout regression fails CI with a visual diff uploaded as an artifact. Golden images live in `.playwright/snapshots/`; updated explicitly with `--update-snapshots`.
+| # | Item | Effort | Notes |
+|---|------|--------|-------|
+| DX.29 | **End-to-end type safety: handler → client** | Medium | Today the client hand-writes types for every API response; drift is silent. Use [hono](https://hono.dev) + RPC mode (or a thin `as const` typed-fetch wrapper) so `useGameSession` infers types directly from the handler's return. Eliminates a whole class of "renamed a field, forgot a call site" bugs. Migration is per-route — start with `functions/api/v2/game/*`. |
+| DX.30 | **Generated D1 types from schema** | Low | `kysely-codegen` or `drizzle-kit introspect` against `migrations/init-squashed.sql` emits `src/lib/db-types.ts`. Every handler that reads from D1 gets autocomplete + compile-time column checks. Re-run on each migration via a `postmigration` script. |
+| DX.31 | **OpenAPI spec auto-derived from handlers** | Medium | If DX.29 lands, derive OpenAPI from the same Zod schemas. Publish to `/admin/api-docs` (Swagger UI) and `docs/openapi.yaml`. Pays off the moment you write the first integration. Stretch: ship a typed JS SDK (`@guess/sdk`) generated from the spec. |
+| DX.32 | **`game-engine` API contract snapshot tests** | Low | One test that snapshots the public exports of `@guess/game-engine` (function signatures, type names). Any unintentional API surface change fails CI with a diff. Free guardrail since the engine is shared between client + worker. |
 
-**Generated Type-Safe API Client** — a build script parses `functions/api/v2/` files, extracts request/response types, and emits `src/lib/api.generated.ts`. `api.game.answer({ answer: 'yes' })` is then fully type-safe end-to-end — the compiler catches URL, method, body, and response mismatches before runtime.
+### Visualization & Insight
 
-**Full Miniflare Integration Test Suite** — spins up the complete Worker with Miniflare (local D1, KV, R2), seeds test fixtures, and runs the full request-response cycle for every endpoint: session lifecycle (`start → answer × N → result`), rate limiting (11 LLM calls → 429), cookie signing (tampered cookie → 401), D1 contention (concurrent session writes → consistent state). Full coverage of the server-side logic without a deployed environment.
+| # | Item | Effort | Notes |
+|---|------|--------|-------|
+| DX.33 | **Bundle visualizer in CI artifact** | Low | `rollup-plugin-visualizer` already common; emit `stats.html` to GitHub Actions artifact on every PR build. Click → see exactly which dep added 12 KB. Complements `size-limit`'s pass/fail with the "why." |
+| DX.34 | **Architecture diagram auto-generated from imports** | Medium | `dependency-cruiser` scans `src/` + `functions/` + `packages/` and emits a `mermaid` diagram of module relationships. Render in `ARCHITECTURE.md` via the existing markdown mermaid block. Auto-updates on every commit via a CI job. Catches accidental cycles too. |
+| DX.35 | **Migration timeline visualizer** | Low | `pnpm db:timeline` reads `migrations/*.sql`, parses CREATE/ALTER statements, and renders an ASCII or HTML timeline of when each table/column was introduced. Directly answers "when did `attributes_json` show up?" without `git log`. |
+| DX.36 | **Engine decision flame-graph** | Medium | Wrap `selectQuestion`, `scoreCharacters`, `runMCTS` with `console.time` collected into a Chrome devtools `performance.measure` API trace. `pnpm engine:profile` runs a full game and opens the trace in `chrome://tracing`. Visual answer to "why did this turn take 400ms?" |
 
-**Property-Based Testing for the Game Engine** — the Bayesian scorer in `packages/game-engine/` has a rich input space: any combination of boolean/null attribute values, any candidate pool size, any question order. [fast-check](https://fast-check.io/) generates thousands of random `(candidates[], answers[])` combinations and asserts invariants: total probability always sums to 1.0 ± epsilon, the top candidate's score never decreases after an answer that confirms one of its attributes, entropy never increases after a question. Fuzzing the engine's invariants finds edge cases no hand-written test would reach — degenerate pools of all-null attributes, single-candidate edge cases, contradictory answer histories.
+### Productivity & Quality of Life
 
-**Contract Testing with Pact** — the React client and the Workers API are separate deploy units; nothing currently enforces that their contracts stay in sync across deploys. [Pact](https://docs.pact.io/) generates a consumer-driven contract from the React hooks' fetch calls and verifies it against the actual Workers handlers in CI. If `/api/v2/game/answer` changes its response shape, the Pact verification fails before either side ships. The contract file lives in `packages/game-engine/` as a first-class artifact — versioned, diffable, the canonical source of truth for what the API actually promises.
-
-**Mutation Testing with Stryker** — [Stryker Mutator](https://stryker-mutator.io/) modifies the source code (flips `>` to `>=`, removes a `return` statement, negates a condition) and checks whether the existing test suite catches each mutation. A surviving mutant is untested logic. Running Stryker on `packages/game-engine/src/` once will surface the exact lines in the Bayesian scorer that tests don't actually exercise — not by coverage percentage (which measures lines reached) but by semantic correctness (which measures whether tests would catch a logic bug).
-
-**Snapshot Testing for the Bayesian Engine** — for a fixed set of known-good game histories (5–10 representative games from `game_stats`), snapshot the full scoring output: every candidate's probability, the selected question, the information gain of that question. Committed to `__snapshots__/`. A PR that inadvertently changes the scoring algorithm fails these snapshots immediately — and the diff shows exactly which candidates moved and by how much. Not a replacement for unit tests; a regression net for the entire scoring pipeline as a unit.
-
-**Local D1 Seed Scripts per Developer** — `scripts/seed-local.ts` creates a fresh local D1 database with: a representative 50-character subset (covering all categories), all attribute definitions, the latest question set, and a pre-baked game session for manual testing. Run with `pnpm db:seed`. Every developer starts with an identical, reproducible local state — no more "works on my machine" with a stale or empty local DB. The seed data is a checked-in JSON fixture in `scripts/fixtures/` updated as part of every migration PR.
-
-**AI-Assisted PR Review Bot** — a GitHub Actions workflow runs on every PR: sends the diff to the OpenAI API (via AI Gateway, using the project's own key) with a prompt that checks for: (1) TypeScript `any` usage introduced; (2) missing `null` checks on D1 query results; (3) new API endpoints without rate-limiting middleware; (4) Tailwind classes that conflict with the cosmic purple theme. Posts inline PR comments for each finding. Not a blocker — an advisory. The bot's prompt is a checked-in file (`scripts/pr-review-prompt.txt`) so it's easily updated when the conventions change. Meta: the project uses AI to guard itself.
-
-**GitHub Copilot Workspace Issues as a Backlog** — write every roadmap item that is concrete enough to implement as a GitHub Issue with a structured template: `## What`, `## Why`, `## Acceptance criteria`, `## Files likely affected`. The issue body is detailed enough that a [Copilot coding agent](https://docs.github.com/en/copilot/using-github-copilot/using-claude-sonnet-in-github-copilot) can attempt it with no additional context. The roadmap becomes an executable backlog, not just documentation. Items that Copilot can close autonomously (adding a `pnpm` script, fixing a lint rule, writing a migration) get done without a dev session. Items it can't close reveal the gaps in the issue descriptions — sharpening the backlog over time.
-
-**Dev Container (`devcontainer.json`)** — a fully specified VS Code Dev Container: Node LTS + pnpm, Wrangler CLI, `better-sqlite3` native bindings pre-compiled, the local D1 seed pre-applied, all VS Code extensions (ESLint, Tailwind IntelliSense, Playwright, GitLens) pre-installed. Anyone can clone the repo and hit F1 → "Reopen in Container" to get a fully working environment in 90 seconds — no manual `pnpm install`, no native module compilation, no "which Node version do I need?" archaeology. GitHub Codespaces uses the same `devcontainer.json` automatically — the project works in-browser with zero local setup.
-
-**Wrangler `--remote` integration test mode** — Wrangler supports `--remote` flag to run `wrangler dev` against the actual preview Cloudflare environment (real D1, real KV) rather than Miniflare. Add a `pnpm cf:test` script that runs the Playwright E2E suite against a `--remote` preview deployment. Catches the class of bugs that only appear in the real CF runtime (Worker CPU limits, D1 row size limits, KV consistency windows) that Miniflare silently ignores. Complement to the local test suite, not a replacement.
-
-**Live `ARCHITECTURE.md` diagram generation** — a build script reads `wrangler.toml` bindings (D1, KV, R2, DO, Queues), `functions/api/v2/` route files, and `packages/game-engine/src/` exports, and generates the Architecture diagram in `ARCHITECTURE.md` as a [Mermaid](https://mermaid.js.org/) flowchart — automatically kept in sync with the actual codebase. When a new binding or route is added, the diagram updates on the next `pnpm build`. The architecture document stops drifting from reality. Mermaid is already renderable in GitHub markdown — zero extra tooling for readers.
-
----
-
-## Admin Panel Pipe Dreams
-
-> 🧊 **Icebox** — Transform the admin panel from developer tools into a live ops center. No implementation timeline.
-
-**Real-Time Game Observatory** (`/admin/observatory`) — a Tail Worker captures game events and pipes them into a Cloudflare Queue. The admin panel SSE-streams a live ticker: *"User in 🇩🇪 answered 'Yes' to isHuman — 47 → 12 candidates remaining. Confidence: 84%."* Below the ticker: live counter of games in progress, answers per minute, current most-guessed character. The reasoning panel visualization plays out for every active game simultaneously — a grid of probability bars all moving at once. Zero impact on user-facing latency since Tail Workers run after the response is sent.
-
-**Engine Health Vitals Board** (`/admin/health`) — six live sparklines from Workers Analytics Engine: win rate (7-day rolling), avg questions per game, forced-guess rate, contradiction rate, median confidence at guess time, LLM error rate. Each sparkline has a colored status indicator: green (within calibration targets), amber (drifting), red (out of bounds). Compares current real-game metrics against simulator last-run outputs side-by-side. If any metric crosses a threshold, a Cron Trigger Worker fires a notification (KV flag + optional webhook) before the problem is visible to players.
-
-**Character Knowledge Graph** (`/admin/graph`) — a D3.js force-directed graph of every character. Three toggleable edge layers: `confused_with` (from `character_confusions`, migration 0031), `same_franchise` (from `character_relationships`, migration 0034), and `attribute_neighbors` (cosine similarity above a tunable threshold). Node size = popularity score; node color = category; node glow intensity = enrichment confidence. Clicking a node expands a floating panel with full attribute profile, image, and a "re-enrich" button. Lasso-select a cluster and batch-send to the enrichment queue.
-
-**Attribute DNA Matrix** (`/admin/matrix`) — every character (rows) × every attribute (columns) rendered as a color-coded pixel grid: green for `true`, red for `false`, mid-grey for `null/unknown`. At 500 × 50 the entire knowledge base fits on a 1280px canvas. Hovering a cell shows character name + attribute key + value + confidence + model. Clicking opens an inline edit popover. Sorting rows by coverage % and columns by info gain puts the most discriminating attributes top-left. The shape of the knowledge base becomes visible at a glance. Once LLM Confidence is a first-class data type (EN medium-term), cell opacity encodes confidence — a fully saturated cell means high-confidence, washed-out means uncertain — making contested attributes visually obvious without hovering.
-
-**Pipeline Visual DAG Orchestrator** (`/admin/pipeline`) — the enrichment pipeline rendered as an interactive directed acyclic graph: `[Fetch Sources] → [Dedup] → [LLM Enrich] → [Image Process] → [D1 Upload] → [Cache Bust]`. Each node is a card showing status (idle/running/error), throughput (characters/min), queue depth, and error rate. During a live run, a pulsing dot animates characters flowing node to node. Clicking a node drills into its log table from `pipeline_runs` (migration 0033). A "pause after this step" toggle lets you inspect intermediate results before committing.
-
-**LLM Cost Observatory** (`/admin/cost`) — pulls from AI Gateway native cost metrics + Workers Analytics Engine. Shows: cost-per-game by day (bar chart), cost-per-enrichment-run (scatter plot), model comparison, projected monthly burn at current daily rate, and a "what-if" batch size slider with real-time cost projection. A "cost efficiency" score: cost per successful game win. Not a surprising monthly bill — a live instrument. Once model routing by attribute type is live (EN big projects), the model breakdown column splits cost by tier: Workers AI (free), GPT-4o-mini, GPT-4o — making cost savings from the routing layer immediately measurable.
-
-**Enrichment Diff Reviewer** (`/admin/enrich/diff`) — surfaces the pre-upload diff report (EN near-term) in the browser instead of a JSON file on disk. Shows a three-column table: character name | attribute key | old value → new value. Color-coded: blue for `null → value` (new fill), amber for `value → different value` (changed), red for `true → false` (reversed). Checkboxes on each row let you approve or reject individual changes before committing. A "Push approved" button calls `POST /api/admin/upload-attrs` with only the selected rows. Prevents silent overwrites of manually corrected values without requiring a terminal session to inspect the diff JSON.
-
-**Attribute Disputes Queue** (`/admin/disputes`) — surfaces `attribute_disputes` (migration 0026) as a prioritized review queue. Each card shows: character portrait, attribute label, model A answer + confidence, model B answer + confidence, and the evidence excerpt (from the agentic pipeline, EN big projects) that grounded each answer. Reviewer actions: "Accept A", "Accept B", "Mark genuinely contested" (sets `contested: true` permanently in `character_attributes`), or "Skip". The queue sorts by controversy score: large confidence delta + many games where this character was the final wrong guess. Disputed attributes that most affected game outcomes rise to the top. Pairs with the adversarial enrichment pass (EN medium-term).
-
-**Image Quality Review Queue** (`/admin/images/review`) — after the image aesthetics scoring pass (EN medium-term) runs, low-scoring portraits appear here in a responsive grid. Each card shows the current `thumb.webp`, three aesthetics scores (face visibility, style consistency, recognizability), and a composite grade. Cards sorted by composite score ascending — the worst images first. Click a card to expand: full `profile.webp`, the source URL that produced it, and a drag-and-drop zone to upload a replacement image. The replacement triggers an immediate R2 upload + D1 update + KV cache bust. Manual image curation without touching the command line.
-
-**Agent Reasoning Trace Viewer** (`/admin/enrich/traces`) — when the agentic enrichment pipeline (EN big projects) is live, each character's enrichment run produces an auditable trace: tool calls made, documents retrieved, per-attribute reasoning chain, and final answer with cited source URL. This viewer shows that trace as a collapsible timeline. Select any character from a searchable list; the panel renders: tool call → retrieved text excerpt → LLM reasoning → attribute value + source. Attributes with no evidence found are highlighted red. A "re-run this character" button triggers a fresh agent loop for that character only. The enrichment pipeline is no longer a black box — every attribute value has a chain of evidence visible to the admin.
-
-**A/B Experiment Control Room** (`/admin/experiments`) — makes the KV Feature Flag A/B system (IX.4) fully browser-operational. Lists active/completed experiments with traffic split %, sample size per variant, win rate per variant with 95% confidence intervals, and a live p-value indicator that turns green at p < 0.05. Buttons: "Start", "Increase traffic to experiment arm", "Declare winner" (promotes winning constants to production KV, clears experiment flags), "Roll back". Experiment management without touching KV manually or writing SQL.
-
-**Adversarial Stress Test Console** (`/admin/stress-test`) — type any character name, click Run. A `POST /api/admin/stress-test` endpoint runs the deterministic simulator in adversarial mode and streams results via SSE. The admin panel renders the game unfolding question by question — probability bars updating, candidates dropping. Confusion report at the end: highest-ranked wrong character at each step, the attribute that finally broke the tie, attributes that if added would have resolved the confusion earlier. A live debugger for the Bayesian engine.
-
-**Tail Worker Activity Stream** (`/admin/logs`) — a live, filterable log of every Worker invocation rendered like a terminal in the browser. Color-coded status: green 2xx, amber 4xx, red 5xx, purple edge cache hits. Filters: by path prefix, by status code, by CPU time percentile. Click any row to expand full request context — headers, CF ray ID, country. Latency histogram at the top updates in real time.
+| # | Item | Effort | Notes |
+|---|------|--------|-------|
+| DX.37 | **`pnpm scratch` REPL with bindings preloaded** | Low | Spawns a `tsx` REPL with a live D1 client, KV, R2, and `@guess/game-engine` already imported. One-liner exploratory queries against local or preview without cargo-culting wrangler invocations. |
+| DX.38 | **Conventional commit linter** | Low | `commitlint` + husky `commit-msg` hook enforces `feat: / fix: / docs: / refactor: / test: / chore:` prefixes. Already a stated preference (per user memory) — make it mechanical. Required for DX.21 release-please to work. |
+| DX.39 | **PR template + auto-labeler** | Low | `.github/pull_request_template.md` with sections for Summary / Why / Testing / Migrations / Rollback. `actions/labeler` auto-applies labels based on changed paths (`area:engine`, `area:admin`, `area:enrichment`, `area:db`). Filters and metrics for free. |
+| DX.40 | **Codespaces / dev container** | Low | `.devcontainer/devcontainer.json` boots a ready-to-code environment in GitHub Codespaces: node 22, pnpm, wrangler, all extensions. "I'd love to contribute but I'm on Windows" friction → zero. Listed in icebox before; recategorize as low-effort win. |
+| DX.41 | **Inline TODO indexer** | Low | `pnpm todos` greps `TODO`/`FIXME`/`HACK` across the repo and writes a sorted markdown table to `docs/todos.md` with file links + line numbers + author from blame. CI fails if a TODO is older than 90 days without a tracking issue. |
+| <a id="dx-42"></a>DX.42 | **AGENTS.md for AI pair programming** ✅ 2026-04-30 | Low | Shipped: [AGENTS.md](AGENTS.md) at repo root mirrors `.github/copilot-instructions.md`, points at ROADMAP.md → In Progress block as the canonical entry point for Cursor/Claude/Aider/Copilot. |
+| DX.43 | **Deterministic engine playground** | Medium | `pnpm engine:play <seed>` opens a TUI (via `ink`) where you can step through a game one question at a time against the real engine, see the full reasoning panel inline, and replay any `game_id` from `game_history_details`. Debugging a tricky engine call in the actual UI takes 20 clicks; this takes one command. |
+| DX.44 | **`@guess/eslint-config` shared config** | Low | Extract the project's ESLint setup into a tiny internal package. Pre-emptive — only worth it if a second app ever shares this codebase, but trivial to do now and demonstrates monorepo discipline. |
+| DX.45 | **Performance budget per route** | Medium | `playwright` collects per-route LCP / TTI / JS payload size and writes to `metrics/{route}.json`. Compare against budget; CI annotation on regression. Pairs with H.10 Lighthouse CI but at finer granularity (each player route + each admin route). |
 
 ---
 
 ## Enrichment
 
-The enrichment pipeline today is a manual, local-machine process: `run-enrich.sh` calls `ingest/run.ts enrich`, which reads from a local `better-sqlite3` staging DB, sends character + attribute batches to GPT-4o-mini via the OpenAI API, stores results in `data/enrich-cache/`, then uploads to D1 via `upload-enrichment.ts`. Images are fetched, resized by `sharp`, and uploaded to R2 via the S3-compatible SDK. Five source adapters (AniList, TMDb, IGDB, ComicVine, Wikidata) feed the staging DB. Everything runs ad-hoc from a developer laptop.
+The enrichment pipeline today is a manual, local-machine process: `run-enrich.sh` → `ingest/run.ts enrich` → local `better-sqlite3` staging DB → GPT-4o-mini → `data/enrich-cache/` → `upload-enrichment.ts` → D1 + R2.
 
-This section covers: **concrete near-term improvements**, **larger architectural upgrades**, and **pipe-dream explorations**.
+Larger architectural moves (Cloudflare Workflows migration, agentic enrichment, Fandom adapter, model routing, AutoRAG) live in [docs/ROADMAP-icebox.md](docs/ROADMAP-icebox.md#enrichment-big-projects).
 
----
+### Near-Term Improvements
 
-### Near-Term Enrichment Improvements
+- **Incremental re-enrichment on attribute schema changes** — `needsReenrichment()` in `enrich.ts` auto-detects characters with `NULL` for any newly active attribute (cross-join `attribute_definitions` × `character_attributes`). New attributes fill in overnight without `--new-attrs-only` flags.
+- **Enrichment diff report before upload** — query D1 for current values, compute the diff, write `data/enrich-diff-YYYY-MM-DD.json`, print a summary (`+312 filled, 14 changed, 2 disputed`). Prevents silent overwrites of manually corrected values.
+- **Retry budget with per-character error codes** — store structured `{ code, attempts, last_at }` in `enrichment_status.error`. Skip permanent failures (`context_too_long`) instead of retrying forever. Flags: `--retry-transient`, `--retry-all`.
+- **Source overlap audit as a scheduled script** — `pnpm enrich:audit` cross-references all five sources by name/source_id, flags conflicts (TMDb says `isHuman: true`, AniList says `false`), writes `data/source-audit-YYYY-MM-DD.json`. Run monthly.
+- **Structured output via OpenAI JSON schema mode** — switch from freeform `json_object` to `json_schema` derived programmatically from `AttributeDef[]`. Model is constrained at the token level; malformed JSON drops to near zero.
+- **Live enrichment progress dashboard** (EN.1) — pairs with I.3 SSE endpoint. `/admin/enrich` streams `{ character, status, tokensUsed, costSoFar, eta }` for the running pipeline.
 
-**Incremental re-enrichment on attribute schema changes** — when a new attribute is added to `attribute_definitions`, the enrichment pipeline currently requires manually filtering `--new-attrs-only` on the command line. A `needsReenrichment()` check in `enrich.ts` should auto-detect characters with `NULL` values for any newly active attribute (cross-join `attribute_definitions` with `character_attributes` left-join returning NULLs) and queue only those for the next run. New attributes fill in automatically overnight without any flag.
+### Medium-Term Architecture
 
-**Enrichment diff report before upload** — `upload-enrichment.ts` currently pushes all staged attributes unconditionally. Before each upload, query D1 for the current values and compute a diff: characters changing from `null → true`, `true → false`, etc. Write the diff to `data/enrich-diff-YYYY-MM-DD.json` and print a summary (`+312 filled, 14 changed, 2 disputed`). Prevents silent overwrites of manually corrected values and gives a paper trail for every upload. One additional D1 read before the upload loop.
+- **LLM confidence as a first-class data type** — replace `true/false/null` with `{ value, confidence, source, contested }`. Staging DB already has `confidence` and `contested` columns; surface them through upload into `character_attributes` (the `source` and `updated_at` columns from migration 0037 are the destination). Bayesian scorer weights contested attributes lower.
+- **Adversarial enrichment pass (skeptic model)** — second pass with a different model challenges the first: "The previous model said X. Do you agree? Explain before answering." Disagreements go into `attribute_disputes` (already exists in migration 0026). Surfaces in admin for review.
+- **Multi-language attribute enrichment** — second pass in Japanese (anime) / Spanish (LATAM characters); confidence-weighted majority vote merges results. Some attributes are clearer in source language ("Is this character a demon?" in Japanese for an anime character).
+- **Popularity decay model from real games** — nightly Cron blends `0.6 × api_popularity + 0.4 × game_pick_rate_30d` into `characters.popularity`. DB self-calibrates through play.
+- **Cross-character relationship graph** — LLM batch pass populates `character_relationships` (migration 0034) by asking "which pairs share a universe / franchise / creator? are rivals or allies?" Enables universe-aware questions.
+- **Image aesthetics scoring via vision model** — pass `thumb.webp` to a vision model: face visibility / style consistency / recognizability scores. Possibility grid prefers high-scoring portraits; low-scoring flagged for manual replace.
+- **Wikipedia full-text semantic enrichment** — chunk + embed via `@cf/baai/bge-base-en-v1.5`, store in Vectorize. When the engine is stuck (>8 candidates within 5%), embed the answer history as a query and retrieve nearest character chunks. Structured Bayesian + semantic vote together.
 
-**Retry budget with per-character error codes** — `enrichment_status.error` currently stores the raw error string. Extend it to store a structured JSON object: `{ code: "rate_limit" | "context_too_long" | "malformed_json" | "timeout", attempts: 3, last_at: 1714000000 }`. The `retryFailed()` function reads the code and skips characters whose error is `context_too_long` (a prompt engineering problem, not a transient failure) rather than retrying them forever. Run with `--retry-transient` to skip permanent failures; `--retry-all` to force.
+### Pipeline Quality & Observability
 
-**Source overlap audit as a scheduled script** — `source-overlap.ts` exists but runs manually. Add a `pnpm enrich:audit` command that: (1) cross-references all five sources for the same character by name/source_id, (2) flags conflicts where TMDb says `isHuman: true` but AniList says `false`, (3) writes a JSON report to `data/source-audit-YYYY-MM-DD.json`. Running it monthly catches enrichment regressions before they reach D1.
+| # | Item | Notes |
+|---|------|-------|
+| EN.2 | **Token-level cost ledger per character** | Every LLM call logs `(character_id, attr_key, model, prompt_tokens, completion_tokens, cents, cache_hit)` to a new `enrichment_costs` table. Per-character ROI report: which characters are 10× more expensive to enrich and why (long Wikipedia sources / repeated retries). Surfaces hot-spots before the bill does. |
+| EN.3 | **Prompt versioning + replay harness** | Hash every prompt template; store as `prompt_version` alongside each `enrichment_status` row. New prompt rev = `pnpm enrich:replay --since v0.7.2 --sample 50` runs the new prompt against a fixed character sample, diffs results vs. baseline, and reports answer flip rate before any production rollout. Catches regressions in prompt edits. |
+| EN.4 | **Golden character regression set** | 30 hand-curated characters with verified attribute values committed to `data/enrichment-golden.json`. CI runs the pipeline against them on every prompt or schema change; >5% deviation fails the build. The "we know the answer for these" baseline. |
+| EN.5 | **Cache hit-rate dashboard** | `data/enrich-cache/` size, hit %, miss %, and savings per source over time. Shows whether tightening the cache key (currently `${name}:${source}:${attrSet}`) would meaningfully reduce LLM cost. Pairs with EN.2. |
+| EN.6 | **Per-attribute reliability score** | For each attribute, compute its historical agreement across sources (TMDb/AniList/IGDB/ComicVine/Wikidata + LLM). Low-agreement attributes (e.g. `isAntiHero`) get down-weighted in scoring; high-agreement attributes (e.g. `isHuman`) trusted at face value. Surfaces in admin as a "data quality scorecard." |
+| EN.7 | **Schema drift detector** | CI step compares `migrations/init-squashed.sql` `attribute_definitions` against `enrich.ts`'s prompt template. Fails if the prompt asks for attributes that don't exist in DB or omits attributes that do. Eliminates the "added an attribute, forgot to update enrichment" failure mode. |
 
-**Structured output via OpenAI's JSON schema mode** — `enrich.ts` currently uses a freeform `response_format: { type: "json_object" }` and then validates the shape manually. Switch to OpenAI's [structured outputs](https://platform.openai.com/docs/guides/structured-outputs) (`response_format: { type: "json_schema", json_schema: { ... } }`). Define the schema programmatically from the `AttributeDef[]` array: every key becomes a required field of type `boolean | null`. The model is constrained by the schema at the token-generation level — not post-hoc parsing. Malformed JSON responses drop to near zero. Parse failures in `enrich.ts` are eliminated rather than retried.
+### Confidence, Provenance & Self-Healing
 
----
+| # | Item | Notes |
+|---|------|-------|
+| EN.8 | **Provenance trail per attribute value** | Extend `character_attributes` (migration 0037 adds `source` + `updated_at`; this completes the picture) with `evidence TEXT` — the exact source quote or URL the model cited. Click an attribute in admin → see "Wikipedia paragraph 3 of 'Frodo Baggins': ‹quoted text›". Removes "trust me" from the data layer. |
+| EN.9 | **Calibrated confidence via player corroboration** | When players answer questions during real games, treat their answers as weak labels. After N=20 player answers per (character, attribute) pair, compare to the stored value; if disagreement >70%, auto-file an `attribute_disputes` row. Closes the loop AN.26 (drift tracker) opens. |
+| EN.10 | **Self-healing for invalid combinations** | Define logical constraints (`isHuman ∧ isAlien = false`, `isVillain ∨ isHero ∨ isAntiHero ∨ isNeutral = true`). Enrichment post-processor flags violations; second LLM pass attempts to resolve with explicit constraints in the prompt. Persistent violators dropped to `proposed_attributes` for admin review. |
+| EN.11 | **Source-attribution-aware ingestion** | Each of the 5 source APIs (TMDb, AniList, IGDB, ComicVine, Wikidata) has known strengths. Tag each attribute with which source produced its value; when sources disagree, weighted vote favors the strongest-for-that-attribute source. (TMDb wins on movies, AniList on anime, IGDB on games, etc.) |
+| EN.12 | **Counter-factual probe set** | For each character, a tiny set of "edge case" probes ("If <character> were stripped of their powers, would they still be classified as a hero?"). Tests robustness, not facts. Catches over-fit attribute extraction (model labels everyone with a cape `isHero: true`). |
 
-### Medium-Term Enrichment Architecture
+### Catalog Discovery & Expansion
 
-**LLM Confidence as a First-Class Data Type** — replace `true/false/null` per attribute with a structured object: `{ value: true, confidence: 0.91, source: "llm-gpt4o-mini", contested: false }`. The staging DB already has `confidence` and `contested` columns in `enrichment_attributes` — this is about surfacing them through the upload path into D1's `character_attributes` table (the `source` and `updated_at` columns proposed in DB migration 0038 are the destination). When two enrichment passes disagree, `contested: true`. The game engine's Bayesian scorer weights contested attributes lower at runtime. The enrichment output becomes a first-class probabilistic dataset, not a boolean table.
+| # | Item | Notes |
+|---|------|-------|
+| EN.13 | **Auto-discovery of trending characters** | Weekly Cron polls TMDb's "trending people," IGDB "popular upcoming," AniList seasonal anime lead characters; cross-references against existing catalog; proposes top 20 missing characters into a new `proposed_characters` table. Admin one-clicks → enrichment runs. Catalog stays culturally current without manual curation. |
+| EN.14 | **"Why isn't X in the game?" form** | Public `/suggest` page (already in P.7-adjacent territory) with a text field. Submissions hit `proposed_characters`; if 5+ unique IPs request the same character (fuzzy-matched), it auto-promotes to enrichment queue. Crowdsources the long tail. |
+| EN.15 | **Franchise-aware bulk enrichment** | When a new character is added, auto-enrich their entire franchise / universe in a single batch. Prompt receives full franchise context once, drastically improving consistency for related characters (all MCU heroes evaluated against the same universe definition of "powered"). Cheaper too — shared context tokens deduplicate. |
+| EN.16 | **Catalog gap analysis vs. external lists** | Cron compares catalog against IMDb Top 250 lead characters, IGN Top 100 video game characters, Wikipedia "List of fictional X" pages. Generates `data/catalog-gaps.md` weekly. The "obvious omissions you didn't notice" report. |
+| EN.17 | **Era / decade balance audit** | Distribution of characters by `firstAppearedYear`. If 80% of catalog is post-2000, surfaces in admin as a balance warning. Drives intentional curation: "we need 30 more pre-1990 characters." |
 
-**Adversarial enrichment pass (skeptic model)** — after the primary GPT-4o-mini pass, run a second pass with a different model (GPT-4o, or a different prompt framing) specifically designed to challenge the first model's answers: "The previous model said [character] is [attribute]. Do you agree? Explain your reasoning before answering." Disagreements go into `attribute_disputes` (migration 0026 — already exists in D1). A nightly admin review surfaces the top disputed attributes. Two models disagreeing on an attribute is a strong signal the question is ambiguous or the attribute is genuinely contested for this character.
+### Multimodal & Vision
 
-**Multi-Language Attribute Enrichment** — run enrichment in English, then a second pass in Japanese (anime characters) and Spanish (Latin American characters). Some attributes are better answered in the source language — "Is this character a demon?" is clearer in Japanese for an anime character than in English. Confidence-weighted majority vote merges results. The pipeline becomes multilingual without the game surface needing to change.
+| # | Item | Notes |
+|---|------|-------|
+| EN.18 | **Vision-derived visual attributes** | Pass `thumb.webp` to a vision model to derive `hairColor`, `eyeColor`, `wearsGlasses`, `hasBeard`, `hasMask`, `isWearingHat`, dominant outfit color. These are visually obvious to humans and currently get fabricated by text-only enrichment. Vision model has zero-shot accuracy advantage here. Pairs with EN.6 — these are exactly the high-disagreement attributes. |
+| EN.19 | **Auto-generated character silhouettes** | For each character image, generate a black-on-transparent silhouette via background-removal (Workers AI `@cf/u2net`). Powers a "guess the silhouette" hint mode in late-game stuck states. Free, one-time per character, cached to R2 alongside the portrait. |
+| EN.20 | **Image quality auto-replace pipeline** | EN.18's vision model also scores `face_clarity`, `is_main_character_visible`, `image_resolution_class`. Characters scoring < 0.6 get re-fetched from the next-best source URL. Loops until quality threshold met or all sources exhausted. Currently a manual "this looks bad, find a better image" task. |
+| EN.21 | **OCR pass for image text artifacts** | Some character images contain title cards / watermarks / text overlays that confuse the visual question modes. OCR (Tesseract.js or Workers AI) flags + auto-crops them. Cleans the image catalog without anyone reviewing 1,200 portraits. |
 
-**Popularity Decay Model via Real Game Data** — replace the static `[0,1]` popularity score from source APIs with a dynamic score blending API popularity + in-game engagement. A nightly Cron Worker recomputes: `popularity = 0.6 × api_popularity + 0.4 × game_pick_rate_30d`. Writes back to `characters.popularity` in D1. Characters players actually care about float up; obscure ones drift down. The DB becomes self-calibrating through play, not through external API signals. The `game_pick_rate_30d` is derivable from `game_stats` + `game_reveals` already in D1.
+### Pipeline Architecture
 
-**Cross-Character Relationship Graph** — an LLM batch pass builds `character_relationships` (migration 0034): given a batch of characters, ask "which pairs share a fictional universe? same franchise? creator? are rivals or allies?" One pass per batch of 20–30 characters with a prompt that includes the full name list. Relationships are directional: `(character_a, character_b, relationship_type)`. Enables universe-aware questions ("Do they share a universe with Batman?") impossible to generate from attribute space alone. Underpins the Genealogy Map moonshot (M.3).
+| # | Item | Notes |
+|---|------|-------|
+| EN.22 | **Hybrid local-first + cloud-burst pipeline** | Today's pipeline is local-only (slow, single-machine bound). Refactor `enrich.ts` so the same code runs locally OR as a Cloudflare Workflow batch (already in icebox as a long-term move). Local mode for development + small batches; cloud mode for full-catalog re-runs. Bridges the gap until the full Workflow migration. |
+| EN.23 | **Tiered model routing per attribute difficulty** | Attribute classification has natural tiers: factual (`birthYear`, `nationality`) → cheapest model (Haiku / `@cf/llama-3.1-8b`); subjective (`isAntiHero`, `personality`) → mid-tier (GPT-4o-mini, current default); contested (failed first pass, EN.10 violation) → escalate to GPT-4o or Claude Opus. Routing logic in `enrich.ts`; cost expected to drop 40-60% with no quality regression on factual attrs. |
+| EN.24 | **Embedding-based prompt deduplication** | Many characters share boilerplate context (Marvel heroes, Pokemon trainers). Embed the assembled prompt context; if cosine similarity > 0.95 to a previous prompt's context, reuse the cached classification with character-name substitution. Aggressive but bounded — A/B test against EN.4 golden set. |
+| EN.25 | **Streaming enrichment via SSE in admin** | Admin "Run enrichment" button streams progress server-side via the I.3 SSE endpoint: per-character status, current token cost, estimated time remaining, last LLM response preview. Replaces the current "tail the log file" workflow. Pairs with EN.1. |
+| EN.26 | **Resumable batch jobs with checkpoints** | Enrichment pipeline writes checkpoints every N characters (current: all-or-nothing). On crash/cancel/network blip, `pnpm enrich:resume` picks up exactly where it left off using the checkpoint + cache. Currently one network blip restarts a 90-minute job. |
+| EN.27 | **Dry-run mode with LLM call preview** | `pnpm enrich --dry-run` does everything except call the LLM: prints the exact prompts that would be sent, the estimated token count, the estimated cost, and the cache-hit forecast. Sanity check before kicking off an expensive run. |
+| EN.28 | **Provenance-aware rollback** | Every batch enrichment writes a `batch_id`. `pnpm enrich:rollback <batch_id>` reverts every attribute change made by that batch using `attribute_drift` (AN.26) as the audit log. The "I just nuked all the `isVillain` flags" undo button. |
 
-**Image Aesthetics Scoring via Vision Model** — after `images.ts` downloads and resizes each portrait, pass `thumb.webp` to a vision model via Workers AI or AI Gateway: "Rate this portrait: (1) face visibility 0–1, (2) art style consistency with the character's medium 0–1, (3) character recognizability 0–1. Return JSON." Store scores in D1. The possibility grid and GuessReveal prefer high-scoring portraits. Low-scoring images (blurry, group shots, logo-only) are flagged for manual replacement in the admin panel. Extends the existing `image_status` table in the staging DB.
+### Player-Facing Enrichment Surfaces
 
-**Wikipedia Full-Text Semantic Enrichment** — fetch each character's Wikipedia article (MediaWiki REST API — free, no key required). Chunk the article into ~500-token segments. Embed each chunk via Workers AI `@cf/baai/bge-base-en-v1.5` and store in Cloudflare Vectorize indexed by character ID. When the Bayesian engine is stuck (>8 candidates within 5% probability), embed the current answer history as a query vector and retrieve top-3 nearest character chunks. Structured Bayesian + semantic retrieval vote together — a character that *feels* right from prose, not just attribute tags.
-
----
-
-### Big Projects & Future Technologies
-
-**Migrate enrichment pipeline to Cloudflare Workflows (IX.2 expanded)** — the biggest single architectural improvement to the enrichment story. Today enrichment is a local shell script with manual retry. Cloudflare Workflows provides durable execution: each character is a Workflow instance; each pipeline step (`fetch → dedup → enrich → image → upload → cache-bust`) is a named step with automatic retry, exponential backoff, and step-level state persistence. If the LLM step fails after 8 hours of enrichment, the Workflow resumes from that step — not from scratch. The Workflow UI in the CF dashboard shows exactly which characters are in which step and which failed. The admin panel's Pipeline DAG (Admin Pipe Dreams) reads from `pipeline_runs` (migration 0022) which the Workflow writes. The `run-enrich.sh` script becomes a `POST /api/admin/enrich/start` HTTP call. No local machine required.
-
-**Agentic enrichment pipeline** — instead of a single prompt asking "fill these 50 boolean attributes for this character," decompose enrichment into an autonomous agent loop. The agent is given a character name and a list of attribute definitions. It selects tools: `search_web(query)`, `fetch_wikipedia(title)`, `query_fandom_wiki(character, wiki)`, `verify_attribute(character, attribute, evidence)`. It reasons over retrieved evidence, fills attributes one at a time with cited sources, and flags any it cannot verify. The final output includes a `sources[]` array per attribute — a URL or document excerpt that justified the value. This is a [Cloudflare Agents](https://developers.cloudflare.com/agents/) use case: a long-running agentic loop hosted on Workers, with tool calls mediated by the CF Agent SDK. Each enrichment run becomes an auditable reasoning trace, not a black-box LLM call.
-
-**Structured data extraction from Fandom/Wiki sources** — AniList, TMDb, IGDB, and ComicVine are great for metadata but thin on narrative attributes (`isVillainRedeemed`, `hasSidekick`, `betraysAlly`). Fandom wikis are the richest source of this data but have no clean API. Add a `sources/fandom.ts` adapter that: (1) finds the most likely Fandom wiki URL for a character by querying the Fandom search API; (2) fetches the character's infobox and first two sections of the article; (3) passes the HTML to an LLM with a structured extraction prompt. Unlike free-form enrichment, this pass has documentary evidence — the wiki text — to ground its answers. Confidence scores from evidence-grounded extraction should be systematically higher than ungrounded recall from model weights alone.
-
-**Embedding-based attribute coverage gap detection** — instead of running enrichment on all characters for all attributes (O(N×A) LLM calls), identify the highest-value gaps first. Embed each `(character, attribute)` pair where the value is `null` as a vector: `[character_embedding, attribute_embedding]` concatenated. Train a lightweight binary classifier (logistic regression, 2KB of weights) on pairs where the value is known: does the model confidently know the answer (high confidence) or is this genuinely uncertain? Only run LLM enrichment on pairs the classifier predicts as "answerable." Reduces enrichment LLM cost by an estimated 30–50% by skipping attributes that are genuinely unknown for a character (the LLM would just guess). The classifier trains on `character_attributes` where `confidence < 0.7` as the "uncertain" class.
-
-**Streaming enrichment with real-time D1 writes** — the current pipeline is batch: enrich all → upload all. Make it streaming: as each character's enrichment result arrives from the LLM, write it immediately to D1 via the admin upload endpoint. The admin panel's live enrichment dashboard (EN.1) becomes useful during the run — probability scores update in real time as characters complete. If the run is interrupted, partially enriched characters are already persisted; only incomplete ones need to be retried. The `enrichment_status` staging table already tracks per-character state — this change is mostly in `upload-enrichment.ts` (interleave upload with enrichment rather than separating the phases).
-
-**AutoRAG as the enrichment knowledge base (IX.7 applied)** — instead of calling the OpenAI API with raw character names and hoping the model's training data is accurate, pre-load a knowledge base into Cloudflare AutoRAG: R2 objects containing structured character articles (Wikipedia dumps, Fandom exports, source API JSON), chunked and indexed automatically. The enrichment prompt changes from "you know about Batman, tell me these attributes" (memory recall, hallucination-prone) to "here are 3 retrieved passages about Batman — answer these attributes based only on this evidence" (retrieval-augmented, grounded). Confidence scores from evidence-grounded answers are more reliable than from recall alone. AutoRAG handles chunking, embedding, and retrieval — no Vectorize configuration needed.
-
-**Model routing by attribute type** — not all attributes need GPT-4o-mini. Some are trivially answerable by a small, fast, cheap model (`isHuman`, `isFemale`, `isVillain` for well-known characters); others require deeper reasoning (`hasMoralAmbiguity`, `isRedeemed`, `betraysAlly`). Add a `complexity` field to `attribute_definitions` (`simple | moderate | complex`). The enrichment pipeline routes: `simple` attributes → Workers AI `@cf/meta/llama-3-8b-instruct` (zero cost within free tier, ~10ms); `moderate` → GPT-4o-mini; `complex` → GPT-4o. Expected cost reduction: 40–60% on a typical enrichment run. Workers AI handles 50–60% of attributes for zero marginal cost at edge. Implement as a `selectModel(attribute: AttributeDef): string` function in `enrich.ts`.
-
-**Freeform character ingestion via AI agents** — today adding a new source requires a new `sources/xxx.ts` adapter file with hand-written API calls, pagination, and field mapping. Replace with an agent that, given a source URL or API documentation page, autonomously: (1) reads the API docs; (2) writes the TypeScript adapter; (3) runs it against a test endpoint; (4) diffs the staging DB for new characters; (5) submits a PR with the new source file and a sample of ingested characters. This is a [GitHub Copilot coding agent](https://docs.github.com/en/copilot/using-github-copilot/using-claude-sonnet-in-github-copilot) task — a sufficiently detailed issue asking for a new source adapter is actionable autonomously. The enrichment pipeline expands to new sources without a developer session.
-
----
-
-## Icebox
-
-> Good ideas with no current priority. Listed so they don't get lost.
-
-**Gameplay & UX**
-
-- Multiplayer party mode — real-time WebSocket game where players compete to guess the same character fastest (Cloudflare Durable Objects)
-- Story mode / campaign — 10-character arc with a narrative wrapper ("Identify the villain across 10 rounds")
-- Character of the week — curated pick manually set in a KV flag, "featured" badge on welcome screen
-- Answer confidence slider — single horizontal slider (Definitely No ←→ Definitely Yes) instead of 4 buttons; maps to the same 4 answer buckets
-- Leaderboard — global daily challenge (fewest questions to win); requires auth which adds complexity currently not worth the trade-off
-- Localization — Spanish, French, Japanese character sets; requires translated attribute definitions
-- Isometric character grid — CSS isometric variant of the possibility grid; visually novel but doesn't add information over the current probability-weighted grid
-- Spatial answer history — SVG arc layout where pill height = info gain; too abstract for casual players; the current answer history weight (answer impact pills) achieves the same legibility goal more clearly
-- Streaming probability updates — incremental per-answer Bayesian recalculation; meaningful optimization only at 10K+ characters; premature for the current 500-character pool
-
-**Tech Explorations**
-
-- Attribute embedding space (E.2) — PCA / t-SNE cluster visualization to reveal structural "blind spots" where no amount of threshold-tuning can distinguish characters
-- Bandit-based question selection (E.3) — UCB or Thompson Sampling per question; reward = game win; the bandit learns which questions are most useful across games, adapting beyond static info-gain
-- Bayesian network attribute model (E.4) — model conditional attribute dependencies instead of the current independent model; `isVillain` and `hasMagicPowers` are correlated; teaches probabilistic graphical models
-- Self-play engine tournament (E.5) — current engine vs. a modified version; scored by win rate, avg questions, forced-guess rate; same framing as AlphaGo/AlphaZero evaluations
-- LLM-assisted weight tuning (E.6) — feed grid search results into GPT-4o as a surrogate model for Bayesian optimization of scoring constants
-
----
-
-## Moonshots
-
-> 🧊 **Icebox** — Alternate futures for the project. No timelines, no current priority.
-
-Ideas at a different scale — not features or improvements, but possible alternate identities for what this project could become.
+| # | Item | Notes |
+|---|------|-------|
+| EN.29 | **"Did you know?" character trivia card on reveal** | LLM batch pass populates `characters.trivia` (3 short, surprising facts per character). Surfaces on the reveal screen — adds learning + delight on top of the guess outcome. Cheap one-time pass. |
+| EN.30 | **Spoiler-aware enrichment tagging** | Some attributes (`isVillain`, `isDead`, `realIdentity`) are spoilers for some characters. Add a `spoiler_severity` field to `attribute_definitions`; player has a "hide spoilers for media I haven't consumed" toggle. Engine still uses these attributes; UI just blurs the question when the player has opted out for that franchise. |
+| EN.31 | **Localization pipeline for top languages** | Enrich character names + brief description in EN/ES/JA/PT/DE. Stored in `character_translations`. Player UI auto-picks based on `Accept-Language`. Major step toward the geo-aware engagement signals AN.14 surfaces. |
+| EN.32 | **Pronunciation guide for non-Latin names** | LLM generates IPA + audio pronunciation (Workers AI TTS) for characters with non-English names. Tiny audio file in R2; admin can override. Surfaces on reveal screen and in teaching mode. Small touch, big payoff for accessibility + cultural respect. |
 
 ---
 
-**M.1 — A Game That Plays Itself**
+## Admin Panel
 
-An autonomous demo mode: the engine picks a character at random; an LLM plays the role of asker (generating questions from the existing question bank); the Bayesian engine updates probabilities on each answer; a second LLM call answers each question based on stored attributes. The full game plays out on screen — question by question, probability bars updating, dramatic reveal, confetti or silence — then loops to the next character. Leave it running at a conference booth, on a portfolio page, or open during a video interview. The game demonstrates its own sophistication without a human sitting down to play. Architecturally: two LLM calls per question with the existing engine wired between them. A `/demo` route that auto-plays after 30 seconds of inactivity.
+Larger pipe-dream screens (Real-Time Game Observatory, Health Vitals Board, Character Knowledge Graph, Attribute DNA Matrix, Cost Observatory, etc.) are in [docs/ROADMAP-icebox.md](docs/ROADMAP-icebox.md#admin-panel-pipe-dreams).
 
----
+### Polish & Wiring Audit
 
-**M.2 — Crowdsourced Attribute Voting**
+The shell ships 24 routes across three sidebar groups (Tools / Data / Pipeline). This section is the audit pass: confirm each surface is reachable, the data it shows is fresh, the actions it offers actually work end-to-end, and the visual treatment matches the cosmic palette used by the player-facing app.
 
-After each completed game, surface one `null` or low-confidence attribute for the revealed character: *"Quick — is [Character Name] [attribute]?"* One tap. D1 stores the vote in `community_votes` (migration 0032). A nightly Cron Worker aggregates: ≥10 concordant votes → attribute auto-updated with `source: "community"`, `confidence: 0.85`. Zero LLM cost. Zero prompt engineering. Every completed game becomes a passive micro-crowdsourcing task — the player base collectively becomes the enrichment pipeline. Over time, the rarest and most obscure characters get filled in by the players most invested in them. The DB improves continuously through play, not through batch jobs.
+| # | Item | Notes |
+|---|------|-------|
+| <a id="ap-1"></a>AP.1 | **Route smoke-test sweep** | One Playwright spec that visits every route in `AdminShell.tsx` (`coverage`, `hygiene`, `cost`, `stress-test`, `recommender`, `category-recommender`, `env`, `bulk-habitat`, `demo`, `characters`, `questions`, `enrichment`, `pipeline`, `analytics`, `funnel`, `confusion`, `matrix`, `experiments`, `enrich`, `proposed-attrs`, `disputes`, `community`, `error-logs`) behind basic auth, asserts the route renders (no error boundary), the primary data fetch resolves, and a screenshot is captured. Single CI job covers wiring regressions. |
+| <a id="ap-2"></a>AP.2 | **Action round-trip tests** | Each admin POST/DELETE handler in `functions/api/admin/**` gets one Vitest integration test using `unstable_dev`: approve a proposed attribute, resolve a dispute, retire a question, push a manual enrichment, edit a character. Catches the "button does nothing in prod" class of bug currently undetected. |
+| AP.3 | **Empty-state pass for every route** | Audit every route for a graceful empty state: no characters yet, no proposed attrs, no disputes, no errors logged. Today several routes render a blank table. Add a consistent `<EmptyState icon title description action />` primitive in `src/components/admin/ui/EmptyState.tsx` and use it everywhere. |
+| AP.4 | **Loading-skeleton consistency pass** | `<Skeleton>` is used inconsistently — some routes spinner, some flash, some block. Standardize: every list uses a 5-row table skeleton, every card uses a card skeleton, every chart uses a chart-shaped skeleton. Reuse via `<RouteSkeleton kind="list|cards|chart" />`. |
+| <a id="ap-5"></a>AP.5 | **Error-boundary per route** | Single root error boundary swallows route-specific failures and unmounts the sidebar. Wrap `<Outlet />` in a route-level boundary that renders an inline error card with a Retry button (re-runs the fetch) and a "Copy error → clipboard" affordance. Keeps the rest of the panel usable. |
+| AP.6 | **Stale-data freshness badges** | Every data card / table shows a "fetched 2m ago" pill (subtle, top-right). Stale > 5min = amber, > 30min = red. Click to refetch. Cheap signal that you're not staring at cached numbers. |
+| AP.7 | **Mobile-friendly admin shell** | Sidebar is desktop-only; on `<768px` collapses to a hamburger drawer. Tables become horizontal-scroll cards. The point is being able to triage from a phone when something's on fire, not full editing parity. |
+| AP.8 | **Cosmic palette parity with player app** | Admin panel currently uses default shadcn neutrals; the player app uses cosmic purple/indigo. Apply the same theme tokens (`--primary`, `--accent`, glassmorphism on cards) so the admin feels like the same product. Keep semantic tokens (destructive, warning, success) untouched. |
+| AP.9 | **Sidebar grouping + counts** | Each section header (`Tools`, `Data`, `Pipeline`) gets a count badge for queues that have unread items: Disputes (open count), Proposed Attrs (pending), Community Queue (unreviewed), Error Logs (last 24h). Numbers come from a single `GET /api/admin/sidebar-counts` endpoint, polled every 60s. |
+| AP.10 | **Global command palette (`⌘K`)** | `cmdk` is already a dep. Bind `⌘K` in admin shell to a palette: jump to any route, jump to any character by name (FTS-powered), recent admin actions, common commands ("export game_stats CSV", "rotate basic-auth"). Cuts navigation latency to near-zero. |
+| AP.11 | **Breadcrumbs + page titles** | Every route sets `document.title` to `Admin · {route name} · Andernator` so browser tabs are distinguishable. Inline breadcrumb (`Admin / Pipeline / Proposed Attributes`) replaces the current title-only header. |
+| AP.12 | **Keyboard shortcuts overlay (`?`)** | `?` opens an overlay listing every shortcut: `⌘K` palette, `g c` go to characters, `g q` go to questions, `j/k` table row navigation, `e` edit, `enter` open detail. Implements the shortcuts that don't exist yet, then documents them. |
+| AP.13 | **Saved table views** | Characters / Questions / Disputes tables: filter + sort + column-visibility state persists to `localStorage` per table, plus a "Save view as…" dropdown for named filters ("Sparse attrs only", "Open disputes assigned to me"). |
+| AP.14 | **CSV / JSON export buttons on every table** | One `<TableExportMenu />` primitive (Copy as TSV / Download CSV / Download JSON / Copy as Markdown table). Wired to whatever rows are currently filtered. Removes the constant temptation to drop into D1 SQL for one-off exports. |
+| AP.15 | **Inline edit + optimistic updates** | Characters / Questions tables support double-click-to-edit cells (name, attribute values, question text) with optimistic update + rollback on 4xx. Today every edit requires a modal. Pairs with H.8 (audit log) so casual edits are still tracked. |
+| AP.16 | **Bulk actions toolbar** | Select N rows → toolbar slides up from bottom with bulk Approve / Reject / Retire / Re-enrich / Delete. Single bulk endpoint per resource (`POST /api/admin/{resource}/bulk` with `{ ids: [], action: '...' }`). Replaces N round-trips with 1. |
+| AP.17 | **Toast feedback standardization** | Mix of `toast.success`, alert dialogs, and silent reloads today. Standard: every mutation shows a toast with action result + Undo button (where reversible) + "View" link to the affected row. `sonner` already wired. |
+| AP.18 | **Diff view for character / question edits** | Admin edit modal shows side-by-side before/after with changed fields highlighted (uses `diff` lib). Same view powers the version history surfaced by H.8 audit log + the `character_versions` table planned in migration 0037. |
+| AP.19 | **Sticky filters & summary bar** | Long tables: filters and a 1-line summary (`Showing 142 of 1,205 characters · avg attrs filled: 73%`) stick to the top of the scroll container. The current pattern scrolls the filters out of reach. |
+| <a id="ap-20"></a>AP.20 | **Health badge in shell header** | Top-right corner: green/amber/red dot reflecting last 5min: 5xx rate, p95 latency, LLM error rate, D1 wait time. Click for the latency budget panel (AN.29). The "everything fine?" glance. |
+| AP.21 | **Shareable deep-links** | Every filterable surface encodes its state (filters, sort, pagination, selected row) into the URL. Pasting an admin URL in Slack lands the next person on the exact same view. Today most state lives in component state and dies on refresh. |
+| AP.22 | **`/admin/about` build & data freshness card** | Single card showing: deployed commit SHA + timestamp, current D1 schema version (latest applied migration), KV namespace IDs, last enrichment run, last cron run, last D1 backup, app version (`package.json`). The "what am I looking at?" page when something's weird. |
+| AP.23 | **Demo mode for screenshots** | Toggle that swaps live data for a deterministic seed (loaded from `data/admin-demo-seed.json`) and blurs PII-ish fields. Lets you screenshot the panel for the README / portfolio without doxxing user_ids or showing in-flight experiments. |
+| AP.24 | **Session timeout + lock screen** | Basic-auth doesn't auto-expire. Add a 30-min idle timer; on expiry overlay a lock screen requiring password re-entry. Cheap protection against an unattended laptop with the panel open. |
+| AP.25 | **Visual regression snapshots** | Playwright + `playwright-test-snapshot` captures a screenshot per route (built on AP.1's smoke test). Diffs in CI catch "I broke the dispute table layout" without anyone noticing for two weeks. |
+| AP.26 | **Inline runbooks per route** | Tiny `?` icon next to each route title opens a side sheet with a route-specific runbook: "what this shows, where the data comes from, common follow-up actions, related routes". Markdown sourced from `docs/admin/runbooks/{route}.md`. Onboards future-you in 30 seconds. |
+| AP.27 | **Notification center** | Bell icon in shell header. Driven by alerts (AN.33), pending disputes, pending proposed attrs, new error logs since last visit. Persists "last seen" timestamp per category in `localStorage`. Replaces the constant impulse to refresh the queue routes. |
 
----
+### Near-Term Analytics
 
-**M.3 — The Character Genealogy Map**
+| # | Item | Notes |
+|---|------|-------|
+| <a id="an-1"></a>AN.1 | **Question skip & frustration funnel** | Funnel: question shown → answered / skipped / abandoned. Surfaces questions that consistently kill momentum. |
+| AN.3 | **Answer distribution dashboard** | "maybe" rate per question. High-maybe questions are ambiguous and should be rewritten. |
+| AN.6 | **Attribute coverage heatmap** | % non-null per attribute. Sparse attributes are the next enrichment target. |
+| <a id="an-7"></a>AN.7 | **Confusion matrix** | Most-confused character pairs from `game_stats` runner-ups. Powers question-selector up-weighting for known confusion pairs. |
+| AN.8 | **Real-world calibration overlay** | Real-game vs. simulator metrics side-by-side. Detects regression between sim runs and live play. |
 
-An interactive `/explore` page: a D3.js force-directed graph where every character is a node. Three toggleable edge layers: `confused_with` (from `character_confusions`, migration 0031, edge weight = confusion count), `same_franchise` (from `character_relationships`, migration 0034), and `attribute_neighbors` (cosine similarity of attribute vectors above a tunable threshold). Node size scales with popularity score; node color maps to category (anime = indigo, movies = amber, etc.); clicking a node expands the full attribute profile and highlights nearest neighbors. The entire knowledge graph — 500+ characters — visible at once and navigable. The kind of visualization that makes someone stop and say *"I didn't know this was underneath a guessing game."*
+### Player-Behavior Insights
 
----
+| # | Item | Notes |
+|---|------|-------|
+| AN.9 | **Drop-off Sankey by phase** | `client_events` already records phase transitions. Render a Sankey: `landing → onboarding → game_start → q1 → q5 → q10 → guess → reveal → next_game`. Each link weighted by user count, hover shows median dwell time. Single most informative chart for "where do we lose people." |
+| AN.10 | **Cohort retention curves** | Group users by first-game date; track % returning on day 1 / 7 / 30. Anonymous user_id cookie already enables this. Overlay cohorts on one chart so deploy dates become visible inflection points. |
+| <a id="an-11"></a>AN.11 | **"Aha moment" detector** | For each game, compute the question after which the engine's top candidate's posterior jumped most. Aggregate: which questions consistently produce "the moment." That's the question-selector's real value, not just info gain. |
+| AN.12 | **Engine ↔ player divergence map** | When did the player's apparent target (inferred from their answer pattern) diverge from the engine's top candidate? Surfaces the games where humans used info the engine ignored — direct fuel for engine improvements. |
+| AN.13 | **Session shape clustering** | k-means on per-session feature vectors (games_played, avg_questions, win_rate, abandonment_phase, time_of_day). Names the 4-6 player archetypes (speed-runner, completionist, dabbler, frustration-quitter…). Personalize onboarding copy per archetype. |
+| AN.14 | **Geo-aware character popularity** | CF gives `request.cf.country` for free. Heatmap of which characters get picked where. Surfaces cultural gaps ("nobody in JP picks Western superheroes — should we expand the anime catalog?"). |
+| AN.15 | **Time-of-day & day-of-week play heatmap** | 7×24 grid of game starts. Informs Cron timing (run heavy jobs at the trough), informs LLM cost projections, and is just genuinely interesting to look at. |
+| AN.16 | **Bot / automation detection signal** | Flag sessions with sub-200ms answer times, identical UA across many user_ids, or impossibly perfect win rates. Surface in `/admin/security/anomalies` for manual review. Cheap insurance before scraping becomes a problem. |
 
-**M.4 — Dual Engine Race**
+### Engine Self-Tuning Loops
 
-Two AI architectures compete against each other on the same character, rendered side-by-side. The Detective: the current hybrid — structured Bayesian probability engine + LLM question phrasing, transparent probability scores visible at every step. The Oracle: pure GPT-4o — receives the full game history as context, reasons to its conclusion from first principles, no structured probability model, just emergent in-context reasoning. Both engines draw from the same question bank; the one that guesses correctly in fewer questions wins. Results feed into the simulator: over thousands of races, which paradigm is actually smarter? The answer is probably "it depends on character type" — which is itself interesting. In a portfolio context, this is the most honest and dramatic answer to "how does AI know?" you can show a non-technical audience.
+| # | Item | Notes |
+|---|------|-------|
+| <a id="an-17"></a>AN.17 | **Question retirement queue** | Composite score per question: `low info_gain × high skip rate × high maybe rate × low player rating`. Top N flagged in `/admin/questions/retirement-queue` with one-click disable. Closes the loop AN.1 + AN.3 + AN.7 open. |
+| AN.18 | **Difficulty calibration delta** | `questions.difficulty` (Easy/Medium/Hard, classified by LLM in migration 0030) vs observed difficulty from `question_attempts` win rate. Mismatches auto-suggest reclassification. Cron rolls suggestions into a weekly admin email. |
+| AN.19 | **Question-pair redundancy detector** | Pairs of questions whose answer vectors correlate >0.9 across `question_attempts` provide near-duplicate information. Surface pairs; admin retires the lower-rated of each. |
+| AN.20 | **Embedding-based duplicate question finder** | Embed each question's text via `@cf/baai/bge-base-en-v1.5`, store in Vectorize. Cosine-similarity > 0.92 = likely duplicate. Catches semantic dupes that AN.19's behavioral signal misses (fresh questions with no attempt data). |
+| <a id="an-21"></a>AN.21 | **Catastrophic-failure replay queue** | Every game where the player's actual target wasn't in the engine's top 10 at any point auto-snapshots the full reasoning trace to a `triage_queue` table. Admin triage UI scrubs the game step-by-step (uses existing `game_history_details`). The 50-most-recent failures are the engine's most actionable training set. |
+| AN.22 | **Engine reasoning hallucination audit** | Daily Cron samples 20 finished games, runs the saved reasoning text back through an LLM judge with the actual game history + outcome. Judge scores: did the reasoning match the math? Surfaces hallucinated justifications. |
+| AN.23 | **Question entropy decay over time** | Replay each question's info gain monthly as the catalog evolves. Questions that were great in v1.2 may be worthless after a 200-character expansion. Auto-deprioritize decayed questions. |
 
----
+### Catalog & Question Quality
 
-**M.5 — Teaching Mode as a Community Platform**
+| # | Item | Notes |
+|---|------|-------|
+| AN.24 | **Character "celebrity index"** | `(picks_per_session × games_with_pick) ÷ catalog_size`. Surfaces over- and under-represented characters. Over-picked characters need siblings (similar archetype, fewer games featuring them); under-picked may be unfamiliar to the audience and candidates for removal. |
+| AN.25 | **Catalog freshness ribbon** | Public metric: characters added in last 30 / 90 days. Renders in `/about` as proof the catalog is actively curated. Same query also drives an admin "stale catalog" warning if freshness drops below threshold. |
+| AN.26 | **Attribute drift tracker** | When enrichment ingestion flips an attribute value (e.g. `hasGlasses: false → true`), log to `attribute_drift(character_id, attr_key, old, new, source, changed_at)`. Flag flips that contradict admin-locked values. Catches enrichment regressions before they corrupt scoring. |
+| AN.27 | **Attribute dispute resolution SLA** | Time from dispute filed (migration 0026) → resolved. Median + p95. Stale disputes (>14d open) bubble to top of admin queue. Public-facing SLA on `/about`: "median dispute resolved in N days" — credibility win. |
+| AN.28 | **Question wording A/B harness** | Same `attribute_key`, two question texts. 50/50 split per session. Winner = higher info_gain × lower abandonment over 200-attempt sample. Auto-promote, auto-retire. Compounds question-quality improvements without manual A/B coordination. |
 
-Elevate Teaching Mode from a power-user form into a full community contribution system. Submitted characters enter a `/community` queue visible to all players. Others upvote, add missing attributes, or flag inaccuracies — one attribute at a time, no account required. Characters reaching ≥20 upvotes auto-trigger the enrichment pipeline: LLM attribute fill, image fetch, confidence scoring. An admin reviews the enriched result and merges in one click. Contribution loop: *submit → community validates → auto-enrich → admin merge*. Uses `getOrCreateUserId()` cookies throughout — no auth required. Over time, Teaching Mode becomes the primary growth mechanism for the game's content. Players become co-authors of the AI's world model.
+### Operations & Live Telemetry
 
----
+| # | Item | Notes |
+|---|------|-------|
+| AN.29 | **Latency budget panel** | p50/p95/p99 per endpoint, with stacked breakdown: D1 wait / KV wait / LLM wait / engine compute / network. Pairs with I.4 (Tail Worker) and I.11 (OpenTelemetry). One glance shows whether a slow `POST /game/answer` is D1 or LLM. |
+| <a id="an-30"></a>AN.30 | **Live ops strip** | Rolling 1h counters in admin header: games started / wins / losses / abandons / LLM errors / 5xx rate. Auto-refresh every 30s via SSE. The "is the site healthy right now" view that no dashboard chart replaces. |
+| AN.31 | **Cost-per-game ribbon** | `(LLM tokens × per-token price + estimated D1/KV/R2 ops cost) ÷ games`. Daily trend line. Tells you in dollars when a code change made the system more or less efficient. |
+| AN.32 | **Weekly insights digest** | Cron generates a markdown summary every Monday: top-3 movers (win rate, abandonment, cost/game), worst-performing questions, newly added characters, anomalies. Posted to `/admin/digest/YYYY-WW` and optionally a Discord/Slack webhook. The "I haven't checked the dashboard in a week" safety net. |
+| <a id="an-33"></a>AN.33 | **Anomaly-trigger alerts** | Statistical baseline per metric (rolling 14-day mean ± 2σ); when today's value crosses, write to `alerts` table + optional webhook. Catches "win rate dropped 30% overnight" without staring at charts. |
 
-**M.6 — The Self-Documenting Codebase**
+### Experimentation Platform
 
-An AI agent runs on a schedule (nightly Cron Trigger or GitHub Actions cron) that reads every file in `src/`, `functions/`, and `packages/game-engine/src/`, then produces three outputs: (1) a fresh `ARCHITECTURE.md` reflecting what the code *actually* does today; (2) a drift report listing every discrepancy between the current architecture doc and reality — renamed files, added endpoints, changed data flows; (3) a one-paragraph "what changed this week" summary derived from the git log. Architecture docs that stay synchronized with the code without manual maintenance — the kind of operational discipline that usually only exists in teams with dedicated technical writers.
-
----
-
-**M.7 — Zero-Config New Character Category**
-
-`pnpm ingest:new-category --name "anime-villains"` triggers a wizard: (1) provide 5 example characters in the category; (2) GPT-4o proposes a set of distinguishing attributes based on the examples; (3) writes the attribute schema; (4) generates a seed migration; (5) configures enrichment targets; (6) adds simulator weights extrapolated from the nearest existing category. Adding a new content type goes from "a day of scaffolding" to "a 5-minute conversation with a CLI." The AI designs its own expansion without manual prompt engineering — it understands the attribute system well enough to propose what distinguishes one category from another.
-
----
-
-**M.8 — Multi-Modal Interrogation**
-
-A `/identify` route. The player uploads a photo or pastes an image URL. A Workers AI vision model (`@cf/llava-1.5-7b-hf`) describes the character in the image; that description is embedded and matched against the character knowledge base. The AI returns its top-3 guesses with confidence scores and a reasoning chain. Reverse mode for the entire guessing mechanic — the human submits photographic evidence; the AI deduces. For well-known characters with consistent visual designs, this would be eerily accurate. For fan art or obscure characters, the reasoning chain becomes the entertainment. No gameplay changes required — a new route that plugs into the existing engine.
-
----
-
-**M.9 — Federated Character Network**
-
-Multiple independent deployments of this game share their enriched character knowledge via a signed REST protocol. When deployment A encounters a character it doesn't know, it queries its federation peers and receives the enriched attribute vector, confidence scores, and source attribution. Peers verify authenticity via Ed25519 signatures on response bodies. The knowledge graph grows across deployments without a central server — ActivityPub-style, but for fictional character ontologies. Each deployment is a node in a crowd-sourced knowledge network, contributing to and benefiting from the collective intelligence of all instances. Independent fan deployments (anime-only, MCU-only, video-games-only) specialize and federate — the result is a domain-specific knowledge web.
-
----
-
-**M.10 — Real-Time Co-Op vs. AI**
-
-Two players collaborate in the same game session via Durable Objects + WebSockets. Session state lives in a DO. Player 1 answers questions on their device; Player 2 sees each answer appear in real time on theirs, along with probability bars updating live. Both players can veto an answer before it's submitted — a "confer" mechanic that adds a social layer. The AI plays against a coordinated human team with shared information and deliberation time. Leaderboard: "Pairs who stumped the AI in the fewest questions." Architecturally: DO + WebSockets for synchronized session state; `useServerGame` extended to subscribe to DO events. The multiplayer infrastructure would be identical to the Icebox "multiplayer party mode" item — shipping one unlocks the other.
-
----
-
-**M.11 — Temporal Character DB**
-
-Every character gets a `known_since` date (year of first appearance in source material, via the `characters.known_since` column in the DB section). A "time machine" mode on the welcome screen lets the player pick a year. The character pool filters to only characters that existed by that date. `1995 mode`: no Shrek, no Jack Sparrow, no Edward Cullen. `1980 mode`: no internet-native characters at all. Each era has a completely different difficulty profile — questions about "fromVideoGame" become trivially hard in 1970 mode; questions about "fromBook" dominate in 1850 mode. Not just *who* is in the pool, but *what questions are even meaningful* by that date. The attribute space itself is temporally situated.
-
----
-
-**M.12 — Adaptive Attribute Taxonomy**
-
-A nightly Cron Trigger Worker computes cosine similarity across all vectors in `attribute_embeddings` (migration 0035). Attribute pairs with similarity > 0.95 are flagged as semantic duplicates (e.g. "isEvil" and "isVillain"). An admin review queue in `/admin/attributes` surfaces the flagged pairs with sample characters where they disagree. Approved merges consolidate the attribute key across `character_attributes`, `attribute_definitions`, and `questions`, then delete the redundant row. Over time the attribute space self-compacts — fewer, more orthogonal attributes means higher information gain per question asked. The knowledge representation improves continuously without manual curation. The DB curates itself.
-
----
-
-**M.13 — The Living Meta API**
-
-The character knowledge graph is exposed as a public, queryable API — JSON-LD and/or GraphQL. Developers can query: *"all anime characters who are villains with magic powers"*, *"characters from the same franchise as Naruto with confidence > 0.8"*, *"the 10 characters most often confused with Batman."* Every response includes enrichment provenance (source, model, confidence, `contested` flag). The portfolio piece becomes infrastructure — not just a game, but a semantic web data source that other apps and researchers can build on. Rate-limited via Cloudflare Workers; free tier for reasonable use.
-
----
-
-**M.14 — Character DNA Sequencer**
-
-Enter any two characters; the system merges their attribute vectors (boolean union with conflicts resolved by confidence weighting) and calls the LLM to synthesize a narrative identity for the hybrid entity. The crossover appears in the game's possibility space as a hypothetical character with a generated name, composite attribute profile, and a one-paragraph origin story. *"A caped, web-slinging Gotham orphan who fights crime while also being deeply neurotic about high school homework."* Shareable link encodes the pair. The game stops being purely deductive and becomes generative — a creative tool for producing new fictional entities from the intersection of existing ones. The most entertaining output of the DNA Sequencer will be pairs no one would ever think to combine.
+| # | Item | Notes |
+|---|------|-------|
+| AN.34 | **Feature flag → metric attribution** | Existing `feature_flags` table. New `flag_assignments(user_id, flag_key, variant, assigned_at)` and `flag_metrics` view: for each (flag, variant), compute conversion / completion / win rate / cost over the experiment window. Stat-sig column computed via simple two-proportion z-test. Turns ad-hoc rollouts into proper experiments. |
+| AN.35 | **Holdout group for engine improvements** | 5% of sessions permanently locked to the previous engine version (last released minor). Side-by-side metrics on `/admin/holdout` answer "did v1.6 actually improve play, or did we just convince ourselves?" |
 
 ---
 
@@ -610,13 +836,22 @@ Enter any two characters; the system merges their attribute vectors (boolean uni
 | 2026-04 | Cloudflare-only infra | Zero cold starts, generous free tier, single vendor for deploy simplicity |
 | 2026-04 | No leaderboard (yet) | Requires auth; complexity not worth it without an audience |
 | 2026-04 | Bayesian engine, not LLM-only | LLM alone is too slow and expensive per question; hybrid is faster and cheaper |
-| 2026-04 | DO for sessions = paid plan | Durable Objects require Workers Paid ($5/mo). KV session storage sufficient for portfolio scale; revisit if session consistency bugs become an issue |
-| 2026-04 | Admin panel uses Basic auth (not Cloudflare Access) | Solo developer tool — shared secret in KV is sufficient and zero-cost. Swap to Cloudflare Access ($3/user/mo) only if collaborators are added |
-| 2026-04 | StatsDashboard stays in main app | Player-facing data (own win/loss stats) is not a developer tool; only internal tooling lives in the admin panel |
+| 2026-04 | DO for sessions = paid plan | DO requires Workers Paid ($5/mo). KV session storage sufficient for portfolio scale; revisit if consistency bugs appear |
+| 2026-04 | Admin panel uses Basic auth (not Cloudflare Access) | Solo developer tool — KV shared secret is sufficient and zero-cost. Swap to Access ($3/user/mo) only if collaborators are added |
+| 2026-04 | StatsDashboard stays in main app | Player-facing data is not a developer tool; only internal tooling lives in the admin panel |
 | 2026-04 | v1 KV endpoints not removed yet | Still referenced by some client paths; document deprecation before removal in a future cleanup migration |
-| 2026-04 | Infrastructure and Database elevated to top-level sections | These were buried in `BX/BI/BE/BP` sub-sections in the prior roadmap; they're a primary focus area going forward and deserve first-class treatment |
-| 2026-04 | Roadmap v1.4 archived | The prior roadmap grew to ~800 lines with most items struck through. CHANGELOG handles what shipped; this roadmap covers only what's ahead. Archive preserved at `docs/ROADMAP-archive-v1.4.md` |
+| 2026-04 | Roadmap v1.4 archived | The prior roadmap grew to ~800 lines with most items struck through. Archive at `docs/ROADMAP-archive-v1.4.md` |
+| 2026-04 | Roadmap v1.5 cleanup | Migrations 0031–0033 shipped between drafts, leaving the planned-migration list misnumbered; "Open Items in Flight" duplicated detail sections; A.6 duplicated M.8; Admin / Enrichment / UI sections grew long-form prose for items with no near-term timeline. Active sections tightened; icebox / moonshots / pipe dreams extracted to `docs/ROADMAP-icebox.md`; full prior snapshot preserved at `docs/ROADMAP-archive-v1.5.md` |
+| 2026-04 | **Roadmap re-sequenced into execution waves** | The flat "Now" shortlist had grown to 19 items with no internal ordering, leaving "what do I pull next?" unanswered. Replaced with a 5-wave execution plan ordered by priority × ease, with effort tags (S ≤ ½ day / M ½–2 days / L 2–5 days) and per-item rationale. Wave 1 (Foundation, ~1 week): 10 zero-risk wins that unblock everything — AI Gateway split, pre-push hook, secret scanning, migration dry-run, Cron Worker stub, source maps, Smart Placement, semantic caching, OG card, robots/sitemap. Wave 2 (Data Quality, ~2 weeks): the priority-one DQ work in dependency order — golden set first, then vision attributes, schema drift detector, evidence trail, agreement scorecard, constraints validator, quality dashboard, player corroboration, reconciliation Cron, sparse-attribute auto-fill. Wave 3 (Operational Readiness, ~1 week): Analytics Engine, Tail Worker, admin smoke + round-trip tests, error boundary, live ops strip, anomaly alerts, health badge. Wave 4 (Insight & Refinement, ~2 weeks): skip funnel, confusion matrix, retirement queue, question quality loop, dedup, aha detector, catastrophic-failure replay. Wave 5 (Polish & Depth, open-ended): clusters of admin polish, DX leverage, player-facing portfolio gloss, infra graduation — unordered within cluster. Items below the cut line stay in their owning sections as the reference catalog |
+| 2026-04 | **Data Quality elevated to priority one** | The catalog and attribute layer underpins every other system; quality gaps multiply through the engine, selector, analytics, and UI. Today's pipeline ships a single LLM pass with no cross-validation, no vision corroboration for visually obvious attributes, no logical constraint checking, and no continuous re-verification — players are the de facto QA workforce, which is backwards. Added a new top-level Data Quality section (DQ.1–DQ.30) above all other backlog areas, with seven loops: Continuous Validation (golden regression set + nightly reconciliation Cron + quality dashboard + per-attribute SLAs), Multi-Source Triangulation (agreement scorecard + source-strength weighting + Wikidata SPARQL cross-check + conflict triage), Vision-Backed Visual Truth (vision-derived attributes replacing fabricated values + image-attribute consistency audit + multi-image consensus + style classifier), Active Learning (player-answer corroboration + one-tap report + reputation-weighted labels + implicit corrections from outcomes), Adversarial & Constraint Hardening (logical constraint validator + skeptic model pass + counter-factual probes + chain-of-verification + schema drift detector), Catalog Curation Automation (sparse-attribute auto-fill + duplicate detector + stale-character detection + gap analysis + era balance), Trust & Transparency (public quality page + per-attribute evidence trail + confidence badges in admin + nerd-mode for players). Five highest-leverage items (DQ.1–DQ.5) bumped into the Now shortlist ahead of everything except in-flight Hardening |\n| 2026-04 | Enrichment expanded | Added 31 items (EN.2–EN.32) across six new themed sub-sections. Pipeline Quality & Observability: token-level cost ledger, prompt versioning + replay harness, golden regression set, cache hit-rate dashboard, per-attribute reliability score, schema drift detector (EN.2–EN.7). Confidence, Provenance & Self-Healing: per-attribute evidence trail, player-corroboration confidence, logical-constraint self-healing, source-attribution-aware ingestion, counter-factual probes (EN.8–EN.12). Catalog Discovery: trending character auto-discovery, public `/suggest` form with vote threshold, franchise-aware bulk enrichment, gap analysis vs external lists, era/decade balance audit (EN.13–EN.17). Multimodal & Vision: vision-derived visual attributes, auto-silhouettes for hint mode, image quality auto-replace, OCR for text artifacts (EN.18–EN.21). Pipeline Architecture: hybrid local/cloud-burst, tiered model routing per attribute difficulty, embedding-based prompt deduplication, SSE streaming, resumable batch checkpoints, dry-run preview, provenance-aware rollback (EN.22–EN.28). Player-Facing: "Did you know?" trivia card on reveal, spoiler-aware tagging, localization pipeline (EN/ES/JA/PT/DE), TTS pronunciation guide for non-Latin names (EN.29–EN.32) |
+| 2026-04 | Developer Experience expanded | Reorganized DX into six themed sub-sections and added 28 items (DX.18–DX.45). Test/Lint/Verification: coverage diff PR comments, type-coverage ratchet, markdown link checker (DX.18–DX.20). Release & Versioning: `release-please` auto-notes, per-PR Cloudflare Pages preview URL with screenshot + Lighthouse (DX.21–DX.22). Developer Loop & Tooling: `pnpm doctor` health check, seed-from-prod-snapshot for local dev, structured wrangler tail, hot-reload for `functions/`, `.vscode/` workspace settings, Renovate noise reduction (DX.23–DX.28). Code Generation & Type Safety: end-to-end handler→client types via hono RPC, generated D1 types from schema, OpenAPI from handlers, engine API contract snapshot (DX.29–DX.32). Visualization: bundle visualizer artifact, dependency-cruiser auto-diagram in ARCHITECTURE.md, migration timeline visualizer, engine decision flame-graph (DX.33–DX.36). Productivity: `pnpm scratch` REPL with bindings, commitlint, PR template + auto-labeler, dev container, TODO indexer, AGENTS.md, `ink`-based deterministic engine TUI playground, shared eslint-config, per-route performance budgets (DX.37–DX.45) |
+| 2026-04 | Admin Panel polish & wiring audit added | The admin shell ships 24 routes but lacks an end-to-end wiring guarantee. Added 27 polish items (AP.1–AP.27): route smoke-test sweep + action round-trip tests + visual regression snapshots (AP.1, AP.2, AP.25) so wiring breakage is caught in CI; consistency primitives for empty states, loading skeletons, error boundaries, toasts, freshness badges (AP.3–AP.6, AP.17); shell upgrades — mobile drawer, cosmic palette parity with the player app, sidebar count badges, breadcrumbs, health badge, notification center (AP.7–AP.9, AP.11, AP.20, AP.27); navigation power tools — `⌘K` palette, keyboard shortcuts overlay, shareable deep-links, saved table views (AP.10, AP.12, AP.13, AP.21); table/edit ergonomics — inline edit, bulk actions, diff view, sticky filter bar, universal CSV/JSON export (AP.14–AP.16, AP.18, AP.19); operational surfaces — `/admin/about` build card, demo mode for screenshots, session timeout, per-route runbooks (AP.22–AP.24, AP.26) |
+| 2026-04 | Analytics & Refinement expanded | Original Admin section had 5 near-term entries (AN.1, AN.3, AN.6, AN.7, AN.8). Added 27 items across five themes: Player-Behavior Insights (drop-off Sankey, cohort retention, aha-moment detector, engine↔player divergence, session clustering, geo popularity, time heatmap, bot detection); Engine Self-Tuning Loops (question retirement queue, difficulty calibration delta, redundancy detector, embedding-based duplicate finder, catastrophic-failure replay queue, hallucination audit, entropy decay); Catalog & Question Quality (celebrity index, freshness ribbon, attribute drift, dispute SLA, A/B harness); Operations & Live Telemetry (latency budget, live ops strip, cost-per-game, weekly digest, anomaly alerts); Experimentation Platform (feature flag attribution, holdout group). Each item references concrete tables / files that already exist |
+| 2026-04 | Hardening & Hygiene section added | Gap audit surfaced 16 concrete items spanning SEO/sharing (no OG image, no robots/sitemap), observability (no Cron Worker entry, no source map upload, no CSP report viewer, no Lighthouse CI), resilience (no corrupt-session recovery, no teaching-mode moderation or per-IP throttle), privacy (no data export/delete), and accessibility (no end-to-end WCAG audit, no surface for the `difficulty` column from migration 0030). Component test coverage backfill (DX.16) and pre-commit secret scanning (DX.17) added under DX. `/about` + `/credits`, light theme + toggle, and a daily-challenge global leaderboard added under Portfolio Polish |
+| 2026-04 | Status column added to wave tables | Per user preference, every wave-table row now carries a `Status` column (⬜ not started · 🟡 in progress · ✅ YYYY-MM-DD when shipped) updated in the same commit as the work itself. Same convention codified in user memory — applies to every future roadmap pull |
+| 2026-04 | Roadmap promoted to runbook | Added a top-level `How to use this roadmap` section spelling out the pull-loop, status protocol, universal Definition of Done, file/section ownership map, and commit conventions for roadmap edits. Added an `In Progress / Up Next` callout at the top of Now as the single source of truth for "what's next?" — the first thing any future Copilot session reads. Reference catalog vs. active execution path now explicitly separated so the doc scales without future agents getting lost in the themed sections |
+| 2026-04 | Roadmap actionability hardened | Three follow-on refinements landed together: (1) added a `Done when` column to all 4 wave tables — every row now has a verifiable acceptance signal so "is this shipped?" is unambiguous; (2) injected stable HTML anchors (`<a id="dq-1"></a>` etc.) on the 35 themed-section rows referenced by waves, and rewrote wave row IDs as clickable links — Cmd-click an ID in a wave row to jump to its full description; (3) created [AGENTS.md](AGENTS.md) at repo root as the canonical entry point for AI agents (and humans), pointing at ROADMAP.md → In Progress block as the first read. Together these change the roadmap from a reference doc into a runbook future Copilot sessions can execute against |
 
 ---
 
-*Last updated: April 2026 · v1.4.0*
+*Last updated: April 2026 · v1.5.0*

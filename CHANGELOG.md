@@ -8,6 +8,14 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+
+- **AGENTS.md (DX.42)** — repo-root entry point for AI coding agents (Copilot, Claude, Cursor, Aider). Points at `ROADMAP.md` → In Progress block as the canonical "what should I work on?", encodes the pull-loop, universal Definition of Done, tooling guardrails, and commit conventions. Companion to the new `How to use this roadmap` section in ROADMAP.md
+
+### Changed
+
+- **ROADMAP.md promoted to runbook** — added `How to use this roadmap` section, `In Progress / Up Next` callout at the top of Now, `Status` column on all 4 wave tables (⬜/🟡/✅), `Done when` acceptance-criterion column on all 35 wave rows, and stable HTML anchors on every themed-section item referenced by a wave (Cmd-click an ID in a wave row to jump to its full description)
+
 ---
 
 ## [1.5.0] — 2026-04-28
