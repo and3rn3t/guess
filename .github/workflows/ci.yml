@@ -208,6 +208,10 @@ jobs:
       name: preview
       url: ${{ steps.deploy.outputs.deployment-url }}
     steps:
+      # Checkout repo so wrangler can find the sibling `functions/` directory
+      # — `pages deploy dist` only ships the static dir; Functions are picked up
+      # from `<repo-root>/functions/` at deploy time.
+      - uses: actions/checkout@v6
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
           name: dist
@@ -264,6 +268,10 @@ jobs:
       name: production
       url: https://guess.andernet.dev
     steps:
+      # Checkout repo so wrangler can find the sibling `functions/` directory
+      # — `pages deploy dist` only ships the static dir; Functions are picked up
+      # from `<repo-root>/functions/` at deploy time.
+      - uses: actions/checkout@v6
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
           name: dist
