@@ -364,11 +364,35 @@ export function selectBestQuestion(
       }
     }
 
+    // Real-game confusion-pair boost: when the top-2 candidates appear together in
+    // the `character_confusions` table (populated from real losses) and a question
+    // splits them on stored attributes, apply the same ×1.4 endgame discriminator.
+    if (endgameFocus && options?.confusionPairs && topNChars.length >= 2) {
+      const a = topNChars[0].id
+      const b = topNChars[1].id
+      const key = a < b ? `${a}::${b}` : `${b}::${a}`
+      if (options.confusionPairs.has(key)) {
+        const valueA = topNChars[0].attributes[question.attribute]
+        const valueB = topNChars[1].attributes[question.attribute]
+        if (valueA !== null && valueB !== null && valueA !== valueB) {
+          infoGain *= 1.4
+        }
+      }
+    }
+
     // Difficulty soft-filter: de-prioritize questions tagged for a different difficulty level.
     // Only applies when both the game difficulty and the question's difficulty tag are set.
     // A 0.5× penalty keeps mismatched questions available as a last resort.
     if (options?.gameDifficulty && question.difficulty && question.difficulty !== options.gameDifficulty) {
       infoGain *= 0.5
+    }
+
+    // Empirical info-gain blend: when real-game observed gain is available for this
+    // attribute, blend final score = 0.7 × theoretical + 0.3 × empirical. Conservative
+    // weight so theoretical Bayesian gain stays primary; empirical refines tie-breaks.
+    const empiricalGain = options?.questionEmpiricalGainMap?.[question.attribute]
+    if (empiricalGain !== undefined) {
+      infoGain = 0.7 * infoGain + 0.3 * empiricalGain
     }
 
     scored.push({ question, score: infoGain, topTwoSplit })

@@ -84,6 +84,10 @@ export interface GameSession {
   guessAnalytics?: GuessAnalytics
   /** Detective persona derived from difficulty: sherlock | watson | poirot */
   persona?: string
+  /** A/B variant label stamped at session start. Persisted to game_stats on result. */
+  variant?: 'control' | 'experiment'
+  /** Question selector used by this session: 'greedy' (1-step) or 'mcts' (2-step). */
+  selector?: 'greedy' | 'mcts'
 }
 
 // ── Server-specific constants ─────────────────────────────────────────────────
@@ -120,15 +124,18 @@ export function calculateProbabilities(
   return _calculateProbabilities(characters, answers, options)
 }
 
-/** Pick the next question using 2-step MCTS look-ahead (falls back to greedy near endgame). */
+/** Pick the next question. Selector defaults to 'mcts' (2-step look-ahead);
+ *  pass 'greedy' for the 1-step info-gain selector — used by the A/B control arm. */
 export function selectBestQuestion(
   characters: ServerCharacter[],
   answers: Answer[],
   allQuestions: ServerQuestion[],
-  options?: MCTSOptions
+  options?: MCTSOptions,
+  selector: 'greedy' | 'mcts' = 'mcts'
 ): ServerQuestion | null {
   // Cast is safe: the impl returns one of the elements from allQuestions
-  return _selectBestQuestionMCTS(characters, answers, allQuestions, options) as ServerQuestion | null
+  const impl = selector === 'greedy' ? _selectBestQuestion : _selectBestQuestionMCTS
+  return impl(characters, answers, allQuestions, options) as ServerQuestion | null
 }
 
 /** Build a human-readable explanation of why a question was chosen. */
@@ -283,9 +290,14 @@ export interface AdaptiveData {
   netGainMap: Record<string, number> | undefined
   confusionDiscriminators: Record<string, string[]> | undefined
   disputeMap: Record<string, Record<string, number>> | undefined
+  attributeTrustMap: Record<string, number> | undefined
+  characterPopularityMap: Record<string, number> | undefined
+  questionEmpiricalGainMap: Record<string, number> | undefined
+  confusionPairs: Set<string> | undefined
 }
 
 type DisputeRow = { character_id: string; attribute_key: string; confidence: number }
+type ConfusionPairRow = { character_a: string; character_b: string }
 
 /** Load runtime adaptive data in parallel — best-effort; failures degrade gracefully.
  *  Called on every answer, skip, and reject-guess turn. */
@@ -293,7 +305,16 @@ export async function loadAdaptiveData(
   kv: KVNamespace,
   db: D1Database | undefined
 ): Promise<AdaptiveData> {
-  const [maybeRatesRaw, netGainsRaw, confusionRaw, disputeRows] = await Promise.allSettled([
+  const [
+    maybeRatesRaw,
+    netGainsRaw,
+    confusionRaw,
+    disputeRows,
+    attributeTrustRaw,
+    characterPopularityRaw,
+    questionEmpiricalGainRaw,
+    confusionPairRows,
+  ] = await Promise.allSettled([
     kv.get('kv:attribute-maybe-rates', 'json') as Promise<Record<string, number> | null>,
     kv.get('kv:attribute-net-gains', 'json') as Promise<Record<string, number> | null>,
     kv.get('kv:confusion-discriminators', 'json') as Promise<Record<string, string[]> | null>,
@@ -302,11 +323,22 @@ export async function loadAdaptiveData(
            .all<DisputeRow>()
            .then((r) => r.results)
       : Promise.resolve([] as DisputeRow[]),
+    kv.get('kv:attribute-trust', 'json') as Promise<Record<string, number> | null>,
+    kv.get('kv:character-popularity', 'json') as Promise<Record<string, number> | null>,
+    kv.get('kv:question-empirical-gain', 'json') as Promise<Record<string, number> | null>,
+    db
+      ? db.prepare(`SELECT character_a, character_b FROM character_confusions WHERE confusion_count >= 2`)
+           .all<ConfusionPairRow>()
+           .then((r) => r.results)
+      : Promise.resolve([] as ConfusionPairRow[]),
   ])
 
   const maybeRateMap = maybeRatesRaw.status === 'fulfilled' ? (maybeRatesRaw.value ?? undefined) : undefined
   const netGainMap = netGainsRaw.status === 'fulfilled' ? (netGainsRaw.value ?? undefined) : undefined
   const confusionDiscriminators = confusionRaw.status === 'fulfilled' ? (confusionRaw.value ?? undefined) : undefined
+  const attributeTrustMap = attributeTrustRaw.status === 'fulfilled' ? (attributeTrustRaw.value ?? undefined) : undefined
+  const characterPopularityMap = characterPopularityRaw.status === 'fulfilled' ? (characterPopularityRaw.value ?? undefined) : undefined
+  const questionEmpiricalGainMap = questionEmpiricalGainRaw.status === 'fulfilled' ? (questionEmpiricalGainRaw.value ?? undefined) : undefined
 
   let disputeMap: Record<string, Record<string, number>> | undefined
   if (disputeRows.status === 'fulfilled' && disputeRows.value.length > 0) {
@@ -317,7 +349,21 @@ export async function loadAdaptiveData(
     }
   }
 
-  return { maybeRateMap, netGainMap, confusionDiscriminators, disputeMap }
+  let confusionPairs: Set<string> | undefined
+  if (confusionPairRows.status === 'fulfilled' && confusionPairRows.value.length > 0) {
+    confusionPairs = new Set(confusionPairRows.value.map((r) => `${r.character_a}::${r.character_b}`))
+  }
+
+  return {
+    maybeRateMap,
+    netGainMap,
+    confusionDiscriminators,
+    disputeMap,
+    attributeTrustMap,
+    characterPopularityMap,
+    questionEmpiricalGainMap,
+    confusionPairs,
+  }
 }
 
 /** Return the session's pre-computed coverage map, or build it on-the-fly for
@@ -344,13 +390,20 @@ export function buildQuestionOptions(
   return {
     progress: extras?.progress,
     recentCategories: extras?.recentCategories,
-    scoring: { ...scoring, disputeMap: adaptive.disputeMap },
+    scoring: {
+      ...scoring,
+      disputeMap: adaptive.disputeMap,
+      attributeTrustMap: adaptive.attributeTrustMap,
+      characterPopularityMap: adaptive.characterPopularityMap,
+    },
     probs: extras?.probs,
     mctsEndgameThreshold: session.difficulty === 'hard' ? 0.70 : undefined,
     gameDifficulty: session.difficulty as 'easy' | 'medium' | 'hard',
     maybeRateMap: adaptive.maybeRateMap,
     netGainMap: adaptive.netGainMap,
     confusionDiscriminators: adaptive.confusionDiscriminators,
+    questionEmpiricalGainMap: adaptive.questionEmpiricalGainMap,
+    confusionPairs: adaptive.confusionPairs,
   }
 }
 
@@ -371,6 +424,8 @@ interface LeanSession {
   guessCount?: number
   postRejectCooldown?: number
   guessAnalytics?: GuessAnalytics
+  variant?: 'control' | 'experiment'
+  selector?: 'greedy' | 'mcts'
 }
 
 interface GamePool {
@@ -411,6 +466,8 @@ export async function storeSession(kv: KVNamespace, session: GameSession): Promi
     guessCount: session.guessCount,
     postRejectCooldown: session.postRejectCooldown,
     guessAnalytics: session.guessAnalytics,
+    variant: session.variant,
+    selector: session.selector,
   }
   await Promise.all([
     kv.put(poolKey, JSON.stringify(pool), { expirationTtl: SESSION_TTL }),
@@ -450,6 +507,8 @@ export async function loadSession(kv: KVNamespace, sessionId: string): Promise<G
     guessCount: data.guessCount ?? 0,
     postRejectCooldown: data.postRejectCooldown ?? 0,
     guessAnalytics: data.guessAnalytics,
+    variant: data.variant,
+    selector: data.selector,
   }
 }
 
@@ -468,6 +527,8 @@ export async function saveSessionState(kv: KVNamespace, session: GameSession): P
     guessCount: session.guessCount,
     postRejectCooldown: session.postRejectCooldown,
     guessAnalytics: session.guessAnalytics,
+    variant: session.variant,
+    selector: session.selector,
   }
   await kv.put(`game:${session.id}`, JSON.stringify(lean), { expirationTtl: SESSION_TTL })
 }

@@ -51,13 +51,18 @@ export function calculateProbabilities(
   options?: ScoringOptions
 ): Map<string, number> {
   const probabilities = new Map<string, number>()
-  const { coverageMap, popularityMap } = options ?? {}
+  const { coverageMap, popularityMap, attributeTrustMap, characterPopularityMap } = options ?? {}
 
   for (const character of characters) {
     // Popularity prior decays with game progress: full strength early → neutral at game end
     const priorStrength = options?.progress !== undefined ? 1 - options.progress : 1
-    let score = popularityMap
-      ? 1.0 + 0.1 * priorStrength * (popularityMap.get(character.id) ?? 0)
+    // Empirical popularity (real-game observed frequency) takes precedence over
+    // the static popularityMap heuristic when present.
+    const popularityValue = characterPopularityMap
+      ? (characterPopularityMap[character.id] ?? 0)
+      : (popularityMap?.get(character.id) ?? 0)
+    let score = (popularityMap || characterPopularityMap)
+      ? 1.0 + 0.1 * priorStrength * popularityValue
       : 1
 
     for (const answer of answers) {
@@ -79,6 +84,13 @@ export function calculateProbabilities(
         if (disputeConfidence !== undefined) {
           multiplier = disputeConfidence * multiplier + (1 - disputeConfidence) * effectiveUnknown
         }
+      }
+      // Attribute-trust blend: low-trust attributes (high real-player disagreement
+      // rate from `kv:attribute-trust`) pull the multiplier toward effectiveUnknown
+      // proportional to (1 − trust). High-trust attributes (= 1.0) are unaffected.
+      const trust = attributeTrustMap?.[answer.questionId]
+      if (trust !== undefined && trust < 1) {
+        multiplier = trust * multiplier + (1 - trust) * effectiveUnknown
       }
       score *= multiplier
       // Early exit: once negligibly probable, skip remaining answers

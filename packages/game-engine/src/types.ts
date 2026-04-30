@@ -76,6 +76,19 @@ export interface ScoringOptions {
    * Populated at runtime from the `attribute_disputes` D1 table (status = 'open').
    */
   disputeMap?: Record<string, Record<string, number>>
+  /**
+   * Per-attribute trust score in [0.5, 1.0]. Lower trust blends scoring for that
+   * attribute toward the neutral effectiveUnknown score, dampening confident
+   * predictions on attributes that real players frequently disagree with.
+   * Populated from `kv:attribute-trust` (Phase 2 aggregation).
+   */
+  attributeTrustMap?: Record<string, number>
+  /**
+   * Per-character empirical popularity prior in [0, 1] (max-normalised over the
+   * dataset). When present, replaces the static popularity heuristic with
+   * real-game observed frequency. Populated from `kv:character-popularity`.
+   */
+  characterPopularityMap?: Record<string, number>
 }
 
 /**
@@ -137,6 +150,21 @@ export interface QuestionSelectionOptions {
    * no better alternatives exist). Questions with no difficulty tag are unaffected.
    */
   gameDifficulty?: 'easy' | 'medium' | 'hard'
+  /**
+   * Per-attribute empirical info-gain score in [0, 1]. When provided, the final
+   * question score is blended `0.7 × theoretical + 0.3 × empirical` so attributes
+   * that consistently shrink the candidate pool in real play are preferred.
+   * Populated from `kv:question-empirical-gain` (Phase 2 aggregation).
+   */
+  questionEmpiricalGainMap?: Record<string, number>
+  /**
+   * Pairs of character ids that are frequently confused at guess time. When the
+   * top-2 candidates by probability appear in this set the endgame discriminator
+   * boost (×1.4) is extended to questions that distinguish those two characters.
+   * Each entry is the canonical `${a}::${b}` key with `a < b`.
+   * Populated from the `character_confusions` D1 table.
+   */
+  confusionPairs?: Set<string>
 }
 
 // ── Guess-readiness result ────────────────────────────────────────────────────
