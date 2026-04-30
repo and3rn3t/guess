@@ -28,6 +28,7 @@ const LandingRoute = lazy(() => import('./routes/LandingRoute'))
 const ConfusionRoute = lazy(() => import('./routes/ConfusionRoute'))
 const MatrixRoute = lazy(() => import('./routes/MatrixRoute'))
 const StressTestRoute = lazy(() => import('./routes/StressTestRoute'))
+const ExperimentsRoute = lazy(() => import('./routes/ExperimentsRoute'))
 
 function RouteWrapper({ children }: { children: React.ReactNode }): React.JSX.Element {
   return (
@@ -67,6 +68,7 @@ export function AdminApp(): React.JSX.Element {
             <Route path="confusion" element={<RouteWrapper><ConfusionRoute /></RouteWrapper>} />
             <Route path="matrix" element={<RouteWrapper><MatrixRoute /></RouteWrapper>} />
             <Route path="stress-test" element={<RouteWrapper><StressTestRoute /></RouteWrapper>} />
+            <Route path="experiments" element={<RouteWrapper><ExperimentsRoute /></RouteWrapper>} />
             <Route path="enrich" element={<RouteWrapper><EnrichDashboardRoute /></RouteWrapper>} />
             <Route path="proposed-attrs" element={<RouteWrapper><ProposedAttrsRoute /></RouteWrapper>} />
             <Route path="disputes" element={<RouteWrapper><DisputesRoute /></RouteWrapper>} />

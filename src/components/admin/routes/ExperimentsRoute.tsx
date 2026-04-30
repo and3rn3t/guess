@@ -1,0 +1,208 @@
+import { useEffect, useState, useCallback } from 'react'
+import { Button } from '@/components/ui/button'
+import { Skeleton } from '@/components/ui/skeleton'
+import { ArrowsClockwiseIcon, FlaskIcon } from '@phosphor-icons/react'
+
+interface ArmStat {
+  variant: string
+  selector: string
+  games: number
+  wins: number
+  winRate: number
+  avgQuestions: number | null
+  avgConfidence: number | null
+  z: number | null
+  pValue: number | null
+  ci95: number
+}
+
+interface ExperimentsData {
+  windowDays: number
+  config: { pct: number; selector: string | null; weights: string | null }
+  arms: ArmStat[]
+}
+
+function pct(value: number): string {
+  return `${(value * 100).toFixed(1)}%`
+}
+
+function fmtNum(value: number | null, digits = 1): string {
+  if (value === null || !Number.isFinite(value)) return '—'
+  return value.toFixed(digits)
+}
+
+function pValueBadge(p: number | null): React.JSX.Element {
+  if (p === null) return <span className="text-muted-foreground">—</span>
+  let cls = 'bg-muted text-muted-foreground'
+  let label = `p = ${p.toFixed(3)}`
+  if (p < 0.01) {
+    cls = 'bg-emerald-500/20 text-emerald-300'
+    label = `p < 0.01`
+  } else if (p < 0.05) {
+    cls = 'bg-emerald-500/15 text-emerald-300'
+    label = `p < 0.05`
+  } else if (p < 0.1) {
+    cls = 'bg-amber-500/15 text-amber-300'
+  }
+  return <span className={`inline-flex items-center rounded px-2 py-0.5 text-xs font-semibold ${cls}`}>{label}</span>
+}
+
+export default function ExperimentsRoute(): React.JSX.Element {
+  const [data, setData] = useState<ExperimentsData | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [days, setDays] = useState(14)
+
+  const fetchData = useCallback(async () => {
+    setLoading(true)
+    setError(null)
+    try {
+      const res = await fetch(`/api/admin/experiments?days=${days}`)
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      setData((await res.json()) as ExperimentsData)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to load')
+    } finally {
+      setLoading(false)
+    }
+  }, [days])
+
+  useEffect(() => {
+    void fetchData()
+  }, [fetchData])
+
+  const control = data?.arms.find((a) => a.variant === 'control')
+  const totalGames = data?.arms.reduce((sum, a) => sum + a.games, 0) ?? 0
+
+  return (
+    <div className="container mx-auto px-4 py-6 space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold flex items-center gap-2">
+            <FlaskIcon size={24} weight="duotone" />
+            Experiments
+          </h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            A/B variant performance over the last{' '}
+            <select
+              aria-label="Window size in days"
+              value={days}
+              onChange={(e) => setDays(Number.parseInt(e.target.value, 10))}
+              className="bg-muted rounded px-2 py-0.5 text-xs"
+            >
+              <option value={7}>7</option>
+              <option value={14}>14</option>
+              <option value={30}>30</option>
+              <option value={60}>60</option>
+            </select>{' '}
+            days. p-values are two-tailed z-tests on win rate vs control.
+          </p>
+        </div>
+        <Button variant="outline" size="sm" onClick={() => void fetchData()} disabled={loading}>
+          <ArrowsClockwiseIcon size={16} className={loading ? 'animate-spin' : ''} />
+          Refresh
+        </Button>
+      </div>
+
+      {error && (
+        <div className="rounded-lg border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive">
+          {error}
+        </div>
+      )}
+
+      {loading && !data && <Skeleton className="h-64 w-full" />}
+
+      {data && (
+        <>
+          <section className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div className="rounded-lg border border-border/60 bg-card p-4">
+              <p className="text-xs uppercase tracking-widest text-muted-foreground/70">Live split</p>
+              <p className="mt-2 text-3xl font-semibold tabular-nums">{data.config.pct}%</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {data.config.pct > 0
+                  ? `routed to ${data.config.selector ?? '—'}`
+                  : 'experiment off — 100% control'}
+              </p>
+            </div>
+            <div className="rounded-lg border border-border/60 bg-card p-4">
+              <p className="text-xs uppercase tracking-widest text-muted-foreground/70">Total games</p>
+              <p className="mt-2 text-3xl font-semibold tabular-nums">{totalGames.toLocaleString()}</p>
+              <p className="mt-1 text-xs text-muted-foreground">across all arms in window</p>
+            </div>
+            <div className="rounded-lg border border-border/60 bg-card p-4">
+              <p className="text-xs uppercase tracking-widest text-muted-foreground/70">Control win rate</p>
+              <p className="mt-2 text-3xl font-semibold tabular-nums">
+                {control ? pct(control.winRate) : '—'}
+              </p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {control ? `${control.games.toLocaleString()} games · ±${(control.ci95 * 100).toFixed(1)}%` : 'no control data'}
+              </p>
+            </div>
+          </section>
+
+          <section className="rounded-lg border border-border/60 bg-card overflow-hidden">
+            <table className="w-full text-sm">
+              <thead className="bg-muted/40 text-xs uppercase tracking-wider text-muted-foreground">
+                <tr>
+                  <th className="text-left px-4 py-2">Variant</th>
+                  <th className="text-left px-4 py-2">Selector</th>
+                  <th className="text-right px-4 py-2">Games</th>
+                  <th className="text-right px-4 py-2">Win rate (95% CI)</th>
+                  <th className="text-right px-4 py-2">Avg Q</th>
+                  <th className="text-right px-4 py-2">Avg conf</th>
+                  <th className="text-right px-4 py-2">Δ vs control</th>
+                  <th className="text-right px-4 py-2">Significance</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.arms.map((arm) => {
+                  const delta = control && arm.variant !== 'control' ? arm.winRate - control.winRate : null
+                  return (
+                    <tr key={`${arm.variant}-${arm.selector}`} className="border-t border-border/60">
+                      <td className="px-4 py-2 font-medium">{arm.variant}</td>
+                      <td className="px-4 py-2">{arm.selector}</td>
+                      <td className="px-4 py-2 text-right tabular-nums">{arm.games.toLocaleString()}</td>
+                      <td className="px-4 py-2 text-right tabular-nums">
+                        {pct(arm.winRate)}{' '}
+                        <span className="text-muted-foreground text-xs">±{(arm.ci95 * 100).toFixed(1)}%</span>
+                      </td>
+                      <td className="px-4 py-2 text-right tabular-nums">{fmtNum(arm.avgQuestions, 1)}</td>
+                      <td className="px-4 py-2 text-right tabular-nums">{fmtNum(arm.avgConfidence, 2)}</td>
+                      <td className="px-4 py-2 text-right tabular-nums">
+                        {delta === null ? (
+                          <span className="text-muted-foreground">—</span>
+                        ) : (
+                          <span className={delta >= 0 ? 'text-emerald-300' : 'text-red-300'}>
+                            {delta >= 0 ? '+' : ''}
+                            {(delta * 100).toFixed(1)}%
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-4 py-2 text-right">{pValueBadge(arm.pValue)}</td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </section>
+
+          <section className="rounded-lg border border-border/60 bg-card p-4 space-y-2 text-sm">
+            <h2 className="font-semibold">Promotion checklist</h2>
+            <ul className="list-disc list-inside text-muted-foreground space-y-1">
+              <li>≥500 games per arm</li>
+              <li>p &lt; 0.05 vs control on win rate</li>
+              <li>positive delta (or neutral with shorter avg Q)</li>
+              <li>no regression in average confidence</li>
+            </ul>
+            <p className="text-xs text-muted-foreground/80 pt-2">
+              To change the live split, edit{' '}
+              <code className="rounded bg-muted px-1">kv:ab:experiment-pct</code> and{' '}
+              <code className="rounded bg-muted px-1">kv:ab:experiment-selector</code> via{' '}
+              <code className="rounded bg-muted px-1">wrangler kv key put</code>. A self-service toggle is planned for Phase 5.
+            </p>
+          </section>
+        </>
+      )}
+    </div>
+  )
+}
