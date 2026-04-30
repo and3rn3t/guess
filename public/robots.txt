@@ -1,0 +1,9 @@
+# Andernator — https://andernator.com
+# Allow indexing of the public game; keep admin and API surfaces out of search results.
+
+User-agent: *
+Disallow: /admin/
+Disallow: /api/
+Allow: /
+
+Sitemap: https://andernator.com/sitemap.xml
