@@ -17,6 +17,12 @@ interface ErrorDetail {
   stack?: string
 }
 
+interface ResolvedFrame {
+  raw: string
+  resolved: { source: string; line: number; column: number; name: string | null } | null
+  reason?: string
+}
+
 interface PageData {
   logs: ErrorLog[]
   total: number
@@ -30,6 +36,25 @@ const LEVEL_STYLES: Record<string, string> = {
   warn:  'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
 }
 
+function ResolvedStack({ frames, sha }: { frames: ResolvedFrame[]; sha: string }) {
+  return (
+    <div className="space-y-1">
+      <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
+        Resolved against sha <span className="font-mono">{sha.slice(0, 7)}</span>
+      </p>
+      <pre className="whitespace-pre-wrap text-[11px] text-foreground/90">
+        {frames
+          .map((f) =>
+            f.resolved
+              ? `  at ${f.resolved.name ?? '<anon>'} (${f.resolved.source}:${f.resolved.line}:${f.resolved.column})`
+              : `  at ${f.raw}  ⟶ ${f.reason ?? 'unresolved'}`,
+          )
+          .join('\n')}
+      </pre>
+    </div>
+  )
+}
+
 function DetailRow({ detail }: { detail: string }) {
   let parsed: ErrorDetail | null = null
   try {
@@ -38,8 +63,35 @@ function DetailRow({ detail }: { detail: string }) {
     /* raw string fallback */
   }
 
+  const [resolving, setResolving] = useState(false)
+  const [resolved, setResolved] = useState<{ frames: ResolvedFrame[]; sha: string } | null>(null)
+  const [resolveError, setResolveError] = useState<string | null>(null)
+
+  const stack = parsed?.stack ?? null
+  const canResolve = Boolean(stack && /\/assets\/[\w.-]+\.js:\d+:\d+/.test(stack))
+
+  const onResolve = async () => {
+    if (!stack) return
+    setResolving(true)
+    setResolveError(null)
+    try {
+      const res = await fetch('/api/admin/resolve-stack', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ stack }),
+      })
+      const body = (await res.json()) as { sha?: string; frames?: ResolvedFrame[]; error?: string }
+      if (!res.ok) throw new Error(body.error ?? `${res.status}`)
+      setResolved({ sha: body.sha ?? '', frames: body.frames ?? [] })
+    } catch (e) {
+      setResolveError(e instanceof Error ? e.message : 'Resolve failed')
+    } finally {
+      setResolving(false)
+    }
+  }
+
   return (
-    <div className="font-mono text-xs text-muted-foreground bg-muted/40 rounded p-3 space-y-1 max-h-48 overflow-auto">
+    <div className="font-mono text-xs text-muted-foreground bg-muted/40 rounded p-3 space-y-2 max-h-72 overflow-auto">
       {parsed ? (
         <>
           {parsed.message && <p className="text-foreground">{parsed.message}</p>}
@@ -48,6 +100,21 @@ function DetailRow({ detail }: { detail: string }) {
               {parsed.stack}
             </pre>
           )}
+          {canResolve && (
+            <div className="flex items-center gap-2 pt-1">
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-7 text-xs"
+                onClick={() => void onResolve()}
+                disabled={resolving}
+              >
+                {resolving ? 'Resolving…' : resolved ? 'Re-resolve' : 'Resolve stack'}
+              </Button>
+              {resolveError && <span className="text-[11px] text-red-400">{resolveError}</span>}
+            </div>
+          )}
+          {resolved && <ResolvedStack frames={resolved.frames} sha={resolved.sha} />}
         </>
       ) : (
         <pre className="whitespace-pre-wrap">{detail}</pre>

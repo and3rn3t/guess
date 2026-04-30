@@ -11,8 +11,8 @@
     "lint": "eslint .",
     "optimize": "vite optimize",
     "preview": "vite preview",
-    "deploy": "pnpm build && wrangler pages deploy",
-    "deploy:preview": "pnpm build && wrangler pages deploy --branch preview",
+    "deploy": "pnpm build && tsx scripts/upload-sourcemaps.ts --env=production && wrangler pages deploy",
+    "deploy:preview": "pnpm build && tsx scripts/upload-sourcemaps.ts --env=preview && wrangler pages deploy --branch preview",
     "cf:login": "wrangler login",
     "cf:dev": "pnpm build && wrangler pages dev dist",
     "test": "vitest run",
@@ -83,6 +83,7 @@
     "react-router-dom": "^7.14.2",
     "recharts": "^3.8.1",
     "sonner": "^2.0.1",
+    "source-map-js": "^1.2.1",
     "tailwind-merge": "^3.0.2",
     "tw-animate-css": "^1.2.4",
     "zod": "^4.3.6"

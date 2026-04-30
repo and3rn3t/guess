@@ -231,10 +231,10 @@ The active execution plan, sequenced by **priority × ease**. Pull items top-dow
 > **Maintain this block first.** It's the single answer to "what should I work on?" — agents and humans check it before scanning tables. Update in the same commit as the work it describes.
 
 - 🟡 **In progress:** [I.1](#i-1) preview AI Gateway 24h verification window · [I.9](#i-9) AI Gateway semantic caching 7d cache-hit window
-- ▶ **Up next:** Wave 1 #6 — **[H.4](#h-4)** Source map upload (S) → then Wave 2 starts (DQ.1 golden character regression set)
+- ▶ **Up next:** Wave 2 #11 — **[DQ.1](#dq-1)** Golden character regression set + CI gate (M)
 - 🧫 **Blocked / waiting on:** _none_
-- 🎯 **Current wave focus:** Wave 1 — Foundation (8 of 10 shipped; 2 in verification windows; 1 to go: H.4)
-- ✅ **Recently shipped:** [H.3](#h-3) Cron Worker entry (2026-04-30) · [DX.17](#dx-17), [H.1](#h-1), [H.2](#h-2) (2026-04-30) · [DX.11](#dx-11), [DX.12](#dx-12), [I.8](#i-8) (2026-04-30, audit-flip) · [DX.42](#dx-42) AGENTS.md (2026-04-30)
+- 🎯 **Current wave focus:** Wave 1 ✅ complete (8 of 10 shipped + 2 in verification windows). Pivoting to Wave 2 — Data Quality Foundation.
+- ✅ **Recently shipped:** [H.4](#h-4) source map upload (2026-04-30) · [H.3](#h-3) Cron Worker entry (2026-04-30) · [DX.17](#dx-17), [H.1](#h-1), [H.2](#h-2) (2026-04-30) · [DX.11](#dx-11), [DX.12](#dx-12), [I.8](#i-8) (2026-04-30, audit-flip) · [DX.42](#dx-42) AGENTS.md (2026-04-30)
 
 ### Wave 1 — Foundation (start here, ~1 week of focused work)
 
@@ -247,7 +247,7 @@ Quick wins that unblock everything else, cost almost nothing, and make the rest 
 | ✅ 2026-04-30 | 3 | [DX.17](#dx-17) | Pre-commit secret scanning (`gitleaks`) | S | Same hook as DX.11. Costs minutes, prevents catastrophic leaks. | Committing a fake AWS key locally is blocked; clean commits unaffected. (Shipped via `gitleaks protect --staged` in `.husky/pre-commit`.) |
 | ✅ 2026-04-30 | 4 | [DX.12](#dx-12) | D1 migration dry-run in CI | S | One step in `.github/workflows/ci.yml`. Catches migration regressions for free. | CI fails when a malformed migration is added to a PR; passes for valid ones. (Shipped in `db-checks` job, `pnpm migrate:dry-run:preview`.) |
 | ✅ 2026-04-30 | 5 | [H.3](#h-3) | Cron Worker entry (`functions/cron/index.ts`) | S | Prerequisite for migrations 0036–0039 and most DQ Cron items. Three lines in `wrangler.toml` + a stub `scheduled()` handler. Unblocks DQ.6, DQ.22, EN.13. | `wrangler tail` shows the cron handler firing on its schedule. (Shipped: `functions/cron/index.ts` exports `scheduled()` + pure `runScheduled` dispatcher; trigger configured via CF dashboard — see ARCHITECTURE.md.) |
-| ⬜ | 6 | [H.4](#h-4) | Source map upload | S | Without this, every `error_logs` row is unreadable minified gibberish. Fix before any production debugging session. | A thrown error in prod surfaces with original file/line in `error_logs`. |
+| ✅ 2026-04-30 | 6 | [H.4](#h-4) | Source map upload | S | Without this, every `error_logs` row is unreadable minified gibberish. Fix before any production debugging session. | A thrown error in prod surfaces with original file/line in `error_logs`. (Shipped: `scripts/upload-sourcemaps.ts` ships `.map` files to R2 `maps/{sha}/`, scrubs them from `dist/`, records sha in KV `deploy:current-sha`. Admin `Resolve stack` button on `/admin/error-logs` POSTs to new `/api/admin/resolve-stack` endpoint which uses `source-map-js` against the R2 map.) |
 | ✅ 2026-04-30 | 7 | [I.8](#i-8) | Workers Smart Placement | S | Three lines in `wrangler.toml`. 50–200ms latency win for non-US players. Zero risk. | Smart Placement enabled in `wrangler.toml`; CF dashboard confirms placement decisions. (Shipped via `[placement] mode = "smart"`.) |
 | 🟡 | 8 | [I.9](#i-9) | AI Gateway semantic caching | S | Toggle in CF dashboard. 20–40% LLM cost cut for question generation. Zero code. | AI Gateway dashboard shows ≥20% cache hit rate over a rolling 7-day window. (Awaiting CF dashboard toggle + 7d window.) |
 | ✅ 2026-04-30 | 9 | [H.1](#h-1) | OG + Twitter card image and meta | S | One PNG + 6 meta tags. Required for any sharing surface (Wave 4). | Pasting the prod URL into Twitter/Slack/iMessage renders the OG card preview. (Shipped via `public/og-image.png` + `og:*` and `twitter:card` meta in `index.html`; regen with `pnpm build:og-image`.) |

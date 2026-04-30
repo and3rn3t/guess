@@ -18,6 +18,9 @@ export default defineConfig({
     }
   },
   build: {
+    // H.4 — emit hidden sourcemaps so /scripts/upload-sourcemaps.ts can ship
+    // them to R2 (and out of the public dist) for admin-side stack resolution.
+    sourcemap: true,
     rollupOptions: {
       output: {
         manualChunks: (id) => {
