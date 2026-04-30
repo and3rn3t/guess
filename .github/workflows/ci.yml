@@ -212,6 +212,9 @@ jobs:
       # — `pages deploy dist` only ships the static dir; Functions are picked up
       # from `<repo-root>/functions/` at deploy time.
       - uses: actions/checkout@v6
+      # wrangler-action detects pnpm from pnpm-lock.yaml and uses it to install
+      # wrangler — so pnpm must be on PATH even though we don't run a build here.
+      - uses: pnpm/action-setup@903f9c1a6ebcba6cf41d87230be49611ac97822e # v6
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
           name: dist
@@ -272,6 +275,9 @@ jobs:
       # — `pages deploy dist` only ships the static dir; Functions are picked up
       # from `<repo-root>/functions/` at deploy time.
       - uses: actions/checkout@v6
+      # wrangler-action detects pnpm from pnpm-lock.yaml and uses it to install
+      # wrangler — so pnpm must be on PATH even though we don't run a build here.
+      - uses: pnpm/action-setup@903f9c1a6ebcba6cf41d87230be49611ac97822e # v6
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
           name: dist
