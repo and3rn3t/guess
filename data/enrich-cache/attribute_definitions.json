@@ -1,0 +1,1122 @@
+[
+  {
+    "key": "appearsInPrequel",
+    "displayText": "Appears in Prequel",
+    "categories": null
+  },
+  {
+    "key": "appearsInSequel",
+    "displayText": "Appears in Sequel",
+    "categories": null
+  },
+  {
+    "key": "canBecomeGiant",
+    "displayText": "Can Become Giant",
+    "categories": null
+  },
+  {
+    "key": "canBreatheUnderwater",
+    "displayText": "Can Breathe Underwater",
+    "categories": null
+  },
+  {
+    "key": "canControlElements",
+    "displayText": "Can Control Elements",
+    "categories": null
+  },
+  {
+    "key": "canControlTime",
+    "displayText": "Time Control",
+    "categories": null
+  },
+  {
+    "key": "canCreateIllusions",
+    "displayText": "Illusion Creation",
+    "categories": null
+  },
+  {
+    "key": "canFly",
+    "displayText": "Can Fly",
+    "categories": null
+  },
+  {
+    "key": "canGenerateElectricity",
+    "displayText": "Electricity Generation",
+    "categories": null
+  },
+  {
+    "key": "canReadMinds",
+    "displayText": "Mind Reading",
+    "categories": null
+  },
+  {
+    "key": "canRegenerate",
+    "displayText": "Can Regenerate",
+    "categories": null
+  },
+  {
+    "key": "canShapeshift",
+    "displayText": "Can Shapeshift",
+    "categories": null
+  },
+  {
+    "key": "canSwim",
+    "displayText": "Can Swim",
+    "categories": null
+  },
+  {
+    "key": "canTalk",
+    "displayText": "Can Talk",
+    "categories": null
+  },
+  {
+    "key": "canTalkToAnimals",
+    "displayText": "Animal Communication",
+    "categories": null
+  },
+  {
+    "key": "canTeleport",
+    "displayText": "Can Teleport",
+    "categories": null
+  },
+  {
+    "key": "canTimeTravel",
+    "displayText": "Can Time Travel",
+    "categories": null
+  },
+  {
+    "key": "canTurnInvisible",
+    "displayText": "Invisibility",
+    "categories": null
+  },
+  {
+    "key": "canWalkThroughWalls",
+    "displayText": "Wall Phasing",
+    "categories": null
+  },
+  {
+    "key": "climbsWalls",
+    "displayText": "Climbs Walls",
+    "categories": null
+  },
+  {
+    "key": "controlsWeather",
+    "displayText": "Controls Weather",
+    "categories": null
+  },
+  {
+    "key": "fromBook",
+    "displayText": "From Book",
+    "categories": null
+  },
+  {
+    "key": "fromMovie",
+    "displayText": "From Movie",
+    "categories": null
+  },
+  {
+    "key": "fromSpace",
+    "displayText": "From Space",
+    "categories": null
+  },
+  {
+    "key": "fromVideoGame",
+    "displayText": "From Video Game",
+    "categories": null
+  },
+  {
+    "key": "hasAccent",
+    "displayText": "Accent",
+    "categories": null
+  },
+  {
+    "key": "hasAnimalCompanion",
+    "displayText": "Animal Companion",
+    "categories": null
+  },
+  {
+    "key": "hasArmor",
+    "displayText": "Has Armor",
+    "categories": null
+  },
+  {
+    "key": "hasBeard",
+    "displayText": "Beard",
+    "categories": null
+  },
+  {
+    "key": "hasBlondeHair",
+    "displayText": "Blonde Hair",
+    "categories": null
+  },
+  {
+    "key": "hasBlueEyes",
+    "displayText": "Blue Eyes",
+    "categories": null
+  },
+  {
+    "key": "hasCatchphrase",
+    "displayText": "Catchphrase",
+    "categories": null
+  },
+  {
+    "key": "hasChildren",
+    "displayText": "Children",
+    "categories": null
+  },
+  {
+    "key": "hasClaws",
+    "displayText": "Has Claws",
+    "categories": null
+  },
+  {
+    "key": "hasCompanion",
+    "displayText": "Has Companion",
+    "categories": null
+  },
+  {
+    "key": "hasFacialHair",
+    "displayText": "Has Facial Hair",
+    "categories": null
+  },
+  {
+    "key": "hasFamily",
+    "displayText": "Has Family",
+    "categories": null
+  },
+  {
+    "key": "hasFreckles",
+    "displayText": "Freckles",
+    "categories": null
+  },
+  {
+    "key": "hasGlasses",
+    "displayText": "Glasses",
+    "categories": null
+  },
+  {
+    "key": "hasGreenEyes",
+    "displayText": "Green Eyes",
+    "categories": null
+  },
+  {
+    "key": "hasJob",
+    "displayText": "Has Job",
+    "categories": null
+  },
+  {
+    "key": "hasLongHair",
+    "displayText": "Long Hair",
+    "categories": null
+  },
+  {
+    "key": "hasMagicPowers",
+    "displayText": "Has Magic Powers",
+    "categories": null
+  },
+  {
+    "key": "hasPet",
+    "displayText": "Has Pet",
+    "categories": null
+  },
+  {
+    "key": "hasRedHair",
+    "displayText": "Red Hair",
+    "categories": null
+  },
+  {
+    "key": "hasRobotCompanion",
+    "displayText": "Robot Companion",
+    "categories": null
+  },
+  {
+    "key": "hasScar",
+    "displayText": "Scar",
+    "categories": null
+  },
+  {
+    "key": "hasShortHair",
+    "displayText": "Short Hair",
+    "categories": null
+  },
+  {
+    "key": "hasSibling",
+    "displayText": "Sibling",
+    "categories": null
+  },
+  {
+    "key": "hasSidekick",
+    "displayText": "Has Sidekick",
+    "categories": null
+  },
+  {
+    "key": "hasSpiderSense",
+    "displayText": "Has Spider Sense",
+    "categories": null
+  },
+  {
+    "key": "hasSuperSpeed",
+    "displayText": "Super Speed",
+    "categories": null
+  },
+  {
+    "key": "hasSuperStrength",
+    "displayText": "Super Strength",
+    "categories": null
+  },
+  {
+    "key": "hasSuperpowers",
+    "displayText": "Has Superpowers",
+    "categories": null
+  },
+  {
+    "key": "hasTail",
+    "displayText": "Has Tail",
+    "categories": null
+  },
+  {
+    "key": "hasTattoos",
+    "displayText": "Tattoos",
+    "categories": null
+  },
+  {
+    "key": "hasTentacles",
+    "displayText": "Has Tentacles",
+    "categories": null
+  },
+  {
+    "key": "hasThemeSong",
+    "displayText": "Theme Song",
+    "categories": null
+  },
+  {
+    "key": "hasWeapon",
+    "displayText": "Has Weapon",
+    "categories": null
+  },
+  {
+    "key": "hasWebShooters",
+    "displayText": "Has Web Shooters",
+    "categories": null
+  },
+  {
+    "key": "hasWings",
+    "displayText": "Has Wings",
+    "categories": null
+  },
+  {
+    "key": "isAdventurous",
+    "displayText": "Adventurous",
+    "categories": null
+  },
+  {
+    "key": "isAlien",
+    "displayText": "Alien",
+    "categories": null
+  },
+  {
+    "key": "isAnimal",
+    "displayText": "Is Animal",
+    "categories": null
+  },
+  {
+    "key": "isAntagonist",
+    "displayText": "Antagonist",
+    "categories": null
+  },
+  {
+    "key": "isAssassin",
+    "displayText": "Assassin",
+    "categories": null
+  },
+  {
+    "key": "isBald",
+    "displayText": "Bald",
+    "categories": null
+  },
+  {
+    "key": "isBasedOnRealPerson",
+    "displayText": "Based on Real Person",
+    "categories": null
+  },
+  {
+    "key": "isBlind",
+    "displayText": "Blind",
+    "categories": null
+  },
+  {
+    "key": "isBrave",
+    "displayText": "Brave",
+    "categories": null
+  },
+  {
+    "key": "isCharming",
+    "displayText": "Charming",
+    "categories": null
+  },
+  {
+    "key": "isClumsy",
+    "displayText": "Clumsy",
+    "categories": null
+  },
+  {
+    "key": "isCowardly",
+    "displayText": "Cowardly",
+    "categories": null
+  },
+  {
+    "key": "isCreative",
+    "displayText": "Creative",
+    "categories": null
+  },
+  {
+    "key": "isCruel",
+    "displayText": "Cruel",
+    "categories": null
+  },
+  {
+    "key": "isCunning",
+    "displayText": "Cunning",
+    "categories": null
+  },
+  {
+    "key": "isCurious",
+    "displayText": "Curious",
+    "categories": null
+  },
+  {
+    "key": "isCyborg",
+    "displayText": "Cyborg",
+    "categories": null
+  },
+  {
+    "key": "isDeaf",
+    "displayText": "Deaf",
+    "categories": null
+  },
+  {
+    "key": "isDemon",
+    "displayText": "Demon",
+    "categories": null
+  },
+  {
+    "key": "isDetective",
+    "displayText": "Detective",
+    "categories": null
+  },
+  {
+    "key": "isDevious",
+    "displayText": "Devious",
+    "categories": null
+  },
+  {
+    "key": "isDisabled",
+    "displayText": "Disabled",
+    "categories": null
+  },
+  {
+    "key": "isDwarf",
+    "displayText": "Dwarf",
+    "categories": null
+  },
+  {
+    "key": "isElf",
+    "displayText": "Elf",
+    "categories": null
+  },
+  {
+    "key": "isEnergetic",
+    "displayText": "Energetic",
+    "categories": null
+  },
+  {
+    "key": "isEngineer",
+    "displayText": "Engineer",
+    "categories": null
+  },
+  {
+    "key": "isFemale",
+    "displayText": "Female",
+    "categories": null
+  },
+  {
+    "key": "isFictional",
+    "displayText": "Is Fictional",
+    "categories": null
+  },
+  {
+    "key": "isFoolish",
+    "displayText": "Foolish",
+    "categories": null
+  },
+  {
+    "key": "isFromActionGenre",
+    "displayText": "From Action Genre",
+    "categories": null
+  },
+  {
+    "key": "isFromActionNovel",
+    "displayText": "From Action Novel",
+    "categories": "[\"books\"]"
+  },
+  {
+    "key": "isFromAdventureGenre",
+    "displayText": "From Adventure Genre",
+    "categories": null
+  },
+  {
+    "key": "isFromAdventureNovel",
+    "displayText": "From Adventure Novel",
+    "categories": "[\"books\"]"
+  },
+  {
+    "key": "isFromAnimatedSeries",
+    "displayText": "From Animated Series",
+    "categories": null
+  },
+  {
+    "key": "isFromAnime",
+    "displayText": "From Anime",
+    "categories": "[\"anime\"]"
+  },
+  {
+    "key": "isFromBook",
+    "displayText": "From Book",
+    "categories": "[\"books\"]"
+  },
+  {
+    "key": "isFromCartoon",
+    "displayText": "From Cartoon",
+    "categories": "[\"cartoons\"]"
+  },
+  {
+    "key": "isFromCastle",
+    "displayText": "From Castle",
+    "categories": null
+  },
+  {
+    "key": "isFromCity",
+    "displayText": "From City",
+    "categories": null
+  },
+  {
+    "key": "isFromComedyGenre",
+    "displayText": "From Comedy Genre",
+    "categories": null
+  },
+  {
+    "key": "isFromComicBook",
+    "displayText": "From Comic Book",
+    "categories": "[\"comics\"]"
+  },
+  {
+    "key": "isFromCountryside",
+    "displayText": "From Countryside",
+    "categories": null
+  },
+  {
+    "key": "isFromDesert",
+    "displayText": "From Desert",
+    "categories": null
+  },
+  {
+    "key": "isFromDocumentary",
+    "displayText": "From Documentary",
+    "categories": null
+  },
+  {
+    "key": "isFromDramaGenre",
+    "displayText": "From Drama Genre",
+    "categories": null
+  },
+  {
+    "key": "isFromDystopia",
+    "displayText": "From Dystopia",
+    "categories": null
+  },
+  {
+    "key": "isFromEarth",
+    "displayText": "From Earth",
+    "categories": null
+  },
+  {
+    "key": "isFromFantasyGenre",
+    "displayText": "From Fantasy Genre",
+    "categories": null
+  },
+  {
+    "key": "isFromFantasyNovel",
+    "displayText": "From Fantasy Novel",
+    "categories": "[\"books\"]"
+  },
+  {
+    "key": "isFromFantasyWorld",
+    "displayText": "From Fantasy World",
+    "categories": null
+  },
+  {
+    "key": "isFromForest",
+    "displayText": "From Forest",
+    "categories": null
+  },
+  {
+    "key": "isFromFuture",
+    "displayText": "From Future",
+    "categories": null
+  },
+  {
+    "key": "isFromGameShow",
+    "displayText": "From Game Show",
+    "categories": "[\"tv-shows\"]"
+  },
+  {
+    "key": "isFromHistoricalFiction",
+    "displayText": "From Historical Fiction",
+    "categories": null
+  },
+  {
+    "key": "isFromHistoricalNovel",
+    "displayText": "From Historical Novel",
+    "categories": "[\"books\"]"
+  },
+  {
+    "key": "isFromHorrorGenre",
+    "displayText": "From Horror Genre",
+    "categories": null
+  },
+  {
+    "key": "isFromHorrorNovel",
+    "displayText": "From Horror Novel",
+    "categories": "[\"books\"]"
+  },
+  {
+    "key": "isFromIndieSource",
+    "displayText": "From Indie Source",
+    "categories": null
+  },
+  {
+    "key": "isFromIsland",
+    "displayText": "From Island",
+    "categories": null
+  },
+  {
+    "key": "isFromJapan",
+    "displayText": "From Japan",
+    "categories": null
+  },
+  {
+    "key": "isFromJungle",
+    "displayText": "From Jungle",
+    "categories": null
+  },
+  {
+    "key": "isFromLiveAction",
+    "displayText": "From Live Action",
+    "categories": null
+  },
+  {
+    "key": "isFromMedievalTimes",
+    "displayText": "From Medieval Times",
+    "categories": null
+  },
+  {
+    "key": "isFromMiddleClass",
+    "displayText": "From Middle Class",
+    "categories": null
+  },
+  {
+    "key": "isFromMilitary",
+    "displayText": "From Military",
+    "categories": null
+  },
+  {
+    "key": "isFromModernEra",
+    "displayText": "From Modern Era",
+    "categories": null
+  },
+  {
+    "key": "isFromMountains",
+    "displayText": "From Mountains",
+    "categories": null
+  },
+  {
+    "key": "isFromMovie",
+    "displayText": "From Movie",
+    "categories": "[\"movies\"]"
+  },
+  {
+    "key": "isFromMusicalGenre",
+    "displayText": "From Musical Genre",
+    "categories": null
+  },
+  {
+    "key": "isFromMysteryGenre",
+    "displayText": "From Mystery Genre",
+    "categories": null
+  },
+  {
+    "key": "isFromMysteryNovel",
+    "displayText": "From Mystery Novel",
+    "categories": "[\"books\"]"
+  },
+  {
+    "key": "isFromNobleFamily",
+    "displayText": "From Noble Family",
+    "categories": null
+  },
+  {
+    "key": "isFromOcean",
+    "displayText": "From Ocean",
+    "categories": null
+  },
+  {
+    "key": "isFromPoorFamily",
+    "displayText": "From Poor Family",
+    "categories": null
+  },
+  {
+    "key": "isFromPopCulture",
+    "displayText": "From Pop Culture",
+    "categories": "[\"pop-culture\"]"
+  },
+  {
+    "key": "isFromRealityShow",
+    "displayText": "From Reality Show",
+    "categories": "[\"tv-shows\"]"
+  },
+  {
+    "key": "isFromRomanceGenre",
+    "displayText": "From Romance Genre",
+    "categories": null
+  },
+  {
+    "key": "isFromRomanceNovel",
+    "displayText": "From Romance Novel",
+    "categories": "[\"books\"]"
+  },
+  {
+    "key": "isFromRoyalFamily",
+    "displayText": "From Royal Family",
+    "categories": null
+  },
+  {
+    "key": "isFromSciFiGenre",
+    "displayText": "From Sci-Fi Genre",
+    "categories": null
+  },
+  {
+    "key": "isFromSciFiNovel",
+    "displayText": "From Sci-Fi Novel",
+    "categories": "[\"books\"]"
+  },
+  {
+    "key": "isFromSitcom",
+    "displayText": "From Sitcom",
+    "categories": "[\"tv-shows\"]"
+  },
+  {
+    "key": "isFromSmallTown",
+    "displayText": "From Small Town",
+    "categories": null
+  },
+  {
+    "key": "isFromSuperheroGenre",
+    "displayText": "From Superhero Genre",
+    "categories": null
+  },
+  {
+    "key": "isFromSwamp",
+    "displayText": "From Swamp",
+    "categories": null
+  },
+  {
+    "key": "isFromTVShow",
+    "displayText": "From TV Show",
+    "categories": "[\"tv-shows\"]"
+  },
+  {
+    "key": "isFromThrillerGenre",
+    "displayText": "From Thriller Genre",
+    "categories": null
+  },
+  {
+    "key": "isFromThrillerNovel",
+    "displayText": "From Thriller Novel",
+    "categories": "[\"books\"]"
+  },
+  {
+    "key": "isFromUnderground",
+    "displayText": "From Underground",
+    "categories": null
+  },
+  {
+    "key": "isFromUtopia",
+    "displayText": "From Utopia",
+    "categories": null
+  },
+  {
+    "key": "isFromVillage",
+    "displayText": "From Village",
+    "categories": null
+  },
+  {
+    "key": "isFromWealthyFamily",
+    "displayText": "From Wealthy Family",
+    "categories": null
+  },
+  {
+    "key": "isFromWesternGenre",
+    "displayText": "From Western Genre",
+    "categories": null
+  },
+  {
+    "key": "isFromWesternNovel",
+    "displayText": "From Western Novel",
+    "categories": "[\"books\"]"
+  },
+  {
+    "key": "isFunny",
+    "displayText": "Is Funny",
+    "categories": null
+  },
+  {
+    "key": "isGenderFluid",
+    "displayText": "Gender Fluid",
+    "categories": null
+  },
+  {
+    "key": "isGhost",
+    "displayText": "Ghost",
+    "categories": null
+  },
+  {
+    "key": "isGiant",
+    "displayText": "Giant",
+    "categories": null
+  },
+  {
+    "key": "isGod",
+    "displayText": "God",
+    "categories": null
+  },
+  {
+    "key": "isGreedy",
+    "displayText": "Greedy",
+    "categories": null
+  },
+  {
+    "key": "isHero",
+    "displayText": "Is Hero",
+    "categories": null
+  },
+  {
+    "key": "isHonest",
+    "displayText": "Honest",
+    "categories": null
+  },
+  {
+    "key": "isHuman",
+    "displayText": "Is Human",
+    "categories": null
+  },
+  {
+    "key": "isHumorous",
+    "displayText": "Humorous",
+    "categories": null
+  },
+  {
+    "key": "isIconic",
+    "displayText": "Iconic",
+    "categories": null
+  },
+  {
+    "key": "isImmortal",
+    "displayText": "Is Immortal",
+    "categories": null
+  },
+  {
+    "key": "isImpatient",
+    "displayText": "Impatient",
+    "categories": null
+  },
+  {
+    "key": "isIntelligent",
+    "displayText": "Intelligent",
+    "categories": null
+  },
+  {
+    "key": "isInvisible",
+    "displayText": "Is Invisible",
+    "categories": null
+  },
+  {
+    "key": "isKind",
+    "displayText": "Kind",
+    "categories": null
+  },
+  {
+    "key": "isKnight",
+    "displayText": "Knight",
+    "categories": null
+  },
+  {
+    "key": "isLazy",
+    "displayText": "Lazy",
+    "categories": null
+  },
+  {
+    "key": "isLeader",
+    "displayText": "Is Leader",
+    "categories": null
+  },
+  {
+    "key": "isLoyal",
+    "displayText": "Loyal",
+    "categories": null
+  },
+  {
+    "key": "isMale",
+    "displayText": "Is Male",
+    "categories": null
+  },
+  {
+    "key": "isMarried",
+    "displayText": "Married",
+    "categories": null
+  },
+  {
+    "key": "isMentor",
+    "displayText": "Mentor",
+    "categories": null
+  },
+  {
+    "key": "isMute",
+    "displayText": "Mute",
+    "categories": null
+  },
+  {
+    "key": "isMythical",
+    "displayText": "Mythical",
+    "categories": null
+  },
+  {
+    "key": "isNaive",
+    "displayText": "Naive",
+    "categories": null
+  },
+  {
+    "key": "isNinja",
+    "displayText": "Ninja",
+    "categories": null
+  },
+  {
+    "key": "isNonBinary",
+    "displayText": "Non-Binary",
+    "categories": null
+  },
+  {
+    "key": "isOptimistic",
+    "displayText": "Optimistic",
+    "categories": null
+  },
+  {
+    "key": "isOrc",
+    "displayText": "Orc",
+    "categories": null
+  },
+  {
+    "key": "isPartOfEnsembleCast",
+    "displayText": "Part of Ensemble Cast",
+    "categories": null
+  },
+  {
+    "key": "isPartOfFranchise",
+    "displayText": "Part of Franchise",
+    "categories": null
+  },
+  {
+    "key": "isPatient",
+    "displayText": "Patient",
+    "categories": null
+  },
+  {
+    "key": "isPessimistic",
+    "displayText": "Pessimistic",
+    "categories": null
+  },
+  {
+    "key": "isPirate",
+    "displayText": "Pirate",
+    "categories": null
+  },
+  {
+    "key": "isPoor",
+    "displayText": "Poor",
+    "categories": null
+  },
+  {
+    "key": "isProtagonist",
+    "displayText": "Protagonist",
+    "categories": null
+  },
+  {
+    "key": "isReal",
+    "displayText": "Is Real",
+    "categories": null
+  },
+  {
+    "key": "isRebellious",
+    "displayText": "Rebellious",
+    "categories": null
+  },
+  {
+    "key": "isRich",
+    "displayText": "Rich",
+    "categories": null
+  },
+  {
+    "key": "isRobot",
+    "displayText": "Is Robot",
+    "categories": null
+  },
+  {
+    "key": "isRoyalty",
+    "displayText": "Is Royalty",
+    "categories": null
+  },
+  {
+    "key": "isSamurai",
+    "displayText": "Samurai",
+    "categories": null
+  },
+  {
+    "key": "isSarcastic",
+    "displayText": "Sarcastic",
+    "categories": null
+  },
+  {
+    "key": "isScientist",
+    "displayText": "Scientist",
+    "categories": null
+  },
+  {
+    "key": "isSerious",
+    "displayText": "Serious",
+    "categories": null
+  },
+  {
+    "key": "isSidekick",
+    "displayText": "Sidekick",
+    "categories": null
+  },
+  {
+    "key": "isSingle",
+    "displayText": "Single",
+    "categories": null
+  },
+  {
+    "key": "isSkeptical",
+    "displayText": "Skeptical",
+    "categories": null
+  },
+  {
+    "key": "isSupernatural",
+    "displayText": "Supernatural",
+    "categories": null
+  },
+  {
+    "key": "isTeenager",
+    "displayText": "Teenager",
+    "categories": null
+  },
+  {
+    "key": "isTraitor",
+    "displayText": "Traitor",
+    "categories": null
+  },
+  {
+    "key": "isTransgender",
+    "displayText": "Transgender",
+    "categories": null
+  },
+  {
+    "key": "isVampire",
+    "displayText": "Vampire",
+    "categories": null
+  },
+  {
+    "key": "isVideoGameCharacter",
+    "displayText": "Video Game Character",
+    "categories": "[\"video-games\"]"
+  },
+  {
+    "key": "isVillain",
+    "displayText": "Is Villain",
+    "categories": null
+  },
+  {
+    "key": "isWise",
+    "displayText": "Wise",
+    "categories": null
+  },
+  {
+    "key": "isWizard",
+    "displayText": "Wizard",
+    "categories": null
+  },
+  {
+    "key": "isZombie",
+    "displayText": "Zombie",
+    "categories": null
+  },
+  {
+    "key": "livesInCity",
+    "displayText": "Lives In City",
+    "categories": null
+  },
+  {
+    "key": "livesInNewYork",
+    "displayText": "Lives In New York",
+    "categories": null
+  },
+  {
+    "key": "livesInSpace",
+    "displayText": "Lives in Space",
+    "categories": null
+  },
+  {
+    "key": "shootsLasers",
+    "displayText": "Shoots Lasers",
+    "categories": null
+  },
+  {
+    "key": "usesTechnology",
+    "displayText": "Uses Technology",
+    "categories": null
+  },
+  {
+    "key": "usesVehicle",
+    "displayText": "Uses Vehicle",
+    "categories": null
+  },
+  {
+    "key": "wearsCape",
+    "displayText": "Wears Cape",
+    "categories": null
+  },
+  {
+    "key": "wearsGlasses",
+    "displayText": "Wears Glasses",
+    "categories": null
+  },
+  {
+    "key": "wearsHat",
+    "displayText": "Wears Hat",
+    "categories": null
+  },
+  {
+    "key": "wearsMask",
+    "displayText": "Wears Mask",
+    "categories": null
+  }
+]

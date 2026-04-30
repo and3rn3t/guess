@@ -37,6 +37,12 @@ data/*
 # DQ.1 golden regression set is hand-curated and must be committed
 !data/data-quality-golden.json
 
+# Attribute schema cache is the source of truth for valid attribute keys —
+# committed so CI (DQ.1 schema check) can validate without DB access.
+!data/enrich-cache/
+data/enrich-cache/*
+!data/enrich-cache/attribute_definitions.json
+
 # Simulation exported data (regenerate with pnpm simulate:export)
 scripts/simulate/data/
 
