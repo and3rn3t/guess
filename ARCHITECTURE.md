@@ -400,6 +400,33 @@ when (a) the PR comes from the same repo (forks lack the secret) and (b) the
 `OPENAI_API_KEY` repo secret is configured. The full per-character mismatch
 report is uploaded as a workflow artifact regardless of pass/fail.
 
+### Vision Validation Gate (DQ.2)
+
+A complementary gate validates that visual attributes (`wearsCape`, `hasBeard`,
+`isFemale`, etc.) match what a vision model sees in each character's portrait.
+The harness `scripts/vision-validate.ts` runs each golden character's image
+through GPT-4o-mini vision and compares the model's answers to the golden set
+for a fixed set of 25 visual boolean attributes. The gate fails if overall
+agreement drops below 90%.
+
+Image URLs are sourced from Wikipedia's REST summary endpoint and cached in
+`data/golden-image-sources.json` (committed) so the validation is fully
+reproducible — CI does not call Wikipedia at run time. Characters whose
+Wikipedia page has no infobox image are skipped.
+
+| Command | Purpose |
+|---|---|
+| `pnpm vision:check` | Schema-only — verifies the image cache covers the golden set and every vision-target attribute exists in the schema. No network. |
+| `pnpm vision:cache-images` | Refresh `data/golden-image-sources.json` from Wikipedia. Run when adding new golden characters or when an existing entry's URL has rotted. |
+| `pnpm vision:validate` | Full vision run. Requires `OPENAI_API_KEY`. Exits non-zero if agreement < 90%. Override the model with `VISION_MODEL=…`. |
+| `pnpm vision:validate --json out.json` | Same as above, plus writes a per-character / per-attribute report. |
+
+The CI gate (`.github/workflows/vision-validate.yml`) follows the same pattern
+as DQ.1: schema-only job runs on every matching PR; the vision job runs only
+when the OpenAI secret is present and the PR is same-repo. Per-character
+mismatches and per-attribute agreement percentages are uploaded as a workflow
+artifact.
+
 ---
 
 ## LLM Pipeline

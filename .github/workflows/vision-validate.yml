@@ -1,0 +1,76 @@
+name: Vision Validation Gate (DQ.2)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "data/data-quality-golden.json"
+      - "data/golden-image-sources.json"
+      - "data/enrich-cache/attribute_definitions.json"
+      - "scripts/vision-validate.ts"
+      - ".github/workflows/vision-validate.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "data/data-quality-golden.json"
+      - "data/golden-image-sources.json"
+      - "data/enrich-cache/attribute_definitions.json"
+      - "scripts/vision-validate.ts"
+      - ".github/workflows/vision-validate.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: vision-validate-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions: {}
+
+jobs:
+  schema:
+    name: Validate vision image cache
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+      - uses: ./.github/actions/setup
+      - name: Schema-only check (no LLM)
+        run: pnpm vision:check
+
+  llm-vision:
+    name: Vision agreement (≥90%)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: schema
+    # Only run when the OpenAI key is available — forks and dependabot PRs skip.
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.pull_request.head.repo.full_name == github.repository }}
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+      - uses: ./.github/actions/setup
+
+      - name: Verify OPENAI_API_KEY secret exists
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          if [ -z "${OPENAI_API_KEY}" ]; then
+            echo "::error::OPENAI_API_KEY secret is not configured. The DQ.2 gate cannot run."
+            echo "::error::Add the secret in repo Settings → Secrets and variables → Actions."
+            exit 1
+          fi
+          echo "OpenAI key present (length: ${#OPENAI_API_KEY})."
+
+      - name: Run vision validation
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: pnpm vision:validate --json vision-report.json
+
+      - name: Upload vision report
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: vision-validation-report
+          path: vision-report.json
+          if-no-files-found: ignore

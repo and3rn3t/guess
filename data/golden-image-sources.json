@@ -1,0 +1,255 @@
+{
+  "version": 1,
+  "entries": {
+    "superman": {
+      "slug": "Superman",
+      "url": "https://upload.wikimedia.org/wikipedia/en/3/35/Supermanflying.png",
+      "fetchedAt": 1777592267
+    },
+    "batman": {
+      "slug": "Batman",
+      "url": "https://upload.wikimedia.org/wikipedia/en/c/c7/Batman_Infobox.jpg",
+      "fetchedAt": 1777592268
+    },
+    "spider-man": {
+      "slug": "Spider-Man",
+      "url": "https://upload.wikimedia.org/wikipedia/en/2/21/Web_of_Spider-Man_Vol_1_129-1.png",
+      "fetchedAt": 1777592268
+    },
+    "iron-man": {
+      "slug": "Iron_Man",
+      "url": "https://upload.wikimedia.org/wikipedia/en/4/47/Iron_Man_%28circa_2018%29.png",
+      "fetchedAt": 1777592268
+    },
+    "wonder-woman": {
+      "slug": "Wonder_Woman",
+      "url": "https://upload.wikimedia.org/wikipedia/en/6/6b/Wonder_Woman_750.jpg",
+      "fetchedAt": 1777592268
+    },
+    "captain-america": {
+      "slug": "Captain_America",
+      "url": null,
+      "fetchedAt": 1777592268
+    },
+    "hulk": {
+      "slug": "Hulk",
+      "url": "https://upload.wikimedia.org/wikipedia/en/a/aa/Hulk_%28circa_2019%29.png",
+      "fetchedAt": 1777592269
+    },
+    "thor": {
+      "slug": "Thor",
+      "url": "https://upload.wikimedia.org/wikipedia/commons/c/c5/M%C3%A5rten_Eskil_Winge_-_Tor%27s_Fight_with_the_Giants_-_Google_Art_Project.jpg",
+      "fetchedAt": 1777592269
+    },
+    "wolverine": {
+      "slug": "Wolverine",
+      "url": "https://upload.wikimedia.org/wikipedia/commons/8/86/J%C3%A4rv1.jpg",
+      "fetchedAt": 1777592269
+    },
+    "joker": {
+      "slug": "Joker_(character)",
+      "url": "https://upload.wikimedia.org/wikipedia/en/5/5f/Batman_Three_Jokers.jpg",
+      "fetchedAt": 1777592269
+    },
+    "deadpool": {
+      "slug": "Deadpool",
+      "url": "https://upload.wikimedia.org/wikipedia/en/c/ca/Deadpool.png",
+      "fetchedAt": 1777592269
+    },
+    "doctor-strange": {
+      "slug": "Doctor_Strange",
+      "url": "https://upload.wikimedia.org/wikipedia/en/4/4f/Doctor_Strange_Vol_4_2_Ross_Variant_Textless.jpg",
+      "fetchedAt": 1777592270
+    },
+    "aquaman": {
+      "slug": "Aquaman",
+      "url": "https://upload.wikimedia.org/wikipedia/en/9/9d/Aquaman_Rebirth_1.png",
+      "fetchedAt": 1777592270
+    },
+    "the-flash": {
+      "slug": "The_Flash",
+      "url": "https://upload.wikimedia.org/wikipedia/en/e/ed/The_Flash_Family.jpg",
+      "fetchedAt": 1777592270
+    },
+    "black-widow": {
+      "slug": "Black_Widow_(Natasha_Romanoff)",
+      "url": "https://upload.wikimedia.org/wikipedia/en/3/37/Natasha_Romanova_incarnations.jpg",
+      "fetchedAt": 1777592270
+    },
+    "goku": {
+      "slug": "Goku",
+      "url": "https://upload.wikimedia.org/wikipedia/en/4/4c/GokumangaToriyama.png",
+      "fetchedAt": 1777592270
+    },
+    "naruto-uzumaki": {
+      "slug": "Naruto_Uzumaki",
+      "url": "https://upload.wikimedia.org/wikipedia/en/9/9a/NarutoUzumaki.png",
+      "fetchedAt": 1777592271
+    },
+    "monkey-d-luffy": {
+      "slug": "Monkey_D._Luffy",
+      "url": "https://upload.wikimedia.org/wikipedia/en/c/cb/Monkey_D_Luffy.png",
+      "fetchedAt": 1777592271
+    },
+    "pikachu": {
+      "slug": "Pikachu",
+      "url": "https://upload.wikimedia.org/wikipedia/en/a/a6/Pok%C3%A9mon_Pikachu_art.png",
+      "fetchedAt": 1777592271
+    },
+    "sailor-moon": {
+      "slug": "Sailor_Moon",
+      "url": "https://upload.wikimedia.org/wikipedia/en/e/e5/SMVolume1.jpg",
+      "fetchedAt": 1777592271
+    },
+    "eren-yeager": {
+      "slug": "Eren_Yeager",
+      "url": null,
+      "fetchedAt": 1777592271
+    },
+    "light-yagami": {
+      "slug": "Light_Yagami",
+      "url": "https://upload.wikimedia.org/wikipedia/en/0/0c/Light_from_Death_Note.jpg",
+      "fetchedAt": 1777592272
+    },
+    "mikasa-ackerman": {
+      "slug": "Mikasa_Ackerman",
+      "url": "https://upload.wikimedia.org/wikipedia/en/1/14/MikasaAkerman.png",
+      "fetchedAt": 1777592272
+    },
+    "mario": {
+      "slug": "Mario",
+      "url": "https://upload.wikimedia.org/wikipedia/en/5/5c/Mario_by_Shigehisa_Nakaue.png",
+      "fetchedAt": 1777592272
+    },
+    "luigi": {
+      "slug": "Luigi_(character)",
+      "url": "https://upload.wikimedia.org/wikipedia/en/b/be/Luigi_by_Shigehisa_Nakaue.png",
+      "fetchedAt": 1777592272
+    },
+    "link": {
+      "slug": "Link_(Legend_of_Zelda)",
+      "url": "https://upload.wikimedia.org/wikipedia/en/9/9d/Link_%28Hyrule_Historia%29.png",
+      "fetchedAt": 1777592272
+    },
+    "princess-zelda": {
+      "slug": "Princess_Zelda",
+      "url": "https://upload.wikimedia.org/wikipedia/en/6/6e/Link_to_the_Past_Zelda.png",
+      "fetchedAt": 1777592273
+    },
+    "sonic": {
+      "slug": "Sonic_the_Hedgehog",
+      "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1f/Sonic_The_Hedgehog.svg/1280px-Sonic_The_Hedgehog.svg.png",
+      "fetchedAt": 1777592273
+    },
+    "master-chief": {
+      "slug": "Master_Chief_(Halo)",
+      "url": "https://upload.wikimedia.org/wikipedia/en/4/42/Master_chief_halo_infinite.png",
+      "fetchedAt": 1777592273
+    },
+    "lara-croft": {
+      "slug": "Lara_Croft",
+      "url": "https://upload.wikimedia.org/wikipedia/en/a/a8/LaraCroftInfobox.png",
+      "fetchedAt": 1777592273
+    },
+    "kratos": {
+      "slug": "Kratos_(God_of_War)",
+      "url": "https://upload.wikimedia.org/wikipedia/en/2/2f/Kratos_PS4.png",
+      "fetchedAt": 1777592273
+    },
+    "mickey-mouse": {
+      "slug": "Mickey_Mouse",
+      "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4f/Mickey_Mouse_%28poster_version%29.svg/960px-Mickey_Mouse_%28poster_version%29.svg.png",
+      "fetchedAt": 1777592274
+    },
+    "elsa": {
+      "slug": "Elsa_(Frozen)",
+      "url": "https://upload.wikimedia.org/wikipedia/en/5/5e/Elsa_from_Disney%27s_Frozen.png",
+      "fetchedAt": 1777592274
+    },
+    "simba": {
+      "slug": "Simba",
+      "url": "https://upload.wikimedia.org/wikipedia/en/9/94/Simba_%28_Disney_character_-_adult%29.png",
+      "fetchedAt": 1777592274
+    },
+    "buzz-lightyear": {
+      "slug": "Buzz_Lightyear",
+      "url": "https://upload.wikimedia.org/wikipedia/commons/0/02/Buzz_Lightyear_sculpture_of_Toy_Story_Hotel_Shanghai_%28cropped%29.jpg",
+      "fetchedAt": 1777592274
+    },
+    "woody": {
+      "slug": "Sheriff_Woody",
+      "url": "https://upload.wikimedia.org/wikipedia/commons/0/03/Woody_at_Toy_Story_Land%2C_Hong_Kong.jpg",
+      "fetchedAt": 1777592274
+    },
+    "spongebob-squarepants": {
+      "slug": "SpongeBob_SquarePants",
+      "url": "https://upload.wikimedia.org/wikipedia/en/thumb/2/22/SpongeBob_SquarePants_logo_by_Nickelodeon.svg/500px-SpongeBob_SquarePants_logo_by_Nickelodeon.svg.png",
+      "fetchedAt": 1777592275
+    },
+    "harry-potter": {
+      "slug": "Harry_Potter",
+      "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/51/Harry_Potter_logo.svg/1280px-Harry_Potter_logo.svg.png",
+      "fetchedAt": 1777592275
+    },
+    "hermione-granger": {
+      "slug": "Hermione_Granger",
+      "url": "https://upload.wikimedia.org/wikipedia/en/d/d3/Hermione_Granger_poster.jpg",
+      "fetchedAt": 1777592275
+    },
+    "voldemort": {
+      "slug": "Lord_Voldemort",
+      "url": "https://upload.wikimedia.org/wikipedia/en/a/a3/Lordvoldemort.jpg",
+      "fetchedAt": 1777592275
+    },
+    "frodo-baggins": {
+      "slug": "Frodo_Baggins",
+      "url": null,
+      "fetchedAt": 1777592275
+    },
+    "gandalf": {
+      "slug": "Gandalf",
+      "url": "https://upload.wikimedia.org/wikipedia/en/b/bd/Gandalf_from_The_Trolls_are_Turned_to_Stone_-_J.R.R_Tolkien.jpg",
+      "fetchedAt": 1777592276
+    },
+    "bilbo-baggins": {
+      "slug": "Bilbo_Baggins",
+      "url": "https://upload.wikimedia.org/wikipedia/en/1/1f/Bilbo_Baggins_Tolkien_illustration.jpg",
+      "fetchedAt": 1777592276
+    },
+    "aragorn": {
+      "slug": "Aragorn",
+      "url": null,
+      "fetchedAt": 1777592276
+    },
+    "darth-vader": {
+      "slug": "Darth_Vader",
+      "url": "https://upload.wikimedia.org/wikipedia/commons/9/9c/Darth_Vader_-_2007_Disney_Weekends.jpg",
+      "fetchedAt": 1777592276
+    },
+    "luke-skywalker": {
+      "slug": "Luke_Skywalker",
+      "url": "https://upload.wikimedia.org/wikipedia/commons/6/67/Luke_Skywalker_-_Welcome_Banner_%28Cropped%29.jpg",
+      "fetchedAt": 1777592276
+    },
+    "yoda": {
+      "slug": "Yoda",
+      "url": "https://upload.wikimedia.org/wikipedia/en/9/9b/Yoda_Empire_Strikes_Back.png",
+      "fetchedAt": 1777592277
+    },
+    "sherlock-holmes": {
+      "slug": "Sherlock_Holmes",
+      "url": "https://upload.wikimedia.org/wikipedia/commons/c/cd/Sherlock_Holmes_Portrait_Paget.jpg",
+      "fetchedAt": 1777592277
+    },
+    "katniss-everdeen": {
+      "slug": "Katniss_Everdeen",
+      "url": "https://upload.wikimedia.org/wikipedia/en/f/f6/Katniss_Everdeen_01.jpg",
+      "fetchedAt": 1777592277
+    },
+    "homer-simpson": {
+      "slug": "Homer_Simpson",
+      "url": "https://upload.wikimedia.org/wikipedia/en/0/02/Homer_Simpson_2006.png",
+      "fetchedAt": 1777592277
+    }
+  }
+}
