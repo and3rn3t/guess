@@ -10,6 +10,9 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- **Open Graph + Twitter card (H.1)** — `public/og-image.png` (1200×630, cosmic gradient + Andernator wordmark + tagline) generated reproducibly via `scripts/build-og-image.ts` (`pnpm build:og-image`). `index.html` now ships the full set of `og:*` and `twitter:card` meta tags so shared links unfurl as a card on Slack, iMessage, Twitter, and Discord.
+- **`robots.txt` + `sitemap.xml` (H.2)** — `public/robots.txt` allows `/`, disallows `/admin/` and `/api/`, points at the sitemap; `public/sitemap.xml` lists the home route. Stops search engines from indexing the admin panel.
+- **Pre-commit secret scanning (DX.17)** — `.husky/pre-commit` now runs `gitleaks protect --staged --redact` after `lint-staged`. Blocks commits containing recognized credential patterns (Slack/Stripe/GitHub PAT/private keys/etc.); skips silently with a hint when `gitleaks` isn't installed locally so contributors aren't blocked.
 - **AGENTS.md (DX.42)** — repo-root entry point for AI coding agents (Copilot, Claude, Cursor, Aider). Points at `ROADMAP.md` → In Progress block as the canonical "what should I work on?", encodes the pull-loop, universal Definition of Done, tooling guardrails, and commit conventions. Companion to the new `How to use this roadmap` section in ROADMAP.md
 
 ### Changed
