@@ -1,0 +1,144 @@
+name: Engine self-tune
+
+# Weekly job that:
+#  1. Searches a small ±10% grid around the current active scoring weights
+#     for an improvement against last week's CONTROL games (Bayesian replay).
+#  2. If improvement > 0.5%, writes the candidate to kv:ab:experiment-weights
+#     and bumps kv:ab:experiment-pct to 10% so the candidate is A/B-tested
+#     against control before any promotion.
+#  3. Independently evaluates last week's existing experiment vs control. If
+#     win-rate ≥ control + 1σ over ≥500 games per arm, promotes the candidate
+#     weights to kv:engine:weights-active.
+#
+# Both steps respect the kv:engine:auto-tune-enabled kill switch — when the
+# value is anything other than "true" the engine ignores the active weights
+# even after promotion. Promotion still happens; the switch is the runtime
+# gate.
+
+on:
+  schedule:
+    # Sundays 04:00 UTC. After the daily aggregator and well clear of peak
+    # traffic windows.
+    - cron: '0 4 * * 0'
+  workflow_dispatch:
+    inputs:
+      env:
+        description: 'Target environment'
+        required: true
+        default: 'production'
+        type: choice
+        options:
+          - production
+          - preview
+      days:
+        description: 'Window in days'
+        required: false
+        default: '7'
+
+permissions:
+  contents: read
+
+jobs:
+  self-tune:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run self-tune grid search
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          ENV_FLAG="${{ github.event.inputs.env || 'production' }}"
+          DAYS="${{ github.event.inputs.days || '7' }}"
+          npx tsx scripts/self-tune-weights.ts --env "$ENV_FLAG" --days "$DAYS"
+
+      - name: Upload candidate weights to KV
+        if: hashFiles('data/self-tune/weights-candidate.json') != ''
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          ENV_FLAG="${{ github.event.inputs.env || 'production' }}"
+          ACTION=$(jq -r '.action' data/self-tune/summary.json)
+          if [ "$ACTION" = "propose" ]; then
+            pnpm wrangler kv key put \
+              --binding GUESS_KV \
+              --path data/self-tune/weights-candidate.json \
+              --env "$ENV_FLAG" \
+              --remote \
+              "kv:ab:experiment-weights"
+            # Bump rollout to 10% if currently at 0
+            CURRENT_PCT=$(pnpm wrangler kv key get --binding GUESS_KV --env "$ENV_FLAG" --remote "ab:experiment-pct" 2>/dev/null || echo "0")
+            if [ "${CURRENT_PCT:-0}" -lt 10 ]; then
+              echo "10" | pnpm wrangler kv key put --binding GUESS_KV --env "$ENV_FLAG" --remote "ab:experiment-pct" 10
+            fi
+          else
+            echo "Self-tune action=$ACTION — no candidate written"
+          fi
+
+      - name: Run promotion gate
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          ENV_FLAG="${{ github.event.inputs.env || 'production' }}"
+          DAYS="${{ github.event.inputs.days || '7' }}"
+          npx tsx scripts/promote-experiment.ts --env "$ENV_FLAG" --days "$DAYS"
+
+      - name: Promote weights to kv:engine:weights-active
+        if: hashFiles('data/promotion/weights-active.json') != ''
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          ENV_FLAG="${{ github.event.inputs.env || 'production' }}"
+          pnpm wrangler kv key put \
+            --binding GUESS_KV \
+            --path data/promotion/weights-active.json \
+            --env "$ENV_FLAG" \
+            --remote \
+            "kv:engine:weights-active"
+          # Reset experiment back to 0% — the candidate is now control.
+          pnpm wrangler kv key put \
+            --binding GUESS_KV \
+            --env "$ENV_FLAG" \
+            --remote \
+            "ab:experiment-pct" 0
+
+      - name: Job summary
+        if: always()
+        run: |
+          {
+            echo "## Self-tune"
+            if [ -f data/self-tune/summary.json ]; then
+              echo '```json'
+              cat data/self-tune/summary.json
+              echo '```'
+            else
+              echo '_no summary written_'
+            fi
+            echo ""
+            echo "## Promotion"
+            if [ -f data/promotion/summary.json ]; then
+              echo '```json'
+              cat data/promotion/summary.json
+              echo '```'
+            else
+              echo '_no summary written_'
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"

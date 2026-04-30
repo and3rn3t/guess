@@ -18,7 +18,13 @@ interface ArmStat {
 
 interface ExperimentsData {
   windowDays: number
-  config: { pct: number; selector: string | null; weights: string | null }
+  config: {
+    pct: number
+    selector: string | null
+    weights: string | null
+    activeWeights: string | null
+    autoTuneEnabled: boolean
+  }
   arms: ArmStat[]
 }
 
@@ -66,6 +72,23 @@ export default function ExperimentsRoute(): React.JSX.Element {
       setLoading(false)
     }
   }, [days])
+
+  const updateConfig = useCallback(
+    async (body: { pct?: number; selector?: 'greedy' | 'mcts'; autoTuneEnabled?: boolean }) => {
+      try {
+        const res = await fetch('/api/admin/experiments', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        })
+        if (!res.ok) throw new Error(`HTTP ${res.status}`)
+        await fetchData()
+      } catch (e) {
+        setError(e instanceof Error ? e.message : 'Update failed')
+      }
+    },
+    [fetchData]
+  )
 
   useEffect(() => {
     void fetchData()
@@ -195,11 +218,72 @@ export default function ExperimentsRoute(): React.JSX.Element {
               <li>no regression in average confidence</li>
             </ul>
             <p className="text-xs text-muted-foreground/80 pt-2">
-              To change the live split, edit{' '}
-              <code className="rounded bg-muted px-1">kv:ab:experiment-pct</code> and{' '}
-              <code className="rounded bg-muted px-1">kv:ab:experiment-selector</code> via{' '}
-              <code className="rounded bg-muted px-1">wrangler kv key put</code>. A self-service toggle is planned for Phase 5.
+              The weekly <code className="rounded bg-muted px-1">engine-self-tune</code> workflow promotes{' '}
+              <code className="rounded bg-muted px-1">kv:ab:experiment-weights</code> to{' '}
+              <code className="rounded bg-muted px-1">kv:engine:weights-active</code> automatically when these criteria are met.
             </p>
+          </section>
+
+          <section className="rounded-lg border border-border/60 bg-card p-4 space-y-3 text-sm">
+            <h2 className="font-semibold flex items-center gap-2">
+              Live controls
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <label className="flex flex-col gap-1">
+                <span className="text-xs uppercase tracking-widest text-muted-foreground/70">Experiment %</span>
+                <input
+                  type="number"
+                  min={0}
+                  max={100}
+                  defaultValue={data.config.pct}
+                  onBlur={(e) => {
+                    const v = Number.parseInt(e.target.value, 10)
+                    if (Number.isFinite(v) && v !== data.config.pct) void updateConfig({ pct: v })
+                  }}
+                  className="rounded bg-muted px-2 py-1 text-sm tabular-nums"
+                  aria-label="Experiment percentage"
+                />
+              </label>
+              <label className="flex flex-col gap-1">
+                <span className="text-xs uppercase tracking-widest text-muted-foreground/70">Selector</span>
+                <select
+                  defaultValue={data.config.selector ?? 'mcts'}
+                  onChange={(e) => {
+                    const v = e.target.value as 'greedy' | 'mcts'
+                    if (v !== data.config.selector) void updateConfig({ selector: v })
+                  }}
+                  className="rounded bg-muted px-2 py-1 text-sm"
+                  aria-label="Experiment selector"
+                >
+                  <option value="mcts">mcts</option>
+                  <option value="greedy">greedy</option>
+                </select>
+              </label>
+              <label className="flex flex-col gap-1">
+                <span className="text-xs uppercase tracking-widest text-muted-foreground/70">Auto-tune</span>
+                <button
+                  type="button"
+                  onClick={() => void updateConfig({ autoTuneEnabled: !data.config.autoTuneEnabled })}
+                  className={`rounded px-2 py-1 text-sm font-medium transition-colors ${
+                    data.config.autoTuneEnabled
+                      ? 'bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30'
+                      : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                  }`}
+                >
+                  {data.config.autoTuneEnabled ? 'ENABLED' : 'DISABLED'} — click to toggle
+                </button>
+              </label>
+            </div>
+            {data.config.activeWeights && (
+              <p className="text-xs text-muted-foreground">
+                Active weights: <code className="rounded bg-muted px-1">{data.config.activeWeights}</code>
+              </p>
+            )}
+            {data.config.weights && (
+              <p className="text-xs text-muted-foreground">
+                Candidate weights: <code className="rounded bg-muted px-1">{data.config.weights}</code>
+              </p>
+            )}
           </section>
         </>
       )}

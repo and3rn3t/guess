@@ -22,7 +22,7 @@ export type {
   ReasoningExplanation,
 } from '@guess/game-engine'
 
-import type { ScoringOptions, MCTSOptions } from '@guess/game-engine'
+import type { ScoringOptions, ScoringWeights, MCTSOptions } from '@guess/game-engine'
 export type Answer = GameAnswer
 
 // ── Server-specific types ─────────────────────────────────────────────────────
@@ -294,6 +294,9 @@ export interface AdaptiveData {
   characterPopularityMap: Record<string, number> | undefined
   questionEmpiricalGainMap: Record<string, number> | undefined
   confusionPairs: Set<string> | undefined
+  /** Promoted ScoringWeights override (kv:engine:weights-active). Honoured
+   *  only when auto-tune is enabled and the blob shape is valid. */
+  activeWeights: ScoringWeights | undefined
 }
 
 type DisputeRow = { character_id: string; attribute_key: string; confidence: number }
@@ -314,6 +317,8 @@ export async function loadAdaptiveData(
     characterPopularityRaw,
     questionEmpiricalGainRaw,
     confusionPairRows,
+    activeWeightsRaw,
+    autoTuneEnabledRaw,
   ] = await Promise.allSettled([
     kv.get('kv:attribute-maybe-rates', 'json') as Promise<Record<string, number> | null>,
     kv.get('kv:attribute-net-gains', 'json') as Promise<Record<string, number> | null>,
@@ -331,6 +336,8 @@ export async function loadAdaptiveData(
            .all<ConfusionPairRow>()
            .then((r) => r.results)
       : Promise.resolve([] as ConfusionPairRow[]),
+    kv.get('kv:engine:weights-active', 'json') as Promise<Record<string, number> | null>,
+    kv.get('kv:engine:auto-tune-enabled') as Promise<string | null>,
   ])
 
   const maybeRateMap = maybeRatesRaw.status === 'fulfilled' ? (maybeRatesRaw.value ?? undefined) : undefined
@@ -354,6 +361,30 @@ export async function loadAdaptiveData(
     confusionPairs = new Set(confusionPairRows.value.map((r) => `${r.character_a}::${r.character_b}`))
   }
 
+  // Auto-tune kill switch: any value other than the literal string 'true'
+  // (case-insensitive) means disabled. Defaults to disabled when unset —
+  // weights only take effect once explicitly toggled on.
+  const autoTuneOn =
+    autoTuneEnabledRaw.status === 'fulfilled' &&
+    typeof autoTuneEnabledRaw.value === 'string' &&
+    autoTuneEnabledRaw.value.trim().toLowerCase() === 'true'
+
+  let activeWeights: ScoringWeights | undefined
+  if (autoTuneOn && activeWeightsRaw.status === 'fulfilled' && activeWeightsRaw.value) {
+    const raw = activeWeightsRaw.value
+    const validKeys = ['match', 'mismatch', 'maybe', 'maybeMiss'] as const
+    const candidate: Record<string, number> = {}
+    for (const k of validKeys) {
+      const v = raw[k]
+      if (typeof v === 'number' && Number.isFinite(v) && v >= 0 && v <= 5) {
+        candidate[k] = v
+      }
+    }
+    if (Object.keys(candidate).length > 0) {
+      activeWeights = candidate
+    }
+  }
+
   return {
     maybeRateMap,
     netGainMap,
@@ -363,6 +394,7 @@ export async function loadAdaptiveData(
     characterPopularityMap,
     questionEmpiricalGainMap,
     confusionPairs,
+    activeWeights,
   }
 }
 
@@ -395,6 +427,9 @@ export function buildQuestionOptions(
       disputeMap: adaptive.disputeMap,
       attributeTrustMap: adaptive.attributeTrustMap,
       characterPopularityMap: adaptive.characterPopularityMap,
+      // Active weights override caller-supplied weights only when the
+      // kill switch is on and the blob passed validation in loadAdaptiveData.
+      weights: adaptive.activeWeights ?? scoring.weights,
     },
     probs: extras?.probs,
     mctsEndgameThreshold: session.difficulty === 'hard' ? 0.70 : undefined,
