@@ -30,8 +30,12 @@ dist-ssr
 .env.local
 .dev.vars
 
-# Staging data (local ingestion DB)
-data/
+# Staging data (local ingestion DB) — ignore everything in data/ except the
+# explicitly-allowed hand-curated files below.
+data/*
+
+# DQ.1 golden regression set is hand-curated and must be committed
+!data/data-quality-golden.json
 
 # Simulation exported data (regenerate with pnpm simulate:export)
 scripts/simulate/data/

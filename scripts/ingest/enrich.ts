@@ -263,7 +263,7 @@ function mergeConsensusResults(
 // Prompt Builder
 // ---------------------------------------------------------------------------
 
-function buildSystemPrompt(attrKeys: string[]): string {
+export function buildSystemPrompt(attrKeys: string[]): string {
   // Group by prefix for compact display
   return `You are a fictional character classifier. For each character, determine boolean attributes.
 
@@ -286,7 +286,7 @@ RESPONSE FORMAT (strict JSON, one entry per character):
 }`;
 }
 
-function buildUserPrompt(
+export function buildUserPrompt(
   characters: { id: string; name: string; category: string; description: string | null }[]
 ): string {
   const charDescriptions = characters.map(c => {

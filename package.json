@@ -47,6 +47,8 @@
     "ingest:stats": "tsx scripts/ingest/run.ts stats",
     "ingest:dedup": "tsx scripts/ingest/run.ts dedup",
     "ingest:upload": "tsx scripts/ingest/run.ts upload",
+    "golden:regression": "tsx scripts/golden-regression.ts",
+    "golden:check": "tsx scripts/golden-regression.ts --schema-only",
     "simulate:export": "tsx scripts/simulate/export-data.ts",
     "simulate": "tsx scripts/simulate/run.ts",
     "simulate:grid": "tsx scripts/simulate/grid-search.ts",

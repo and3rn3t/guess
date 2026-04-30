@@ -377,6 +377,29 @@ Cron Triggers for the Pages project must be enabled via the Cloudflare dashboard
 (Workers & Pages → guess → Settings → Triggers → Add Cron Trigger). `wrangler.toml`
 `[triggers]` is read by Workers projects, not Pages.
 
+### Data Quality Gate (DQ.1)
+
+A regression gate guards the enrichment pipeline against accuracy drift. The
+golden set lives at `data/data-quality-golden.json` (50 hand-curated characters,
+~750 high-confidence attribute assertions) and the harness lives at
+`scripts/golden-regression.ts`. Both reuse the production `buildSystemPrompt`
+and `buildUserPrompt` exported from `scripts/ingest/enrich.ts`, so any change
+to the prompt templates, model selection, or `attribute_definitions.json` runs
+through the same code path the catalog enrichment uses.
+
+| Command | Purpose |
+|---|---|
+| `pnpm golden:check` | Schema-only — no network. Validates the JSON, asserts every attribute key exists, catches duplicates. Used as the first CI step. |
+| `pnpm golden:regression` | Full LLM run against `gpt-4o-mini` (override with `GOLDEN_MODEL=…`). Requires `OPENAI_API_KEY` in `.dev.vars`/`.env.local` or environment. Exits non-zero if deviation > `thresholdPct` (default 3%). |
+| `pnpm golden:regression --json out.json` | Same as above, plus writes a machine-readable per-character report. |
+
+The CI gate (`.github/workflows/golden-regression.yml`) triggers only on PRs that
+touch the golden set, attribute definitions, the enrichment script, the harness
+itself, or the workflow file. The schema job always runs; the LLM job runs only
+when (a) the PR comes from the same repo (forks lack the secret) and (b) the
+`OPENAI_API_KEY` repo secret is configured. The full per-character mismatch
+report is uploaded as a workflow artifact regardless of pass/fail.
+
 ---
 
 ## LLM Pipeline
