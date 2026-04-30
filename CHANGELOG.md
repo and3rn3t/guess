@@ -10,6 +10,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- **Cron Worker entry (H.3)** — `functions/cron/index.ts` exports a `scheduled()` handler plus a pure `runScheduled` dispatcher (unit-tested) for nightly housekeeping at `5 0 * * *` (00:05 UTC). Currently a logging no-op; documented as the prerequisite hook for `daily_stats` rollup (migration 0036), `info_gain_avg` EMA, `feature_flags` D1→KV sync, DQ.6 attribute reconciliation, and DQ.22 sparse-attribute auto-fill. Trigger registered via the Cloudflare dashboard (Pages doesn't read `[triggers]` from `wrangler.toml`).
 - **Open Graph + Twitter card (H.1)** — `public/og-image.png` (1200×630, cosmic gradient + Andernator wordmark + tagline) generated reproducibly via `scripts/build-og-image.ts` (`pnpm build:og-image`). `index.html` now ships the full set of `og:*` and `twitter:card` meta tags so shared links unfurl as a card on Slack, iMessage, Twitter, and Discord.
 - **`robots.txt` + `sitemap.xml` (H.2)** — `public/robots.txt` allows `/`, disallows `/admin/` and `/api/`, points at the sitemap; `public/sitemap.xml` lists the home route. Stops search engines from indexing the admin panel.
 - **Pre-commit secret scanning (DX.17)** — `.husky/pre-commit` now runs `gitleaks protect --staged --redact` after `lint-staged`. Blocks commits containing recognized credential patterns (Slack/Stripe/GitHub PAT/private keys/etc.); skips silently with a hint when `gitleaks` isn't installed locally so contributors aren't blocked.
