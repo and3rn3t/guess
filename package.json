@@ -39,6 +39,8 @@
     "analytics:readiness:prod": "wrangler d1 execute guess-db --env production --remote --file docs/guess-readiness-queries.sql",
     "analytics:sim:preview": "wrangler d1 execute guess-db-preview --env preview --remote --file docs/sim-calibration-queries.sql",
     "analytics:sim:prod": "wrangler d1 execute guess-db --env production --remote --file docs/sim-calibration-queries.sql",
+    "analytics:calibration:preview": "tsx scripts/calibration-check.ts --env preview",
+    "analytics:calibration:prod": "tsx scripts/calibration-check.ts --env production",
     "simulate:analyze": "tsx scripts/simulate/analyze.ts",
     "ingest": "tsx scripts/ingest/run.ts",
     "ingest:stats": "tsx scripts/ingest/run.ts stats",
