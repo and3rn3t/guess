@@ -27,6 +27,7 @@
     "version-packages": "changeset version",
     "release": "changeset publish",
     "db:types": "tsx scripts/generate-db-types.ts",
+    "build:og-image": "tsx scripts/build-og-image.ts",
     "migrate:create": "tsx scripts/create-migration.ts",
     "migration:new": "tsx scripts/create-migration.ts",
     "migrate:validate": "tsx scripts/validate-migrations.ts",
