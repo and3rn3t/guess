@@ -367,6 +367,16 @@ Calibration queries live in [docs/guess-readiness-queries.sql](docs/guess-readin
 | `/api/admin/error-logs` | GET | Worker error log viewer |
 | `/api/admin/pipeline` | GET | Enrichment pipeline status |
 
+### Cron Triggers
+
+| Schedule (UTC) | Handler | Purpose |
+|---|---|---|
+| `5 0 * * *` (00:05 daily) | `functions/cron/index.ts` → `runScheduled` | Nightly housekeeping. Currently a logging no-op. Future consumers: `daily_stats` rollup (migration 0036), `info_gain_avg` EMA update, `feature_flags` D1→KV sync, DQ.6 attribute reconciliation, DQ.22 sparse-attribute auto-fill. |
+
+Cron Triggers for the Pages project must be enabled via the Cloudflare dashboard
+(Workers & Pages → guess → Settings → Triggers → Add Cron Trigger). `wrangler.toml`
+`[triggers]` is read by Workers projects, not Pages.
+
 ---
 
 ## LLM Pipeline
