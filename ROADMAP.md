@@ -230,11 +230,11 @@ The active execution plan, sequenced by **priority × ease**. Pull items top-dow
 
 > **Maintain this block first.** It's the single answer to "what should I work on?" — agents and humans check it before scanning tables. Update in the same commit as the work it describes.
 
-- 🟡 **In progress:** *none*
-- ▶ **Up next:** Wave 1 #1 — **[I.1](#i-1)** Separate AI Gateway for preview vs. prod (S)
+- 🟡 **In progress:** [I.1](#i-1) preview AI Gateway 24h verification window · [I.9](#i-9) AI Gateway semantic caching 7d cache-hit window
+- ▶ **Up next:** Wave 1 #5 — **[H.3](#h-3)** Cron Worker entry (S) → then [H.1](#h-1) OG card → [H.2](#h-2) robots/sitemap → [H.4](#h-4) source maps
 - 🧫 **Blocked / waiting on:** _none_
-- 🎯 **Current wave focus:** Wave 1 — Foundation (10 items, all S, ~1 week)
-- ✅ **Recently shipped:** [DX.42](#dx-42) AGENTS.md (2026-04-30)
+- 🎯 **Current wave focus:** Wave 1 — Foundation (4 of 10 shipped; 2 in verification windows; 4 to go)
+- ✅ **Recently shipped:** [DX.11](#dx-11), [DX.12](#dx-12), [I.8](#i-8) (2026-04-30, audit-flip — already shipped in prior commits) · [DX.42](#dx-42) AGENTS.md (2026-04-30)
 
 ### Wave 1 — Foundation (start here, ~1 week of focused work)
 
@@ -242,14 +242,14 @@ Quick wins that unblock everything else, cost almost nothing, and make the rest 
 
 | Status | Order | # | Item | Effort | Why first | Done when |
 |---|---|---|------|--------|-----------|-----------|
-| ⬜ | 1 | [I.1](#i-1) | Separate AI Gateway for preview vs. prod | S | Today, preview LLM calls pollute prod cost dashboards. Fix before any other LLM work — every cost number after this becomes trustworthy. | Production AI Gateway dashboard shows zero preview-environment requests over a 24h window. |
-| ⬜ | 2 | [DX.11](#dx-11) | `pnpm validate` pre-push git hook | S | `lint-staged.config.mjs` already exists. 30 min to wire `simple-git-hooks`. Catches every type/lint regression before it leaves your laptop. | `git push` aborts on a fresh `pnpm validate` failure; passes silently when clean. |
+| 🟡 | 1 | [I.1](#i-1) | Separate AI Gateway for preview vs. prod | S | Today, preview LLM calls pollute prod cost dashboards. Fix before any other LLM work — every cost number after this becomes trustworthy. | Production AI Gateway dashboard shows zero preview-environment requests over a 24h window. (Code shipped in `wrangler.toml`; awaiting 24h verification window.) |
+| ✅ 2026-04-30 | 2 | [DX.11](#dx-11) | `pnpm validate` pre-push git hook | S | `lint-staged.config.mjs` already exists. 30 min to wire `simple-git-hooks`. Catches every type/lint regression before it leaves your laptop. | `git push` aborts on a fresh `pnpm validate` failure; passes silently when clean. (Shipped via `husky` in `.husky/pre-push`.) |
 | ⬜ | 3 | [DX.17](#dx-17) | Pre-commit secret scanning (`gitleaks`) | S | Same hook as DX.11. Costs minutes, prevents catastrophic leaks. | Committing a fake AWS key locally is blocked; clean commits unaffected. |
-| ⬜ | 4 | [DX.12](#dx-12) | D1 migration dry-run in CI | S | One step in `.github/workflows/ci.yml`. Catches migration regressions for free. | CI fails when a malformed migration is added to a PR; passes for valid ones. |
+| ✅ 2026-04-30 | 4 | [DX.12](#dx-12) | D1 migration dry-run in CI | S | One step in `.github/workflows/ci.yml`. Catches migration regressions for free. | CI fails when a malformed migration is added to a PR; passes for valid ones. (Shipped in `db-checks` job, `pnpm migrate:dry-run:preview`.) |
 | ⬜ | 5 | [H.3](#h-3) | Cron Worker entry (`functions/cron/index.ts`) | S | Prerequisite for migrations 0036–0039 and most DQ Cron items. Three lines in `wrangler.toml` + a stub `scheduled()` handler. Unblocks DQ.6, DQ.22, EN.13. | `wrangler tail` shows the cron handler firing on its schedule. |
 | ⬜ | 6 | [H.4](#h-4) | Source map upload | S | Without this, every `error_logs` row is unreadable minified gibberish. Fix before any production debugging session. | A thrown error in prod surfaces with original file/line in `error_logs`. |
-| ⬜ | 7 | [I.8](#i-8) | Workers Smart Placement | S | Three lines in `wrangler.toml`. 50–200ms latency win for non-US players. Zero risk. | Smart Placement enabled in `wrangler.toml`; CF dashboard confirms placement decisions. |
-| ⬜ | 8 | [I.9](#i-9) | AI Gateway semantic caching | S | Toggle in CF dashboard. 20–40% LLM cost cut for question generation. Zero code. | AI Gateway dashboard shows ≥20% cache hit rate over a rolling 7-day window. |
+| ✅ 2026-04-30 | 7 | [I.8](#i-8) | Workers Smart Placement | S | Three lines in `wrangler.toml`. 50–200ms latency win for non-US players. Zero risk. | Smart Placement enabled in `wrangler.toml`; CF dashboard confirms placement decisions. (Shipped via `[placement] mode = "smart"`.) |
+| 🟡 | 8 | [I.9](#i-9) | AI Gateway semantic caching | S | Toggle in CF dashboard. 20–40% LLM cost cut for question generation. Zero code. | AI Gateway dashboard shows ≥20% cache hit rate over a rolling 7-day window. (Awaiting CF dashboard toggle + 7d window.) |
 | ⬜ | 9 | [H.1](#h-1) | OG + Twitter card image and meta | S | One PNG + 6 meta tags. Required for any sharing surface (Wave 4). | Pasting the prod URL into Twitter/Slack/iMessage renders the OG card preview. |
 | ⬜ | 10 | [H.2](#h-2) | `robots.txt` + `sitemap.xml` | S | Two static files. Stops search engines from indexing `/admin`. | `curl /robots.txt` and `/sitemap.xml` return valid content; Google Search Console accepts the sitemap. |
 

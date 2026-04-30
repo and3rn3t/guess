@@ -15,6 +15,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ### Changed
 
 - **ROADMAP.md promoted to runbook** — added `How to use this roadmap` section, `In Progress / Up Next` callout at the top of Now, `Status` column on all 4 wave tables (⬜/🟡/✅), `Done when` acceptance-criterion column on all 35 wave rows, and stable HTML anchors on every themed-section item referenced by a wave (Cmd-click an ID in a wave row to jump to its full description)
+- **Wave 1 audit-flip** — marked **DX.11** (`pnpm validate` pre-push hook, already wired via `husky` in `.husky/pre-push`), **DX.12** (D1 migration dry-run in CI, already running in `db-checks` job via `pnpm migrate:dry-run:preview`), and **I.8** (Workers Smart Placement, already enabled via `[placement] mode = "smart"` in `wrangler.toml`) as ✅ shipped. Promoted **I.1** and **I.9** to 🟡 in-progress (verification windows: 24h preview-vs-prod gateway separation; 7-day semantic-cache hit ≥20%)
 
 ---
 
