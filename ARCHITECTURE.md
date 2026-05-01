@@ -371,11 +371,19 @@ Calibration queries live in [docs/guess-readiness-queries.sql](docs/guess-readin
 
 | Schedule (UTC) | Handler | Purpose |
 |---|---|---|
-| `5 0 * * *` (00:05 daily) | `functions/cron/index.ts` → `runScheduled` | Nightly housekeeping. Currently a logging no-op. Future consumers: `daily_stats` rollup (migration 0036), `info_gain_avg` EMA update, `feature_flags` D1→KV sync, DQ.6 attribute reconciliation, DQ.22 sparse-attribute auto-fill. |
+| `5 0 * * *` (00:05 daily) | `functions/cron/index.ts` → `runScheduled` | Nightly housekeeping. Logs a `cron.tick` for `wrangler tail` then runs the AN.33 anomaly check (`functions/cron/_anomaly_check.ts`) over `data_quality_snapshots`. Future consumers: `daily_stats` rollup (migration 0036), `info_gain_avg` EMA update, `feature_flags` D1→KV sync, DQ.6 attribute reconciliation, DQ.22 sparse-attribute auto-fill. |
 
 Cron Triggers for the Pages project must be enabled via the Cloudflare dashboard
 (Workers & Pages → guess → Settings → Triggers → Add Cron Trigger). `wrangler.toml`
 `[triggers]` is read by Workers projects, not Pages.
+
+**AN.33 anomaly alerts** — the nightly cron computes a 14-day baseline (mean ± 2σ)
+per metric over `data_quality_snapshots` (`data_health_score`, `coverage_pct`,
+`evidence_pct`, `agreement_avg`, `open_disputes`). Crossings are written to the
+`alerts` table (migration 0038) and, when `ALERTS_WEBHOOK_URL` is configured,
+POSTed as a Slack/Discord-compatible `{ text }` payload. `ALERTS_DASHBOARD_URL`
+optionally appends a "view chart" link. Webhook failures are recorded inline on
+the alert row and never fail the cron run.
 
 ### Data Quality Gate (DQ.1)
 

@@ -17,7 +17,9 @@
  * `event.cron`.
  */
 
-export interface CronEnv {
+import { runAnomalyCheck, type AnomalyEnv } from './_anomaly_check'
+
+export interface CronEnv extends AnomalyEnv {
   GUESS_KV?: KVNamespace
   GUESS_DB?: D1Database
 }
@@ -33,7 +35,7 @@ export interface ScheduledTrigger {
  */
 export async function runScheduled(
   trigger: ScheduledTrigger,
-  _env: CronEnv,
+  env: CronEnv,
   log: (msg: unknown) => void = console.log,
 ): Promise<void> {
   log({
@@ -42,8 +44,14 @@ export async function runScheduled(
     scheduledTime: new Date(trigger.scheduledTime).toISOString(),
   })
 
-  // Wave 2 consumers will branch on `trigger.cron` here, e.g.:
-  //   if (trigger.cron === '5 0 * * *') { await rollupDailyStats(env) }
+  // AN.33 — nightly anomaly check on the daily_quality_snapshots series.
+  // Runs on every scheduled tick; harmless when there isn't enough history.
+  try {
+    const summary = await runAnomalyCheck(env, log)
+    log({ event: 'cron.anomaly_check', ...summary })
+  } catch (err) {
+    log({ event: 'cron.anomaly_check_failed', error: (err as Error).message })
+  }
 }
 
 const handler: ExportedHandler<CronEnv> = {
