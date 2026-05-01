@@ -20,9 +20,36 @@ import { getConfig } from './config.js';
 import { RateLimiter, withRetry } from './rate-limiter.js';
 import { formatElapsed } from './utils.js';
 import type { Category } from './types.js';
+import {
+  validateAttributes,
+  violationToDisputeReason,
+  type AttributeMap,
+  type ConstraintSet,
+} from '../../functions/api/_constraints.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const CACHE_DIR = path.join(__dirname, '..', '..', 'data', 'enrich-cache');
+const CONSTRAINTS_PATH = path.join(__dirname, '..', '..', 'data', 'attribute-constraints.json');
+
+// DQ.4: lazy-loaded constraint set, cached for the life of the process.
+let _constraintSetCache: ConstraintSet | null | undefined;
+function loadConstraintSet(): ConstraintSet | null {
+  if (_constraintSetCache !== undefined) return _constraintSetCache;
+  try {
+    if (!existsSync(CONSTRAINTS_PATH)) {
+      _constraintSetCache = null;
+      return null;
+    }
+    const raw = readFileSync(CONSTRAINTS_PATH, 'utf8');
+    _constraintSetCache = JSON.parse(raw) as ConstraintSet;
+    console.log(`[constraints] loaded ${_constraintSetCache.constraints.length} rules from ${path.relative(process.cwd(), CONSTRAINTS_PATH)}`);
+    return _constraintSetCache;
+  } catch (err) {
+    console.warn(`[constraints] failed to load ${CONSTRAINTS_PATH}: ${(err as Error).message} — DQ.4 validation disabled for this run`);
+    _constraintSetCache = null;
+    return null;
+  }
+}
 
 // ---------------------------------------------------------------------------
 // Types
@@ -396,6 +423,16 @@ function storeEnrichmentResults(db: Database.Database, results: EnrichResult[]):
       updated_at = unixepoch()
   `);
 
+  // DQ.4: load constraints once per batch so violations get filed as disputes.
+  const constraintSet = loadConstraintSet();
+  const insertDispute = db.prepare(`
+    INSERT OR IGNORE INTO enrichment_disputes
+      (character_id, attribute_key, current_value, dispute_reason, confidence)
+    VALUES (?, ?, ?, ?, ?)
+  `);
+
+  let constraintViolations = 0;
+
   const storeBatch = db.transaction((batch: EnrichResult[]) => {
     for (const result of batch) {
       const evidence = result.evidence ?? `enrichment:openai:${MODEL}:run=${new Date().toISOString()}`;
@@ -407,6 +444,33 @@ function storeEnrichmentResults(db: Database.Database, results: EnrichResult[]):
         const isContested = result.contested?.[key] ? 1 : 0;
         insertAttr.run(result.characterId, key, intVal, confidence, isContested, evidence);
       }
+
+      // DQ.4: validate the freshly written attribute map against the constraint
+      // set; each violation becomes an enrichment_disputes row that
+      // generateDisputeUploadSQL() later promotes to attribute_disputes in D1.
+      if (constraintSet) {
+        const attrMap: AttributeMap = {};
+        for (const [k, v] of Object.entries(result.attributes)) {
+          attrMap[k] = v;
+        }
+        const violations = validateAttributes(attrMap, constraintSet);
+        for (const violation of violations) {
+          let intVal: number | null;
+          if (violation.currentValue === null) intVal = null;
+          else if (violation.currentValue) intVal = 1;
+          else intVal = 0;
+          insertDispute.run(
+            result.characterId,
+            violation.attributeKey,
+            intVal,
+            violationToDisputeReason(violation),
+            // 0.95 — constraint violations are deterministic, not heuristic.
+            0.95,
+          );
+          constraintViolations++;
+        }
+      }
+
       upsertStatus.run(
         result.characterId,
         result.tokensUsed.prompt,
@@ -416,6 +480,10 @@ function storeEnrichmentResults(db: Database.Database, results: EnrichResult[]):
   });
 
   storeBatch(results);
+
+  if (constraintViolations > 0) {
+    console.log(`[constraints] DQ.4: filed ${constraintViolations} dispute(s) from ${results.length} characters`);
+  }
 }
 
 function markFailed(db: Database.Database, characterIds: string[], error: string): void {

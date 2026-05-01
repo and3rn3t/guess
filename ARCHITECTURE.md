@@ -523,6 +523,34 @@ transactional `UPDATE` batch to `data/agreement/agreement-<env>.sql`, then
 applies it. Designed to run nightly via the existing adaptive-data-refresh
 cron (DQ.6 / H.3) once that wiring lands.
 
+### Logical-Constraint Validator (DQ.4)
+
+The constraint DSL lives in `data/attribute-constraints.json` (JSON, not YAML,
+so we don't ship a runtime parser dep). Three rule types are supported:
+
+| Type            | Shape                                                           | Semantics                                              |
+|-----------------|-----------------------------------------------------------------|--------------------------------------------------------|
+| `mutex`         | `{ keys: string[] }`                                            | At most one of `keys` may be `true`.                    |
+| `requiresOneOf` | `{ keys: string[] }`                                            | When *every* key is decided (non-null), at least one must be `true`. |
+| `implies`       | `{ if: {key, value}, then: { allOf | anyOf: KeyValue[] } }`     | If antecedent decided & matches, consequent must hold.  |
+
+The pure validator in `functions/api/_constraints.ts` (`validateAttributes`)
+takes an attribute map and a constraint set and returns a list of
+`Violation` records. It is partial-enrichment-friendly: missing/null keys do
+not trip rules; `anyOf` clauses are skipped when every consequent is unknown.
+
+The enrichment pipeline (`scripts/ingest/enrich.ts.storeEnrichmentResults`)
+loads the rule set once per batch and inserts every violation into the
+existing `enrichment_disputes` staging table at confidence `0.95` with a
+reason prefixed `[constraint:<id>]`. The existing `disputes-upload` step
+promotes them to `attribute_disputes` in D1 — no extra wiring needed. The
+admin disputes queue + `runSkeptic` second-pass already consume that table,
+so constraint failures land in the same review surface as LLM-flagged ones.
+
+Auto-repair (re-prompt the model with the constraint and re-write the value)
+remains a follow-up; routing constraint failures into the existing dispute
+queue covers the acceptance criterion in DQ.4.
+
 ---
 
 ## LLM Pipeline

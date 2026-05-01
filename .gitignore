@@ -40,6 +40,10 @@ data/*
 # DQ.2 vision-source URL cache (committed for reproducible CI)
 !data/golden-image-sources.json
 
+# DQ.4 logical-constraint DSL — committed so the enrichment pipeline can
+# enforce the rules without external configuration.
+!data/attribute-constraints.json
+
 # Attribute schema cache is the source of truth for valid attribute keys —
 # committed so CI (DQ.1 schema check) can validate without DB access.
 !data/enrich-cache/

@@ -1,0 +1,67 @@
+{
+  "$schema": "./attribute-constraints.schema.json",
+  "version": 1,
+  "description": "Logical constraints over (character, attribute) maps. Loaded by functions/api/_constraints.ts and enforced by the enrichment pipeline (DQ.4). Violations are filed as attribute_disputes rows; the skeptic LLM may reconcile them in a follow-up pass. JSON (not YAML) so we avoid a runtime parser dependency; structure mirrors the YAML sketch in ROADMAP DQ.4.",
+  "constraints": [
+    {
+      "id": "mutex-alignment",
+      "type": "mutex",
+      "keys": ["isHero", "isVillain", "isAntiHero", "isNeutral"],
+      "reason": "A character can only be one of {isHero, isVillain, isAntiHero, isNeutral} at a time."
+    },
+    {
+      "id": "mutex-species-human-alien",
+      "type": "mutex",
+      "keys": ["isHuman", "isAlien"],
+      "reason": "isHuman and isAlien are mutually exclusive."
+    },
+    {
+      "id": "mutex-species-human-robot",
+      "type": "mutex",
+      "keys": ["isHuman", "isRobot"],
+      "reason": "isHuman and isRobot are mutually exclusive."
+    },
+    {
+      "id": "mutex-species-human-animal",
+      "type": "mutex",
+      "keys": ["isHuman", "isAnimal"],
+      "reason": "isHuman and isAnimal are mutually exclusive."
+    },
+    {
+      "id": "mutex-gender",
+      "type": "mutex",
+      "keys": ["isMale", "isFemale"],
+      "reason": "isMale and isFemale are mutually exclusive at the character level."
+    },
+    {
+      "id": "implies-vampire-undead-or-mythical",
+      "type": "implies",
+      "if": { "key": "isVampire", "value": true },
+      "then": { "anyOf": [
+        { "key": "isMythical", "value": true },
+        { "key": "isHuman", "value": false }
+      ] },
+      "reason": "isVampire=true implies isMythical=true or isHuman=false."
+    },
+    {
+      "id": "implies-canfly-haswings-or-superpowers",
+      "type": "implies",
+      "if": { "key": "canFly", "value": true },
+      "then": { "anyOf": [
+        { "key": "hasWings", "value": true },
+        { "key": "hasSuperpowers", "value": true },
+        { "key": "isRobot", "value": true }
+      ] },
+      "reason": "canFly=true requires at least one of: hasWings, hasSuperpowers, isRobot."
+    },
+    {
+      "id": "implies-robot-not-living",
+      "type": "implies",
+      "if": { "key": "isRobot", "value": true },
+      "then": { "allOf": [
+        { "key": "isHuman", "value": false }
+      ] },
+      "reason": "isRobot=true implies isHuman=false."
+    }
+  ]
+}
