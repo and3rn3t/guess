@@ -10,6 +10,8 @@ export interface Env {
   COOKIE_SECRET?: string
   /** Durable Object for atomic per-user rate limiting (BI.5) */
   RATE_LIMITER?: DurableObjectNamespace
+  /** Workers Analytics Engine dataset for LLM cost telemetry (I.2). */
+  LLM_COSTS?: AnalyticsEngineDataset
 }
 
 const OPENAI_COMPLETIONS = 'https://api.openai.com/v1/chat/completions'

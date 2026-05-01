@@ -10,6 +10,7 @@ import {
   sanitizeString,
   logError,
 } from "./_helpers";
+import { recordLLMUsage } from "./_llm_metrics";
 
 const MAX_PROMPT_LENGTH = 50_000;
 const ALLOWED_MODELS = ["gpt-4o", "gpt-4o-mini"];
@@ -217,6 +218,8 @@ async function processSuccess(
   kv: KVNamespace | undefined,
   cacheKey: string,
   request: Request,
+  env: Env,
+  model: string,
 ): Promise<Response> {
   const content = data.choices?.[0]?.message?.content;
   if (!content) {
@@ -241,6 +244,16 @@ async function processSuccess(
         () => {},
       );
     }
+    // I.2: write one Analytics Engine data point per call. Replaces the
+    // brittle `costs:{userId}:{date}` KV pattern as the source of truth
+    // for cost dashboards (KV write above is kept short-term for back-compat).
+    recordLLMUsage(env.LLM_COSTS, {
+      model,
+      userId: getUserId(request),
+      usage: data.usage,
+      cacheStatus: "MISS",
+      endpoint: "llm",
+    });
   }
 
   return new Response(content, { headers: responseHeaders });
@@ -296,7 +309,17 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     cacheKey,
     context.request.url,
   ).catch(() => null);
-  if (cacheHit) return cacheHit;
+  if (cacheHit) {
+    // I.2: record HIT with zero tokens so HIT/MISS ratio is queryable in AE.
+    recordLLMUsage(context.env.LLM_COSTS, {
+      model,
+      userId: getUserId(context.request),
+      usage: { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 },
+      cacheStatus: "HIT",
+      endpoint: "llm",
+    });
+    return cacheHit;
+  }
 
   // Build request & call OpenAI (via AI Gateway if configured)
   const endpoint = getCompletionsEndpoint(context.env);
@@ -342,7 +365,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       };
     } = await openaiResponse.json();
 
-    return processSuccess(data, kv, cacheKey, context.request);
+    return processSuccess(data, kv, cacheKey, context.request, context.env, model);
   } catch (error) {
     console.error("LLM proxy error:", error);
     context.waitUntil(logError(context.env.GUESS_DB, 'llm', 'error', 'LLM proxy error', error));

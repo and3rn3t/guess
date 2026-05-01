@@ -39,6 +39,13 @@ migrations_dir = "migrations"
 binding = "GUESS_IMAGES"
 bucket_name = "guess-images"
 
+# I.2 — Workers Analytics Engine for LLM cost telemetry. Replaces the
+# `costs:{userId}:{date}` KV pattern. The dataset is created the first
+# time a data point is written; query in the CF dashboard via SQL.
+[[env.production.analytics_engine_datasets]]
+binding = "LLM_COSTS"
+dataset = "llm_costs"
+
 # NOTE: RATE_LIMITER Durable Object binding is configured via Cloudflare Pages dashboard.
 # The RateLimiter class is defined in functions/_rate-limiter-do.ts and exported in the
 # Pages Functions bundle. wrangler 3.52.0+ requires script_name for DO bindings in
@@ -70,6 +77,11 @@ migrations_dir = "migrations"
 [[env.preview.r2_buckets]]
 binding = "GUESS_IMAGES"
 bucket_name = "guess-images"
+
+# I.2 — separate AE dataset for preview so cost dashboards stay clean.
+[[env.preview.analytics_engine_datasets]]
+binding = "LLM_COSTS"
+dataset = "llm_costs_preview"
 
 # NOTE: RATE_LIMITER DO binding configured via CF dashboard (see production env note above)
 
