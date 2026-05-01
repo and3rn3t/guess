@@ -564,13 +564,22 @@ describe('POST /api/admin/coverage-priority', () => {
 // ─── enrich/start ─────────────────────────────────────────────────────────────
 
 describe('POST /api/admin/enrich/start', () => {
-  it('writes the start signal to KV', async () => {
+  it('returns 503 when OPENAI_API_KEY is missing', async () => {
     const res = await invokeHandler(enrichStartPost, {
       body: { action: 'start' },
-      env: buildEnv({ db, kv }),
+      env: buildEnv({ db, kv }), // no openaiKey
+    })
+    expect(res.status).toBe(503)
+  })
+
+  it('returns 202 with a batchId on start', async () => {
+    const res = await invokeHandler<{ ok: boolean; batchId: string }>(enrichStartPost, {
+      body: { action: 'start' },
+      env: buildEnv({ db, kv, openaiKey: 'sk-test' }),
     })
     expect(res.status).toBe(202)
-    expect(await kv.get('admin:enrich-start')).toBeTruthy()
+    expect(res.body.ok).toBe(true)
+    expect(typeof res.body.batchId).toBe('string')
   })
 
   it('clears the signal on stop', async () => {

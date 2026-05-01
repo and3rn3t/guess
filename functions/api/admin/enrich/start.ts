@@ -1,10 +1,12 @@
 import { type Env, jsonResponse, errorResponse, parseJsonBody } from '../../_helpers'
+import { runServerEnrichBatch } from './run'
 
 export const onRequestPost: PagesFunction<Env> = async (context) => {
-  const kv = context.env.GUESS_KV
+  const { env } = context
+  const kv = env.GUESS_KV
   if (!kv) return errorResponse('KV not configured', 503)
 
-  const body = await parseJsonBody<{ action?: string }>(context.request)
+  const body = await parseJsonBody<{ action?: string; limit?: number }>(context.request)
   const action = body?.action ?? 'start'
 
   if (action === 'stop') {
@@ -12,8 +14,25 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     return jsonResponse({ ok: true, message: 'Enrichment job signal cleared' })
   }
 
-  // Set a flag that CLI enrichment scripts can poll to trigger a run
-  const payload = JSON.stringify({ queuedAt: Date.now() })
-  await kv.put('admin:enrich-start', payload, { expirationTtl: 3600 })
-  return jsonResponse({ ok: true, message: 'Enrichment job queued — CLI scripts will pick up the signal' }, 202)
+  if (!env.OPENAI_API_KEY) {
+    return errorResponse('OPENAI_API_KEY not configured — cannot run server-side enrichment', 503)
+  }
+
+  const limit = Math.min(10, Math.max(1, body?.limit ?? 5))
+  const batchId = crypto.randomUUID()
+
+  // Set KV flag immediately so SSE stream shows jobActive: true
+  await kv.put(
+    'admin:enrich-start',
+    JSON.stringify({ queuedAt: Date.now(), batchId }),
+    { expirationTtl: 3600 }
+  )
+
+  // Run enrichment in the background; response returns immediately
+  context.waitUntil(runServerEnrichBatch(env, batchId, limit))
+
+  return jsonResponse(
+    { ok: true, message: `Enrichment started for up to ${limit} character${limit !== 1 ? 's' : ''}`, batchId },
+    202
+  )
 }
