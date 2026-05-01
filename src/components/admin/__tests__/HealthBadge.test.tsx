@@ -2,7 +2,8 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import { HealthBadge } from '../HealthBadge'
-import { LiveOpsProvider, computeStatus } from '../LiveOpsContext'
+import { LiveOpsProvider } from '../LiveOpsContext'
+import { computeStatus } from '../liveOps'
 
 interface SummaryFields {
   games1h?: number

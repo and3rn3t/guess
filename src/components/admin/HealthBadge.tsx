@@ -1,5 +1,5 @@
 import { cn } from '@/lib/utils'
-import { useLiveOps, type HealthStatus } from './LiveOpsContext'
+import { useLiveOps, type HealthStatus } from './liveOps'
 
 /**
  * AP.20 — top-right health badge in the admin shell header. A 1-second

@@ -121,7 +121,13 @@ export default function AnalyticsRoute(): React.JSX.Element {
               >
                 Refresh
               </button>
-              <button onClick={() => setShowInsights(false)} className="text-muted-foreground hover:text-foreground">
+              <button
+                type="button"
+                onClick={() => setShowInsights(false)}
+                aria-label="Close insights"
+                title="Close insights"
+                className="text-muted-foreground hover:text-foreground"
+              >
                 <XIcon size={14} />
               </button>
             </div>

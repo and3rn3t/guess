@@ -243,6 +243,8 @@ export default function ErrorLogsRoute(): React.JSX.Element {
           <select
             value={filterLevel}
             onChange={(e) => setFilterLevel(e.target.value)}
+            aria-label="Filter by log level"
+            title="Filter by log level"
             className="h-9 rounded-md border border-input bg-background px-3 text-sm"
           >
             <option value="">All levels</option>
@@ -254,6 +256,8 @@ export default function ErrorLogsRoute(): React.JSX.Element {
           <select
             value={filterSource}
             onChange={(e) => setFilterSource(e.target.value)}
+            aria-label="Filter by source"
+            title="Filter by source"
             className="h-9 rounded-md border border-input bg-background px-3 text-sm"
           >
             <option value="">All sources</option>

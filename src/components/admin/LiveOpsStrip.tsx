@@ -1,6 +1,6 @@
 import { ActivityIcon, AlertTriangleIcon, GaugeIcon, RefreshCwIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { useLiveOps, type HealthStatus, type LiveOpsSummary } from './LiveOpsContext'
+import { useLiveOps, type HealthStatus, type LiveOpsSummary } from './liveOps'
 
 /**
  * AN.30 — Live ops strip. Compact rolling-1h health snapshot rendered above

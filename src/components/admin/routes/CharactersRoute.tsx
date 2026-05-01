@@ -285,6 +285,8 @@ export default function CharactersRoute(): React.JSX.Element {
           <select
             value={category}
             onChange={(e) => { setCategory(e.target.value); setPage(1) }}
+            aria-label="Filter by category"
+            title="Filter by category"
             className="h-9 rounded-md border border-input bg-background px-3 text-sm"
           >
             <option value="">All categories</option>
