@@ -20,6 +20,7 @@ import {
   TargetIcon,
 } from '@phosphor-icons/react'
 import { useAdminData } from './AdminDataContext'
+import { RouteErrorBoundary } from './RouteErrorBoundary'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 
 interface NavItem {
@@ -149,7 +150,9 @@ export function AdminShell(): React.JSX.Element {
 
       {/* Main content */}
       <main className="flex-1 overflow-auto">
-        <Outlet />
+        <RouteErrorBoundary>
+          <Outlet />
+        </RouteErrorBoundary>
       </main>
     </div>
   )
