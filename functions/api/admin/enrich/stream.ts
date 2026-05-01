@@ -10,14 +10,24 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     encoder.encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`)
 
   const snapshot = async () => {
-    const [runs, jobFlag] = await Promise.all([
+    const [runs, jobFlag, pendingResult] = await Promise.all([
       db.prepare(
-        `SELECT id, run_batch, character_id, step, status, error, duration_ms, created_at
-         FROM pipeline_runs ORDER BY created_at DESC LIMIT 100`
+        `SELECT pr.id, pr.run_batch, pr.character_id, c.name AS character_name,
+                pr.step, pr.status, pr.error, pr.duration_ms, pr.created_at
+         FROM pipeline_runs pr
+         LEFT JOIN characters c ON c.id = pr.character_id
+         WHERE pr.step = 'enrich'
+         ORDER BY pr.created_at DESC LIMIT 100`
       ).all(),
       kv?.get('admin:enrich-start'),
+      db.prepare(
+        `SELECT COUNT(*) AS n FROM characters c
+         WHERE NOT EXISTS (
+           SELECT 1 FROM character_attributes ca WHERE ca.character_id = c.id LIMIT 1
+         )`
+      ).first<{ n: number }>(),
     ])
-    return { runs: runs.results, jobActive: !!jobFlag }
+    return { runs: runs.results, jobActive: !!jobFlag, pendingCount: pendingResult?.n ?? 0 }
   }
 
   const stream = new ReadableStream({

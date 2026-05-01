@@ -7,6 +7,7 @@ interface PipelineRun {
   id: number
   run_batch: string
   character_id: string
+  character_name: string | null
   step: string
   status: string
   error: string | null
@@ -17,6 +18,7 @@ interface PipelineRun {
 interface StreamPayload {
   runs: PipelineRun[]
   jobActive: boolean
+  pendingCount: number
 }
 
 const STATUS_STYLES: Record<string, string> = {
@@ -30,7 +32,9 @@ export default function EnrichDashboardRoute(): React.JSX.Element {
   const [data, setData] = useState<StreamPayload | null>(null)
   const [connected, setConnected] = useState(false)
   const [actionMsg, setActionMsg] = useState<string | null>(null)
+  const [limit, setLimit] = useState(5)
   const esRef = useRef<EventSource | null>(null)
+  const wasActiveRef = useRef(false)
 
   const connect = () => {
     if (esRef.current) { esRef.current.close(); esRef.current = null }
@@ -39,14 +43,25 @@ export default function EnrichDashboardRoute(): React.JSX.Element {
     setConnected(true)
 
     const handler = (e: MessageEvent) => {
-      try { setData(JSON.parse(e.data) as StreamPayload) } catch { /* ignore */ }
+      try {
+        const payload = JSON.parse(e.data) as StreamPayload
+        if (payload.jobActive) wasActiveRef.current = true
+        setData(payload)
+      } catch { /* ignore */ }
     }
     es.addEventListener('snapshot', handler)
     es.addEventListener('update', handler)
     es.addEventListener('error', (e: MessageEvent) => {
       try { setActionMsg((JSON.parse(e.data) as { message: string }).message) } catch { /* ignore */ }
     })
-    es.addEventListener('done', () => setConnected(false))
+    es.addEventListener('done', () => {
+      setConnected(false)
+      // Auto-reconnect if a job was active when the 90s stream window closed
+      if (wasActiveRef.current) {
+        wasActiveRef.current = false
+        connect()
+      }
+    })
     es.onerror = () => setConnected(false)
   }
 
@@ -61,7 +76,7 @@ export default function EnrichDashboardRoute(): React.JSX.Element {
       const res = await fetch('/api/admin/enrich/start', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action }),
+        body: JSON.stringify(action === 'start' ? { action, limit } : { action }),
       })
       const body = await res.json() as { message?: string }
       setActionMsg(body.message ?? 'Done')
@@ -99,11 +114,23 @@ export default function EnrichDashboardRoute(): React.JSX.Element {
           )}
           {jobActive
             ? <Button variant="outline" size="sm" onClick={() => void sendSignal('stop')} className="text-red-400 border-red-500/40">
-                <StopIcon size={14} className="mr-2" />Stop signal
+                <StopIcon size={14} className="mr-2" />Stop
               </Button>
-            : <Button size="sm" onClick={() => void sendSignal('start')}>
-                <PlayIcon size={14} className="mr-2" />Signal enrichment run
-              </Button>
+            : <div className="flex items-center gap-2">
+                <label className="text-xs text-muted-foreground whitespace-nowrap" htmlFor="enrich-limit">Batch size</label>
+                <input
+                  id="enrich-limit"
+                  type="number"
+                  min={1}
+                  max={10}
+                  value={limit}
+                  onChange={(e) => setLimit(Math.min(10, Math.max(1, Number(e.target.value))))}
+                  className="w-14 rounded-md border bg-background px-2 py-1 text-sm text-center [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
+                />
+                <Button size="sm" onClick={() => void sendSignal('start')}>
+                  <PlayIcon size={14} className="mr-2" />Start enrichment run
+                </Button>
+              </div>
           }
         </div>
       </div>
@@ -113,9 +140,10 @@ export default function EnrichDashboardRoute(): React.JSX.Element {
       )}
 
       {/* Summary cards */}
-      <div className="grid grid-cols-4 gap-4">
+      <div className="grid grid-cols-5 gap-4">
         {[
-          { label: 'Total shown', value: runs.length, color: 'text-foreground' },
+          { label: 'Pending', value: data?.pendingCount ?? '…', color: 'text-yellow-400' },
+          { label: 'Total runs', value: runs.length, color: 'text-foreground' },
           { label: 'Running', value: runningCount, color: 'text-blue-400' },
           { label: 'Success', value: successCount, color: 'text-green-400' },
           { label: 'Errors', value: errorCount, color: 'text-red-400' },
@@ -130,13 +158,13 @@ export default function EnrichDashboardRoute(): React.JSX.Element {
       {jobActive && (
         <div className="rounded-lg bg-blue-500/10 border border-blue-500/30 px-4 py-3 text-sm text-blue-300 flex items-center gap-2">
           <ArrowsClockwiseIcon size={16} className="animate-spin shrink-0" />
-          Enrichment job signal is active — CLI scripts will pick it up on their next poll cycle.
+          Enrichment job is running server-side — pipeline_runs will update as each character completes.
         </div>
       )}
 
       {runs.length === 0 && !jobActive && (
         <div className="rounded-xl border bg-card px-6 py-10 text-center text-muted-foreground text-sm">
-          No pipeline runs yet. Signal a run or wait for CLI scripts to write entries.
+          No pipeline runs yet. Click “Start enrichment run” to enrich pending characters.
         </div>
       )}
 
@@ -157,7 +185,10 @@ export default function EnrichDashboardRoute(): React.JSX.Element {
               {runs.map((r) => (
                 <tr key={r.id} className="hover:bg-muted/30 transition-colors">
                   <td className="px-4 py-2.5 font-mono text-xs text-muted-foreground">{r.run_batch.slice(0, 7)}…</td>
-                  <td className="px-4 py-2.5 font-mono text-xs">{r.character_id}</td>
+                  <td className="px-4 py-2.5">
+                    <span className="text-sm">{r.character_name ?? r.character_id}</span>
+                    {r.character_name && <span className="block text-xs font-mono text-muted-foreground">{r.character_id}</span>}
+                  </td>
                   <td className="px-4 py-2.5"><Badge variant="outline" className="text-xs font-mono">{r.step}</Badge></td>
                   <td className="px-4 py-2.5 text-center">
                     <Badge className={`text-xs ${STATUS_STYLES[r.status] ?? ''}`}>{r.status}</Badge>
