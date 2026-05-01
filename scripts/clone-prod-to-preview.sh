@@ -12,10 +12,9 @@
 set -euo pipefail
 
 DUMP_FILE="$(mktemp /tmp/prod-content-XXXXXX.sql)"
-CLEAR_FILE="$(mktemp /tmp/preview-clear-XXXXXX.sql)"
 
 cleanup() {
-  rm -f "$DUMP_FILE" "$CLEAR_FILE"
+  rm -f "$DUMP_FILE"
 }
 trap cleanup EXIT
 
@@ -49,21 +48,45 @@ PATCHED_FILE="$(mktemp /tmp/prod-content-patched-XXXXXX.sql)"
 { echo "PRAGMA foreign_keys = OFF;"; cat "$DUMP_FILE"; echo "PRAGMA foreign_keys = ON;"; } > "$PATCHED_FILE"
 mv "$PATCHED_FILE" "$DUMP_FILE"
 
-# ── 2. Build clear script for preview (reverse dependency order) ──────────────
+# ── 2. Clear preview tables in chunks (avoid D1 CPU time limit) ───────────────
 echo "\n[2/3] Clearing preview content tables..."
-cat > "$CLEAR_FILE" <<'SQL'
-PRAGMA foreign_keys = OFF;
-DELETE FROM character_attributes;
-DELETE FROM characters;
-DELETE FROM questions;
-DELETE FROM attribute_definitions;
-PRAGMA foreign_keys = ON;
-SQL
+
+# Disable FKs once so reverse-order deletes are unnecessary.
+npx wrangler d1 execute guess-db-preview \
+  --env preview \
+  --remote \
+  --command "PRAGMA foreign_keys = OFF;" >/dev/null
+
+# Reverse dependency order: child tables first.
+CLEAR_TABLES=(character_attributes characters questions attribute_definitions)
+CHUNK_SIZE=50000
+
+for tbl in "${CLEAR_TABLES[@]}"; do
+  echo "  → Clearing $tbl (chunks of $CHUNK_SIZE)..."
+  while :; do
+    OUT=$(npx wrangler d1 execute guess-db-preview \
+      --env preview \
+      --remote \
+      --json \
+      --command "DELETE FROM $tbl WHERE rowid IN (SELECT rowid FROM $tbl LIMIT $CHUNK_SIZE);" 2>&1) || {
+        echo "$OUT"
+        echo "    chunk failed, retrying after 2s..."
+        sleep 2
+        continue
+      }
+    # changes count appears in JSON meta; if zero, table is empty.
+    CHANGES=$(echo "$OUT" | grep -oE '"changes":[[:space:]]*[0-9]+' | head -1 | grep -oE '[0-9]+$' || echo "0")
+    echo "    deleted $CHANGES rows from $tbl"
+    if [ "${CHANGES:-0}" = "0" ]; then
+      break
+    fi
+  done
+done
 
 npx wrangler d1 execute guess-db-preview \
   --env preview \
   --remote \
-  --file "$CLEAR_FILE"
+  --command "PRAGMA foreign_keys = ON;" >/dev/null
 
 echo "  → Preview tables cleared"
 
