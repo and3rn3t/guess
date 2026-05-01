@@ -551,6 +551,32 @@ Auto-repair (re-prompt the model with the constraint and re-write the value)
 remains a follow-up; routing constraint failures into the existing dispute
 queue covers the acceptance criterion in DQ.4.
 
+### Continuous Quality Dashboard (DQ.7)
+
+`/admin/data-quality` rolls every data-quality signal into a single
+`data_health_score` (0–100) plus per-component KPIs and trend lines. Pure
+scoring lives in `functions/api/_data_health.ts` (`computeDataHealthScore`)
+so the formula is unit-tested and reviewable:
+
+```
+data_health = 100 × (
+  0.30 × coverage_pct        // filled / (chars × active attrs)
++ 0.30 × evidence_pct        // attribute_rows with non-null evidence / rows
++ 0.25 × agreement_avg       // AVG(agreement_score) on non-null rows
++ 0.15 × (1 − dispute_density) // 1 − clamp(open / max(rows,1), 0, 1)
+)
+```
+
+`GET /api/admin/data-quality` always computes a fresh "live" snapshot from
+D1 (so the dashboard never silently shows stale numbers) and additionally
+returns the last `?days=30` rows from `data_quality_snapshots` (migration
+0036) for the trend lines. Snapshot rows are written by
+`scripts/snapshot-data-quality.ts` (`pnpm dq:snapshot:{dry-run|preview|prod}`),
+which shells out to wrangler the same way `compute-agreement.ts` does.
+`--golden-pass-rate` / `--vision-pass-rate` flags let CI attach the most
+recent DQ.1 / DQ.2 gate results so the trend charts show external signals
+the API can't see by itself. Designed to be wired into the H.3 cron.
+
 ---
 
 ## LLM Pipeline
