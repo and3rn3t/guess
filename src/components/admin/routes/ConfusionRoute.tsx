@@ -1,6 +1,10 @@
 import { useEffect, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ArrowsClockwiseIcon, ChartBarIcon } from '@phosphor-icons/react'
+
+type ConfusionSource = 'real' | 'sim'
 
 interface ConfusionPair {
   targetId: string
@@ -8,13 +12,27 @@ interface ConfusionPair {
   confusedWithId: string
   confusedWithName: string
   confusionCount: number
-  winPct: number
+  winPct: number | null
+  lastSeen: number | null
 }
 
 interface ConfusionData {
+  source: ConfusionSource
   pairs: ConfusionPair[]
   total: number
+  generatedAt: number
   message?: string
+}
+
+const SOURCE_COPY: Record<ConfusionSource, { subtitle: string; tableLabel: string }> = {
+  real: {
+    subtitle: 'Pairs the engine most often confuses in real games (from character_confusions, undirected)',
+    tableLabel: 'Top confused pairs (real games)',
+  },
+  sim: {
+    subtitle: 'Characters the AI most often confuses in headless simulations (directional, with win %)',
+    tableLabel: 'Top confused pairs (simulation)',
+  },
 }
 
 function HeatCell({ value, max }: { value: number; max: number }): React.JSX.Element {
@@ -30,16 +48,36 @@ function HeatCell({ value, max }: { value: number; max: number }): React.JSX.Ele
   )
 }
 
+function relativeTime(ms: number, now: number): string {
+  const diff = Math.max(0, now - ms)
+  const sec = Math.round(diff / 1000)
+  if (sec < 60) return `${sec}s ago`
+  const min = Math.round(sec / 60)
+  if (min < 60) return `${min}m ago`
+  const hr = Math.round(min / 60)
+  if (hr < 24) return `${hr}h ago`
+  const day = Math.round(hr / 24)
+  return `${day}d ago`
+}
+
+function isSource(value: string | null): value is ConfusionSource {
+  return value === 'real' || value === 'sim'
+}
+
 export default function ConfusionRoute(): React.JSX.Element {
+  const [searchParams, setSearchParams] = useSearchParams()
+  const sourceParam = searchParams.get('source')
+  const source: ConfusionSource = isSource(sourceParam) ? sourceParam : 'real'
+
   const [data, setData] = useState<ConfusionData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  const fetchData = async () => {
+  const fetchData = async (src: ConfusionSource): Promise<void> => {
     setLoading(true)
     setError(null)
     try {
-      const res = await fetch('/api/admin/confusion?limit=60&minConfusions=2')
+      const res = await fetch(`/api/admin/confusion?source=${src}&limit=60&minConfusions=2`)
       if (!res.ok) throw new Error(`${res.status}`)
       setData(await res.json())
     } catch (e) {
@@ -49,18 +87,43 @@ export default function ConfusionRoute(): React.JSX.Element {
     }
   }
 
-  useEffect(() => { void fetchData() }, [])
+  useEffect(() => {
+    void fetchData(source)
+  }, [source])
+
+  const handleSourceChange = (next: string): void => {
+    if (!isSource(next) || next === source) return
+    const params = new URLSearchParams(searchParams)
+    if (next === 'real') params.delete('source')
+    else params.set('source', next)
+    setSearchParams(params, { replace: true })
+  }
 
   const maxConfusions = Math.max(...(data?.pairs.map((p) => p.confusionCount) ?? [1]))
-
-  // Get unique targets and confusors for the matrix axes
   const targets = [...new Set(data?.pairs.map((p) => p.targetName) ?? [])].slice(0, 20)
   const confusors = [...new Set(data?.pairs.map((p) => p.confusedWithName) ?? [])].slice(0, 20)
 
-  // Build lookup for fast access
   const lookup = new Map<string, number>()
-  for (const p of (data?.pairs ?? [])) {
+  for (const p of data?.pairs ?? []) {
     lookup.set(`${p.targetName}::${p.confusedWithName}`, p.confusionCount)
+  }
+
+  const copy = SOURCE_COPY[source]
+  const trailingHeader = source === 'real' ? 'Last seen' : 'Win %'
+  const leftHeader = source === 'real' ? 'Character A' : 'Target'
+  const rightHeader = source === 'real' ? 'Character B' : 'Confused with'
+
+  const renderTrailing = (p: ConfusionPair): React.JSX.Element => {
+    if (source === 'real' && p.lastSeen != null) {
+      return <span>{relativeTime(p.lastSeen, data?.generatedAt ?? Date.now())}</span>
+    }
+    if (source === 'sim' && p.winPct != null) {
+      let tone = 'text-red-400'
+      if (p.winPct >= 70) tone = 'text-green-400'
+      else if (p.winPct >= 40) tone = 'text-yellow-400'
+      return <span className={tone}>{p.winPct}%</span>
+    }
+    return <span>—</span>
   }
 
   return (
@@ -68,23 +131,28 @@ export default function ConfusionRoute(): React.JSX.Element {
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-2xl font-bold">Confusion Matrix</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Characters the AI most often confuses (from simulation data)
-          </p>
+          <p className="text-sm text-muted-foreground mt-1">{copy.subtitle}</p>
         </div>
-        <Button variant="outline" size="sm" onClick={() => void fetchData()} disabled={loading}>
+        <Button variant="outline" size="sm" onClick={() => void fetchData(source)} disabled={loading}>
           <ArrowsClockwiseIcon size={14} className={`mr-2 ${loading ? 'animate-spin' : ''}`} />
           Refresh
         </Button>
       </div>
 
+      <Tabs value={source} onValueChange={handleSourceChange}>
+        <TabsList>
+          <TabsTrigger value="real">Real games</TabsTrigger>
+          <TabsTrigger value="sim">Simulation</TabsTrigger>
+        </TabsList>
+      </Tabs>
+
       {error && (
-        <div className="rounded-lg bg-destructive/10 border border-destructive/30 px-4 py-3 text-sm text-destructive">{error}</div>
+        <div className="rounded-lg bg-destructive/10 border border-destructive/30 px-4 py-3 text-sm text-destructive">
+          {error}
+        </div>
       )}
 
-      {loading && (
-        <div className="rounded-xl border bg-card p-8 animate-pulse h-64" />
-      )}
+      {loading && <div className="rounded-xl border bg-card p-8 animate-pulse h-64" />}
 
       {!loading && data?.message && (
         <div className="rounded-xl border bg-card px-6 py-12 text-center space-y-3">
@@ -95,36 +163,40 @@ export default function ConfusionRoute(): React.JSX.Element {
 
       {!loading && !data?.message && (data?.pairs.length ?? 0) > 0 && (
         <>
-          {/* Top confused pairs table */}
           <div className="space-y-2">
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">
-              Top Confused Pairs ({data!.pairs.slice(0, 20).length} shown)
+              {copy.tableLabel} ({data!.pairs.slice(0, 20).length} shown)
             </p>
             <div className="rounded-xl border bg-card overflow-hidden">
               <table className="w-full text-sm">
                 <thead className="bg-muted/50">
                   <tr>
-                    <th className="text-left px-4 py-3 font-medium text-muted-foreground">Target</th>
-                    <th className="text-left px-4 py-3 font-medium text-muted-foreground">Confused with</th>
+                    <th className="text-left px-4 py-3 font-medium text-muted-foreground">{leftHeader}</th>
+                    <th className="text-left px-4 py-3 font-medium text-muted-foreground">{rightHeader}</th>
                     <th className="text-center px-4 py-3 font-medium text-muted-foreground w-28">Confusions</th>
-                    <th className="text-center px-4 py-3 font-medium text-muted-foreground w-24">Win %</th>
+                    <th className="text-center px-4 py-3 font-medium text-muted-foreground w-24">{trailingHeader}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
-                  {(data?.pairs ?? []).slice(0, 20).map((p, i) => (
-                    <tr key={i} className="hover:bg-muted/30 transition-colors">
+                  {(data?.pairs ?? []).slice(0, 20).map((p) => (
+                    <tr
+                      key={`${p.targetId}::${p.confusedWithId}`}
+                      className="hover:bg-muted/30 transition-colors"
+                    >
                       <td className="px-4 py-3 font-medium">{p.targetName}</td>
                       <td className="px-4 py-3 text-muted-foreground">{p.confusedWithName}</td>
                       <td className="px-4 py-3 text-center">
                         <span
                           className="inline-block px-2 py-0.5 rounded text-xs font-bold text-white"
-                          style={{ background: `rgba(124, 58, 237, ${0.2 + (p.confusionCount / maxConfusions) * 0.7})` }}
+                          style={{
+                            background: `rgba(124, 58, 237, ${0.2 + (p.confusionCount / maxConfusions) * 0.7})`,
+                          }}
                         >
                           {p.confusionCount}
                         </span>
                       </td>
-                      <td className={`px-4 py-3 text-center text-xs font-medium ${p.winPct >= 70 ? 'text-green-400' : p.winPct >= 40 ? 'text-yellow-400' : 'text-red-400'}`}>
-                        {p.winPct}%
+                      <td className="px-4 py-3 text-center text-xs font-medium text-muted-foreground">
+                        {renderTrailing(p)}
                       </td>
                     </tr>
                   ))}
@@ -133,11 +205,11 @@ export default function ConfusionRoute(): React.JSX.Element {
             </div>
           </div>
 
-          {/* Mini heatmap grid (up to 15×15) */}
           {targets.length > 1 && confusors.length > 1 && (
             <div className="space-y-2 overflow-auto">
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">
-                Heatmap (rows = target, cols = confused with)
+                Heatmap (rows = {source === 'real' ? 'character A' : 'target'}, cols ={' '}
+                {source === 'real' ? 'character B' : 'confused with'})
               </p>
               <div className="rounded-xl border bg-card p-4 overflow-auto">
                 <table className="text-xs border-collapse" style={{ minWidth: `${confusors.length * 40 + 120}px` }}>
@@ -145,7 +217,16 @@ export default function ConfusionRoute(): React.JSX.Element {
                     <tr>
                       <th className="w-28" />
                       {confusors.map((c) => (
-                        <th key={c} className="w-10 pb-2 text-muted-foreground font-normal" style={{ writingMode: 'vertical-rl', textOrientation: 'mixed', transform: 'rotate(180deg)', maxHeight: 80 }}>
+                        <th
+                          key={c}
+                          className="w-10 pb-2 text-muted-foreground font-normal"
+                          style={{
+                            writingMode: 'vertical-rl',
+                            textOrientation: 'mixed',
+                            transform: 'rotate(180deg)',
+                            maxHeight: 80,
+                          }}
+                        >
                           {c.length > 12 ? `${c.slice(0, 11)}\u2026` : c}
                         </th>
                       ))}
@@ -160,8 +241,16 @@ export default function ConfusionRoute(): React.JSX.Element {
                         {confusors.map((c) => {
                           const val = lookup.get(`${t}::${c}`) ?? 0
                           return (
-                            <td key={c} className="w-10 h-8 p-0.5" title={val > 0 ? `${t} confused with ${c}: ${val}x` : undefined}>
-                              {val > 0 ? <HeatCell value={val} max={maxConfusions} /> : <span className="inline-block w-full h-full rounded bg-muted/20" />}
+                            <td
+                              key={c}
+                              className="w-10 h-8 p-0.5"
+                              title={val > 0 ? `${t} confused with ${c}: ${val}x` : undefined}
+                            >
+                              {val > 0 ? (
+                                <HeatCell value={val} max={maxConfusions} />
+                              ) : (
+                                <span className="inline-block w-full h-full rounded bg-muted/20" />
+                              )}
                             </td>
                           )
                         })}
