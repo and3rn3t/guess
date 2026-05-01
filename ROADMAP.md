@@ -855,4 +855,4 @@ The shell ships 24 routes across three sidebar groups (Tools / Data / Pipeline).
 
 ---
 
-*Last updated: April 2026 · v1.5.0*
+*Last updated: April 2026 · v1.6.0*
