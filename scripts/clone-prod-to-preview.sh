@@ -51,42 +51,41 @@ mv "$PATCHED_FILE" "$DUMP_FILE"
 # ── 2. Clear preview tables in chunks (avoid D1 CPU time limit) ───────────────
 echo "\n[2/3] Clearing preview content tables..."
 
-# Disable FKs once so reverse-order deletes are unnecessary.
-npx wrangler d1 execute guess-db-preview \
-  --env preview \
-  --remote \
-  --command "PRAGMA foreign_keys = OFF;" >/dev/null
-
 # Reverse dependency order: child tables first.
+# Per-call PRAGMA does not persist across wrangler invocations, so we rely on
+# reverse-order deletes instead of disabling FKs.
 CLEAR_TABLES=(character_attributes characters questions attribute_definitions)
-CHUNK_SIZE=50000
+CHUNK_SIZE=25000
+MAX_RETRIES=5
 
 for tbl in "${CLEAR_TABLES[@]}"; do
   echo "  → Clearing $tbl (chunks of $CHUNK_SIZE)..."
   while :; do
-    OUT=$(npx wrangler d1 execute guess-db-preview \
-      --env preview \
-      --remote \
-      --json \
-      --command "DELETE FROM $tbl WHERE rowid IN (SELECT rowid FROM $tbl LIMIT $CHUNK_SIZE);" 2>&1) || {
+    attempt=0
+    while :; do
+      attempt=$((attempt + 1))
+      if OUT=$(npx wrangler d1 execute guess-db-preview \
+        --env preview \
+        --remote \
+        --json \
+        --command "DELETE FROM $tbl WHERE rowid IN (SELECT rowid FROM $tbl LIMIT $CHUNK_SIZE);" 2>&1); then
+        break
+      fi
+      if [ "$attempt" -ge "$MAX_RETRIES" ]; then
+        echo "    chunk failed after $MAX_RETRIES attempts:"
         echo "$OUT"
-        echo "    chunk failed, retrying after 2s..."
-        sleep 2
-        continue
-      }
-    # changes count appears in JSON meta; if zero, table is empty.
+        exit 1
+      fi
+      echo "    chunk failed (attempt $attempt/$MAX_RETRIES), backing off..."
+      sleep $((attempt * 5))
+    done
     CHANGES=$(echo "$OUT" | grep -oE '"changes":[[:space:]]*[0-9]+' | head -1 | grep -oE '[0-9]+$' || echo "0")
-    echo "    deleted $CHANGES rows from $tbl"
+    echo "    deleted ${CHANGES:-0} rows from $tbl"
     if [ "${CHANGES:-0}" = "0" ]; then
       break
     fi
   done
 done
-
-npx wrangler d1 execute guess-db-preview \
-  --env preview \
-  --remote \
-  --command "PRAGMA foreign_keys = ON;" >/dev/null
 
 echo "  → Preview tables cleared"
 
