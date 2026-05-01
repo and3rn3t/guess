@@ -25,9 +25,7 @@
     "test:watch": "vitest",
     "validate": "tsc -b && eslint . && vitest run",
     "size": "size-limit",
-    "changeset": "changeset",
-    "version-packages": "changeset version",
-    "release": "changeset publish",
+    "release": "tsx scripts/cut-release.ts",
     "db:types": "tsx scripts/generate-db-types.ts",
     "build:og-image": "tsx scripts/build-og-image.ts",
     "migrate:create": "tsx scripts/create-migration.ts",
@@ -118,7 +116,6 @@
   },
   "devDependencies": {
     "@aws-sdk/client-s3": "^3.1038.0",
-    "@changesets/cli": "^2.31.0",
     "@cloudflare/workers-types": "^4.20260426.1",
     "@eslint/js": "^10.0.0",
     "@playwright/test": "^1.59.1",

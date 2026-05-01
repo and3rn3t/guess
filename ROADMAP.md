@@ -587,7 +587,7 @@ Larger DX explorations (Storybook catalog, Zod contracts, Pact, Stryker, dev con
 
 | # | Item | Effort | Notes |
 |---|------|--------|-------|
-| DX.10 | **Automated CHANGELOG + release tagging** | Low | [changesets](https://github.com/changesets/changesets) (already a dep): PR drops a changeset; on merge, GitHub Action commits the changelog and tags. |
+| DX.10 | ~~**Automated CHANGELOG + release tagging**~~ | — | ✅ 2026-04-30 — Replaced the dead changesets workflow (root pkg never registered with pnpm workspace, every release was manual) with a tag-driven `.github/workflows/release.yml` plus `pnpm release <patch\|minor\|major\|X.Y.Z>` (`scripts/cut-release.ts`) that bumps `package.json`, slots the `[Unreleased]` CHANGELOG section under a dated `[X.Y.Z]` heading, commits, tags, and pushes. The workflow then extracts the matching CHANGELOG section as the GitHub release notes via awk. `@changesets/cli` and `.changeset/` removed. |
 | DX.21 | **Auto-generated release notes from commits** | Low | `release-please` reads conventional commits since the last tag and opens a PR with grouped notes (Features / Fixes / Docs / Chore). Zero manual changelog maintenance. Pairs with DX.10 — pick one or the other. |
 | DX.22 | **Preview deployment per PR with shareable URL** | Low | `pnpm deploy:preview` already exists; wire to a GitHub Action that runs on every PR, deploys to a unique Cloudflare Pages preview URL (e.g. `pr-123.guess.pages.dev`), and posts a comment with the link, screenshot, and Lighthouse scores. Reviewers can poke at the actual UI in 30 seconds. |
 

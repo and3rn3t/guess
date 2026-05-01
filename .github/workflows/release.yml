@@ -1,15 +1,21 @@
 name: Release
 
+# Tag-driven release workflow. To cut a release:
+#   1. Bump `version` in package.json
+#   2. Move the `[Unreleased]` section in CHANGELOG.md under a new `[X.Y.Z] - YYYY-MM-DD` heading
+#   3. Commit `chore: release vX.Y.Z`, tag `vX.Y.Z`, push both
+# The workflow then creates the GitHub release with the matching CHANGELOG section as notes.
+
 on:
   push:
-    branches: [main]
-    paths-ignore:
-      - "docs/**"
-      - "**/*.md"
-      - ".github/workflows/!(release).yml"
-  # Manual trigger so a pure-changeset commit (`.changeset/*.md`, which
-  # `paths-ignore: **/*.md` filters out) can still kick off the version PR.
+    tags:
+      - "v*.*.*"
   workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing tag to (re)publish a release for, e.g. v1.6.0"
+        required: true
+        type: string
 
 concurrency:
   group: release-${{ github.ref }}
@@ -19,29 +25,45 @@ permissions: {}
 
 jobs:
   release:
-    name: Version & tag
+    name: Publish GitHub release
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 5
     permissions:
       contents: write
-      pull-requests: write
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
           fetch-depth: 0
-          persist-credentials: true
-      - uses: ./.github/actions/setup
-      # Opens (or updates) a "Version Packages" PR consuming queued
-      # `.changeset/*.md` files. When that PR is merged, this same job
-      # tags + creates a GitHub release for the new version.
-      # Repo is private (no npm publish) — `publish` script is a no-op so
-      # the action only handles versioning + tagging.
-      - name: Create release PR or tag
-        uses: changesets/action@v1
-        with:
-          version: pnpm run version-packages
-          publish: pnpm run release
-          commit: "chore(release): version packages"
-          title: "chore(release): version packages"
+          ref: ${{ inputs.tag || github.ref }}
+      - name: Resolve version
+        id: ver
+        run: |
+          TAG="${{ inputs.tag || github.ref_name }}"
+          VERSION="${TAG#v}"
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+      - name: Extract changelog section
+        run: |
+          VERSION="${{ steps.ver.outputs.version }}"
+          # Pull lines between `## [VERSION]` and the next `## [` heading.
+          awk -v ver="$VERSION" '
+            $0 ~ "^## \\[" ver "\\]" { flag=1; next }
+            flag && /^## \[/ { exit }
+            flag { print }
+          ' CHANGELOG.md > release-notes.md
+          if [ ! -s release-notes.md ]; then
+            echo "::error::No CHANGELOG section found for [$VERSION]"
+            exit 1
+          fi
+          echo "Release notes preview:"
+          head -40 release-notes.md
+      - name: Create or update GitHub release
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${{ steps.ver.outputs.tag }}"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release edit "$TAG" --notes-file release-notes.md --title "$TAG"
+          else
+            gh release create "$TAG" --notes-file release-notes.md --title "$TAG"
+          fi

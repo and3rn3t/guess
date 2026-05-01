@@ -8,7 +8,9 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
-### Added
+### Changed
+
+- **Release workflow rewritten as tag-driven (DX.10)** — the prior changesets-based `.github/workflows/release.yml` had never run successfully (the root `guess` package isn't in `pnpm-workspace.yaml`, so `changeset version` always errored with "package guess which is not in the workspace"; v1.4.0 / v1.5.0 / v1.6.0 were all hand-tagged). Replaced with a tag-triggered workflow that fires on `v*.*.*` pushes (or manual `workflow_dispatch` with a tag input), extracts the matching `## [X.Y.Z]` section from `CHANGELOG.md` via `awk`, and creates/updates the GitHub release with those notes. New helper script `scripts/cut-release.ts` (`pnpm release <patch\|minor\|major\|X.Y.Z> [--dry-run]`) automates the local side: bumps `package.json`, slots the `[Unreleased]` heading under a dated `[X.Y.Z]` heading, commits `chore: release vX.Y.Z`, tags, pushes both. `@changesets/cli` devDependency and `.changeset/` directory removed.
 
 ## [1.6.0] - 2026-04-30
 
