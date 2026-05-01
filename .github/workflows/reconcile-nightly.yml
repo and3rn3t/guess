@@ -1,0 +1,101 @@
+name: Nightly attribute reconciliation (DQ.6)
+
+# Samples N random characters from production D1, re-runs the canonical
+# enrichment LLM prompt against them, and appends every attribute-value
+# difference to the `attribute_drift` table (migration 0037).
+#
+# This is the "nightly cron" that DQ.6's acceptance criterion calls for —
+# Cloudflare Pages doesn't run cron triggers natively, and even if H.3's
+# Cron Worker did, OpenAI calls aren't wired into the Worker env. GitHub
+# Actions' scheduler is the practical cron substrate.
+
+on:
+  schedule:
+    # Daily at 00:30 UTC. Sits 15 min after `real-data-aggregate.yml` so we
+    # don't contend on the same wrangler API token rate-limits.
+    - cron: '30 0 * * *'
+  workflow_dispatch:
+    inputs:
+      env:
+        description: 'Target environment'
+        required: true
+        default: 'production'
+        type: choice
+        options:
+          - production
+          - preview
+      sample:
+        description: 'Sample size (random characters)'
+        required: false
+        default: '50'
+      batch_size:
+        description: 'Characters per LLM call'
+        required: false
+        default: '5'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: reconcile-${{ github.event.inputs.env || 'production' }}
+  cancel-in-progress: false
+
+jobs:
+  reconcile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    # Skip on forks / dependabot — neither has the secrets needed.
+    if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
+
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+      - uses: ./.github/actions/setup
+
+      - name: Verify required secrets exist
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          missing=()
+          [ -z "$OPENAI_API_KEY" ] && missing+=("OPENAI_API_KEY")
+          [ -z "$CLOUDFLARE_API_TOKEN" ] && missing+=("CLOUDFLARE_API_TOKEN")
+          [ -z "$CLOUDFLARE_ACCOUNT_ID" ] && missing+=("CLOUDFLARE_ACCOUNT_ID")
+          if [ ${#missing[@]} -gt 0 ]; then
+            echo "::error::Missing required secrets: ${missing[*]}"
+            exit 1
+          fi
+          echo "All required secrets present."
+
+      - name: Run nightly reconciliation
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          ENV_FLAG="${{ github.event.inputs.env || 'production' }}"
+          SAMPLE="${{ github.event.inputs.sample || '50' }}"
+          BATCH="${{ github.event.inputs.batch_size || '5' }}"
+          npx tsx scripts/reconcile-attributes.ts \
+            --env "$ENV_FLAG" \
+            --sample "$SAMPLE" \
+            --batch-size "$BATCH" \
+            | tee reconcile-output.log
+
+      - name: Upload drift SQL artifact
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: attribute-drift-sql
+          path: data/reconcile/*.sql
+          if-no-files-found: ignore
+          retention-days: 30
+
+      - name: Upload run log
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: reconcile-log
+          path: reconcile-output.log
+          if-no-files-found: ignore
+          retention-days: 30
