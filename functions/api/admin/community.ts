@@ -101,19 +101,20 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     if (toApplyYes.length === 0 && toApplyNo.length === 0) return jsonResponse({ ok: true, applied: 0, message: 'No majority corrections to apply' })
 
     if (db) {
+      const voteEvidence = `community:vote:${Date.now()}`
       await Promise.all([
         ...toApplyYes.map(([attr]) =>
           d1Run(
             db,
-            `INSERT OR REPLACE INTO character_attributes (character_id, attribute_key, value, confidence) VALUES (?, ?, 1, 0.75)`,
-            [characterId, attr]
+            `INSERT OR REPLACE INTO character_attributes (character_id, attribute_key, value, confidence, evidence) VALUES (?, ?, 1, 0.75, ?)`,
+            [characterId, attr, voteEvidence]
           )
         ),
         ...toApplyNo.map(([attr]) =>
           d1Run(
             db,
-            `INSERT OR REPLACE INTO character_attributes (character_id, attribute_key, value, confidence) VALUES (?, ?, 0, 0.75)`,
-            [characterId, attr]
+            `INSERT OR REPLACE INTO character_attributes (character_id, attribute_key, value, confidence, evidence) VALUES (?, ?, 0, 0.75, ?)`,
+            [characterId, attr, voteEvidence]
           )
         ),
       ])

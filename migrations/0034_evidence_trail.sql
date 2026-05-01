@@ -1,0 +1,26 @@
+-- DQ.28: Per-attribute evidence trail
+--
+-- Adds an `evidence` TEXT column to character_attributes so every value
+-- carries a structured provenance string identifying where it came from.
+-- Existing rows remain NULL; all new writers (admin manual, admin create,
+-- enrichment, community votes, user corrections, CSV upload, game reveal
+-- backfill, default seed) populate this column going forward. Format is a
+-- colon-delimited tag, e.g.:
+--
+--   admin:manual:1714509000000
+--   admin:create:1714509000000
+--   community:vote:1714509000000
+--   correction:1714509000000
+--   csv-upload:1714509000000
+--   reveal:<gameSessionId>
+--   enrichment:openai:gpt-4o-mini:run=2026-04-30T18:50:30Z
+--   seed:default
+--
+-- The admin character editor surfaces this via tooltip so curators can
+-- click an attribute and see "Wikipedia paragraph 3 of 'Frodo Baggins': …"
+-- (richer per-attribute citations are a follow-up; this migration unblocks
+-- the surface area).
+--
+-- Nullable on purpose: a NOT NULL column would require a default that
+-- masks the meaningful "we have no provenance for this row" signal.
+ALTER TABLE character_attributes ADD COLUMN evidence TEXT;

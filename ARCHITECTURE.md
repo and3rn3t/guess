@@ -453,6 +453,34 @@ Run locally with `pnpm schema:check`. Exits non-zero with a per-error report
 on drift. The workflow triggers on PRs touching the schema cache, golden set,
 migrations, the vision script, the drift script itself, or the workflow file.
 
+### Per-Attribute Evidence Trail (DQ.28)
+
+Migration `0034_evidence_trail.sql` adds a nullable `evidence TEXT` column to
+`character_attributes`. Every new attribute write records a colon-delimited
+provenance tag identifying its source. Existing rows are left `NULL` because
+their provenance cannot be reconstructed.
+
+The canonical tag format and helper builders live in
+`functions/api/_evidence.ts`:
+
+| Tag                                                  | Producer                                            |
+|------------------------------------------------------|-----------------------------------------------------|
+| `admin:manual:<unix-ms>`                             | Admin clicks an attribute pill (PATCH)              |
+| `admin:create:<unix-ms>`                             | Admin POSTs a new character via `/api/v2/characters`|
+| `community:vote:<unix-ms>`                           | `/api/admin/community` applies a majority vote      |
+| `correction:<unix-ms>`                               | `/api/corrections` accepts a user correction        |
+| `csv-upload:<unix-ms>`                               | `/api/admin/upload-attrs` bulk import               |
+| `reveal:user=<userId>:<unix-ms>`                     | `/api/v2/game/reveal` backfill from confident answers |
+| `enrichment:openai:<model>:run=<iso8601>`            | `scripts/ingest/enrich.ts` LLM enrichment run       |
+| `seed:default`                                       | `scripts/generate-seed-sql.ts` default seed         |
+
+Admin `GET /api/admin/characters/:id` returns an `evidence` map alongside
+`attributes`; the character editor in `CharactersRoute` renders the source
+tag in the attribute pill tooltip so curators can see exactly where each
+value came from. Richer per-attribute citations (e.g. quoted Wikipedia
+paragraphs) are a follow-up; this trail is the surface DQ.4 (explainable
+disputes) and future provenance work hangs off.
+
 ---
 
 ## LLM Pipeline

@@ -39,6 +39,7 @@ interface EnrichResult {
   attributes: Record<string, boolean | null>;
   confidence?: Record<string, number>;   // EN.3: per-attribute confidence
   contested?: Record<string, boolean>;   // EN.2: per-attribute contest flag
+  evidence?: string;                     // DQ.28: provenance string for this batch
   tokensUsed: { prompt: number; completion: number };
 }
 
@@ -65,6 +66,7 @@ export function initEnrichSchema(): void {
       value         INTEGER,  -- 1=true, 0=false, NULL=unknown
       confidence    REAL DEFAULT 1.0,
       contested     INTEGER DEFAULT 0,  -- 1 if model2 disagreed
+      evidence      TEXT,               -- DQ.28: provenance string for this row
       PRIMARY KEY (character_id, attribute_key)
     );
 
@@ -83,6 +85,13 @@ export function initEnrichSchema(): void {
   // EN.2: add contested column to existing staging DBs (ALTER TABLE is idempotent via try/catch)
   try {
     db.exec(`ALTER TABLE enrichment_attributes ADD COLUMN contested INTEGER DEFAULT 0`);
+  } catch {
+    // Column already exists — safe to ignore
+  }
+
+  // DQ.28: backfill evidence column on pre-existing staging DBs.
+  try {
+    db.exec(`ALTER TABLE enrichment_attributes ADD COLUMN evidence TEXT`);
   } catch {
     // Column already exists — safe to ignore
   }
@@ -370,9 +379,10 @@ function storeEnrichmentResults(db: Database.Database, results: EnrichResult[]):
   //   true/false answer → 0.85 (definitive classification)
   //   null answer      → 0.65 (LLM expressed uncertainty)
   // EN.2: when per-attribute confidence is provided (consensus mode), use those values
+  // DQ.28: every row records an `evidence` provenance string identifying the run.
   const insertAttr = db.prepare(`
-    INSERT OR REPLACE INTO enrichment_attributes (character_id, attribute_key, value, confidence, contested)
-    VALUES (?, ?, ?, ?, ?)
+    INSERT OR REPLACE INTO enrichment_attributes (character_id, attribute_key, value, confidence, contested, evidence)
+    VALUES (?, ?, ?, ?, ?, ?)
   `);
 
   const upsertStatus = db.prepare(`
@@ -388,13 +398,14 @@ function storeEnrichmentResults(db: Database.Database, results: EnrichResult[]):
 
   const storeBatch = db.transaction((batch: EnrichResult[]) => {
     for (const result of batch) {
+      const evidence = result.evidence ?? `enrichment:openai:${MODEL}:run=${new Date().toISOString()}`;
       for (const [key, value] of Object.entries(result.attributes)) {
         const intVal = value === true ? 1 : value === false ? 0 : null;
         // Use per-attribute confidence if available (EN.2 consensus mode),
         // otherwise fall back to the EN.3 heuristic based on value type
         const confidence = result.confidence?.[key] ?? (value === null ? 0.65 : 0.85);
         const isContested = result.contested?.[key] ? 1 : 0;
-        insertAttr.run(result.characterId, key, intVal, confidence, isContested);
+        insertAttr.run(result.characterId, key, intVal, confidence, isContested, evidence);
       }
       upsertStatus.run(
         result.characterId,
@@ -1013,25 +1024,27 @@ export function generateEnrichUploadSQL(opts: UploadOptions = {}): string {
   const db = getDb();
 
   const rows = db.prepare(`
-    SELECT ea.character_id, ea.attribute_key, ea.value, ea.confidence
+    SELECT ea.character_id, ea.attribute_key, ea.value, ea.confidence, ea.evidence
     FROM enrichment_attributes ea
     INNER JOIN enrichment_status es ON ea.character_id = es.character_id AND es.status = 'done'
     WHERE ea.value IS NOT NULL
     ORDER BY ea.character_id, ea.attribute_key
-  `).all() as { character_id: string; attribute_key: string; value: number; confidence: number }[];
+  `).all() as { character_id: string; attribute_key: string; value: number; confidence: number; evidence: string | null }[];
 
   console.log(`Generating SQL for ${rows.length.toLocaleString()} attribute values...`);
 
+  const fallbackEvidence = `enrichment:openai:${MODEL}:run=${new Date().toISOString()}`;
   const lines: string[] = [];
   // Build INSERT statements in chunks of 500 values
   const CHUNK = 500;
   for (let i = 0; i < rows.length; i += CHUNK) {
     const chunk = rows.slice(i, i + CHUNK);
-    lines.push('INSERT OR REPLACE INTO character_attributes (character_id, attribute_key, value, confidence) VALUES');
+    lines.push('INSERT OR REPLACE INTO character_attributes (character_id, attribute_key, value, confidence, evidence) VALUES');
     const values = chunk.map(r => {
       const charId = r.character_id.replace(/'/g, "''");
       const attrKey = r.attribute_key.replace(/'/g, "''");
-      return `  ('${charId}', '${attrKey}', ${r.value}, ${r.confidence})`;
+      const evidence = (r.evidence ?? fallbackEvidence).replace(/'/g, "''");
+      return `  ('${charId}', '${attrKey}', ${r.value}, ${r.confidence}, '${evidence}')`;
     });
     lines.push(values.join(',\n') + ';\n');
   }

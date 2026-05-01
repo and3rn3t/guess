@@ -99,9 +99,9 @@ export const onRequestPost = defineHandler(
           const d1Value = suggestedValue ? 1 : 0
           await d1Run(
             db,
-            `INSERT OR REPLACE INTO character_attributes (character_id, attribute_key, value, confidence)
-             VALUES (?, ?, ?, 0.8)`,
-            [characterId, attribute, d1Value],
+            `INSERT OR REPLACE INTO character_attributes (character_id, attribute_key, value, confidence, evidence)
+             VALUES (?, ?, ?, 0.8, ?)`,
+            [characterId, attribute, d1Value, `correction:${Date.now()}`],
           )
         } catch (e) {
           console.warn('D1 correction write failed (KV still updated):', e)

@@ -6,6 +6,7 @@
  * Protected by the Basic auth gate in functions/_middleware.ts.
  */
 import { type Env, jsonResponse, errorResponse, parseJsonBody } from '../../../_helpers'
+import { evidenceAdminManual } from '../../../_evidence'
 
 export const onRequestGet: PagesFunction<Env> = async (context) => {
   const db = context.env.GUESS_DB
@@ -17,22 +18,27 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
   const [char, attrs, defs] = await Promise.all([
     db.prepare('SELECT id, name, category FROM characters WHERE id = ?')
       .bind(id).first<{ id: string; name: string; category: string }>(),
-    db.prepare('SELECT attribute_key, value FROM character_attributes WHERE character_id = ?')
-      .bind(id).all<{ attribute_key: string; value: number | null }>(),
+    db.prepare('SELECT attribute_key, value, evidence FROM character_attributes WHERE character_id = ?')
+      .bind(id).all<{ attribute_key: string; value: number | null; evidence: string | null }>(),
     db.prepare('SELECT key, display_text FROM attribute_definitions WHERE is_active = 1 ORDER BY key ASC')
       .all<{ key: string; display_text: string }>(),
   ])
 
   if (!char) return errorResponse('Character not found', 404)
 
+  const rows = attrs.results ?? []
   const attributes = Object.fromEntries(
-    (attrs.results ?? []).map((r) => [r.attribute_key, r.value as 0 | 1 | null])
+    rows.map((r) => [r.attribute_key, r.value as 0 | 1 | null])
+  )
+  const evidence = Object.fromEntries(
+    rows.map((r) => [r.attribute_key, r.evidence ?? null])
   )
 
   return jsonResponse({
     character: char,
     definitions: (defs.results ?? []).map((d) => ({ key: d.key, displayText: d.display_text })),
     attributes,
+    evidence,
   })
 }
 
@@ -69,14 +75,15 @@ export const onRequestPatch: PagesFunction<Env> = async (context) => {
       .bind(id, body.attributeKey)
       .run()
   } else {
+    const evidence = evidenceAdminManual()
     await db
       .prepare(
-        `INSERT INTO character_attributes (character_id, attribute_key, value, confidence)
-         VALUES (?, ?, ?, ?)
+        `INSERT INTO character_attributes (character_id, attribute_key, value, confidence, evidence)
+         VALUES (?, ?, ?, ?, ?)
          ON CONFLICT (character_id, attribute_key)
-         DO UPDATE SET value = excluded.value, confidence = excluded.confidence`
+         DO UPDATE SET value = excluded.value, confidence = excluded.confidence, evidence = excluded.evidence`
       )
-      .bind(id, body.attributeKey, body.value, confidence)
+      .bind(id, body.attributeKey, body.value, confidence, evidence)
       .run()
   }
 

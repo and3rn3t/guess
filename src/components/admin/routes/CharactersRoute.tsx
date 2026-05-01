@@ -67,6 +67,7 @@ export default function CharactersRoute(): React.JSX.Element {
   const [expandedData, setExpandedData] = useState<{
     definitions: Array<{ key: string; displayText: string }>
     attributes: Record<string, 0 | 1 | null>
+    evidence: Record<string, string | null>
   } | null>(null)
   const [expandLoading, setExpandLoading] = useState(false)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
@@ -146,8 +147,13 @@ export default function CharactersRoute(): React.JSX.Element {
       const json = await res.json() as {
         definitions: Array<{ key: string; displayText: string }>
         attributes: Record<string, 0 | 1 | null>
+        evidence?: Record<string, string | null>
       }
-      setExpandedData(json)
+      setExpandedData({
+        definitions: json.definitions,
+        attributes: json.attributes,
+        evidence: json.evidence ?? {},
+      })
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load attributes')
       setExpandedCharId(null)
@@ -409,11 +415,16 @@ export default function CharactersRoute(): React.JSX.Element {
                               <div className="flex flex-wrap gap-1.5">
                                 {expandedData.definitions.map((def) => {
                                   const val = expandedData.attributes[def.key] ?? null
+                                  const evidence = expandedData.evidence[def.key] ?? null
+                                  const valueLabel = val === 1 ? 'true' : val === 0 ? 'false' : 'unknown'
+                                  const tooltip = evidence
+                                    ? `${def.displayText}: ${valueLabel}\nEvidence: ${evidence}\n(click to cycle)`
+                                    : `${def.displayText}: ${valueLabel}\nEvidence: — (legacy row, no provenance)\n(click to cycle)`
                                   return (
                                     <button
                                       key={def.key}
                                       onClick={() => void patchAttr(c.id, def.key, val)}
-                                      title={`${def.displayText}: ${val === 1 ? 'true' : val === 0 ? 'false' : 'unknown'} — click to cycle`}
+                                      title={tooltip}
                                       className={`px-2 py-1 rounded text-xs font-mono border transition-colors ${
                                         val === 1
                                           ? 'bg-green-500/20 text-green-400 border-green-500/30 hover:bg-green-500/30'
@@ -423,6 +434,7 @@ export default function CharactersRoute(): React.JSX.Element {
                                       }`}
                                     >
                                       {def.key}
+                                      {evidence ? <span className="ml-1 opacity-50">·</span> : null}
                                     </button>
                                   )
                                 })}

@@ -65,7 +65,7 @@ for (const char of DEFAULT_CHARACTERS) {
   for (const [key, value] of Object.entries(char.attributes)) {
     const v = boolToInt(value)
     lines.push(
-      `INSERT INTO character_attributes (character_id, attribute_key, value, confidence) VALUES ('${esc(char.id)}', '${esc(key)}', ${v}, 1.0);`
+      `INSERT INTO character_attributes (character_id, attribute_key, value, confidence, evidence) VALUES ('${esc(char.id)}', '${esc(key)}', ${v}, 1.0, 'seed:default');`
     )
   }
 }

@@ -182,9 +182,10 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     )
 
     // Insert attributes
+    const createdEvidence = `admin:create:${Date.now()}`
     const attrStatements = Object.entries(attributes).map(([key, value]) => ({
-      sql: 'INSERT INTO character_attributes (character_id, attribute_key, value, confidence) VALUES (?, ?, ?, 1.0)',
-      params: [id, key, value === true ? 1 : value === false ? 0 : null] as unknown[],
+      sql: 'INSERT INTO character_attributes (character_id, attribute_key, value, confidence, evidence) VALUES (?, ?, ?, 1.0, ?)',
+      params: [id, key, value === true ? 1 : value === false ? 0 : null, createdEvidence] as unknown[],
     }))
 
     if (attrStatements.length > 0) {

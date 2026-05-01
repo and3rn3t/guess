@@ -58,8 +58,9 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     }
 
     try {
+      const uploadEvidence = `csv-upload:${Date.now()}`
       const prepared = body.attributes.map((a) =>
-        db.prepare('INSERT OR REPLACE INTO character_attributes (character_id, attribute_key, value, confidence) VALUES (?, ?, ?, 0.8)').bind(a.c, a.k, a.v)
+        db.prepare('INSERT OR REPLACE INTO character_attributes (character_id, attribute_key, value, confidence, evidence) VALUES (?, ?, ?, 0.8, ?)').bind(a.c, a.k, a.v, uploadEvidence)
       )
       await db.batch(prepared)
       attrCount = prepared.length

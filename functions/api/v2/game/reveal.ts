@@ -106,6 +106,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       existing.map((r) => [r.attribute_key, r.value])
     )
 
+    const revealEvidence = `reveal:user=${userId}:${Date.now()}`
     const backfillStatements: { sql: string; params: unknown[] }[] = []
     const correctionsByAttr = new Map<string, CorrectionVote>()
 
@@ -116,10 +117,10 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       if (!attrMap.has(answer.questionId)) {
         // Attribute unknown in DB — backfill with low confidence
         backfillStatements.push({
-          sql: `INSERT INTO character_attributes (character_id, attribute_key, value, confidence)
-                VALUES (?, ?, ?, 0.5)
+          sql: `INSERT INTO character_attributes (character_id, attribute_key, value, confidence, evidence)
+                VALUES (?, ?, ?, 0.5, ?)
                 ON CONFLICT(character_id, attribute_key) DO NOTHING`,
-          params: [character.id, answer.questionId, suggestedInt],
+          params: [character.id, answer.questionId, suggestedInt, revealEvidence],
         })
         attributesFilled++
       } else {
@@ -127,9 +128,9 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         if (existing === null) {
           // Known attribute but null value — fill it in
           backfillStatements.push({
-            sql: `UPDATE character_attributes SET value = ?, confidence = 0.5
+            sql: `UPDATE character_attributes SET value = ?, confidence = 0.5, evidence = ?
                   WHERE character_id = ? AND attribute_key = ? AND value IS NULL`,
-            params: [suggestedInt, character.id, answer.questionId],
+            params: [suggestedInt, revealEvidence, character.id, answer.questionId],
           })
           attributesFilled++
         } else if (existing !== suggestedInt) {
