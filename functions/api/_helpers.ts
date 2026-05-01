@@ -12,6 +12,8 @@ export interface Env {
   RATE_LIMITER?: DurableObjectNamespace
   /** Workers Analytics Engine dataset for LLM cost telemetry (I.2). */
   LLM_COSTS?: AnalyticsEngineDataset
+  /** Workers Analytics Engine dataset for per-request observability (I.4 inline fallback). */
+  WORKER_TAIL?: AnalyticsEngineDataset
 }
 
 const OPENAI_COMPLETIONS = 'https://api.openai.com/v1/chat/completions'

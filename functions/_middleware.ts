@@ -1,9 +1,13 @@
 /// <reference types="@cloudflare/workers-types" />
 /**
- * Cloudflare Pages middleware for /admin* routes.
+ * Cloudflare Pages middleware.
  *
- * Intercepts all requests to /admin* and /api/admin/* and enforces
- * HTTP Basic Auth. Credentials are stored in KV as `admin:basic-auth`.
+ * Two responsibilities:
+ *   1. Gate /admin* + /api/admin* routes behind HTTP Basic Auth (KV-backed).
+ *   2. Emit one Workers Analytics Engine data point per request to
+ *      `WORKER_TAIL` (I.4 fallback — Pages doesn't support tail_consumers,
+ *      so we time `next()` inline and write the same schema the Tail Worker
+ *      would have produced).
  *
  * The KV value supports two formats so credentials can be rotated without
  * a deploy:
@@ -18,8 +22,14 @@
  * Returns 401 + WWW-Authenticate on failure → triggers native browser dialog.
  */
 
+import {
+  recordRequest,
+  type AnalyticsEngineDataset,
+} from './_request_metrics'
+
 interface Env {
   GUESS_KV: KVNamespace
+  WORKER_TAIL?: AnalyticsEngineDataset
 }
 
 const HASH_PREFIX = 'sha256:'
@@ -80,6 +90,21 @@ export const onRequest: PagesFunction<Env> = async (context) => {
   const { request, env, next } = context
   const url = new URL(request.url)
   const path = url.pathname
+  const method = request.method
+  const start = Date.now()
+
+  // Wrap response generation so we can always emit one AE row per request,
+  // including admin-auth rejections and uncaught exceptions.
+  const finalize = (response: Response, errorMessage?: string): Response => {
+    recordRequest(env.WORKER_TAIL, {
+      path,
+      method,
+      status: response.status,
+      wallMs: Date.now() - start,
+      errorMessage,
+    })
+    return response
+  }
 
   // Gate both the SPA admin shell (/admin*) and the admin JSON API
   // (/api/admin*). Static assets under /assets/* are NOT under either prefix
@@ -91,13 +116,20 @@ export const onRequest: PagesFunction<Env> = async (context) => {
     path.startsWith('/api/admin/')
 
   if (!isAdminPath) {
-    return next()
+    try {
+      return finalize(await next())
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err)
+      // Re-throw so Pages still surfaces the 500 — telemetry is best-effort.
+      finalize(new Response('Internal Error', { status: 500 }), msg)
+      throw err
+    }
   }
 
   const kv = env.GUESS_KV
   if (!kv) {
     // No KV — fail closed (deny all)
-    return unauthorizedResponse()
+    return finalize(unauthorizedResponse())
   }
 
   // Read stored credential — accepts `sha256:<hex>` or legacy plaintext.
@@ -106,23 +138,23 @@ export const onRequest: PagesFunction<Env> = async (context) => {
     storedCredential = await kv.get('admin:basic-auth')
   } catch {
     // KV transient error — fail closed
-    return unauthorizedResponse()
+    return finalize(unauthorizedResponse())
   }
   if (!storedCredential) {
-    return unauthorizedResponse()
+    return finalize(unauthorizedResponse())
   }
 
   // Parse Authorization header
   const authHeader = request.headers.get('Authorization') ?? ''
   if (!authHeader.startsWith('Basic ')) {
-    return unauthorizedResponse()
+    return finalize(unauthorizedResponse())
   }
 
   let providedCredential: string
   try {
     providedCredential = atob(authHeader.slice(6))
   } catch {
-    return unauthorizedResponse()
+    return finalize(unauthorizedResponse())
   }
 
   const valid = await credentialMatches(providedCredential, storedCredential)
@@ -138,16 +170,24 @@ export const onRequest: PagesFunction<Env> = async (context) => {
     const failCount = parseInt((await kv.get(failKey)) ?? '0', 10)
     await kv.put(failKey, String(failCount + 1), { expirationTtl: 900 })
     if (failCount + 1 >= 10) {
-      return new Response('Too many failed login attempts. Try again later.', {
-        status: 429,
-        headers: { 'Content-Type': 'text/plain', 'Retry-After': '900' },
-      })
+      return finalize(
+        new Response('Too many failed login attempts. Try again later.', {
+          status: 429,
+          headers: { 'Content-Type': 'text/plain', 'Retry-After': '900' },
+        })
+      )
     }
-    return unauthorizedResponse()
+    return finalize(unauthorizedResponse())
   }
 
   // Clear failure counter on successful auth
   await kv.delete(failKey)
 
-  return next()
+  try {
+    return finalize(await next())
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err)
+    finalize(new Response('Internal Error', { status: 500 }), msg)
+    throw err
+  }
 }
