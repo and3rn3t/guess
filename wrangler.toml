@@ -48,12 +48,14 @@ dataset = "llm_costs"
 
 # I.4 — Tail Worker observability. The `guess-tail` Worker (defined under
 # tail-worker/wrangler.toml) receives every main-Worker invocation and
-# writes structured rows to the `worker_tail` AE dataset. Deploy that
-# Worker first (`wrangler deploy --config tail-worker/wrangler.toml --env production`)
-# before this binding takes effect.
-[[env.production.tail_consumers]]
-service = "guess-tail"
-environment = "production"
+# writes structured rows to the `worker_tail` AE dataset.
+#
+# IMPORTANT: Pages projects do NOT support `tail_consumers` in wrangler.toml
+# (validation error: "Configuration file for Pages projects does not support
+# tail_consumers"). Wire the consumer through the Cloudflare dashboard:
+#   Pages → guess → Settings → Functions → Tail consumers → Add
+#     Service: guess-tail   Environment: production
+# Deploy the Tail Worker first: `pnpm deploy:tail`.
 
 # NOTE: RATE_LIMITER Durable Object binding is configured via Cloudflare Pages dashboard.
 # The RateLimiter class is defined in functions/_rate-limiter-do.ts and exported in the
@@ -92,10 +94,9 @@ bucket_name = "guess-images"
 binding = "LLM_COSTS"
 dataset = "llm_costs_preview"
 
-# I.4 — Tail Worker for preview deploys. Writes to `worker_tail_preview`.
-[[env.preview.tail_consumers]]
-service = "guess-tail"
-environment = "preview"
+# I.4 — Tail Worker for preview. Wire through the CF dashboard
+# (Pages → guess → Settings → Functions → Tail consumers, preview env).
+# `tail_consumers` is not supported in Pages wrangler.toml.
 
 # NOTE: RATE_LIMITER DO binding configured via CF dashboard (see production env note above)
 
