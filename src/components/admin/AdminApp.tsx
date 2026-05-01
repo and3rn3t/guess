@@ -15,6 +15,7 @@ const DemoRoute = lazy(() => import('./routes/DemoRoute'))
 
 const CharactersRoute = lazy(() => import('./routes/CharactersRoute'))
 const QuestionsRoute = lazy(() => import('./routes/QuestionsRoute'))
+const RetirementQueueRoute = lazy(() => import('./routes/RetirementQueueRoute'))
 const EnrichmentRoute = lazy(() => import('./routes/EnrichmentRoute'))
 const PipelineRoute = lazy(() => import('./routes/PipelineRoute'))
 const AnalyticsRoute = lazy(() => import('./routes/AnalyticsRoute'))
@@ -62,6 +63,7 @@ export function AdminApp(): React.JSX.Element {
             <Route path="demo" element={<RouteWrapper><DemoRoute /></RouteWrapper>} />
             <Route path="characters" element={<RouteWrapper><CharactersRoute /></RouteWrapper>} />
             <Route path="questions" element={<RouteWrapper><QuestionsRoute /></RouteWrapper>} />
+            <Route path="questions/retire" element={<RouteWrapper><RetirementQueueRoute /></RouteWrapper>} />
             <Route path="enrichment" element={<RouteWrapper><EnrichmentRoute /></RouteWrapper>} />
             <Route path="pipeline" element={<RouteWrapper><PipelineRoute /></RouteWrapper>} />
             <Route path="analytics" element={<RouteWrapper><AnalyticsRoute /></RouteWrapper>} />

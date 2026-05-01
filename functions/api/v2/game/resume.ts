@@ -73,7 +73,7 @@ async function reconstructFromD1(
     ),
     cachedQuestions
       ? Promise.resolve<QuestionRow[]>([])
-      : d1Query<QuestionRow>(db, 'SELECT id, text, attribute_key FROM questions ORDER BY priority DESC'),
+      : d1Query<QuestionRow>(db, 'SELECT id, text, attribute_key FROM questions WHERE retired_at IS NULL ORDER BY priority DESC'),
   ])
 
   const serverChars: ServerCharacter[] = characters.map((c) => ({

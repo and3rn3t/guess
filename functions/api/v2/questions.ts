@@ -48,6 +48,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
          WHERE value IS NOT NULL
          GROUP BY attribute_key
        ) cov ON cov.attribute_key = q.attribute_key
+       WHERE q.retired_at IS NULL
        ORDER BY q.priority DESC, q.id ASC`
     )
     const res = jsonResponse(questions)
@@ -57,7 +58,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
   const questions = await d1Query<QuestionRow>(
     db,
-    'SELECT id, text, attribute_key, priority FROM questions ORDER BY priority DESC, id ASC'
+    'SELECT id, text, attribute_key, priority FROM questions WHERE retired_at IS NULL ORDER BY priority DESC, id ASC'
   )
   const res = jsonResponse(questions)
   res.headers.set('Cache-Control', QUESTIONS_CACHE_HEADERS)

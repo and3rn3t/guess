@@ -82,7 +82,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   const cachedQuestions = await loadCachedQuestions(kv)
   const questionRowsPromise = cachedQuestions
     ? null
-    : d1Query<QuestionRow>(db, 'SELECT id, text, attribute_key FROM questions ORDER BY priority DESC')
+    : d1Query<QuestionRow>(db, 'SELECT id, text, attribute_key FROM questions WHERE retired_at IS NULL ORDER BY priority DESC')
 
   // Query 1: Get character pool with denormalized attributes (no separate attribute query)
   //   Fetch 2× POOL_SIZE to get popular chars, then randomly pick POOL_SIZE
