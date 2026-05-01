@@ -20,7 +20,9 @@ import {
   TargetIcon,
 } from '@phosphor-icons/react'
 import { useAdminData } from './AdminDataContext'
+import { LiveOpsProvider } from './LiveOpsContext'
 import { LiveOpsStrip } from './LiveOpsStrip'
+import { HealthBadge } from './HealthBadge'
 import { RouteErrorBoundary } from './RouteErrorBoundary'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 
@@ -103,19 +105,23 @@ export function AdminShell(): React.JSX.Element {
   const { characterLimit, setCharacterLimit, characters, loading } = useAdminData()
 
   return (
-    <div className="min-h-screen bg-background flex">
-      {/* Sidebar */}
-      <aside className="w-56 shrink-0 border-r border-border/60 flex flex-col py-4 px-2 backdrop-blur supports-[backdrop-filter]:bg-background/80">
-        <div className="flex items-center gap-2 px-3 mb-6">
-          <HouseIcon size={18} weight="duotone" className="text-accent" />
-          <NavLink
-            to="."
-            end
-            className="text-sm font-semibold text-foreground hover:text-accent transition-colors"
-          >
-            Admin
-          </NavLink>
-        </div>
+    <LiveOpsProvider>
+      <div className="min-h-screen bg-background flex">
+        {/* Sidebar */}
+        <aside className="w-56 shrink-0 border-r border-border/60 flex flex-col py-4 px-2 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+          <div className="flex items-center gap-2 px-3 mb-6">
+            <HouseIcon size={18} weight="duotone" className="text-accent" />
+            <NavLink
+              to="."
+              end
+              className="text-sm font-semibold text-foreground hover:text-accent transition-colors"
+            >
+              Admin
+            </NavLink>
+            <span className="ml-auto">
+              <HealthBadge />
+            </span>
+          </div>
 
         <nav className="flex-1 overflow-y-auto">
           <SidebarSection title="Tools" items={TOOL_ITEMS} />
@@ -159,5 +165,6 @@ export function AdminShell(): React.JSX.Element {
         </div>
       </main>
     </div>
+    </LiveOpsProvider>
   )
 }
