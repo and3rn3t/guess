@@ -7,6 +7,9 @@ on:
       - "docs/**"
       - "**/*.md"
       - ".github/workflows/!(release).yml"
+  # Manual trigger so a pure-changeset commit (`.changeset/*.md`, which
+  # `paths-ignore: **/*.md` filters out) can still kick off the version PR.
+  workflow_dispatch:
 
 concurrency:
   group: release-${{ github.ref }}
