@@ -158,6 +158,16 @@ export interface QuestionSelectionOptions {
    */
   questionEmpiricalGainMap?: Record<string, number>
   /**
+   * Per-attribute multiplier in `(0, 1]` applied to the final score so questions
+   * that consistently kill momentum (high skip rate / high maybe rate / one-sided
+   * answer mix) are picked less often *before* an admin retires them via AN.17.
+   * Same composite as the retirement score, inverted: `1 - alpha × retirementScore`,
+   * clamped to a floor (default 0.3) so a bad question is still selectable as a
+   * last resort. Populated from `kv:question-quality-penalty` (C.6 aggregation).
+   * Missing entries are treated as `1` (no penalty).
+   */
+  questionQualityPenaltyMap?: Record<string, number>
+  /**
    * Pairs of character ids that are frequently confused at guess time. When the
    * top-2 candidates by probability appear in this set the endgame discriminator
    * boost (×1.4) is extended to questions that distinguish those two characters.

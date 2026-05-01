@@ -24,6 +24,7 @@
 import { execFileSync } from 'node:child_process'
 import * as fs from 'node:fs'
 import * as path from 'node:path'
+import { buildQualityPenaltyMap, type QualitySignals } from '../packages/game-engine/src/quality-penalty'
 
 const ENV_FLAG = (() => {
   const i = process.argv.indexOf('--env')
@@ -186,6 +187,68 @@ function aggregateQuestionEmpiricalGain(): void {
   writeJson('question-empirical-gain.json', gain)
 }
 
+// ── Signal 3b: question quality penalty (C.6) ────────────────────────────────
+//
+// Per-attribute multiplier in (0, 1] applied to the selector's infoGain so
+// questions trending toward AN.17 retirement (high skip rate / maybe rate /
+// answer imbalance) are picked less often *before* an admin retires them.
+// Same composite formula as `_retirement.ts` so the runtime behaviour matches
+// what's surfaced in /admin/questions/retire. Skip events (`question_skip`
+// client events) live in unix-ms; question_attempts.created_at lives in unix
+// seconds — the cutoff has to be computed per table.
+function aggregateQuestionQualityPenalty(): void {
+  console.log('[aggregate] computing question quality penalty ...')
+  const cutoffSecs = Math.floor(cutoff / 1000)
+
+  const attemptRows = d1<{
+    attribute: string
+    shown: number
+    yes: number
+    no: number
+    maybe: number
+  }>(
+    `SELECT attribute,
+            COUNT(*) AS shown,
+            SUM(CASE WHEN answer = 'yes'   THEN 1 ELSE 0 END) AS yes,
+            SUM(CASE WHEN answer = 'no'    THEN 1 ELSE 0 END) AS no,
+            SUM(CASE WHEN answer = 'maybe' THEN 1 ELSE 0 END) AS maybe
+     FROM question_attempts
+     WHERE created_at > ${cutoffSecs}
+     GROUP BY attribute`
+  )
+
+  const skipRows = d1<{ attribute: string; skipped: number }>(
+    `SELECT q.attribute_key AS attribute,
+            COUNT(*) AS skipped
+     FROM client_events ce
+     INNER JOIN questions q ON q.id = json_extract(ce.data, '$.questionId')
+     WHERE ce.event_type = 'question_skip'
+       AND ce.created_at > ${cutoff}
+       AND json_extract(ce.data, '$.questionId') IS NOT NULL
+     GROUP BY q.attribute_key`
+  )
+
+  const skipsByAttr = new Map<string, number>()
+  for (const row of skipRows) {
+    skipsByAttr.set(row.attribute, (skipsByAttr.get(row.attribute) ?? 0) + Number(row.skipped))
+  }
+
+  const bySignals: Record<string, QualitySignals> = {}
+  for (const row of attemptRows) {
+    bySignals[row.attribute] = {
+      shown: Number(row.shown),
+      skipped: skipsByAttr.get(row.attribute) ?? 0,
+      yes: Number(row.yes),
+      no: Number(row.no),
+      maybe: Number(row.maybe),
+    }
+  }
+
+  const penaltyMap = buildQualityPenaltyMap(bySignals)
+  console.log(`[aggregate]   ${Object.keys(penaltyMap).length} attributes with quality penalty (out of ${Object.keys(bySignals).length} scored)`)
+  writeJson('question-quality-penalty.json', penaltyMap)
+}
+
 // ── Signal 4: character confusions ───────────────────────────────────────────
 //
 // Confusion pair = (engine's wrong guess, true answer). Currently the only
@@ -257,5 +320,6 @@ console.log(`[aggregate] env=${ENV_FLAG} db=${DB_NAME} window=${DAYS}d`)
 aggregateAttributeTrust()
 aggregateCharacterPopularity()
 aggregateQuestionEmpiricalGain()
+aggregateQuestionQualityPenalty()
 aggregateCharacterConfusions()
 console.log('[aggregate] done')

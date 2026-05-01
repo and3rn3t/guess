@@ -2,7 +2,7 @@ name: Real-game signal aggregation
 
 # Aggregates real-game telemetry from D1 into adaptive KV blobs that the
 # engine consumes at runtime (kv:attribute-trust, kv:character-popularity,
-# kv:question-empirical-gain) and into the character_confusions table.
+# kv:question-empirical-gain, kv:question-quality-penalty) and into the character_confusions table.
 #
 # Mirrors .github/workflows/adaptive-data-refresh.yml but sources its data
 # from production D1 instead of simulation runs. Cloudflare Pages does not
@@ -99,6 +99,19 @@ jobs:
             --remote \
             "kv:question-empirical-gain"
 
+      - name: Upload question-quality-penalty to KV
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          ENV_FLAG="${{ github.event.inputs.env || 'production' }}"
+          pnpm wrangler kv key put \
+            --binding GUESS_KV \
+            --path data/real/question-quality-penalty.json \
+            --env "$ENV_FLAG" \
+            --remote \
+            "kv:question-quality-penalty"
+
       - name: Apply character-confusions UPSERTs to D1
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -121,14 +134,14 @@ jobs:
           echo "" >> "$GITHUB_STEP_SUMMARY"
           echo "| File | Size |" >> "$GITHUB_STEP_SUMMARY"
           echo "|------|------|" >> "$GITHUB_STEP_SUMMARY"
-          for f in attribute-trust character-popularity question-empirical-gain; do
+          for f in attribute-trust character-popularity question-empirical-gain question-quality-penalty; do
             if [ -f "data/real/${f}.json" ]; then
               SIZE=$(wc -c < "data/real/${f}.json")
               echo "| ${f}.json | ${SIZE} bytes |" >> "$GITHUB_STEP_SUMMARY"
             fi
           done
           echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "Uploaded to: \`kv:attribute-trust\`, \`kv:character-popularity\`, \`kv:question-empirical-gain\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "Uploaded to: \`kv:attribute-trust\`, \`kv:character-popularity\`, \`kv:question-empirical-gain\`, \`kv:question-quality-penalty\`" >> "$GITHUB_STEP_SUMMARY"
           if [ -f data/real/character-confusions.sql ]; then
             LINES=$(grep -c '^INSERT' data/real/character-confusions.sql || echo 0)
             echo "Upserted **${LINES}** rows into \`character_confusions\`." >> "$GITHUB_STEP_SUMMARY"

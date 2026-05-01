@@ -293,6 +293,9 @@ export interface AdaptiveData {
   attributeTrustMap: Record<string, number> | undefined
   characterPopularityMap: Record<string, number> | undefined
   questionEmpiricalGainMap: Record<string, number> | undefined
+  /** C.6: per-attribute multiplier in (0, 1] applied to selector infoGain to
+   *  down-weight questions trending toward AN.17 retirement. */
+  questionQualityPenaltyMap: Record<string, number> | undefined
   confusionPairs: Set<string> | undefined
   /** Promoted ScoringWeights override (kv:engine:weights-active). Honoured
    *  only when auto-tune is enabled and the blob shape is valid. */
@@ -316,6 +319,7 @@ export async function loadAdaptiveData(
     attributeTrustRaw,
     characterPopularityRaw,
     questionEmpiricalGainRaw,
+    questionQualityPenaltyRaw,
     confusionPairRows,
     activeWeightsRaw,
     autoTuneEnabledRaw,
@@ -331,6 +335,7 @@ export async function loadAdaptiveData(
     kv.get('kv:attribute-trust', 'json') as Promise<Record<string, number> | null>,
     kv.get('kv:character-popularity', 'json') as Promise<Record<string, number> | null>,
     kv.get('kv:question-empirical-gain', 'json') as Promise<Record<string, number> | null>,
+    kv.get('kv:question-quality-penalty', 'json') as Promise<Record<string, number> | null>,
     db
       ? db.prepare(`SELECT character_a, character_b FROM character_confusions WHERE confusion_count >= 2`)
            .all<ConfusionPairRow>()
@@ -346,6 +351,7 @@ export async function loadAdaptiveData(
   const attributeTrustMap = attributeTrustRaw.status === 'fulfilled' ? (attributeTrustRaw.value ?? undefined) : undefined
   const characterPopularityMap = characterPopularityRaw.status === 'fulfilled' ? (characterPopularityRaw.value ?? undefined) : undefined
   const questionEmpiricalGainMap = questionEmpiricalGainRaw.status === 'fulfilled' ? (questionEmpiricalGainRaw.value ?? undefined) : undefined
+  const questionQualityPenaltyMap = questionQualityPenaltyRaw.status === 'fulfilled' ? (questionQualityPenaltyRaw.value ?? undefined) : undefined
 
   let disputeMap: Record<string, Record<string, number>> | undefined
   if (disputeRows.status === 'fulfilled' && disputeRows.value.length > 0) {
@@ -393,6 +399,7 @@ export async function loadAdaptiveData(
     attributeTrustMap,
     characterPopularityMap,
     questionEmpiricalGainMap,
+    questionQualityPenaltyMap,
     confusionPairs,
     activeWeights,
   }
@@ -438,6 +445,7 @@ export function buildQuestionOptions(
     netGainMap: adaptive.netGainMap,
     confusionDiscriminators: adaptive.confusionDiscriminators,
     questionEmpiricalGainMap: adaptive.questionEmpiricalGainMap,
+    questionQualityPenaltyMap: adaptive.questionQualityPenaltyMap,
     confusionPairs: adaptive.confusionPairs,
   }
 }

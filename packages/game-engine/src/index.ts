@@ -7,6 +7,8 @@ export * from './constants.js'
 export * from './types.js'
 export { calculateProbabilities, scoreForAnswer } from './scoring.js'
 export { selectBestQuestion, getAttributeGroup, entropy } from './question-selection.js'
+export { buildQualityPenaltyMap, computeQualityPenalty } from './quality-penalty.js'
+export type { QualityPenaltyOptions, QualitySignals } from './quality-penalty.js'
 export { selectBestQuestionMCTS } from './question-selection-mcts.js'
 export type { MCTSOptions } from './question-selection-mcts.js'
 export {

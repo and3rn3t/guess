@@ -395,6 +395,14 @@ export function selectBestQuestion(
       infoGain = 0.7 * infoGain + 0.3 * empiricalGain
     }
 
+    // C.6 quality penalty: down-weight questions trending toward AN.17 retirement
+    // (high skip rate / maybe rate / answer imbalance) before an admin pulls them.
+    // Map values live in `(0, 1]`; missing keys are treated as 1 (no penalty).
+    const qualityMultiplier = options?.questionQualityPenaltyMap?.[question.attribute]
+    if (qualityMultiplier !== undefined && qualityMultiplier > 0 && qualityMultiplier < 1) {
+      infoGain *= qualityMultiplier
+    }
+
     scored.push({ question, score: infoGain, topTwoSplit })
   }
 
