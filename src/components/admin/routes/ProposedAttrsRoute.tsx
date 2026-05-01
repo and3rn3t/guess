@@ -93,6 +93,8 @@ export default function ProposedAttrsRoute(): React.JSX.Element {
     if (filter === 'pending' && data?.proposals) {
       void Promise.all(data.proposals.map((p) => scoreProposal(p)))
     }
+    // reason: `scoreProposal` is defined in the component body; adding it to deps
+    // causes an infinite re-score loop. Effect intentionally reacts to data/filter changes only.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data?.proposals, filter])
 

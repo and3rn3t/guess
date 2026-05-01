@@ -62,8 +62,8 @@ export default function PipelineRoute(): React.JSX.Element {
     }
   }
 
-  useEffect(() => { setPage(1); void fetchData(1) }, [filterStep, filterStatus, filterBatch, filterCharacter]) // eslint-disable-line react-hooks/exhaustive-deps
-  useEffect(() => { void fetchData(page) }, [page]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { setPage(1); void fetchData(1) }, [filterStep, filterStatus, filterBatch, filterCharacter]) // eslint-disable-line react-hooks/exhaustive-deps -- `fetchData` arg passed explicitly; omitting it from deps prevents double-fetch with the page effect below
+  useEffect(() => { void fetchData(page) }, [page]) // eslint-disable-line react-hooks/exhaustive-deps -- same: `page` is passed explicitly to fetchData
 
   const totalPages = data ? Math.ceil(data.total / pageSize) : 1
 

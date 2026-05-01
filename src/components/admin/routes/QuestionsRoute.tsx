@@ -102,7 +102,7 @@ export default function QuestionsRoute(): React.JSX.Element {
     return () => clearTimeout(timer)
   }, [search])
 
-  useEffect(() => { void fetchData(search, page) }, [page]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { void fetchData(search, page) }, [page]) // eslint-disable-line react-hooks/exhaustive-deps -- `search` is passed as an arg so stale-closure risk is nil; omitting `fetchData` avoids double-fetch with the debounce effect above
 
   const startEdit = (q: AdminQuestion) => {
     setEditingKey(q.key)

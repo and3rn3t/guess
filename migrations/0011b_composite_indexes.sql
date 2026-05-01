@@ -1,2 +1,4 @@
--- Composite index for user game history queries (WHERE user_id = ? ORDER BY created_at DESC)
-CREATE INDEX IF NOT EXISTS idx_game_stats_user_created ON game_stats(user_id, created_at DESC);
+-- Historical note: this file was created in error as a duplicate of 0011_optimize_indexes.sql.
+-- Both files define the same idx_game_stats_user_created index with IF NOT EXISTS, so applying
+-- this migration is idempotent. The index is canonically owned by 0011_optimize_indexes.sql.
+-- This file is kept as a no-op to preserve the migration numbering visible in wrangler d1 migrations list.

@@ -2,7 +2,7 @@ import {
   type Env,
   getCompletionsEndpoint,
   getLlmHeaders,
-  getUserId,
+  getOrCreateUserId,
   checkRateLimit,
   sanitizeString,
   logError,
@@ -63,7 +63,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
   // Rate limiting (shares budget with /api/llm)
   if (kv) {
-    const userId = getUserId(context.request)
+    const { userId } = await getOrCreateUserId(context.request, context.env)
     const { allowed } = await checkRateLimit(kv, userId, 'llm', 60)
     if (!allowed) {
     return Response.json({ error: 'Rate limit exceeded', code: 'RATE_LIMITED' }, { status: 429 })

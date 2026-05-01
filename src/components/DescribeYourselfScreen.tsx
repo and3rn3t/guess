@@ -115,6 +115,8 @@ export function DescribeYourselfScreen({
     run();
 
     return () => controller.abort();
+    // reason: `run` closes over `phase`/`topMatch` — adding more deps would
+    // cause the streaming effect to restart mid-stream on unrelated state changes.
   }, [phase, topMatch]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (

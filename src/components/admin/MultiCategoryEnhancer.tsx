@@ -69,6 +69,8 @@ export function MultiCategoryEnhancer({
     if (currentCharacter && !enhancements.has(currentCharacter.id) && !showDashboard) {
       loadRecommendationsForCharacter(currentCharacter)
     }
+    // reason: `loadRecommendationsForCharacter` is defined in the component body and
+    // changes identity on every render; adding it to deps causes an infinite loop.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentCharacter, selectedCategory, showDashboard])
 

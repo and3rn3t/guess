@@ -29,6 +29,8 @@ export function EnvironmentTest({
 
   useEffect(() => {
     loadRecommendations()
+    // reason: `loadRecommendations` is defined in the component body; adding it to deps
+    // causes an infinite loop. The effect intentionally re-runs only when `character` changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [character])
 

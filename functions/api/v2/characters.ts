@@ -3,7 +3,8 @@ import {
   ValidationError,
   validateString,
   checkRateLimit,
-  getUserId,
+  getOrCreateUserId,
+  withSetCookie,
   parseJsonBody,
   jsonResponse,
   errorResponse,
@@ -158,9 +159,9 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     }
 
     // Rate limit
-    const userId = getUserId(context.request)
+    const { userId, setCookieHeader } = await getOrCreateUserId(context.request, context.env)
     const { allowed } = await checkRateLimit(kv, userId, 'characters-v2', 5)
-    if (!allowed) return errorResponse('Rate limit exceeded. Try again later.', 429)
+    if (!allowed) return withSetCookie(errorResponse('Rate limit exceeded. Try again later.', 429), setCookieHeader)
 
     // Duplicate check
     const existing = await d1First<{ id: string }>(
@@ -192,7 +193,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       await d1Batch(db, attrStatements)
     }
 
-    return jsonResponse({ id, name, category, description }, 201)
+    return withSetCookie(jsonResponse({ id, name, category, description }, 201), setCookieHeader)
   } catch (err) {
     if (err instanceof ValidationError) {
       return errorResponse(err.message, 400)

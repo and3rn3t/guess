@@ -199,6 +199,8 @@ In 1-2 sentences, react in character to this answer and what it reveals. Be conc
     run();
 
     return () => { controller.abort(); };
+    // reason: intentionally watching only the top candidate's name + probability to
+    // avoid restarting the streaming comment on unrelated reasoning updates.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [reasoning?.topCandidates?.[0]?.name, reasoning?.topCandidates?.[0]?.probability]);
 

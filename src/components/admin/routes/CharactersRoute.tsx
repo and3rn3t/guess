@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react'
+import { Fragment, useCallback, useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
@@ -104,7 +104,7 @@ export default function CharactersRoute(): React.JSX.Element {
   useEffect(() => {
     const timer = setTimeout(() => { setPage(1); void fetchData() }, 300)
     return () => clearTimeout(timer)
-  }, [search, category, maxCoverage]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [search, category, maxCoverage]) // eslint-disable-line react-hooks/exhaustive-deps -- omitting `fetchData` prevents double-fetch: the second effect below reacts to fetchData changes after deps settle
 
   useEffect(() => { void fetchData() }, [fetchData])
 
@@ -340,7 +340,7 @@ export default function CharactersRoute(): React.JSX.Element {
                   <tr key={i}><td colSpan={7} className="px-4 py-3"><div className="h-4 bg-muted animate-pulse rounded" /></td></tr>
                 ))
               : (data?.characters ?? []).map((c) => (
-                  <React.Fragment key={c.id}>
+                  <Fragment key={c.id}>
                     <tr className="hover:bg-muted/30 transition-colors">
                       <td className="px-4 py-3">
                         <input
@@ -493,7 +493,7 @@ export default function CharactersRoute(): React.JSX.Element {
                         </td>
                       </tr>
                     )}
-                  </React.Fragment>
+                  </Fragment>
                 ))
             }
           </tbody>

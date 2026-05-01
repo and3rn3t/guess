@@ -4,7 +4,7 @@ import {
   getCompletionsEndpoint,
   getLlmHeaders,
   getOrCreateUserId,
-  getUserId,
+  withSetCookie,
   kvGetObject,
   kvPut,
   sanitizeString,
@@ -237,26 +237,27 @@ async function processSuccess(
     "X-Cache": "MISS",
   };
 
+  // Resolve stable cookie-based user ID for analytics + Set-Cookie on response.
+  const { userId, setCookieHeader } = await getOrCreateUserId(request, env);
+
   if (data.usage) {
     responseHeaders["X-Token-Usage"] = JSON.stringify(data.usage);
     if (kv) {
-      await trackTokenUsage(kv, getUserId(request), data.usage).catch(
-        () => {},
-      );
+      await trackTokenUsage(kv, userId, data.usage).catch(() => {});
     }
     // I.2: write one Analytics Engine data point per call. Replaces the
     // brittle `costs:{userId}:{date}` KV pattern as the source of truth
     // for cost dashboards (KV write above is kept short-term for back-compat).
     recordLLMUsage(env.LLM_COSTS, {
       model,
-      userId: getUserId(request),
+      userId,
       usage: data.usage,
       cacheStatus: "MISS",
       endpoint: "llm",
     });
   }
 
-  return new Response(content, { headers: responseHeaders });
+  return withSetCookie(new Response(content, { headers: responseHeaders }), setCookieHeader);
 }
 
 export const onRequestPost: PagesFunction<Env> = async (context) => {
@@ -311,14 +312,16 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   ).catch(() => null);
   if (cacheHit) {
     // I.2: record HIT with zero tokens so HIT/MISS ratio is queryable in AE.
+    const { userId: cachedUserId, setCookieHeader: cachedCookieHeader } =
+      await getOrCreateUserId(context.request, context.env);
     recordLLMUsage(context.env.LLM_COSTS, {
       model,
-      userId: getUserId(context.request),
+      userId: cachedUserId,
       usage: { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 },
       cacheStatus: "HIT",
       endpoint: "llm",
     });
-    return cacheHit;
+    return withSetCookie(cacheHit, cachedCookieHeader);
   }
 
   // Build request & call OpenAI (via AI Gateway if configured)

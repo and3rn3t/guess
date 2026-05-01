@@ -122,15 +122,6 @@ export async function checkRateLimitDO(
   return res.json<{ allowed: boolean; remaining: number }>()
 }
 
-/** @deprecated Use getOrCreateUserId() for endpoints that need cookie-based auth */
-export function getUserId(request: Request): string {
-  return (
-    request.headers.get('X-User-Id') ||
-    request.headers.get('CF-Connecting-IP') ||
-    'anonymous'
-  )
-}
-
 // ── Cookie-based user authentication ─────────────────────────
 
 const COOKIE_NAME = '__gu_id'
