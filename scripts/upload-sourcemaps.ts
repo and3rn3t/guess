@@ -17,11 +17,31 @@
  *   tsx scripts/upload-sourcemaps.ts --env=preview
  *   tsx scripts/upload-sourcemaps.ts --env=production
  */
-import { execSync } from 'node:child_process'
+import { execFileSync } from 'node:child_process'
 import { readdirSync, readFileSync, statSync, unlinkSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 
 const DIST_ASSETS = join(process.cwd(), 'dist', 'assets')
+
+// Asset filenames are produced by Vite/Rollup and are limited to a safe
+// alphabet, but we re-validate before passing them to a child process to
+// satisfy CodeQL's command-injection analysis and as defense-in-depth.
+const SAFE_ASSET_NAME = /^[A-Za-z0-9._-]+$/
+// Git SHAs (and the COMMIT_SHA override CI may inject) are hex-only. Accept
+// both the short and full form.
+const SAFE_GIT_SHA = /^[0-9a-f]{7,64}$/
+
+function assertSafeAssetName(name: string): void {
+  if (!SAFE_ASSET_NAME.test(name)) {
+    throw new Error(`unsafe asset filename refused: ${JSON.stringify(name)}`)
+  }
+}
+
+function assertSafeSha(sha: string): void {
+  if (!SAFE_GIT_SHA.test(sha)) {
+    throw new Error(`unsafe commit sha refused: ${JSON.stringify(sha)}`)
+  }
+}
 
 function getEnv(): 'production' | 'preview' {
   const arg = process.argv.find((a) => a.startsWith('--env='))
@@ -35,8 +55,13 @@ function getEnv(): 'production' | 'preview' {
 function getCommitSha(): string {
   // Allow override (CI may inject COMMIT_SHA explicitly).
   const fromEnv = process.env.COMMIT_SHA?.trim()
-  if (fromEnv) return fromEnv
-  return execSync('git rev-parse HEAD', { encoding: 'utf8' }).trim()
+  if (fromEnv) {
+    assertSafeSha(fromEnv)
+    return fromEnv
+  }
+  const sha = execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim()
+  assertSafeSha(sha)
+  return sha
 }
 
 function listMapFiles(): string[] {
@@ -59,17 +84,37 @@ function stripSourceMappingURL(jsPath: string): void {
 }
 
 function uploadMap(env: 'production' | 'preview', sha: string, file: string): void {
+  assertSafeSha(sha)
+  assertSafeAssetName(file)
   const localPath = join(DIST_ASSETS, file)
   const remoteKey = `maps/${sha}/${file}`
   // R2 is shared across envs in this project (single GUESS_IMAGES bucket); the
   // `--env` flag still selects the correct credentials/account context.
-  const cmd = `wrangler r2 object put guess-images/${remoteKey} --file="${localPath}" --env=${env} --remote --content-type=application/json`
-  execSync(cmd, { stdio: 'inherit' })
+  // Use execFileSync (no shell) so the sha/filename can never be interpreted
+  // as shell metacharacters even if validation upstream drifts.
+  execFileSync(
+    'wrangler',
+    [
+      'r2',
+      'object',
+      'put',
+      `guess-images/${remoteKey}`,
+      `--file=${localPath}`,
+      `--env=${env}`,
+      '--remote',
+      '--content-type=application/json',
+    ],
+    { stdio: 'inherit' },
+  )
 }
 
 function writeShaToKV(env: 'production' | 'preview', sha: string): void {
-  const cmd = `wrangler kv key put deploy:current-sha "${sha}" --binding=GUESS_KV --env=${env} --remote`
-  execSync(cmd, { stdio: 'inherit' })
+  assertSafeSha(sha)
+  execFileSync(
+    'wrangler',
+    ['kv', 'key', 'put', 'deploy:current-sha', sha, '--binding=GUESS_KV', `--env=${env}`, '--remote'],
+    { stdio: 'inherit' },
+  )
 }
 
 function main(): void {
