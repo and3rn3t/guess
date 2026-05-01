@@ -14,6 +14,7 @@ export default defineConfig({
       'src/**/*.test.tsx',
       'functions/**/*.test.ts',
       'packages/**/*.test.ts',
+      'tail-worker/**/*.test.ts',
     ],
     coverage: {
       provider: 'v8',

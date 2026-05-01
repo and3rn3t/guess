@@ -15,6 +15,8 @@
     "deploy:preview": "pnpm build && tsx scripts/upload-sourcemaps.ts --env=preview && wrangler pages deploy --branch preview",
     "cf:login": "wrangler login",
     "cf:dev": "pnpm build && wrangler pages dev dist",
+    "deploy:tail": "wrangler deploy --config tail-worker/wrangler.toml --env production",
+    "deploy:tail:preview": "wrangler deploy --config tail-worker/wrangler.toml --env preview",
     "test": "vitest run",
     "test:unit": "vitest run --exclude 'src/components/**'",
     "test:components": "vitest run src/components/",

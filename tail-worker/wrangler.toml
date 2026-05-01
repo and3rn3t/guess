@@ -1,0 +1,32 @@
+#:schema node_modules/wrangler/config-schema.json
+
+# I.4 — Tail Worker for the `guess` Pages Function. Receives every
+# main-Worker invocation as a batch of trace events and emits one
+# Analytics Engine data point per event (path, status, cpuMs, outcome,
+# exception, …). Powers AN.29 latency budget panel and AN.30 live ops strip.
+#
+# Deploy: `wrangler deploy --config tail-worker/wrangler.toml`
+# Then connect to the main Pages project via the `tail_consumers` block in
+# the root `wrangler.toml` (or via the Pages dashboard "Settings → Functions
+# → Tail consumers").
+
+name = "guess-tail"
+main = "src/index.ts"
+compatibility_date = "2026-04-01"
+
+[observability]
+enabled = true
+
+# ── Production ────────────────────────────────────────────────
+[env.production]
+
+[[env.production.analytics_engine_datasets]]
+binding = "WORKER_TAIL"
+dataset = "worker_tail"
+
+# ── Preview ───────────────────────────────────────────────────
+[env.preview]
+
+[[env.preview.analytics_engine_datasets]]
+binding = "WORKER_TAIL"
+dataset = "worker_tail_preview"
