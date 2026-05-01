@@ -65,6 +65,12 @@ dataset = "llm_costs"
 binding = "WORKER_TAIL"
 dataset = "worker_tail"
 
+# B.4 — Workers AI binding for question embeddings (@cf/baai/bge-base-en-v1.5).
+# Free tier: 10k neurons/day; embeddings are ~1 neuron each so the question
+# bank (~hundreds of rows) backfills in well under the daily quota.
+[env.production.ai]
+binding = "AI"
+
 # NOTE: RATE_LIMITER Durable Object binding is configured via Cloudflare Pages dashboard.
 # The RateLimiter class is defined in functions/_rate-limiter-do.ts and exported in the
 # Pages Functions bundle. wrangler 3.52.0+ requires script_name for DO bindings in
@@ -110,6 +116,10 @@ dataset = "llm_costs_preview"
 [[env.preview.analytics_engine_datasets]]
 binding = "WORKER_TAIL"
 dataset = "worker_tail_preview"
+
+# B.4 — Workers AI binding for question embeddings (preview env).
+[env.preview.ai]
+binding = "AI"
 
 # NOTE: RATE_LIMITER DO binding configured via CF dashboard (see production env note above)
 

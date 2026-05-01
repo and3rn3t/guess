@@ -14,6 +14,8 @@ export interface Env {
   LLM_COSTS?: AnalyticsEngineDataset
   /** Workers Analytics Engine dataset for per-request observability (I.4 inline fallback). */
   WORKER_TAIL?: AnalyticsEngineDataset
+  /** Workers AI binding (B.4 question embeddings). Optional — endpoints degrade gracefully when absent. */
+  AI?: Ai
 }
 
 const OPENAI_COMPLETIONS = 'https://api.openai.com/v1/chat/completions'

@@ -18,6 +18,7 @@ import {
   GridFourIcon,
   DnaIcon,
   TargetIcon,
+  CopySimpleIcon,
   TrashIcon,
 } from '@phosphor-icons/react'
 import { useAdminData } from './AdminDataContext'
@@ -50,6 +51,7 @@ const DATA_ITEMS: NavItem[] = [
   { to: 'characters', label: 'Characters', icon: <UsersIcon size={16} weight="duotone" /> },
   { to: 'questions', label: 'Questions', icon: <ListChecksIcon size={16} weight="duotone" /> },
   { to: 'questions/retire', label: 'Retirement Queue', icon: <TrashIcon size={16} weight="duotone" /> },
+  { to: 'questions/duplicates', label: 'Duplicate Queue', icon: <CopySimpleIcon size={16} weight="duotone" /> },
   { to: 'enrichment', label: 'Enrichment Status', icon: <ArrowsClockwiseIcon size={16} weight="duotone" /> },
   { to: 'pipeline', label: 'Pipeline Log', icon: <TreeStructureIcon size={16} weight="duotone" /> },
   { to: 'analytics', label: 'Analytics', icon: <ChartBarIcon size={16} weight="duotone" /> },

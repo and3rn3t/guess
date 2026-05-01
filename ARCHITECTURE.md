@@ -265,7 +265,7 @@ Additional phases: `manage`, `demo`, `stats`, `compare`, `coverage`, `recommende
 
 Primary database for the server-side engine and character catalog.
 
-**Tables**: `characters`, `character_attributes`, `questions`, `question_coverage`, `attribute_definitions`, `game_stats`, `game_plays`, `game_sessions`, `game_reveals`, `attribute_disputes`, `proposed_attributes`, `error_logs`, `client_events`
+**Tables**: `characters`, `character_attributes`, `questions`, `question_coverage`, `attribute_definitions`, `game_stats`, `game_plays`, `game_sessions`, `game_reveals`, `attribute_disputes`, `proposed_attributes`, `error_logs`, `client_events`, `attribute_embeddings`, `question_dedup_dismissed`, `alerts`
 
 - 187 DEFAULT_CHARACTERS seeded via migrations
 - 53K+ ingested characters from AniList, WikiData, TMDB, IGDB, ComicVine
@@ -288,6 +288,19 @@ Object storage for character images.
 - Formats: thumbnail (64×64 WebP), profile (256×256 WebP)
 - Served via `functions/api/images/[[path]].ts` with 1-year CDN cache
 - Upload pipeline: `scripts/ingest/images.ts` → sharp → WebP → R2 (S3-compatible API)
+
+### Workers AI (`AI` binding)
+
+Optional Cloudflare Workers AI binding (`[ai] binding = "AI"` under both
+`[env.production]` and `[env.preview]` in `wrangler.toml`). Used by B.4
+question deduplication via `@cf/baai/bge-base-en-v1.5` (768-dim embeddings,
+~1 neuron per call, 10k neurons/day on the free tier). The binding is
+declared optional in `Env` (`AI?: Ai`) so local dev without the binding still
+type-checks; endpoints that require it (e.g. `POST /api/admin/questions/duplicates/backfill`)
+return `503 Workers AI binding not configured` rather than crashing. Vectors
+are persisted as `Float32Array`-backed BLOBs in `attribute_embeddings`,
+keyed by `attribute_key`, alongside the model name and an FNV-1a `text_hash`
+so re-embeds are skipped when the question copy hasn't drifted.
 
 ### Client-Side Storage
 
