@@ -481,6 +481,48 @@ value came from. Richer per-attribute citations (e.g. quoted Wikipedia
 paragraphs) are a follow-up; this trail is the surface DQ.4 (explainable
 disputes) and future provenance work hangs off.
 
+### Cross-Source Agreement Scorecard (DQ.3)
+
+Migration `0035_agreement_score.sql` adds two columns to
+`character_attributes`:
+
+| Column              | Type    | Meaning                                                                  |
+|---------------------|---------|--------------------------------------------------------------------------|
+| `agreement_score`   | REAL    | `null` when no signals exist; otherwise `[0, 1]` (1.0 = full agreement). |
+| `agreement_signals` | INTEGER | Count of independent signals that fed into the score.                    |
+
+A partial index on `agreement_score WHERE NOT NULL` keeps admin sort-by-score
+queries cheap.
+
+The pure scorer lives in `functions/api/_agreement.ts`. It accepts an array of
+`AgreementSignal` records and reduces them with per-source weights:
+
+| Source              | Weight | Source of signal                                              |
+|---------------------|-------:|---------------------------------------------------------------|
+| `reveal`            |   1    | Confident yes/no answer in `game_reveals` for the same attr   |
+| `dispute-open`      |   2    | Open row in `attribute_disputes` (skeptic LLM still flags it) |
+| `dispute-dismissed` |   2    | Reviewer rejected the dispute → corroborates stored value    |
+| `dispute-resolved`  |   1    | Stored value changed → positive vote on the new value        |
+| `community-vote`    |   2    | Reserved for upcoming community-vote integration              |
+
+A row is treated as **contested** when `agreement_score < 0.6` and
+`agreement_signals ≥ 3` (`CONTESTED_THRESHOLD` in the helper). The admin pill
+renders an orange ring and ⚠ glyph for these rows.
+
+The scorer is invoked offline by `scripts/compute-agreement.ts`:
+
+```bash
+pnpm agreement:dry-run     # preview env, no writes
+pnpm agreement:preview     # apply to preview D1
+pnpm agreement:prod        # apply to production D1
+```
+
+The script shells out to `wrangler d1 execute --remote`, buckets signals per
+(character, attribute) pair, calls `computeAgreementScore`, writes a
+transactional `UPDATE` batch to `data/agreement/agreement-<env>.sql`, then
+applies it. Designed to run nightly via the existing adaptive-data-refresh
+cron (DQ.6 / H.3) once that wiring lands.
+
 ---
 
 ## LLM Pipeline

@@ -68,6 +68,7 @@ export default function CharactersRoute(): React.JSX.Element {
     definitions: Array<{ key: string; displayText: string }>
     attributes: Record<string, 0 | 1 | null>
     evidence: Record<string, string | null>
+    agreement: Record<string, { score: number | null; signals: number }>
   } | null>(null)
   const [expandLoading, setExpandLoading] = useState(false)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
@@ -148,11 +149,13 @@ export default function CharactersRoute(): React.JSX.Element {
         definitions: Array<{ key: string; displayText: string }>
         attributes: Record<string, 0 | 1 | null>
         evidence?: Record<string, string | null>
+        agreement?: Record<string, { score: number | null; signals: number }>
       }
       setExpandedData({
         definitions: json.definitions,
         attributes: json.attributes,
         evidence: json.evidence ?? {},
+        agreement: json.agreement ?? {},
       })
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load attributes')
@@ -416,10 +419,16 @@ export default function CharactersRoute(): React.JSX.Element {
                                 {expandedData.definitions.map((def) => {
                                   const val = expandedData.attributes[def.key] ?? null
                                   const evidence = expandedData.evidence[def.key] ?? null
+                                  const agreement = expandedData.agreement[def.key] ?? { score: null, signals: 0 }
                                   const valueLabel = val === 1 ? 'true' : val === 0 ? 'false' : 'unknown'
+                                  const agreementLine = agreement.score === null
+                                    ? 'Agreement: — (no signals yet)'
+                                    : `Agreement: ${(agreement.score * 100).toFixed(0)}% (${agreement.signals} signal${agreement.signals === 1 ? '' : 's'})`
                                   const tooltip = evidence
-                                    ? `${def.displayText}: ${valueLabel}\nEvidence: ${evidence}\n(click to cycle)`
-                                    : `${def.displayText}: ${valueLabel}\nEvidence: — (legacy row, no provenance)\n(click to cycle)`
+                                    ? `${def.displayText}: ${valueLabel}\nEvidence: ${evidence}\n${agreementLine}\n(click to cycle)`
+                                    : `${def.displayText}: ${valueLabel}\nEvidence: — (legacy row, no provenance)\n${agreementLine}\n(click to cycle)`
+                                  // Contested = score < 0.6 with at least 3 signals (matches CONTESTED_THRESHOLD).
+                                  const contested = agreement.score !== null && agreement.score < 0.6 && agreement.signals >= 3
                                   return (
                                     <button
                                       key={def.key}
@@ -431,10 +440,11 @@ export default function CharactersRoute(): React.JSX.Element {
                                           : val === 0
                                           ? 'bg-red-500/20 text-red-400 border-red-500/30 hover:bg-red-500/30'
                                           : 'bg-muted text-muted-foreground border-border hover:text-foreground'
-                                      }`}
+                                      } ${contested ? 'ring-2 ring-orange-500/60' : ''}`}
                                     >
                                       {def.key}
                                       {evidence ? <span className="ml-1 opacity-50">·</span> : null}
+                                      {contested ? <span className="ml-1 text-orange-400" aria-label="contested">⚠</span> : null}
                                     </button>
                                   )
                                 })}
