@@ -422,6 +422,7 @@ export function mockOpenAi(opts: MockFetchOptions = {}): {
     opts.body ??
     JSON.stringify({
       choices: [{ message: { content: opts.content ?? '{}' } }],
+      usage: { prompt_tokens: 100, completion_tokens: 50 },
     })
   globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
     let url: string

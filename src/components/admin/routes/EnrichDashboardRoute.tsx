@@ -19,6 +19,15 @@ interface StreamPayload {
   runs: PipelineRun[]
   jobActive: boolean
   pendingCount: number
+  lastBatchStats: {
+    batchId: string
+    promptTokens: number
+    completionTokens: number
+    totalTokens: number
+    characters: number
+    runAt: string
+    status: 'success' | 'error'
+  } | null
 }
 
 const STATUS_STYLES: Record<string, string> = {
@@ -154,6 +163,23 @@ export default function EnrichDashboardRoute(): React.JSX.Element {
           </div>
         ))}
       </div>
+
+      {data?.lastBatchStats && (
+        <div className="rounded-lg border bg-card px-4 py-3 text-xs flex flex-wrap items-center gap-x-5 gap-y-1">
+          <span className="font-medium text-sm">Last batch</span>
+          <span className="text-muted-foreground">
+            {data.lastBatchStats.totalTokens.toLocaleString()} tokens
+            <span className="text-muted-foreground/60 ml-1">
+              ({data.lastBatchStats.promptTokens.toLocaleString()}&uarr; {data.lastBatchStats.completionTokens.toLocaleString()}&darr;)
+            </span>
+          </span>
+          <span className="text-muted-foreground">
+            ~${((data.lastBatchStats.promptTokens * 0.15 + data.lastBatchStats.completionTokens * 0.60) / 1_000_000).toFixed(4)}
+          </span>
+          <span className="text-muted-foreground">{data.lastBatchStats.characters} char{data.lastBatchStats.characters !== 1 ? 's' : ''}</span>
+          <Badge className={`text-xs ${STATUS_STYLES[data.lastBatchStats.status] ?? ''}`}>{data.lastBatchStats.status}</Badge>
+        </div>
+      )}
 
       {jobActive && (
         <div className="rounded-lg bg-blue-500/10 border border-blue-500/30 px-4 py-3 text-sm text-blue-300 flex items-center gap-2">

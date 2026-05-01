@@ -39,15 +39,30 @@ afterEach(() => {
 
 describe('buildSystemPrompt', () => {
   it('includes all attribute keys', () => {
-    const prompt = buildSystemPrompt(['isHero', 'isVillain', 'hasMagic'])
+    const prompt = buildSystemPrompt([
+      { key: 'isHero', questionText: null },
+      { key: 'isVillain', questionText: null },
+      { key: 'hasMagic', questionText: null },
+    ])
     expect(prompt).toContain('isHero, isVillain, hasMagic')
     expect(prompt).toContain('3 total')
   })
 
   it('includes JSON response format example', () => {
-    const prompt = buildSystemPrompt(['isHero'])
+    const prompt = buildSystemPrompt([{ key: 'isHero', questionText: null }])
     expect(prompt).toContain('"char_id_1"')
     expect(prompt).toContain('"attr1"')
+  })
+
+  it('includes question text section when provided', () => {
+    const prompt = buildSystemPrompt([{ key: 'isHero', questionText: 'Is this character a hero?' }])
+    expect(prompt).toContain('WHAT EACH KEY MEANS')
+    expect(prompt).toContain('isHero: Is this character a hero?')
+  })
+
+  it('omits question text section when all questionText is null', () => {
+    const prompt = buildSystemPrompt([{ key: 'isHero', questionText: null }])
+    expect(prompt).not.toContain('WHAT EACH KEY MEANS')
   })
 })
 
@@ -135,6 +150,31 @@ describe('runServerEnrichBatch', () => {
     expect(runs.n).toBe(0)
   })
 
+  it('marks stale running rows as error before starting a new batch', async () => {
+    seedAttributeDefinition(db, 'isHero')
+    seedCharacter(db, 'mario')
+    // Simulate a stuck 'running' row from 6 min ago (previous Worker crash)
+    db.raw.prepare(
+      `INSERT INTO pipeline_runs (run_batch, character_id, step, status, created_at)
+       VALUES ('old-batch', 'mario', 'enrich', 'running', unixepoch() - 360)`
+    ).run()
+
+    const llmContent = JSON.stringify({ mario: { isHero: true } })
+    const { restore } = mockOpenAi({ content: llmContent })
+    try {
+      const env = buildEnv({ db, kv, openaiKey: 'sk-test' }) as Parameters<typeof runServerEnrichBatch>[0]
+      await runServerEnrichBatch(env, 'new-batch', 5)
+    } finally {
+      restore()
+    }
+
+    const oldRun = db.raw
+      .prepare(`SELECT status, error FROM pipeline_runs WHERE run_batch = 'old-batch'`)
+      .get() as { status: string; error: string } | undefined
+    expect(oldRun?.status).toBe('error')
+    expect(oldRun?.error).toContain('Stale')
+  })
+
   it('writes character_attributes and marks pipeline_runs success on valid LLM response', async () => {
     seedAttributeDefinition(db, 'isHero')
     seedAttributeDefinition(db, 'isVillain')
@@ -166,6 +206,8 @@ describe('runServerEnrichBatch', () => {
 
     // KV cleared
     expect(await kv.get('admin:enrich-start')).toBeNull()
+    // Token stats written
+    expect(await kv.get('enrich:last-batch-stats')).toBeTruthy()
   })
 
   it('writes evidence tag on character_attributes rows', async () => {

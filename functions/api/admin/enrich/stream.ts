@@ -1,5 +1,15 @@
 import { type Env, errorResponse } from '../../_helpers'
 
+interface LastBatchStats {
+  batchId: string
+  promptTokens: number
+  completionTokens: number
+  totalTokens: number
+  characters: number
+  runAt: string
+  status: 'success' | 'error'
+}
+
 export const onRequestGet: PagesFunction<Env> = async (context) => {
   const db = context.env.GUESS_DB
   const kv = context.env.GUESS_KV
@@ -10,7 +20,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     encoder.encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`)
 
   const snapshot = async () => {
-    const [runs, jobFlag, pendingResult] = await Promise.all([
+    const [runs, jobFlag, pendingResult, statsRaw] = await Promise.all([
       db.prepare(
         `SELECT pr.id, pr.run_batch, pr.character_id, c.name AS character_name,
                 pr.step, pr.status, pr.error, pr.duration_ms, pr.created_at
@@ -26,8 +36,13 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
            SELECT 1 FROM character_attributes ca WHERE ca.character_id = c.id LIMIT 1
          )`
       ).first<{ n: number }>(),
+      kv?.get('enrich:last-batch-stats'),
     ])
-    return { runs: runs.results, jobActive: !!jobFlag, pendingCount: pendingResult?.n ?? 0 }
+    let lastBatchStats: LastBatchStats | null = null
+    if (statsRaw) {
+      try { lastBatchStats = JSON.parse(statsRaw as string) as LastBatchStats } catch { /* ignore */ }
+    }
+    return { runs: runs.results, jobActive: !!jobFlag, pendingCount: pendingResult?.n ?? 0, lastBatchStats }
   }
 
   const stream = new ReadableStream({

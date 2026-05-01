@@ -17,6 +17,7 @@ const MODEL = 'gpt-4o-mini'
 
 interface AttributeDef {
   key: string
+  question_text: string | null
   categories: string | null
 }
 
@@ -32,7 +33,13 @@ interface OpenAIResponse {
   usage: { prompt_tokens: number; completion_tokens: number }
 }
 
-export function buildSystemPrompt(attrKeys: string[]): string {
+export function buildSystemPrompt(attrs: Array<{ key: string; questionText: string | null }>): string {
+  const keys = attrs.map((a) => a.key)
+  const attrsWithQuestion = attrs.filter((a) => a.questionText)
+  const keyMeansSection = attrsWithQuestion.length > 0
+    ? `\nWHAT EACH KEY MEANS (use these to understand each attribute):\n${attrsWithQuestion.map((a) => `- ${a.key}: ${a.questionText}`).join('\n')}\n`
+    : ''
+
   return `You are a fictional character classifier. For each character, determine boolean attributes.
 
 RULES:
@@ -42,14 +49,13 @@ RULES:
 - null = genuinely ambiguous, unknown, or insufficient information
 - Be decisive: prefer true/false over null when you have reasonable knowledge
 - Use your broad knowledge of fiction, games, anime, comics, movies, TV shows, and books
-- You MUST include ALL ${attrKeys.length} attribute keys for each character
+- You MUST include ALL ${keys.length} attribute keys for each character
 
-ATTRIBUTE KEYS (${attrKeys.length} total — respond with these exact keys):
-${attrKeys.join(', ')}
-
+ATTRIBUTE KEYS (${keys.length} total — respond with these exact keys):
+${keys.join(', ')}${keyMeansSection}
 RESPONSE FORMAT (strict JSON, one entry per character):
 {
-  "char_id_1": { "attr1": true, "attr2": false, ... all ${attrKeys.length} attrs }
+  "char_id_1": { "attr1": true, "attr2": false, ... all ${keys.length} attrs }
 }`
 }
 
@@ -107,9 +113,17 @@ export async function runServerEnrichBatch(env: Env, batchId: string, limit: num
   const evidence = `enrichment:openai:${MODEL}:run=${runIso}`
 
   try {
+    // 0. Clean up stale 'running' rows from any previous Worker crash / CPU timeout (> 5 min old)
+    await db
+      .prepare(
+        `UPDATE pipeline_runs SET status='error', error='Stale — previous Worker run did not complete'
+         WHERE step='enrich' AND status='running' AND created_at < unixepoch() - 300`
+      )
+      .run()
+
     // 1. Load active attribute definitions from D1
     const attrRows = await db
-      .prepare(`SELECT key, categories FROM attribute_definitions WHERE is_active = 1 ORDER BY key`)
+      .prepare(`SELECT key, question_text, categories FROM attribute_definitions WHERE is_active = 1 ORDER BY key`)
       .all<AttributeDef>()
     const allAttrs = attrRows.results ?? []
     if (allAttrs.length === 0) return
@@ -145,6 +159,8 @@ export async function runServerEnrichBatch(env: Env, batchId: string, limit: num
     // 4. Single OpenAI call for the whole batch
     let content = '{}'
     let llmError: string | null = null
+    let promptTokens = 0
+    let completionTokens = 0
 
     try {
       const res = await fetch(getCompletionsEndpoint(env), {
@@ -153,7 +169,7 @@ export async function runServerEnrichBatch(env: Env, batchId: string, limit: num
         body: JSON.stringify({
           model: MODEL,
           messages: [
-            { role: 'system', content: buildSystemPrompt(allKeys) },
+            { role: 'system', content: buildSystemPrompt(allAttrs.map((a) => ({ key: a.key, questionText: a.question_text }))) },
             { role: 'user', content: buildUserPrompt(pending) },
           ],
           temperature: 0.1,
@@ -164,6 +180,8 @@ export async function runServerEnrichBatch(env: Env, batchId: string, limit: num
       if (res.ok) {
         const body = await res.json() as OpenAIResponse
         content = body.choices[0]?.message?.content ?? '{}'
+        promptTokens = body.usage?.prompt_tokens ?? 0
+        completionTokens = body.usage?.completion_tokens ?? 0
       } else {
         const errText = await res.text()
         llmError = `OpenAI ${res.status}: ${errText.slice(0, 300)}`
@@ -173,6 +191,21 @@ export async function runServerEnrichBatch(env: Env, batchId: string, limit: num
     }
 
     const durationMs = Date.now() - t0
+
+    // Persist token stats for dashboard display regardless of success/error (7-day TTL)
+    await env.GUESS_KV?.put(
+      'enrich:last-batch-stats',
+      JSON.stringify({
+        batchId,
+        promptTokens,
+        completionTokens,
+        totalTokens: promptTokens + completionTokens,
+        characters: pending.length,
+        runAt: runIso,
+        status: llmError ? 'error' : 'success',
+      }),
+      { expirationTtl: 604800 },
+    )
 
     if (llmError) {
       // Mark all pipeline_runs as error
