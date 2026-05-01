@@ -20,6 +20,7 @@ import {
   TargetIcon,
 } from '@phosphor-icons/react'
 import { useAdminData } from './AdminDataContext'
+import { LiveOpsStrip } from './LiveOpsStrip'
 import { RouteErrorBoundary } from './RouteErrorBoundary'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 
@@ -149,10 +150,13 @@ export function AdminShell(): React.JSX.Element {
       </aside>
 
       {/* Main content */}
-      <main className="flex-1 overflow-auto">
-        <RouteErrorBoundary>
-          <Outlet />
-        </RouteErrorBoundary>
+      <main className="flex-1 overflow-auto flex flex-col">
+        <LiveOpsStrip />
+        <div className="flex-1">
+          <RouteErrorBoundary>
+            <Outlet />
+          </RouteErrorBoundary>
+        </div>
       </main>
     </div>
   )
