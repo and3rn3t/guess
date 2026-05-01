@@ -1,0 +1,109 @@
+name: Nightly sparse-attribute auto-fill (DQ.22)
+
+# Hunts for popular characters with missing attribute values, re-runs the
+# canonical enrichment LLM prompt scoped to *just* the missing keys, and
+# writes the answers back to character_attributes with an
+# `enrichment:openai:<model>:run=<iso>` evidence tag (DQ.28 convention).
+#
+# Pairs with EN.7 schema drift detection: when DQ.21 admits a brand-new
+# attribute, this workflow progressively fills it across the catalog
+# starting with the characters players ask about most.
+#
+# Lives in GH Actions instead of the H.3 Cron Worker because the OpenAI
+# key isn't wired into the CF Worker env.
+
+on:
+  schedule:
+    # Daily at 00:45 UTC. Sits 15 min after `reconcile-nightly.yml` so we
+    # don't contend on the same wrangler API token rate-limits.
+    - cron: '45 0 * * *'
+  workflow_dispatch:
+    inputs:
+      env:
+        description: 'Target environment'
+        required: true
+        default: 'production'
+        type: choice
+        options:
+          - production
+          - preview
+      budget:
+        description: 'Total (char,attr) pairs to fill this run'
+        required: false
+        default: '200'
+      max_per_char:
+        description: 'Per-character cap'
+        required: false
+        default: '30'
+      days:
+        description: 'Popularity lookback window (days)'
+        required: false
+        default: '30'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sparse-fill-${{ github.event.inputs.env || 'production' }}
+  cancel-in-progress: false
+
+jobs:
+  sparse-fill:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
+
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+      - uses: ./.github/actions/setup
+
+      - name: Verify required secrets exist
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          missing=()
+          [ -z "$OPENAI_API_KEY" ] && missing+=("OPENAI_API_KEY")
+          [ -z "$CLOUDFLARE_API_TOKEN" ] && missing+=("CLOUDFLARE_API_TOKEN")
+          [ -z "$CLOUDFLARE_ACCOUNT_ID" ] && missing+=("CLOUDFLARE_ACCOUNT_ID")
+          if [ ${#missing[@]} -gt 0 ]; then
+            echo "::error::Missing required secrets: ${missing[*]}"
+            exit 1
+          fi
+          echo "All required secrets present."
+
+      - name: Run nightly sparse-fill
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          ENV_FLAG="${{ github.event.inputs.env || 'production' }}"
+          BUDGET="${{ github.event.inputs.budget || '200' }}"
+          MAX_PER_CHAR="${{ github.event.inputs.max_per_char || '30' }}"
+          DAYS="${{ github.event.inputs.days || '30' }}"
+          npx tsx scripts/sparse-fill-attributes.ts \
+            --env "$ENV_FLAG" \
+            --budget "$BUDGET" \
+            --max-per-char "$MAX_PER_CHAR" \
+            --days "$DAYS" \
+            | tee sparse-fill-output.log
+
+      - name: Upload fill SQL artifact
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: sparse-fill-sql
+          path: data/sparse-fill/*.sql
+          if-no-files-found: ignore
+          retention-days: 30
+
+      - name: Upload run log
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: sparse-fill-log
+          path: sparse-fill-output.log
+          if-no-files-found: ignore
+          retention-days: 30
