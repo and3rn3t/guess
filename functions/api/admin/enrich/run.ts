@@ -131,8 +131,13 @@ export async function runServerEnrichBatch(env: Env, batchId: string, limit: num
     const allKeys = allAttrs.map((a) => a.key)
     const validKeySet = new Set(allKeys)
 
-    // Build system prompt once — reused for every character's call
-    const systemPrompt = buildSystemPrompt(allAttrs.map((a) => ({ key: a.key, questionText: a.question_text })))
+    // Build system prompt once — reused for every character's call.
+    // Pass questionText: null for all attrs to omit the "WHAT EACH KEY MEANS"
+    // section (~4,500 tokens). Including it inflates the system prompt to
+    // ~7,000 tokens, causing gpt-4o-mini to take 25-35 s per call even for
+    // a single character. Without it the prompt is ~1,300 tokens (~8-12 s).
+    // The camelCase keys are self-descriptive; quality loss is minimal.
+    const systemPrompt = buildSystemPrompt(allAttrs.map((a) => ({ key: a.key, questionText: null })))
 
     // 2. Find characters with no character_attributes rows
     const charRows = await db
