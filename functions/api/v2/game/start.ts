@@ -33,7 +33,7 @@ import type { CharactersRow, QuestionsRow } from '../../_db-types'
 
 // ── Types ────────────────────────────────────────────────────
 
-type CharacterRow = Pick<CharactersRow, 'id' | 'name' | 'category' | 'image_url' | 'popularity'> & { attributes_json: string }
+type CharacterRow = Pick<CharactersRow, 'id' | 'name' | 'category' | 'image_url' | 'popularity' | 'trivia'> & { attributes_json: string }
 
 type QuestionRow = Pick<QuestionsRow, 'id' | 'text' | 'attribute_key'>
 
@@ -41,6 +41,22 @@ export const DIFFICULTY_TO_PERSONA: Record<string, string> = {
   easy: 'poirot',
   medium: 'watson',
   hard: 'sherlock',
+}
+
+function parseTrivia(raw: string | null | undefined): string[] | undefined {
+  if (!raw) return undefined
+  try {
+    const parsed: unknown = JSON.parse(raw)
+    if (!Array.isArray(parsed)) return undefined
+    const cleaned = parsed
+      .filter((item): item is string => typeof item === 'string')
+      .map((item) => item.trim())
+      .filter((item) => item.length > 0)
+      .slice(0, 3)
+    return cleaned.length > 0 ? cleaned : undefined
+  } catch {
+    return undefined
+  }
 }
 
 // ── POST /api/v2/game/start ──────────────────────────────────
@@ -90,7 +106,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   const candidateLimit = POOL_SIZE * 2
   const candidates = await d1Query<CharacterRow>(
     db,
-    `SELECT c.id, c.name, c.category, c.image_url, c.popularity, c.attributes_json
+    `SELECT c.id, c.name, c.category, c.image_url, c.popularity, c.attributes_json, c.trivia
      FROM characters c
      ${where}
      ORDER BY c.popularity DESC
@@ -109,7 +125,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   if (pinnedCharId && !characters.some((c) => c.id === pinnedCharId)) {
     const pinned = await d1First<CharacterRow>(
       db,
-      'SELECT id, name, category, image_url, attributes_json FROM characters WHERE id = ?',
+      'SELECT id, name, category, image_url, popularity, attributes_json, trivia FROM characters WHERE id = ?',
       [pinnedCharId]
     )
     if (pinned) {
@@ -129,6 +145,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     name: c.name,
     category: c.category,
     imageUrl: c.image_url,
+    trivia: parseTrivia(c.trivia),
     attributes: parseAttrsJson(c.attributes_json),
   }))
 

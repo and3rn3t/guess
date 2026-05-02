@@ -21,6 +21,7 @@ export const CharacterSchema = z.object({
   category: CharacterCategorySchema,
   attributes: z.record(z.string(), z.union([z.boolean(), z.null()])),
   imageUrl: z.string().optional(),
+  trivia: z.array(z.string()).optional(),
   isCustom: z.boolean().optional(),
   createdBy: z.string().optional(),
   createdAt: z.number().optional(),
@@ -115,6 +116,7 @@ export const AnswerResponseSchema = z.object({
       name: z.string(),
       category: z.string(),
       imageUrl: z.string().nullable(),
+      trivia: z.array(z.string()).optional(),
     })
     .optional(),
   confidence: z.number().optional(),

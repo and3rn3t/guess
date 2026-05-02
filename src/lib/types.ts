@@ -63,6 +63,7 @@ export interface Character {
   category: CharacterCategory;
   attributes: Record<string, boolean | null>;
   imageUrl?: string;
+  trivia?: string[];
   isCustom?: boolean;
   createdBy?: string;
   createdAt?: number;

@@ -200,6 +200,7 @@ export function useServerGame(dispatch: React.Dispatch<GameAction>) {
             category: (data.character.category || "other") as CharacterCategory,
             attributes: {},
             imageUrl: data.character.imageUrl ?? undefined,
+            trivia: data.character.trivia,
           };
           dispatch({ type: "MAKE_GUESS", character: guessChar });
           setServerRemaining(data.remaining ?? 1);

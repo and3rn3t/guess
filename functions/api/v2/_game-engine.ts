@@ -32,6 +32,7 @@ export interface ServerCharacter {
   name: string
   category: string
   imageUrl: string | null
+  trivia?: string[]
   attributes: Record<string, boolean | null>
 }
 

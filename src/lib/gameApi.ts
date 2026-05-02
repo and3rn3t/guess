@@ -52,6 +52,7 @@ export interface AnswerResponse {
     name: string;
     category: string;
     imageUrl: string | null;
+    trivia?: string[];
   };
   confidence?: number;
   remaining?: number;

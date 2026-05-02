@@ -77,6 +77,14 @@ export function GuessReveal({
       }));
   }, [character.attributes]);
 
+  const triviaFacts = useMemo(() => {
+    const normalized = (character.trivia ?? [])
+      .map((fact) => fact.trim())
+      .filter((fact) => fact.length > 0)
+      .slice(0, 3);
+    return Array.from(new Set(normalized));
+  }, [character.trivia]);
+
   return (
     <motion.div
       initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, scale: 0.8, rotateY: -15 }}
@@ -257,6 +265,26 @@ export function GuessReveal({
                         />
                       </RadarChart>
                     </ResponsiveContainer>
+                  </motion.div>
+                )}
+                {triviaFacts.length > 0 && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.75 }}
+                    className="mx-auto mt-2 w-full max-w-xl rounded-xl border border-accent/30 bg-background/65 p-4 text-left"
+                  >
+                    <p className="mb-2 text-sm font-semibold uppercase tracking-wide text-accent">
+                      Did you know?
+                    </p>
+                    <ul className="space-y-1.5 text-sm text-muted-foreground">
+                      {triviaFacts.map((fact) => (
+                        <li key={fact} className="flex items-start gap-2">
+                          <span className="mt-1 inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-accent" />
+                          <span>{fact}</span>
+                        </li>
+                      ))}
+                    </ul>
                   </motion.div>
                 )}
               </motion.div>

@@ -19,6 +19,7 @@ export interface CharactersRow {
   created_at: number
   attribute_count: number
   attributes_json: string
+  trivia: string | null
 }
 
 export interface AttributeDefinitionsRow {
