@@ -126,7 +126,7 @@ describe('runServerEnrichBatch', () => {
     seedCharacter(db, 'mario')
     const env = buildEnv({ db, kv, openaiKey: 'sk-test' }) as Parameters<typeof runServerEnrichBatch>[0]
 
-    await runServerEnrichBatch(env, 'batch-1', 5)
+    await runServerEnrichBatch(env, 'batch-1')
 
     expect(await kv.get('admin:enrich-start')).toBeNull()
     const runs = db.raw.prepare('SELECT COUNT(*) AS n FROM pipeline_runs').get() as { n: number }
@@ -143,7 +143,7 @@ describe('runServerEnrichBatch', () => {
     ).run()
 
     const env = buildEnv({ db, kv, openaiKey: 'sk-test' }) as Parameters<typeof runServerEnrichBatch>[0]
-    await runServerEnrichBatch(env, 'batch-2', 5)
+    await runServerEnrichBatch(env, 'batch-2')
 
     expect(await kv.get('admin:enrich-start')).toBeNull()
     const runs = db.raw.prepare('SELECT COUNT(*) AS n FROM pipeline_runs').get() as { n: number }
@@ -163,7 +163,7 @@ describe('runServerEnrichBatch', () => {
     const { restore } = mockOpenAi({ content: llmContent })
     try {
       const env = buildEnv({ db, kv, openaiKey: 'sk-test' }) as Parameters<typeof runServerEnrichBatch>[0]
-      await runServerEnrichBatch(env, 'new-batch', 5)
+      await runServerEnrichBatch(env, 'new-batch')
     } finally {
       restore()
     }
@@ -185,7 +185,7 @@ describe('runServerEnrichBatch', () => {
 
     try {
       const env = buildEnv({ db, kv, openaiKey: 'sk-test' }) as Parameters<typeof runServerEnrichBatch>[0]
-      await runServerEnrichBatch(env, 'batch-3', 5)
+      await runServerEnrichBatch(env, 'batch-3')
     } finally {
       restore()
     }
@@ -219,7 +219,7 @@ describe('runServerEnrichBatch', () => {
 
     try {
       const env = buildEnv({ db, kv, openaiKey: 'sk-test' }) as Parameters<typeof runServerEnrichBatch>[0]
-      await runServerEnrichBatch(env, 'batch-4', 5)
+      await runServerEnrichBatch(env, 'batch-4')
     } finally {
       restore()
     }
@@ -238,7 +238,7 @@ describe('runServerEnrichBatch', () => {
 
     try {
       const env = buildEnv({ db, kv, openaiKey: 'sk-test' }) as Parameters<typeof runServerEnrichBatch>[0]
-      await runServerEnrichBatch(env, 'batch-5', 5)
+      await runServerEnrichBatch(env, 'batch-5')
     } finally {
       restore()
     }
@@ -268,7 +268,7 @@ describe('runServerEnrichBatch', () => {
 
     try {
       const env = buildEnv({ db, kv, openaiKey: 'sk-test' }) as Parameters<typeof runServerEnrichBatch>[0]
-      await runServerEnrichBatch(env, 'batch-6', 5)
+      await runServerEnrichBatch(env, 'batch-6')
     } finally {
       restore()
     }
@@ -290,7 +290,7 @@ describe('runServerEnrichBatch', () => {
 
     try {
       const env = buildEnv({ db, kv, openaiKey: 'sk-test' }) as Parameters<typeof runServerEnrichBatch>[0]
-      await runServerEnrichBatch(env, 'batch-7', 1) // limit=1
+      await runServerEnrichBatch(env, 'batch-7') // always processes 1 character per invocation
     } finally {
       restore()
     }

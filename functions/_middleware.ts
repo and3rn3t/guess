@@ -132,6 +132,23 @@ export const onRequest: PagesFunction<Env> = async (context) => {
     return finalize(unauthorizedResponse())
   }
 
+  // Internal enrichment chain bypass — lets run.ts fire a new Worker
+  // invocation without needing to store or replay Basic Auth credentials.
+  // Only fires when the X-Internal-Chain-Token header is present, so normal
+  // admin requests are unaffected (no extra KV lookup).
+  if (isAdminPath && request.headers.has('X-Internal-Chain-Token')) {
+    const token = request.headers.get('X-Internal-Chain-Token')!
+    const kvRaw = await kv.get('admin:enrich-start').catch(() => null)
+    if (kvRaw) {
+      try {
+        const kvData = JSON.parse(kvRaw) as { chainToken?: string }
+        if (kvData.chainToken && kvData.chainToken === token) {
+          return finalize(await next())
+        }
+      } catch { /* fall through to normal Basic Auth */ }
+    }
+  }
+
   // Read stored credential — accepts `sha256:<hex>` or legacy plaintext.
   let storedCredential: string | null
   try {
