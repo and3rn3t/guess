@@ -20,6 +20,11 @@ interface AdminCharacterDetail {
   attributes: Record<string, 0 | 1 | null>
 }
 
+interface PatchCharacterAttributeBody {
+  attributeKey: string
+  value: 0 | 1 | null
+}
+
 /**
  * Fetch the top-N most popular characters from the admin API.
  * Returns Character objects with empty attributes (sufficient for CharacterPicker).
@@ -71,4 +76,44 @@ export async function fetchAdminCharacterById(id: string): Promise<Character | n
   } catch {
     return null
   }
+}
+
+export async function patchAdminCharacterAttribute(
+  characterId: string,
+  attributeKey: string,
+  value: boolean | null,
+): Promise<void> {
+  const body: PatchCharacterAttributeBody = {
+    attributeKey,
+    value: value === true ? 1 : value === false ? 0 : null,
+  }
+
+  await httpClient.requestOrThrow(`/api/admin/characters/${encodeURIComponent(characterId)}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+}
+
+export async function saveAdminCharacterAttributeDiff(
+  characterId: string,
+  previousAttributes: Record<string, boolean | null>,
+  nextAttributes: Record<string, boolean | null>,
+): Promise<number> {
+  const keys = new Set<string>([
+    ...Object.keys(previousAttributes),
+    ...Object.keys(nextAttributes),
+  ])
+
+  const changed = Array.from(keys).filter((key) => {
+    const prev = previousAttributes[key] ?? null
+    const next = nextAttributes[key] ?? null
+    return prev !== next
+  })
+
+  for (const key of changed) {
+    await patchAdminCharacterAttribute(characterId, key, nextAttributes[key] ?? null)
+  }
+
+  return changed.length
 }

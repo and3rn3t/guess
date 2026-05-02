@@ -122,6 +122,42 @@ export async function checkRateLimitDO(
   return res.json<{ allowed: boolean; remaining: number }>()
 }
 
+/** Best-effort rate limiting: when bindings are missing, allow by default. */
+export async function checkRateLimitBestEffort(
+  env: Env,
+  subjectId: string,
+  action: string,
+  maxPerHour: number,
+): Promise<{ allowed: boolean; remaining: number }> {
+  if (!env.RATE_LIMITER && !env.GUESS_KV) {
+    return { allowed: true, remaining: maxPerHour }
+  }
+  return checkRateLimitDO(env, subjectId, action, maxPerHour)
+}
+
+/** Resolve request correlation id from header or generate one. */
+export function getRequestId(request: Request): string {
+  const incoming = request.headers.get('X-Request-Id') ?? request.headers.get('x-request-id')
+  if (incoming && incoming.trim().length > 0) {
+    return incoming.trim().slice(0, 120)
+  }
+  return crypto.randomUUID()
+}
+
+/** Resolve a stable actor identifier from request headers for rate-limit bucketing. */
+export function getActorId(request: Request): string {
+  const userId = request.headers.get('X-User-Id') ?? request.headers.get('x-user-id')
+  if (userId && userId.trim().length > 0) return `user:${userId.trim().slice(0, 80)}`
+
+  const ip = request.headers.get('CF-Connecting-IP')
+  if (ip && ip.trim().length > 0) return `ip:${ip.trim().slice(0, 80)}`
+
+  const ray = request.headers.get('CF-Ray')
+  if (ray && ray.trim().length > 0) return `ray:${ray.trim().slice(0, 80)}`
+
+  return 'anonymous'
+}
+
 // ── Cookie-based user authentication ─────────────────────────
 
 const COOKIE_NAME = '__gu_id'
@@ -201,6 +237,13 @@ export function withSetCookie(response: Response, setCookieHeader?: string): Res
   if (!setCookieHeader) return response
   const res = new Response(response.body, response)
   res.headers.append('Set-Cookie', setCookieHeader)
+  return res
+}
+
+/** Attach a correlation id header to a Response. */
+export function withRequestId(response: Response, requestId: string): Response {
+  const res = new Response(response.body, response)
+  res.headers.set('X-Request-Id', requestId)
   return res
 }
 
@@ -344,12 +387,36 @@ export function logError(
   level: 'error' | 'warn',
   message: string,
   err?: unknown,
+  context?: {
+    requestId?: string
+    actorId?: string
+    path?: string
+    method?: string
+    status?: number
+    extra?: Record<string, unknown>
+  },
 ): Promise<void> {
   if (!db || typeof db.prepare !== 'function') return Promise.resolve()
-  const detail = err != null
-    ? (err instanceof Error
-        ? JSON.stringify({ message: err.message, stack: err.stack?.slice(0, 1500) })
-        : String(err).slice(0, 500))
+  const detailPayload: Record<string, unknown> = {}
+  if (err != null) {
+    if (err instanceof Error) {
+      detailPayload.error = {
+        message: err.message,
+        stack: err.stack?.slice(0, 1500),
+      }
+    } else {
+      detailPayload.error = String(err).slice(0, 500)
+    }
+  }
+  if (context?.requestId) detailPayload.requestId = context.requestId
+  if (context?.actorId) detailPayload.actorId = context.actorId
+  if (context?.path) detailPayload.path = context.path
+  if (context?.method) detailPayload.method = context.method
+  if (typeof context?.status === 'number') detailPayload.status = context.status
+  if (context?.extra) detailPayload.extra = context.extra
+
+  const detail = Object.keys(detailPayload).length > 0
+    ? JSON.stringify(detailPayload)
     : null
   return db
     .batch([

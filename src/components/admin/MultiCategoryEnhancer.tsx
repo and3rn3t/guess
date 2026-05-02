@@ -9,12 +9,12 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { toast } from 'sonner'
 import type { Character } from '@/lib/types'
 import {
-  generateCategoryRecommendations,
   type AttributeRecommendation,
   type AttributeCategory,
   getCategoryInfo,
   getAvailableAttributesForCategory,
 } from '@/lib/admin/categoryRecommender'
+import { generateCategoryRecommendations } from '@/lib/admin/recommenderApi'
 
 interface MultiCategoryEnhancerProps {
   characters: Character[]

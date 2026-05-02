@@ -23,10 +23,11 @@ import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import { toast } from 'sonner'
 import type { Character } from '@/lib/types'
+import { saveAdminCharacterAttributeDiff } from '@/lib/admin/adminApi'
 import {
-  generateCategoryRecommendations,
   type AttributeRecommendation,
 } from '@/lib/admin/categoryRecommender'
+import { generateCategoryRecommendations } from '@/lib/admin/recommenderApi'
 
 interface CategoryRecommenderProps {
   character: Character
@@ -106,6 +107,7 @@ export function CategoryRecommender({
   const [isLoading, setIsLoading] = useState(false)
   const [localAttributes, setLocalAttributes] = useState(character.attributes)
   const [appliedAttributes, setAppliedAttributes] = useState<Set<string>>(new Set())
+  const [isSaving, setIsSaving] = useState(false)
 
   const handleCategorySelect = async (categoryKey: CategoryKey) => {
     setSelectedCategory(categoryKey)
@@ -138,12 +140,27 @@ export function CategoryRecommender({
     toast.success(`Applied: ${rec.label}`)
   }
 
-  const handleSaveChanges = () => {
-    onUpdateCharacter({
-      ...character,
-      attributes: localAttributes,
-    })
-    onBack()
+  const handleSaveChanges = async () => {
+    setIsSaving(true)
+    try {
+      const changed = await saveAdminCharacterAttributeDiff(
+        character.id,
+        character.attributes,
+        localAttributes,
+      )
+
+      onUpdateCharacter({
+        ...character,
+        attributes: localAttributes,
+      })
+
+      toast.success(`Saved ${changed} attribute change${changed === 1 ? '' : 's'}`)
+      onBack()
+    } catch {
+      toast.error('Failed to save attribute changes')
+    } finally {
+      setIsSaving(false)
+    }
   }
 
   const handleBackToCategories = () => {
@@ -285,8 +302,12 @@ export function CategoryRecommender({
                 </div>
               </div>
             </div>
-            <Button onClick={handleSaveChanges} className="bg-accent hover:bg-accent/90">
-              Save Changes
+            <Button
+              onClick={handleSaveChanges}
+              disabled={isSaving}
+              className="bg-accent hover:bg-accent/90"
+            >
+              {isSaving ? 'Saving...' : 'Save Changes'}
             </Button>
           </motion.div>
         )}
@@ -321,9 +342,13 @@ export function CategoryRecommender({
           </div>
         </div>
         {changesCount > 0 && (
-          <Button onClick={handleSaveChanges} className="bg-accent hover:bg-accent/90">
+          <Button
+            onClick={handleSaveChanges}
+            disabled={isSaving}
+            className="bg-accent hover:bg-accent/90"
+          >
             <Check size={18} className="mr-2" />
-            Save {changesCount} Change{changesCount !== 1 ? 's' : ''}
+            {isSaving ? 'Saving...' : `Save ${changesCount} Change${changesCount === 1 ? '' : 's'}`}
           </Button>
         )}
       </div>

@@ -10,11 +10,11 @@ import type {
   QuestionScore,
 } from "@/lib/admin/dataCleanup";
 import {
-  categorizeAllCharacters,
-  findDuplicates,
-  scoreQuestions,
-  validateAllCharacters,
-} from "@/lib/admin/dataCleanup";
+  categorizeAllCharactersServer,
+  findDuplicatesServer,
+  scoreQuestionsServer,
+  validateAllCharactersServer,
+} from '@/lib/admin/hygieneApi';
 import type { Character, Question } from "@/lib/types";
 import { ArrowLeftIcon } from "@phosphor-icons/react";
 import { useState } from "react";
@@ -85,7 +85,7 @@ export function DataHygiene({
     setAttrHasRun(false);
     setAttrIssues([]);
     try {
-      const results = await validateAllCharacters(characters, (done, total) =>
+      const results = await validateAllCharactersServer(characters, (done, total) =>
         setAttrProgress({ done, total }),
       );
       setAttrIssues(results);
@@ -103,7 +103,7 @@ export function DataHygiene({
     setDupeHasRun(false);
     setDupeGroups([]);
     try {
-      const results = await findDuplicates(characters, (done, total) =>
+      const results = await findDuplicatesServer(characters, (done, total) =>
         setDupeProgress({ done, total }),
       );
       setDupeGroups(results);
@@ -121,7 +121,7 @@ export function DataHygiene({
     setQHasRun(false);
     setQScores([]);
     try {
-      const results = await scoreQuestions(questions, (done, total) =>
+      const results = await scoreQuestionsServer(questions, (done, total) =>
         setQProgress({ done, total }),
       );
       setQScores(results);
@@ -139,7 +139,7 @@ export function DataHygiene({
     setCatHasRun(false);
     setCatSuggestions([]);
     try {
-      const results = await categorizeAllCharacters(characters, (done, total) =>
+      const results = await categorizeAllCharactersServer(characters, (done, total) =>
         setCatProgress({ done, total }),
       );
       setCatSuggestions(results);

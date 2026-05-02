@@ -2,15 +2,15 @@
 /** Perfect match: attribute value equals the expected answer. */
 export const SCORE_MATCH = 1.0;
 /** Soft mismatch: non-zero so 1–2 noisy/erroneous attribute values don't eliminate a character.
- * Reduced from 0.03 → 0.01 to shrink residual probability of contradicted characters in
+ * Set to a soft penalty to reduce residual probability of contradicted characters in
  * large pools, reducing aliveCount inflation and wrong-character survival. */
-export const SCORE_MISMATCH = 0.01;
+export const SCORE_MISMATCH = 0.03;
 /** Unknown (null) attribute: penalised below 0.5 to discourage sparse characters. */
 export const SCORE_UNKNOWN = 0.35;
 /** "Maybe" answer — character has the attribute: soft positive. */
 export const SCORE_MAYBE = 0.8;
 /** "Maybe" answer — character lacks the attribute: soft negative. */
-export const SCORE_MAYBE_MISS = 0.2;
+export const SCORE_MAYBE_MISS = 0.4;
 /** Prior probability that the user answers "maybe" on any given question. */
 export const MAYBE_ANSWER_PROB = 0.15;
 

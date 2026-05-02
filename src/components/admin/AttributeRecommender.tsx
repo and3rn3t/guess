@@ -21,11 +21,14 @@ import { toast } from 'sonner'
 import type { Character } from '@/lib/types'
 import {
   getAttributeRecommendations,
-  generateAttributeRecommendationsWithAI,
-  generateSmartAttributeSuggestions,
   detectCharacterType,
   type AttributeRecommendation,
 } from '@/lib/admin/attributeRecommender'
+import { saveAdminCharacterAttributeDiff } from '@/lib/admin/adminApi'
+import {
+  generateAttributeRecommendationsWithAI,
+  generateSmartAttributeSuggestions,
+} from '@/lib/admin/recommenderApi'
 
 interface AttributeRecommenderProps {
   character: Character
@@ -46,6 +49,7 @@ export function AttributeRecommender({
   const [activeTab, setActiveTab] = useState<'rule-based' | 'ai'>('rule-based')
   const [focusedCategory, setFocusedCategory] = useState<'physical' | 'abilities' | 'personality' | 'origins' | 'relationships' | null>(null)
   const [loadingCategory, setLoadingCategory] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
 
   const detectedType = detectCharacterType(character.name)
 
@@ -107,12 +111,27 @@ export function AttributeRecommender({
     toast.success(`Applied: ${rec.label}`)
   }
 
-  const handleSaveChanges = () => {
-    onUpdateCharacter({
-      ...character,
-      attributes: localAttributes,
-    })
-    onBack()
+  const handleSaveChanges = async () => {
+    setIsSaving(true)
+    try {
+      const changed = await saveAdminCharacterAttributeDiff(
+        character.id,
+        character.attributes,
+        localAttributes,
+      )
+
+      onUpdateCharacter({
+        ...character,
+        attributes: localAttributes,
+      })
+
+      toast.success(`Saved ${changed} attribute change${changed === 1 ? '' : 's'}`)
+      onBack()
+    } catch {
+      toast.error('Failed to save attribute changes')
+    } finally {
+      setIsSaving(false)
+    }
   }
 
   const getPriorityColor = (priority: string) => {
@@ -141,6 +160,10 @@ export function AttributeRecommender({
 
   const attributeCount = Object.keys(localAttributes).length
   const appliedCount = appliedAttributes.size
+  const changeSuffix = appliedCount === 1 ? '' : 's'
+  const saveButtonLabel = isSaving
+    ? 'Saving...'
+    : `Save ${appliedCount} Change${changeSuffix}`
 
   return (
     <div className="space-y-6">
@@ -166,11 +189,12 @@ export function AttributeRecommender({
         {appliedCount > 0 && (
           <Button
             onClick={handleSaveChanges}
+            disabled={isSaving}
             size="lg"
             className="bg-accent hover:bg-accent/90 text-accent-foreground"
           >
             <Check size={20} weight="bold" className="mr-2" />
-            Save {appliedCount} Change{appliedCount !== 1 ? 's' : ''}
+            {saveButtonLabel}
           </Button>
         )}
       </div>
