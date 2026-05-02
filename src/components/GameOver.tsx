@@ -44,6 +44,7 @@ interface GameOverProps {
   onCopyLink?: () => void;
   answeredQuestions?: Array<{ question: string; answer: string; eliminated?: number }>;
   onReveal?: (characterName: string) => Promise<RevealResult>;
+  onSubmitFeedback?: (rating: number, feedbackText?: string) => Promise<void>;
   surrendered?: boolean;
   persona?: Persona;
   isPersonalBest?: boolean;
@@ -68,6 +69,7 @@ export function GameOver({
   onCopyLink,
   answeredQuestions,
   onReveal,
+  onSubmitFeedback,
   surrendered,
   persona,
   isPersonalBest = false,
@@ -80,6 +82,9 @@ export function GameOver({
     "idle" | "loading" | "done"
   >("idle");
   const [revealResult, setRevealResult] = useState<RevealResult | null>(null);
+  const [feedbackRating, setFeedbackRating] = useState<number>(0);
+  const [feedbackText, setFeedbackText] = useState("");
+  const [feedbackStatus, setFeedbackStatus] = useState<"idle" | "loading" | "done">("idle");
   const revealInputRef = useRef<HTMLInputElement>(null);
 
   const emojiText =
@@ -125,6 +130,21 @@ export function GameOver({
       setRevealResult({ found: false });
     } finally {
       setRevealStatus("done");
+    }
+  };
+
+  const handleFeedbackSubmit = async () => {
+    if (!onSubmitFeedback || feedbackRating < 1 || feedbackStatus !== "idle") {
+      return;
+    }
+    setFeedbackStatus("loading");
+    try {
+      await onSubmitFeedback(feedbackRating, feedbackText.trim() || undefined);
+      setFeedbackStatus("done");
+      toast.success("Thanks for the feedback!");
+    } catch {
+      setFeedbackStatus("idle");
+      toast.error("Could not save feedback right now.");
     }
   };
 
@@ -321,6 +341,47 @@ export function GameOver({
                 {narrative}
                 {isStreaming && <span className="animate-pulse">▌</span>}
               </p>
+            </div>
+          )}
+
+          {onSubmitFeedback && (
+            <div className="bg-linear-to-br from-secondary/20 to-secondary/5 rounded-xl p-4 border border-border/60 text-left space-y-3">
+              <p className="text-sm font-medium text-foreground">How was this round?</p>
+              {feedbackStatus === "done" ? (
+                <p className="text-xs text-muted-foreground">Feedback saved. This helps tune question quality.</p>
+              ) : (
+                <>
+                  <div className="grid grid-cols-5 gap-2" role="radiogroup" aria-label="Game rating">
+                    {[1, 2, 3, 4, 5].map((rating) => (
+                      <Button
+                        key={rating}
+                        type="button"
+                        variant={feedbackRating === rating ? "default" : "outline"}
+                        className="h-10"
+                        onClick={() => setFeedbackRating(rating)}
+                        aria-pressed={feedbackRating === rating}
+                      >
+                        {rating}
+                      </Button>
+                    ))}
+                  </div>
+                  <Input
+                    value={feedbackText}
+                    onChange={(e) => setFeedbackText(e.target.value)}
+                    placeholder="Optional: what felt off or great?"
+                    maxLength={300}
+                    disabled={feedbackStatus === "loading"}
+                  />
+                  <Button
+                    type="button"
+                    onClick={() => void handleFeedbackSubmit()}
+                    disabled={feedbackRating < 1 || feedbackStatus === "loading"}
+                    className="w-full sm:w-auto"
+                  >
+                    {feedbackStatus === "loading" ? "Saving feedback..." : "Send Feedback"}
+                  </Button>
+                </>
+              )}
             </div>
           )}
 

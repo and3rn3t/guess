@@ -54,6 +54,12 @@ export const ResumeRequestSchema = z.object({
   sessionId: UuidSchema,
 })
 
+export const FeedbackRequestSchema = z.object({
+  sessionId: UuidSchema,
+  rating: z.number().int().min(1).max(5),
+  feedbackText: z.string().max(2000).optional(),
+})
+
 // ── Character & question endpoints (v1 KV-based) ──────────────────────────────
 
 export const CreateCharacterRequestSchema = z.object({

@@ -7,6 +7,7 @@ import {
   skipQuestion,
   startGame,
   submitAnswer,
+  submitGameFeedback,
   submitResult,
 } from "@/lib/gameApi";
 import { runWhenIdle } from "@/lib/idle";
@@ -32,6 +33,7 @@ const SERVER_SESSION_KEY = "server-session-id";
  */
 export function useServerGame(dispatch: React.Dispatch<GameAction>) {
   const [serverSessionId, setServerSessionId] = useState<string | null>(null);
+  const [lastCompletedSessionId, setLastCompletedSessionId] = useState<string | null>(null);
   const [serverRemaining, setServerRemaining] = useState(0);
   const serverRemainingRef = useRef(0);
   const [serverTotal, setServerTotal] = useState(0);
@@ -246,6 +248,7 @@ export function useServerGame(dispatch: React.Dispatch<GameAction>) {
     (correct: boolean) => {
       if (!serverSessionId) return;
       const sessionId = serverSessionId;
+      setLastCompletedSessionId(sessionId);
       // Defer the result POST to idle time so it doesn't compete with the
       // reveal/confetti animation on the main thread.
       runWhenIdle(() => {
@@ -256,6 +259,17 @@ export function useServerGame(dispatch: React.Dispatch<GameAction>) {
       persistSessionId(null);
     },
     [serverSessionId, persistSessionId],
+  );
+
+  const submitPostGameFeedback = useCallback(
+    async (rating: number, feedbackText?: string) => {
+      const sessionId = lastCompletedSessionId;
+      if (!sessionId) {
+        throw new Error("No completed session available for feedback");
+      }
+      await submitGameFeedback(sessionId, rating, feedbackText);
+    },
+    [lastCompletedSessionId],
   );
 
   const lastRejectedCharRef = useRef<string | null>(null);
@@ -369,6 +383,7 @@ export function useServerGame(dispatch: React.Dispatch<GameAction>) {
     postServerResult,
     rejectGuess,
     retryAfterReject,
+    submitPostGameFeedback,
     lastError,
     clearLastError,
     retryLastAction,

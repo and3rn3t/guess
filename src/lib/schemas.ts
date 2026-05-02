@@ -170,6 +170,10 @@ export const RevealResponseSchema = z.object({
   discrepancies: z.number().optional(),
 })
 
+export const FeedbackResponseSchema = z.object({
+  success: z.boolean(),
+})
+
 // ── Global stats (from /api/v2/stats) ────────────────────────────────────────
 
 export const GlobalStatsSchema = z.object({

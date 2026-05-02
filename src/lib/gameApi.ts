@@ -13,6 +13,7 @@ import {
   RejectGuessResponseSchema,
   ResumeResponseSchema,
   RevealResponseSchema,
+  FeedbackResponseSchema,
 } from "@/lib/schemas";
 import type {
   AnswerValue,
@@ -215,6 +216,10 @@ export interface RevealResponse {
   discrepancies?: number;
 }
 
+export interface FeedbackResponse {
+  success: boolean;
+}
+
 export function revealCharacter(
   characterName: string,
   answers: Array<{ questionId: string; value: string }>,
@@ -225,4 +230,18 @@ export function revealCharacter(
       answers,
     })
     .then((raw) => RevealResponseSchema.parse(raw));
+}
+
+export function submitGameFeedback(
+  sessionId: string,
+  rating: number,
+  feedbackText?: string,
+): Promise<FeedbackResponse> {
+  return httpClient
+    .postJson<unknown>("/api/v2/game/feedback", {
+      sessionId,
+      rating,
+      feedbackText: feedbackText?.trim() || undefined,
+    })
+    .then((raw) => FeedbackResponseSchema.parse(raw));
 }

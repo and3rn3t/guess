@@ -89,6 +89,7 @@ export interface GameContextValue {
   handleShare: () => void | Promise<void>;
   handleCopyLink: () => void | Promise<void>;
   handleReveal: (name: string) => Promise<RevealResult>;
+  handleSubmitFeedback: (rating: number, feedbackText?: string) => Promise<void>;
   handleAddCharacter: (c: Character) => void;
   handleAddQuestions: (q: Question[]) => void;
 }

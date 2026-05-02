@@ -142,6 +142,7 @@ function App() {
     handleServerAnswer,
     handleServerSkip,
     postServerResult,
+    submitPostGameFeedback,
     rejectGuess,
     retryAfterReject,
     lastError: serverLastError,
@@ -542,6 +543,7 @@ function App() {
                 handleShare,
                 handleCopyLink,
                 handleReveal,
+                handleSubmitFeedback: submitPostGameFeedback,
                 handleAddCharacter,
                 handleAddQuestions,
               }}

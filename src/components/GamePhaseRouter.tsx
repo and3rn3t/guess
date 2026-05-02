@@ -91,6 +91,7 @@ export function GamePhaseRouter() {
     handleShare,
     handleCopyLink,
     handleReveal,
+    handleSubmitFeedback,
     handleAddCharacter,
     handleAddQuestions,
   } = useGameContext();
@@ -264,6 +265,7 @@ export function GamePhaseRouter() {
                   };
                 })}
                 onReveal={gameWon ? undefined : handleReveal}
+                onSubmitFeedback={handleSubmitFeedback}
                 persona={persona}
                 isPersonalBest={isNewPersonalBest}
                 personalBest={personalBest}
