@@ -27,6 +27,7 @@ permissions: {}
 
 env:
   WRANGLER_VERSION: "4.83.0"
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
 
 jobs:
   # ── Detect which parts of the codebase changed ─────────────

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { AdminPageHeader } from '../AdminPageHeader'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -67,7 +67,7 @@ export default function EnrichDashboardRoute(): React.JSX.Element {
     return () => clearInterval(id)
   }, [runningCount, jobActive])
 
-  const connect = () => {
+  const connect = useCallback(() => {
     if (esRef.current) { esRef.current.close(); esRef.current = null }
     const es = new EventSource('/api/admin/enrich/stream')
     esRef.current = es
@@ -100,12 +100,12 @@ export default function EnrichDashboardRoute(): React.JSX.Element {
       }
     })
     es.onerror = () => setConnected(false)
-  }
+  }, []) // closed over refs (esRef, wasActiveRef, lastJobActiveRef) are stable
 
   useEffect(() => {
     connect()
     return () => { esRef.current?.close() }
-  }, []) // connect is intentionally stable — defined outside effect
+  }, [connect])
 
   const sendSignal = async (action: 'start' | 'stop') => {
     setActionMsg(null)
