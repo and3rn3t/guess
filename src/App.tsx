@@ -15,8 +15,10 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useAchievements } from "@/hooks/useAchievements";
 import { useAdaptiveDifficulty } from "@/hooks/useAdaptiveDifficulty";
+import { useAppLifecycleEffects } from "@/hooks/useAppLifecycleEffects";
 import { useDailyStreak } from "@/hooks/useDailyStreak";
 import { useEliminationTracker } from "@/hooks/useEliminationTracker";
+import { useGameActions } from "@/hooks/useGameActions";
 import { useGameState } from "@/hooks/useGameState";
 import { useGlobalStats } from "@/hooks/useGlobalStats";
 import { useInstallPrompt } from "@/hooks/useInstallPrompt";
@@ -31,22 +33,7 @@ import { useWakeLock } from "@/hooks/useWakeLock";
 import { useWeeklyRecap } from "@/hooks/useWeeklyRecap";
 import { DEFAULT_CHARACTERS, DEFAULT_QUESTIONS } from "@/lib/database";
 import type { SharePayload } from "@/lib/sharing";
-import {
-  buildShareUrl,
-  generateShareText,
-  parseUrlChallenge,
-} from "@/lib/sharing";
-import {
-  hapticLight,
-  hapticMedium,
-  hapticSuccess,
-  playAnswer,
-  playCorrectGuess,
-  playIncorrectGuess,
-} from "@/lib/sounds";
-import { revealCharacter } from "@/lib/gameApi";
 import type {
-  AnswerValue,
   Character,
   CharacterCategory,
   Difficulty,
@@ -59,10 +46,8 @@ import {
 } from "@/lib/types";
 import { startViewTransition } from "@/lib/view-transitions";
 import { useTheme } from "next-themes";
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { toast, Toaster } from "sonner";
-
-const analytics = () => import("@/lib/analytics");
+import { useCallback, useMemo, useState } from "react";
+import { Toaster } from "sonner";
 const THEME_ORDER = ["dark", "light", "system"] as const;
 
 function App() {
@@ -168,13 +153,6 @@ function App() {
   // Adaptive difficulty suggestion — show once per session when win rate ≥ 80% over last 10 games
   useAdaptiveDifficulty(gamePhase, difficulty, gameHistory, setDifficulty);
 
-  // Show onboarding when first game starts
-  useEffect(() => {
-    if (gamePhase === "playing" && !onboardingDone && gamesPlayed === 0) {
-      setShowOnboarding(true);
-    }
-  }, [gamePhase, onboardingDone, gamesPlayed]);
-
   const toggleTheme = useCallback(() => {
     const currentIndex = THEME_ORDER.indexOf((theme as (typeof THEME_ORDER)[number]) ?? "dark");
     const nextTheme = THEME_ORDER[(currentIndex + 1) % THEME_ORDER.length];
@@ -193,227 +171,61 @@ function App() {
 
   // ========== PWA: SW UPDATE NOTIFICATION ==========
   const { updateAvailable, reload: reloadForUpdate } = useSWUpdate();
-  useEffect(() => {
-    if (!updateAvailable) return;
-    toast("Update available", {
-      description: "A new version of Andernator is ready.",
-      action: { label: "Reload", onClick: reloadForUpdate },
-      duration: Infinity,
-    });
-  }, [updateAvailable, reloadForUpdate]);
+  const {
+    startGame,
+    handleAnswer,
+    handleCorrectGuess,
+    handleIncorrectGuess,
+    handleRejectGuess,
+    handleSurrender,
+    handleSkip,
+    handleShare,
+    handleCopyLink,
+    handleReveal,
+    handleAddCharacter,
+    handleAddQuestions,
+  } = useGameActions({
+    categories,
+    difficulty,
+    startServerGame,
+    resetElimination,
+    setIsNewPersonalBest,
+    dispatch,
+    handleServerAnswer,
+    updateBest,
+    gameSteps,
+    guessCount,
+    postServerResult,
+    refreshStats,
+    finalGuess,
+    rejectGuess,
+    gamePhase,
+    setShowQuitDialog,
+    currentQuestion,
+    serverRemaining,
+    handleServerSkip,
+    gameWon,
+    answers,
+    setCharacters,
+    setQuestions,
+  });
 
-  // ========== FOCUS MANAGEMENT ON PHASE CHANGE ==========
-  // Move focus to the new phase's primary heading/wrapper after transition,
-  // so screen readers announce context and keyboard users land in the right
-  // place. Components opt in by adding `data-phase-focus tabIndex={-1}`.
-  useEffect(() => {
-    const target = document.querySelector<HTMLElement>("[data-phase-focus]");
-    if (target) target.focus({ preventScroll: true });
-  }, [gamePhase]);
-
-  // ========== PARSE URL CHALLENGE ON MOUNT ==========
-  useEffect(() => {
-    const payload = parseUrlChallenge();
-    if (payload) {
-      setChallenge(payload);
-      navigate("challenge");
-      globalThis.history.replaceState(
-        null,
-        "",
-        globalThis.location.pathname,
-      );
-    }
-  }, [navigate]);
-
-  // ========== GAME START ==========
-  const startGame = async () => {
-    setIsNewPersonalBest(false);
-    resetElimination();
-    await startServerGame(categories, difficulty);
-  };
-
-  // ========== GLOBAL KEYBOARD SHORTCUTS ==========
-  // Esc: dismiss inline error / quit dialog / return from guessing → playing.
-  // R: restart a finished game from the gameOver screen.
-  // Letter shortcuts (Y/N/M/U/?) are handled within QuestionCard.
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      const tag = (e.target as HTMLElement | null)?.tagName?.toLowerCase();
-      if (tag === "input" || tag === "textarea" || tag === "select") return;
-      if (e.metaKey || e.ctrlKey || e.altKey) return;
-
-      if (e.key === "Escape") {
-        if (serverLastError) {
-          clearServerError();
-          e.preventDefault();
-          return;
-        }
-        if (showQuitDialog) {
-          setShowQuitDialog(false);
-          e.preventDefault();
-          return;
-        }
-        if (gamePhase === "guessing") {
-          dispatch({ type: "REJECT_GUESS" });
-          e.preventDefault();
-        }
-        return;
-      }
-
-      if ((e.key === "r" || e.key === "R") && gamePhase === "gameOver") {
-        e.preventDefault();
-        void startGame();
-      }
-    };
-    globalThis.addEventListener("keydown", handler);
-    return () => globalThis.removeEventListener("keydown", handler);
-    // startGame is stable enough for our purposes; including it would re-bind
-    // the listener every render due to the closed-over async function identity.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [gamePhase, serverLastError, showQuitDialog, clearServerError, dispatch]);
-
-  // ========== ANSWER HANDLER ==========
-  const handleAnswer = async (value: AnswerValue) => {
-    dispatch({ type: "ANSWER", value });
-    playAnswer();
-    hapticLight();
-    await handleServerAnswer(value);
-  };
-
-  // ========== GAME OUTCOME HANDLERS ==========
-  const handleCorrectGuess = () => {
-    const isNewBest = updateBest(gameSteps.length);
-    setIsNewPersonalBest(isNewBest);
-    dispatch({ type: "CORRECT_GUESS" });
-    analytics().then((m) =>
-      m.trackGameEnd(true, difficulty, gameSteps.length, guessCount),
-    );
-    playCorrectGuess();
-    hapticSuccess();
-    toast.success("🎉 I got it right!");
-    postServerResult(true);
-    refreshStats();
-  };
-
-  const handleIncorrectGuess = () => {
-    dispatch({ type: "INCORRECT_GUESS" });
-    analytics().then((m) =>
-      m.trackGameEnd(false, difficulty, gameSteps.length, guessCount),
-    );
-    playIncorrectGuess();
-    hapticMedium();
-    toast.error("I'll learn from this and do better next time!");
-    postServerResult(false);
-    refreshStats();
-  };
-
-  const handleRejectGuess = () => {
-    if (!finalGuess) return;
-    playIncorrectGuess();
-    hapticMedium();
-    rejectGuess(finalGuess.id);
-  };
-
-  const handleSurrender = () => {
-    analytics().then((m) => {
-      m.trackGameEnd(false, difficulty, gameSteps.length, guessCount);
-      m.trackGameAbandon({
-        reason: "quit",
-        questionsAsked: gameSteps.length,
-        phase: gamePhase,
-      });
-    });
-    postServerResult(false);
-    refreshStats();
-    setShowQuitDialog(false);
-    dispatch({ type: "SURRENDER" });
-  };
-
-  const handleSkip = () => {
-    if (currentQuestion) {
-      analytics().then((m) =>
-        m.trackQuestionSkip({
-          questionId: currentQuestion.id,
-          attribute: currentQuestion.attribute,
-          questionsAsked: gameSteps.length,
-          candidatesRemaining: serverRemaining,
-        }),
-      );
-    }
-    handleServerSkip();
-  };
-
-  // ========== SHARE HANDLERS ==========
-  const getSharePayload = (): SharePayload | null => {
-    if (!finalGuess) return null;
-    return {
-      characterId: finalGuess.id,
-      characterName: finalGuess.name,
-      won: gameWon,
-      difficulty,
-      questionCount: gameSteps.length,
-      steps: gameSteps,
-    };
-  };
-
-  const handleShare = async () => {
-    const payload = getSharePayload();
-    if (!payload) return;
-    const text = generateShareText(payload);
-    const url = buildShareUrl(payload);
-    if (navigator.share) {
-      try {
-        await navigator.share({ text: `${text}\n${url}` });
-        analytics().then((m) => m.trackShare("native"));
-      } catch {
-        // User cancelled — ignore
-      }
-    } else {
-      try {
-        await navigator.clipboard.writeText(`${text}\n${url}`);
-        analytics().then((m) => m.trackShare("clipboard"));
-        toast.success("Copied to clipboard!");
-      } catch {
-        toast.error("Could not copy to clipboard");
-      }
-    }
-  };
-
-  const handleCopyLink = async () => {
-    const payload = getSharePayload();
-    if (!payload) return;
-    const url = buildShareUrl(payload);
-    try {
-      await navigator.clipboard.writeText(url);
-      analytics().then((m) => m.trackShare("link"));
-      toast.success("Challenge link copied!");
-    } catch {
-      toast.error("Could not copy to clipboard");
-    }
-  };
-
-  const handleReveal = async (
-    characterName: string,
-  ) => {
-    try {
-      return await revealCharacter(
-        characterName,
-        answers.map((a) => ({ questionId: a.questionId, value: a.value })),
-      );
-    } catch {
-      return { found: false };
-    }
-  };
-
-  // ========== DATA HANDLERS ==========
-  const handleAddCharacter = (character: Character) => {
-    setCharacters((prev) => [...(prev || []), character]);
-    toast.success(`I've learned about ${character.name}!`);
-  };
-
-  const handleAddQuestions = (newQuestions: Question[]) => {
-    setQuestions((prev) => [...(prev || []), ...newQuestions]);
-  };
+  useAppLifecycleEffects({
+    gamePhase,
+    onboardingDone,
+    gamesPlayed,
+    setShowOnboarding,
+    updateAvailable,
+    reloadForUpdate,
+    navigate,
+    setChallenge,
+    serverLastError,
+    clearServerError,
+    showQuitDialog,
+    setShowQuitDialog,
+    dispatch,
+    startGame,
+  });
 
   // Challenge view is a standalone screen — render before the main layout
   if (gamePhase === "challenge" && challenge) {
