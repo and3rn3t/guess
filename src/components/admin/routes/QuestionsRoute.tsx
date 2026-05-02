@@ -104,6 +104,8 @@ export default function QuestionsRoute(): React.JSX.Element {
   const [expanding, setExpanding] = useState(false)
   const [expansionMessage, setExpansionMessage] = useState<string | null>(null)
   const [expansionRuns, setExpansionRuns] = useState<ExpansionRun[]>([])
+  const [runStatusFilter, setRunStatusFilter] = useState<'all' | 'success' | 'error'>('all')
+  const [runModeFilter, setRunModeFilter] = useState<'all' | 'dry-run' | 'apply'>('all')
 
   const fetchExpansionHistory = async () => {
     try {
@@ -249,6 +251,13 @@ export default function QuestionsRoute(): React.JSX.Element {
 
   const totalPages = data ? Math.ceil(data.total / pageSize) : 1
 
+  const visibleExpansionRuns = expansionRuns.filter((run) => {
+    const statusOk = runStatusFilter === 'all' || run.status === runStatusFilter
+    const mode = run.dryRun ? 'dry-run' : 'apply'
+    const modeOk = runModeFilter === 'all' || mode === runModeFilter
+    return statusOk && modeOk
+  })
+
   return (
     <div className="container mx-auto px-4 pb-8 max-w-5xl space-y-6">
       <AdminPageHeader
@@ -295,15 +304,48 @@ export default function QuestionsRoute(): React.JSX.Element {
       <div className="rounded-xl border bg-card p-4">
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-sm font-semibold text-foreground">Question Expansion Runs</h3>
-          <Button variant="ghost" size="sm" onClick={() => void fetchExpansionHistory()} disabled={expanding}>
-            Refresh
-          </Button>
+          <div className="flex items-center gap-2">
+            <select
+              value={runStatusFilter}
+              onChange={(event) => setRunStatusFilter(event.target.value as 'all' | 'success' | 'error')}
+              className="h-8 rounded-md border border-border bg-background px-2 text-xs"
+              aria-label="Filter runs by status"
+            >
+              <option value="all">All status</option>
+              <option value="success">Success</option>
+              <option value="error">Error</option>
+            </select>
+            <select
+              value={runModeFilter}
+              onChange={(event) => setRunModeFilter(event.target.value as 'all' | 'dry-run' | 'apply')}
+              className="h-8 rounded-md border border-border bg-background px-2 text-xs"
+              aria-label="Filter runs by mode"
+            >
+              <option value="all">All modes</option>
+              <option value="dry-run">Dry-run</option>
+              <option value="apply">Apply</option>
+            </select>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setRunStatusFilter('all')
+                setRunModeFilter('all')
+              }}
+              disabled={runStatusFilter === 'all' && runModeFilter === 'all'}
+            >
+              Clear
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => void fetchExpansionHistory()} disabled={expanding}>
+              Refresh
+            </Button>
+          </div>
         </div>
-        {expansionRuns.length === 0 ? (
+        {visibleExpansionRuns.length === 0 ? (
           <p className="text-xs text-muted-foreground">No expansion runs recorded yet.</p>
         ) : (
           <div className="space-y-2">
-            {expansionRuns.slice(0, 8).map((run) => (
+            {visibleExpansionRuns.slice(0, 8).map((run) => (
               <div key={run.requestId} className="rounded-lg border border-border/60 px-3 py-2 text-xs">
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
