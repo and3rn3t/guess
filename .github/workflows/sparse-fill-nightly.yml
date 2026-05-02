@@ -79,6 +79,7 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
+          set -o pipefail
           ENV_FLAG="${{ github.event.inputs.env || 'production' }}"
           BUDGET="${{ github.event.inputs.budget || '200' }}"
           MAX_PER_CHAR="${{ github.event.inputs.max_per_char || '30' }}"
