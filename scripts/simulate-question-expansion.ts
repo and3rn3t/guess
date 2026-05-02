@@ -34,15 +34,6 @@ interface GameRow {
   created_at: number
 }
 
-interface Step {
-  question_id: string
-  question_text: string
-  attribute: string
-  answer: string
-  candidates_before: number
-  candidates_after: number
-}
-
 interface SimulationResult {
   timestamp: string
   config: {
@@ -113,14 +104,6 @@ function d1Query(sql: string): Array<Record<string, unknown>> {
   } catch (e) {
     console.error(`D1 query failed: ${e}`)
     process.exit(1)
-  }
-}
-
-function parseSteps(stepsJson: string): Step[] {
-  try {
-    return JSON.parse(stepsJson)
-  } catch {
-    return []
   }
 }
 
