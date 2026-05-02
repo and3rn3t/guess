@@ -171,10 +171,13 @@ export async function runServerEnrichBatch(env: Env, batchId: string, limit: num
 
       const t0 = Date.now()
 
-      // 25 s hard timeout per character — same reasoning as before, but now
-      // the completion is ~500 tokens so this is very unlikely to fire.
+      // 45 s hard timeout per character. Without question_text the system
+      // prompt is ~1,100 tokens; response is ~1,400 tokens (234 key:value pairs).
+      // At gpt-4o-mini's real-world throughput that's ~11-18 s + AI Gateway
+      // round-trip. I/O wait doesn't count toward Worker CPU budget, so 45 s
+      // gives headroom without risking hitting the 30 s CPU limit.
       const llmAbort = new AbortController()
-      const llmTimeout = setTimeout(() => llmAbort.abort(), 25_000)
+      const llmTimeout = setTimeout(() => llmAbort.abort(), 45_000)
 
       let charError: string | null = null
       let attrResult: Record<string, boolean | null> = {}
