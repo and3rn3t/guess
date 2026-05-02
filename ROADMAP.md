@@ -230,11 +230,12 @@ The active execution plan, sequenced by **priority × ease**. Pull items top-dow
 
 > **Maintain this block first.** It's the single answer to "what should I work on?" — agents and humans check it before scanning tables. Update in the same commit as the work it describes.
 
-- 🟡 **In progress:** [I.1](#i-1) preview AI Gateway 24h verification window · [I.9](#i-9) AI Gateway semantic caching 7d cache-hit window · [P.7](#p-7) `/about` + `/credits` pages · [P.8](#p-8) light theme + 3-state toggle (system/dark/light) · [EN.29](#en-29) trivia card on reveal
+- 🟡 **In progress:** [I.1](#i-1) preview AI Gateway 24h verification window · [I.9](#i-9) AI Gateway semantic caching 7d cache-hit window · [P.7](#p-7) `/about` + `/credits` pages · [P.8](#p-8) light theme + 3-state toggle (system/dark/light)
 - ▶ **Up next:** [P.9](#p-9) daily challenge global leaderboard
+- ✅ **Recently completed:** [EN.29](#en-29) trivia card on reveal (2026-05-02)
 - 🧫 **Blocked / waiting on:** _none_
 - 🎯 **Current wave focus:** Wave 4 complete. Next: Wave 5 — Polish & Depth (admin polish, DX leverage, player-facing gloss).
-- ✅ **Recently shipped (last 5):** [AN.11](#an-11) aha moment detector (2026-05-01) · [AN.21](#an-21) catastrophic-failure replay queue (2026-05-01) · [B.4](#b-4) question dedup via embeddings (2026-05-01) · [C.6](#c-6) question quality feedback loop (2026-05-01) · [AN.17](#an-17) question retirement queue (2026-05-01) · …see [CHANGELOG.md](CHANGELOG.md) for the full list.
+- ✅ **Recently shipped (last 5):** [EN.29](#en-29) trivia card on reveal (2026-05-02) · [AN.11](#an-11) aha moment detector (2026-05-01) · [AN.21](#an-21) catastrophic-failure replay queue (2026-05-01) · [B.4](#b-4) question dedup via embeddings (2026-05-01) · [C.6](#c-6) question quality feedback loop (2026-05-01) · …see [CHANGELOG.md](CHANGELOG.md) for the full list.
 
 ### Wave 1 — Foundation (start here, ~1 week of focused work)
 
@@ -719,7 +720,7 @@ Larger architectural moves (Cloudflare Workflows migration, agentic enrichment, 
 
 | # | Item | Notes |
 |---|------|-------|
-| EN.29 | **"Did you know?" character trivia card on reveal** | LLM batch pass populates `characters.trivia` (3 short, surprising facts per character). Surfaces on the reveal screen — adds learning + delight on top of the guess outcome. Cheap one-time pass. |
+| ✅ EN.29 (2026-05-02) | **"Did you know?" character trivia card on reveal** | `characters.trivia` TEXT column (migration 0043), `parseTrivia()` normalisation, full API → type → schema → UI threading in `GuessReveal.tsx`. `scripts/generate-trivia.ts` batch script for gpt-4o-mini population. |
 | EN.30 | **Spoiler-aware enrichment tagging** | Some attributes (`isVillain`, `isDead`, `realIdentity`) are spoilers for some characters. Add a `spoiler_severity` field to `attribute_definitions`; player has a "hide spoilers for media I haven't consumed" toggle. Engine still uses these attributes; UI just blurs the question when the player has opted out for that franchise. |
 | EN.31 | **Localization pipeline for top languages** | Enrich character names + brief description in EN/ES/JA/PT/DE. Stored in `character_translations`. Player UI auto-picks based on `Accept-Language`. Major step toward the geo-aware engagement signals AN.14 surfaces. |
 | EN.32 | **Pronunciation guide for non-Latin names** | LLM generates IPA + audio pronunciation (Workers AI TTS) for characters with non-English names. Tiny audio file in R2; admin can override. Surfaces on reveal screen and in teaching mode. Small touch, big payoff for accessibility + cultural respect. |
