@@ -25,6 +25,7 @@ import { execFileSync } from 'node:child_process'
 import * as fs from 'node:fs'
 import * as path from 'node:path'
 import { buildQualityPenaltyMap, type QualitySignals } from '../packages/game-engine/src/quality-penalty'
+import { buildAhaMomentsMap } from '../functions/api/admin/_aha'
 
 const ENV_FLAG = (() => {
   const i = process.argv.indexOf('--env')
@@ -316,10 +317,30 @@ function aggregateCharacterConfusions(): void {
   console.log(`[aggregate]   ${pairs.size} unique pairs \u2192 ${filePath}`)
 }
 
+// ── Signal 5: aha moments (AN.11) ────────────────────────────────────────────
+//
+// Aggregate the per-game aha attribute + jump magnitude from game_stats into a
+// ranked list of "breakthrough" attributes. Uploaded to kv:aha-moments by the
+// CI workflow for the admin AnalyticsRoute aha card.
+function aggregateAhaMoments(): void {
+  console.log('[aggregate] computing aha moments ...')
+  const rows = d1<{ aha_attr: string | null; aha_jump: number | null }>(
+    `SELECT aha_attr, aha_jump
+     FROM game_stats
+     WHERE created_at > ${cutoff}
+       AND aha_attr IS NOT NULL
+       AND aha_jump IS NOT NULL`
+  )
+  const summary = buildAhaMomentsMap(rows)
+  console.log(`[aggregate]   ${summary.length} aha moment attribute(s) found`)
+  writeJson('aha-moments.json', summary)
+}
+
 console.log(`[aggregate] env=${ENV_FLAG} db=${DB_NAME} window=${DAYS}d`)
 aggregateAttributeTrust()
 aggregateCharacterPopularity()
 aggregateQuestionEmpiricalGain()
 aggregateQuestionQualityPenalty()
 aggregateCharacterConfusions()
+aggregateAhaMoments()
 console.log('[aggregate] done')

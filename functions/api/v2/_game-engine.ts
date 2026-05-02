@@ -88,6 +88,12 @@ export interface GameSession {
   variant?: 'control' | 'experiment'
   /** Question selector used by this session: 'greedy' (1-step) or 'mcts' (2-step). */
   selector?: 'greedy' | 'mcts'
+  /** AN.11: top-candidate posterior probability after each answer (normalized [0,1]).
+   *  Index i corresponds to session.answers[i]. Used to detect the "aha moment" jump. */
+  posteriorHistory?: number[]
+  /** AN.21: top-10 character candidates (id + name) after each answer.
+   *  Index i corresponds to session.answers[i]. Used for catastrophic-failure triage. */
+  stepTopTen?: Array<Array<{ id: string; name: string }>>
 }
 
 // ── Server-specific constants ─────────────────────────────────────────────────

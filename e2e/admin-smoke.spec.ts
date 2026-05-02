@@ -46,6 +46,7 @@ const ADMIN_ROUTES: RouteCase[] = [
   { path: 'disputes', label: 'disputes' },
   { path: 'community', label: 'community' },
   { path: 'error-logs', label: 'error-logs' },
+  { path: 'triage', label: 'triage' },
 ]
 
 /** Stub every /api/admin/** request with an empty-but-shape-tolerant payload. */

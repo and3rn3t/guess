@@ -153,6 +153,8 @@ describe('POST /api/v2/game/result', () => {
         4,
         'control',
         'mcts',
+        null,   // aha_attr — session has < 3 answers so no aha moment
+        null,   // aha_jump
         expect.any(Number),
       ]
     )

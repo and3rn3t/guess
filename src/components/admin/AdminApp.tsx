@@ -32,6 +32,7 @@ const MatrixRoute = lazy(() => import('./routes/MatrixRoute'))
 const StressTestRoute = lazy(() => import('./routes/StressTestRoute'))
 const ExperimentsRoute = lazy(() => import('./routes/ExperimentsRoute'))
 const DataQualityRoute = lazy(() => import('./routes/DataQualityRoute'))
+const TriageRoute = lazy(() => import('./routes/TriageRoute'))
 
 function RouteWrapper({ children }: { children: React.ReactNode }): React.JSX.Element {
   return (
@@ -80,6 +81,7 @@ export function AdminApp(): React.JSX.Element {
             <Route path="disputes" element={<RouteWrapper><DisputesRoute /></RouteWrapper>} />
             <Route path="community" element={<RouteWrapper><CommunityRoute /></RouteWrapper>} />
             <Route path="error-logs" element={<RouteWrapper><ErrorLogsRoute /></RouteWrapper>} />
+            <Route path="triage" element={<RouteWrapper><TriageRoute /></RouteWrapper>} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Route>
         </Routes>

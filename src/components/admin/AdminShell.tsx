@@ -67,6 +67,7 @@ const PIPELINE_ITEMS: NavItem[] = [
   { to: 'disputes', label: 'Attribute Disputes', icon: <WarningOctagonIcon size={16} weight="duotone" /> },
   { to: 'community', label: 'Community Queue', icon: <UsersThreeIcon size={16} weight="duotone" /> },
   { to: 'error-logs', label: 'Error Logs', icon: <WarningOctagonIcon size={16} weight="fill" /> },
+  { to: 'triage', label: 'Failure Triage', icon: <WarningOctagonIcon size={16} weight="duotone" /> },
 ]
 
 function SidebarSection({

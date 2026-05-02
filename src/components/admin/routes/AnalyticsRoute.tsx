@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { ArrowLeftIcon, ArrowRightIcon, ChartBarIcon, SparkleIcon, XIcon } from '@phosphor-icons/react'
+import { ArrowLeftIcon, ArrowRightIcon, ChartBarIcon, LightningIcon, SparkleIcon, XIcon } from '@phosphor-icons/react'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts'
 
 interface ClientEvent {
@@ -17,6 +17,13 @@ interface ClientEvent {
 interface EventSummary {
   event_type: string
   count: number
+}
+
+interface AhaMomentSummary {
+  attribute: string
+  count: number
+  medianJump: number
+  avgJump: number
 }
 
 interface PageData {
@@ -45,6 +52,7 @@ export default function AnalyticsRoute(): React.JSX.Element {
   const [insights, setInsights] = useState<string | null>(null)
   const [insightsLoading, setInsightsLoading] = useState(false)
   const [showInsights, setShowInsights] = useState(false)
+  const [ahaMoments, setAhaMoments] = useState<AhaMomentSummary[]>([])
   const pageSize = 25
 
   const fetchData = async (type: string, p: number) => {
@@ -64,6 +72,17 @@ export default function AnalyticsRoute(): React.JSX.Element {
   }
 
   useEffect(() => { void fetchData(filterType, page) }, [filterType, page])
+
+  useEffect(() => {
+    void fetch('/api/admin/analytics/aha-moments')
+      .then((r) => r.ok ? r.json() : null)
+      .then((json) => {
+        if (json && Array.isArray((json as { moments?: unknown }).moments)) {
+          setAhaMoments((json as { moments: AhaMomentSummary[] }).moments)
+        }
+      })
+      .catch(() => { /* non-critical */ })
+  }, [])
 
   const totalPages = data ? Math.ceil(data.total / pageSize) : 1
   const formatDate = (ts: number) =>
@@ -141,6 +160,40 @@ export default function AnalyticsRoute(): React.JSX.Element {
           ) : (
             <p className="text-sm text-muted-foreground whitespace-pre-line">{insights}</p>
           )}
+        </div>
+      )}
+
+      {/* Aha Moments Card (AN.11) */}
+      {ahaMoments.length > 0 && (
+        <div className="rounded-xl border bg-card px-5 py-4">
+          <div className="flex items-center gap-2 mb-3">
+            <LightningIcon size={14} className="text-amber-400" />
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">
+              Breakthrough Attributes — last 30 days
+            </p>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-left text-xs text-muted-foreground">
+                  <th className="pb-2 font-medium">Attribute</th>
+                  <th className="pb-2 font-medium text-right">Games</th>
+                  <th className="pb-2 font-medium text-right">Median jump</th>
+                  <th className="pb-2 font-medium text-right">Avg jump</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {ahaMoments.slice(0, 10).map((m) => (
+                  <tr key={m.attribute} className="hover:bg-muted/30 transition-colors">
+                    <td className="py-2 font-mono text-xs">{m.attribute}</td>
+                    <td className="py-2 text-right text-xs text-muted-foreground">{m.count}</td>
+                    <td className="py-2 text-right text-xs text-amber-400">{(m.medianJump * 100).toFixed(1)}%</td>
+                    <td className="py-2 text-right text-xs text-muted-foreground">{(m.avgJump * 100).toFixed(1)}%</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 

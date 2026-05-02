@@ -1,11 +1,11 @@
-import { memo, useState } from 'react'
+import { memo, useMemo, useState } from 'react'
 import { motion, AnimatePresence, useSpring, useTransform } from 'motion/react'
-import { Brain, Lightbulb, Sparkle, CaretDown, Trophy } from '@phosphor-icons/react'
+import { Brain, Lightning, Lightbulb, Sparkle, CaretDown, Trophy } from '@phosphor-icons/react'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { CharacterImage } from '@/components/CharacterImage'
-import { LineChart, Line, ResponsiveContainer } from 'recharts'
+import { LineChart, Line, ReferenceDot, ResponsiveContainer } from 'recharts'
 import type { GuessReadinessSnapshot, ReasoningExplanation } from '@/lib/types'
 
 interface ReasoningPanelProps {
@@ -23,6 +23,61 @@ function SpringBar({ value }: { value: number }) {
   return (
     <div className="w-16 h-1.5 rounded-full bg-secondary overflow-hidden">
       <motion.div className="h-full rounded-full bg-accent" style={{ width }} />
+    </div>
+  )
+}
+
+/** Derives the aha index: the step with the largest positive jump in confidence.
+ *  Returns -1 when history is too short or no positive jump exists. */
+function getAhaIndex(confidenceHistory: number[]): number {
+  if (confidenceHistory.length < 3) return -1
+  let bestIdx = -1
+  let bestJump = 0
+  for (let i = 1; i < confidenceHistory.length; i++) {
+    const jump = confidenceHistory[i] - confidenceHistory[i - 1]
+    if (jump > bestJump) { bestJump = jump; bestIdx = i }
+  }
+  return bestIdx
+}
+
+function AhaSparkline({ confidenceHistory }: { confidenceHistory: number[] }): React.JSX.Element {
+  const ahaIndex = useMemo(() => getAhaIndex(confidenceHistory), [confidenceHistory])
+  const data = confidenceHistory.map((v, i) => ({ t: i, v }))
+  const ahaPoint = ahaIndex >= 0 ? data[ahaIndex] : null
+
+  return (
+    <div>
+      <div className="flex items-center gap-1.5 mb-1">
+        <p className="text-xs text-muted-foreground">Confidence trend</p>
+        {ahaPoint && (
+          <span className="flex items-center gap-0.5 text-xs text-amber-400 font-medium">
+            <Lightning size={10} weight="fill" />
+            Breakthrough at Q{ahaIndex + 1}
+          </span>
+        )}
+      </div>
+      <ResponsiveContainer width="100%" height={36}>
+        <LineChart data={data}>
+          <Line
+            type="monotone"
+            dataKey="v"
+            dot={false}
+            stroke="oklch(0.70 0.15 220)"
+            strokeWidth={1.5}
+            isAnimationActive={false}
+          />
+          {ahaPoint && (
+            <ReferenceDot
+              x={ahaPoint.t}
+              y={ahaPoint.v}
+              r={4}
+              fill="oklch(0.80 0.18 80)"
+              stroke="oklch(0.90 0.20 80)"
+              strokeWidth={1.5}
+            />
+          )}
+        </LineChart>
+      </ResponsiveContainer>
     </div>
   )
 }
@@ -171,23 +226,9 @@ function ReasoningPanelBase({ reasoning, readiness = null, isThinking = false, s
           </motion.div>
         )}
       </AnimatePresence>
-      {/* Confidence sparkline */}
+      {/* Confidence sparkline with aha moment highlight */}
       {confidenceHistory.length >= 3 && (
-        <div>
-          <p className="text-xs text-muted-foreground mb-1">Confidence trend</p>
-          <ResponsiveContainer width="100%" height={32}>
-            <LineChart data={confidenceHistory.map((v, i) => ({ t: i, v }))}>
-              <Line
-                type="monotone"
-                dataKey="v"
-                dot={false}
-                stroke="oklch(0.70 0.15 220)"
-                strokeWidth={1.5}
-                isAnimationActive={false}
-              />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
+        <AhaSparkline confidenceHistory={confidenceHistory} />
       )}
     </>
   )

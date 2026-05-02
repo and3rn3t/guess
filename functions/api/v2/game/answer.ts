@@ -92,6 +92,22 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   // to avoid redundant O(C×A) passes over the same data.
   const probs = calculateProbabilities(filtered, session.answers, scoring)
 
+  // AN.11/AN.21: record posterior history and top-10 after each answer (fire-and-update-session).
+  // posteriorHistory[i] = top candidate's normalized probability after answers[i].
+  // stepTopTen[i] = [{id, name}] of top-10 candidates after answers[i] (for triage).
+  {
+    const sortedEntries = Array.from(probs.entries()).sort((a, b) => b[1] - a[1])
+    const topProb = sortedEntries.length > 0 ? sortedEntries[0][1] : 0
+    const top10 = sortedEntries.slice(0, 10).map(([id]) => {
+      const c = filtered.find((ch) => ch.id === id)
+      return { id, name: c?.name ?? id }
+    })
+    if (!session.posteriorHistory) session.posteriorHistory = []
+    if (!session.stepTopTen) session.stepTopTen = []
+    session.posteriorHistory.push(topProb)
+    session.stepTopTen.push(top10)
+  }
+
   // Check for contradictions
   const { hasContradiction } = detectContradictions(filtered, session.answers)
   if (hasContradiction) {

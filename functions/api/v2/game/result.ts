@@ -10,6 +10,8 @@ import {
 } from '../../_helpers'
 import { ResultRequestSchema } from '../../_schemas'
 import { loadSession, deleteSession, getBestGuess } from '../_game-engine'
+import { computeAhaMoment } from '../../admin/_aha'
+import { detectCatastrophicFailure, buildStepsJson } from '../../admin/_triage'
 
 // ── POST /api/v2/game/result ─────────────────────────────────
 // Records game outcome (win/loss) and cleans up the session
@@ -31,6 +33,14 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   }
 
   const { userId, setCookieHeader } = await getOrCreateUserId(context.request, context.env)
+
+  // Compute aha moment (AN.11): index and magnitude of biggest posterior jump
+  const ahaMoment = computeAhaMoment(session.posteriorHistory ?? [])
+  // Resolve the attribute key for the aha step (if any)
+  const ahaAttr = ahaMoment != null
+    ? (session.answers[ahaMoment.index]?.questionId ?? null)
+    : null
+  const ahaJump = ahaMoment?.jump ?? null
 
   // Build steps from session answers + questions
   const steps = session.answers.map((a) => {
@@ -58,8 +68,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     context.waitUntil(
       d1Run(
         db,
-        `INSERT INTO game_stats (user_id, won, difficulty, questions_asked, character_pool_size, character_id, character_name, steps, guesses_used, confidence_at_guess, entropy_at_guess, remaining_at_guess, answer_distribution, guess_trigger, forced_guess, gap_at_guess, alive_count_at_guess, questions_remaining_at_guess, variant, selector, created_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO game_stats (user_id, won, difficulty, questions_asked, character_pool_size, character_id, character_name, steps, guesses_used, confidence_at_guess, entropy_at_guess, remaining_at_guess, answer_distribution, guess_trigger, forced_guess, gap_at_guess, alive_count_at_guess, questions_remaining_at_guess, variant, selector, aha_attr, aha_jump, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           userId,
           correct ? 1 : 0,
@@ -83,10 +93,35 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
           session.guessAnalytics?.questionsRemaining ?? null,
           session.variant ?? 'control',
           session.selector ?? 'mcts',
+          ahaAttr,
+          ahaJump,
           Date.now(),
         ]
       ).catch(() => { /* non-critical */ })
     )
+  }
+
+  // AN.21: if game was lost and actual character was never in any top-10, queue for triage
+  const actualCharacterId = _actualCharacterId
+  if (db && !correct && actualCharacterId && session.stepTopTen && session.stepTopTen.length > 0) {
+    if (detectCatastrophicFailure(actualCharacterId, session.stepTopTen)) {
+      const steps = buildStepsJson(session.answers, session.questions, session.stepTopTen)
+      const actualChar = session.characters.find((c) => c.id === actualCharacterId)
+      context.waitUntil(
+        d1Run(
+          db,
+          `INSERT INTO triage_queue (actual_character_id, actual_character_name, min_rank, steps_json, created_at)
+           VALUES (?, ?, ?, ?, ?)`,
+          [
+            actualCharacterId,
+            actualChar?.name ?? null,
+            null,
+            JSON.stringify(steps),
+            Date.now(),
+          ]
+        ).catch(() => { /* non-critical */ })
+      )
+    }
   }
 
   // Clean up session + pool from KV
