@@ -51,6 +51,25 @@ interface QuestionScoreResult {
   rewrite?: string
 }
 
+interface QuestionExpansionResult {
+  ok: boolean
+  dryRun: boolean
+  targetAttributes: number
+  candidates: number
+  inserted: number
+}
+
+interface ExpansionRun {
+  requestId: string
+  dryRun: boolean
+  targetAttributes: number
+  candidates: number
+  inserted: number
+  createdAt: string
+  status: 'success' | 'error'
+  error?: string
+}
+
 interface AdminQuestion {
   key: string
   displayText: string
@@ -82,6 +101,20 @@ export default function QuestionsRoute(): React.JSX.Element {
 
   const [scores, setScores] = useState<Record<string, QuestionScoreResult>>({})
   const [scoringKey, setScoringKey] = useState<string | null>(null)
+  const [expanding, setExpanding] = useState(false)
+  const [expansionMessage, setExpansionMessage] = useState<string | null>(null)
+  const [expansionRuns, setExpansionRuns] = useState<ExpansionRun[]>([])
+
+  const fetchExpansionHistory = async () => {
+    try {
+      const res = await fetch('/api/admin/questions/expand')
+      if (!res.ok) return
+      const body = await res.json() as { runs?: ExpansionRun[] }
+      setExpansionRuns(body.runs ?? [])
+    } catch {
+      // Non-fatal for route UX.
+    }
+  }
 
   const fetchData = async (searchVal: string, pageVal: number) => {
     setLoading(true)
@@ -104,6 +137,9 @@ export default function QuestionsRoute(): React.JSX.Element {
   }, [search])
 
   useEffect(() => { void fetchData(search, page) }, [page]) // eslint-disable-line react-hooks/exhaustive-deps -- `search` is passed as an arg so stale-closure risk is nil; omitting `fetchData` avoids double-fetch with the debounce effect above
+  useEffect(() => {
+    void fetchExpansionHistory()
+  }, [])
 
   const startEdit = (q: AdminQuestion) => {
     setEditingKey(q.key)
@@ -172,6 +208,45 @@ export default function QuestionsRoute(): React.JSX.Element {
     }
   }
 
+  const expandQuestions = async (dryRun: boolean) => {
+    setExpanding(true)
+    setError(null)
+    setExpansionMessage(null)
+    try {
+      const res = await fetch('/api/admin/questions/expand', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          dryRun,
+          limit: 40,
+          minCharacterCount: 25,
+          maxPerAttribute: 2,
+        }),
+      })
+      if (!res.ok) {
+        const body = await res.json() as { error?: string }
+        throw new Error(body.error ?? res.statusText)
+      }
+
+      const result = await res.json() as QuestionExpansionResult
+      if (dryRun) {
+        setExpansionMessage(
+          `Preview complete: ${result.candidates} candidate questions across ${result.targetAttributes} attributes.`
+        )
+      } else {
+        setExpansionMessage(
+          `Applied expansion: inserted ${result.inserted} of ${result.candidates} candidates across ${result.targetAttributes} attributes.`
+        )
+        await fetchData(search, page)
+      }
+      await fetchExpansionHistory()
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Question expansion failed')
+    } finally {
+      setExpanding(false)
+    }
+  }
+
   const totalPages = data ? Math.ceil(data.total / pageSize) : 1
 
   return (
@@ -181,9 +256,28 @@ export default function QuestionsRoute(): React.JSX.Element {
         subtitle={data ? `${data.total} attribute definitions` : undefined}
         sectionColor="blue"
         actions={
-          <div className="relative w-72">
-            <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
-            <Input placeholder="Search questions…" value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => void expandQuestions(true)}
+              disabled={expanding}
+            >
+              <SparkleIcon size={14} className="mr-1" />
+              {expanding ? 'Running…' : 'Preview Expansion'}
+            </Button>
+            <Button
+              size="sm"
+              onClick={() => void expandQuestions(false)}
+              disabled={expanding}
+            >
+              <SparkleIcon size={14} className="mr-1" />
+              {expanding ? 'Running…' : 'Apply Expansion'}
+            </Button>
+            <div className="relative w-72">
+              <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
+              <Input placeholder="Search questions…" value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
+            </div>
           </div>
         }
       />
@@ -191,6 +285,48 @@ export default function QuestionsRoute(): React.JSX.Element {
       {error && (
         <div className="rounded-lg bg-destructive/10 border border-destructive/30 px-4 py-3 text-sm text-destructive">{error}</div>
       )}
+
+      {expansionMessage && (
+        <div className="rounded-lg bg-emerald-500/10 border border-emerald-500/30 px-4 py-3 text-sm text-emerald-600">
+          {expansionMessage}
+        </div>
+      )}
+
+      <div className="rounded-xl border bg-card p-4">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-sm font-semibold text-foreground">Question Expansion Runs</h3>
+          <Button variant="ghost" size="sm" onClick={() => void fetchExpansionHistory()} disabled={expanding}>
+            Refresh
+          </Button>
+        </div>
+        {expansionRuns.length === 0 ? (
+          <p className="text-xs text-muted-foreground">No expansion runs recorded yet.</p>
+        ) : (
+          <div className="space-y-2">
+            {expansionRuns.slice(0, 8).map((run) => (
+              <div key={run.requestId} className="rounded-lg border border-border/60 px-3 py-2 text-xs">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <Badge variant={run.status === 'success' ? 'secondary' : 'destructive'}>
+                      {run.status}
+                    </Badge>
+                    <span className="text-muted-foreground">
+                      {new Date(run.createdAt).toLocaleString()}
+                    </span>
+                  </div>
+                  <Badge variant="outline">{run.dryRun ? 'dry-run' : 'apply'}</Badge>
+                </div>
+                <div className="mt-1 text-muted-foreground">
+                  targets: {run.targetAttributes} · candidates: {run.candidates} · inserted: {run.inserted}
+                </div>
+                {run.error && (
+                  <div className="mt-1 text-destructive">{run.error}</div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
 
       <div className="rounded-xl border bg-card overflow-hidden">
         <table className="w-full text-sm">
