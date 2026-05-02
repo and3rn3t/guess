@@ -3,6 +3,17 @@ import { llm } from './llm'
 import { GeneratedQuestionSchema } from './schemas'
 import { z } from 'zod'
 
+// ── Schemas for metadata-rich generation ──────────────────────────────────
+
+const GeneratedQuestionWithMetadataSchema = z.object({
+  attribute: z.string(),
+  text: z.string(),
+  theme: z.enum(['visual', 'ability', 'personality', 'relationship', 'origin', 'franchise', 'stat']).default('ability'),
+  difficulty_tag: z.enum(['easy', 'medium', 'hard']).default('medium'),
+  surprise_factor_estimate: z.number().min(0).max(1).default(0.5), // predicted likelihood of >50% info gain
+  reasoning: z.string().optional(), // why this question is good for this attribute
+})
+
 export async function analyzeAndGenerateQuestions(
   characters: Character[],
   existingQuestions: Question[]
@@ -140,4 +151,107 @@ export function getQuestionGenerationInsight(
   )
 
   return `${goodAttributes.length} new discriminating attributes discovered from ${characters.length} characters. These could generate ${goodAttributes.length} useful questions.`
+}
+
+// ── Targeted generation for audit gaps (Phase 2 expansion) ────────────────────
+
+export interface GeneratedQuestionWithMetadata {
+  attribute: string
+  text: string
+  theme: 'visual' | 'ability' | 'personality' | 'relationship' | 'origin' | 'franchise' | 'stat'
+  difficulty_tag: 'easy' | 'medium' | 'hard'
+  surprise_factor_estimate: number
+  reasoning?: string
+}
+
+/**
+ * Generate multiple question variants for specific attributes with metadata synthesis.
+ * Used by Phase 2 to fill gaps identified in attribute audit.
+ *
+ * @param targetAttributes - Attributes to generate questions for (from audit)
+ * @param characters - Full character pool for distribution analysis
+ * @param questionsPerAttribute - Number of variants per attribute (default 2-3)
+ * @returns Array of rich questions with theme, difficulty, and quality estimates
+ */
+export async function generateQuestionsForAttributeGaps(
+  targetAttributes: Array<{ key: string; characterCount: number; distribution: number }>,
+  characters: Character[],
+  questionsPerAttribute: number = 2
+): Promise<{ questions: GeneratedQuestionWithMetadata[]; reasoning: string }> {
+  if (targetAttributes.length === 0) {
+    return { questions: [], reasoning: 'No target attributes provided.' }
+  }
+
+  const totalChars = characters.length
+  const attributeList = targetAttributes
+    .map(
+      (attr) =>
+        `- ${attr.key} (${attr.characterCount} characters, ${(attr.distribution * 100).toFixed(1)}% distribution)`
+    )
+    .join('\n')
+
+  const prompt = `You are a senior question designer for a character guessing game (like Akinator).
+
+Your task: Generate ${questionsPerAttribute} question variants per attribute. Each variant should:
+1. Target the attribute effectively
+2. Have different phrasing/angle to capture nuance
+3. Be labeled with theme (ability|personality|visual|origin|relationship|stat|franchise)
+4. Be tagged with difficulty (easy|medium|hard based on how obvious the answer is)
+5. Include a surprise_factor estimate (0-1, likelihood of high info gain in games)
+
+Context:
+- Characters in our pool: ${totalChars}
+- These attributes need coverage (gaps identified):
+
+${attributeList}
+
+Return ONLY valid JSON with no markdown, no explanation:
+
+{
+  "questions": [
+    {
+      "attribute": "attributeName",
+      "text": "Your question here?",
+      "theme": "ability",
+      "difficulty_tag": "medium",
+      "surprise_factor_estimate": 0.6,
+      "reasoning": "Optional: why this variant is useful"
+    }
+  ]
+}
+
+Quality criteria:
+- Questions must be phrased naturally (no jargon)
+- Avoid yes-only questions (must accommodate yes/no/maybe)
+- High surprise_factor (0.7+) for discriminating questions
+- Variants should differ in framing (e.g., "Has X trait?" vs "Is X known for Y?" vs "Would you say X?")
+- Theme should reflect the attribute's semantic nature
+- Difficulty should match how obvious the correct answer is`
+
+  try {
+    const response = await llm(prompt, 'gpt-4o-mini', true)
+    const parsed = JSON.parse(response)
+
+    const questionsResult = z.array(GeneratedQuestionWithMetadataSchema).safeParse(parsed.questions)
+    if (!questionsResult.success) {
+      console.error('Validation errors:', questionsResult.error)
+      throw new Error('Invalid response format from LLM')
+    }
+
+    const questions = questionsResult.data.map((q) => ({
+      ...q,
+      // Ensure surprise_factor_estimate is in valid range
+      surprise_factor_estimate: Math.min(1, Math.max(0, q.surprise_factor_estimate)),
+    }))
+
+    const reasoning = `Generated ${questions.length} question variants for ${targetAttributes.length} gap attributes. ${questions.filter((q) => q.surprise_factor_estimate >= 0.7).length} questions estimated high-surprise (likely high info gain).`
+
+    return { questions, reasoning }
+  } catch (error) {
+    console.error('Error generating targeted questions:', error)
+    return {
+      questions: [],
+      reasoning: `Failed to generate questions: ${error instanceof Error ? error.message : 'Unknown error'}`,
+    }
+  }
 }
