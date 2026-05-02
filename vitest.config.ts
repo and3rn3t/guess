@@ -1,11 +1,14 @@
 import { defineConfig } from 'vitest/config'
-import { resolve } from 'path'
+import { dirname, resolve } from 'path'
+import { fileURLToPath } from 'url'
+
+const projectRoot = dirname(fileURLToPath(import.meta.url))
 
 export default defineConfig({
   resolve: {
     alias: {
-      '@': resolve(import.meta.dirname, 'src'),
-      '@guess/game-engine': resolve(import.meta.dirname, 'packages/game-engine/src/index.ts'),
+      '@': resolve(projectRoot, 'src'),
+      '@guess/game-engine': resolve(projectRoot, 'packages/game-engine/src/index.ts'),
     },
   },
   test: {

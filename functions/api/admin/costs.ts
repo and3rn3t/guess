@@ -1,4 +1,13 @@
-import { type Env, errorResponse, jsonResponse } from '../_helpers'
+import {
+  checkRateLimitBestEffort,
+  type Env,
+  errorResponse,
+  getActorId,
+  getRequestId,
+  jsonResponse,
+  logError,
+  withRequestId,
+} from '../_helpers'
 
 interface CostRecord {
   promptTokens: number
@@ -74,63 +83,87 @@ async function listAllCostKeys(kv: KVNamespace): Promise<KvListKey[]> {
 }
 
 export const onRequestGet: PagesFunction<Env> = async (context) => {
-  const kv = context.env.GUESS_KV
-  if (!kv) return errorResponse('KV not configured', 503)
+  const { env, request } = context
+  const requestId = getRequestId(request)
+  const actorId = getActorId(request)
+  const path = new URL(request.url).pathname
 
-  const url = new URL(context.request.url)
+  const respond = (response: Response): Response => withRequestId(response, requestId)
+
+  const rate = await checkRateLimitBestEffort(env, actorId, 'admin.costs', 240)
+  if (!rate.allowed) return respond(errorResponse('Rate limit exceeded', 429))
+
+  const kv = env.GUESS_KV
+  if (!kv) return respond(errorResponse('KV not configured', 503))
+
+  const url = new URL(request.url)
   const days = parseWindowDays(url.searchParams.get('days'))
   const dateWindow = buildDateWindow(days)
   const today = new Date().toISOString().slice(0, 10)
 
-  const keys = await listAllCostKeys(kv)
-  const byDate = new Map<string, DailyCostUsage>()
+  try {
+    const keys = await listAllCostKeys(kv)
+    const byDate = new Map<string, DailyCostUsage>()
 
-  for (const key of keys) {
-    const match = COST_KEY_PATTERN.exec(key.name)
-    if (!match) continue
+    for (const key of keys) {
+      const match = COST_KEY_PATTERN.exec(key.name)
+      if (!match) continue
 
-    const date = match[1]
-    if (!dateWindow.has(date)) continue
+      const date = match[1]
+      if (!dateWindow.has(date)) continue
 
-    const record = await kv.get(key.name, 'json')
-    if (!isCostRecord(record)) continue
+      const record = await kv.get(key.name, 'json')
+      if (!isCostRecord(record)) continue
 
-    const current = byDate.get(date) ?? {
-      date,
+      const current = byDate.get(date) ?? {
+        date,
+        promptTokens: 0,
+        completionTokens: 0,
+        calls: 0,
+      }
+
+      current.promptTokens += record.promptTokens
+      current.completionTokens += record.completionTokens
+      current.calls += record.calls
+      byDate.set(date, current)
+    }
+
+    const history = Array.from(byDate.values()).sort((a, b) => a.date.localeCompare(b.date))
+    const totals = history.reduce(
+      (acc, row) => {
+        acc.promptTokens += row.promptTokens
+        acc.completionTokens += row.completionTokens
+        acc.calls += row.calls
+        return acc
+      },
+      { promptTokens: 0, completionTokens: 0, calls: 0 },
+    )
+
+    const todayUsage = byDate.get(today) ?? {
+      date: today,
       promptTokens: 0,
       completionTokens: 0,
       calls: 0,
     }
 
-    current.promptTokens += record.promptTokens
-    current.completionTokens += record.completionTokens
-    current.calls += record.calls
-    byDate.set(date, current)
+    return respond(jsonResponse({
+      source: 'kv-cost-rollup',
+      windowDays: days,
+      today: todayUsage,
+      totals,
+      history,
+    }))
+  } catch (err) {
+    context.waitUntil(
+      logError(
+        env.GUESS_DB,
+        'admin.costs',
+        'error',
+        'Cost dashboard rollup failed',
+        err,
+        { requestId, actorId, path, method: request.method },
+      ),
+    )
+    return respond(errorResponse('Failed to load cost dashboard data', 500))
   }
-
-  const history = Array.from(byDate.values()).sort((a, b) => a.date.localeCompare(b.date))
-  const totals = history.reduce(
-    (acc, row) => {
-      acc.promptTokens += row.promptTokens
-      acc.completionTokens += row.completionTokens
-      acc.calls += row.calls
-      return acc
-    },
-    { promptTokens: 0, completionTokens: 0, calls: 0 },
-  )
-
-  const todayUsage = byDate.get(today) ?? {
-    date: today,
-    promptTokens: 0,
-    completionTokens: 0,
-    calls: 0,
-  }
-
-  return jsonResponse({
-    source: 'kv-cost-rollup',
-    windowDays: days,
-    today: todayUsage,
-    totals,
-    history,
-  })
 }

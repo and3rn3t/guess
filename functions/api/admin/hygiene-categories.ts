@@ -1,11 +1,15 @@
 import {
+  checkRateLimitBestEffort,
   type Env,
   errorResponse,
+  getActorId,
   getCompletionsEndpoint,
   getLlmHeaders,
+  getRequestId,
   jsonResponse,
   logError,
   parseJsonBodyWithSchema,
+  withRequestId,
 } from '../_helpers'
 import { z } from 'zod'
 
@@ -36,11 +40,20 @@ const SuggestionSchema = z.object({
 })
 
 export const onRequestPost: PagesFunction<Env> = async (context) => {
-  const { env } = context
-  if (!env.OPENAI_API_KEY) return errorResponse('OpenAI not configured', 503)
+  const { env, request } = context
+  const requestId = getRequestId(request)
+  const actorId = getActorId(request)
+  const path = new URL(request.url).pathname
 
-  const parsed = await parseJsonBodyWithSchema(context.request, BodySchema)
-  if (!parsed.success) return parsed.response
+  const respond = (response: Response): Response => withRequestId(response, requestId)
+
+  const rate = await checkRateLimitBestEffort(env, actorId, 'admin.hygiene.categories', 60)
+  if (!rate.allowed) return respond(errorResponse('Rate limit exceeded', 429))
+
+  if (!env.OPENAI_API_KEY) return respond(errorResponse('OpenAI not configured', 503))
+
+  const parsed = await parseJsonBodyWithSchema(request, BodySchema)
+  if (!parsed.success) return respond(parsed.response)
 
   const { characterId, characterName, currentCategory, attributes } = parsed.data
 
@@ -100,8 +113,17 @@ Return ONLY JSON in this exact shape:
     })
 
     if (!response.ok) {
-      context.waitUntil(logError(env.GUESS_DB, 'admin.hygiene.categories', 'error', `OpenAI error ${response.status}`))
-      return errorResponse(`OpenAI error: ${response.status}`, 502)
+      context.waitUntil(
+        logError(
+          env.GUESS_DB,
+          'admin.hygiene.categories',
+          'error',
+          `OpenAI error ${response.status}`,
+          undefined,
+          { requestId, actorId, path, method: request.method, status: response.status },
+        ),
+      )
+      return respond(errorResponse(`OpenAI error: ${response.status}`, 502))
     }
 
     const data: { choices?: Array<{ message?: { content?: string } }> } = await response.json()
@@ -110,10 +132,10 @@ Return ONLY JSON in this exact shape:
     const safe = SuggestionSchema.safeParse(json)
 
     if (!safe.success) {
-      return jsonResponse({ suggestion: null })
+      return respond(jsonResponse({ suggestion: null }))
     }
 
-    return jsonResponse({
+    return respond(jsonResponse({
       suggestion: {
         characterId,
         characterName,
@@ -122,9 +144,18 @@ Return ONLY JSON in this exact shape:
         confidence: safe.data.confidence ?? 0.8,
         reasoning: safe.data.reasoning ?? 'Server-side category recommendation',
       },
-    })
+    }))
   } catch (err) {
-    context.waitUntil(logError(env.GUESS_DB, 'admin.hygiene.categories', 'error', 'Category suggestion request failed', err))
-    return errorResponse(`Category suggestion failed: ${err instanceof Error ? err.message : 'Unknown error'}`, 500)
+    context.waitUntil(
+      logError(
+        env.GUESS_DB,
+        'admin.hygiene.categories',
+        'error',
+        'Category suggestion request failed',
+        err,
+        { requestId, actorId, path, method: request.method },
+      ),
+    )
+    return respond(errorResponse(`Category suggestion failed: ${err instanceof Error ? err.message : 'Unknown error'}`, 500))
   }
 }
