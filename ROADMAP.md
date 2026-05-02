@@ -230,8 +230,8 @@ The active execution plan, sequenced by **priority × ease**. Pull items top-dow
 
 > **Maintain this block first.** It's the single answer to "what should I work on?" — agents and humans check it before scanning tables. Update in the same commit as the work it describes.
 
-- 🟡 **In progress:** [I.1](#i-1) preview AI Gateway 24h verification window · [I.9](#i-9) AI Gateway semantic caching 7d cache-hit window
-- ▶ **Up next:** Wave 5 — pick from Polish, Sharing & Depth cluster
+- 🟡 **In progress:** [I.1](#i-1) preview AI Gateway 24h verification window · [I.9](#i-9) AI Gateway semantic caching 7d cache-hit window · [P.7](#p-7) `/about` + `/credits` pages · [P.8](#p-8) light theme + 3-state toggle (system/dark/light)
+- ▶ **Up next:** [EN.29](#en-29) trivia card on reveal
 - 🧫 **Blocked / waiting on:** _none_
 - 🎯 **Current wave focus:** Wave 4 complete. Next: Wave 5 — Polish & Depth (admin polish, DX leverage, player-facing gloss).
 - ✅ **Recently shipped (last 5):** [AN.11](#an-11) aha moment detector (2026-05-01) · [AN.21](#an-21) catastrophic-failure replay queue (2026-05-01) · [B.4](#b-4) question dedup via embeddings (2026-05-01) · [C.6](#c-6) question quality feedback loop (2026-05-01) · [AN.17](#an-17) question retirement queue (2026-05-01) · …see [CHANGELOG.md](CHANGELOG.md) for the full list.

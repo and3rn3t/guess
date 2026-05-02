@@ -245,6 +245,16 @@ export function WelcomeScreen({
               </p>
             );
           })()}
+
+          <p className="text-xs text-muted-foreground/70">
+            <a href="/about" className="hover:text-foreground transition-colors underline underline-offset-2">
+              About
+            </a>
+            {' · '}
+            <a href="/credits" className="hover:text-foreground transition-colors underline underline-offset-2">
+              Credits
+            </a>
+          </p>
         </div>
 
         {import.meta.env.DEV && showDevTools && (

@@ -50,6 +50,19 @@ export function BottomNav({
   promptInstall,
 }: Readonly<BottomNavProps>) {
   const [moreOpen, setMoreOpen] = useState(false);
+  let themeLabel = "Dark";
+  let nextThemeLabel = "Light";
+  let themeIcon: React.JSX.Element = <SunIcon size={20} />;
+
+  if (theme === "light") {
+    themeLabel = "Light";
+    nextThemeLabel = "System";
+    themeIcon = <MoonIcon size={20} />;
+  } else if (theme === "system") {
+    themeLabel = "System";
+    nextThemeLabel = "Dark";
+    themeIcon = <GearSixIcon size={20} weight="duotone" />;
+  }
 
   if (!NAV_PHASES.includes(gamePhase)) return null;
 
@@ -142,8 +155,8 @@ export function BottomNav({
                 }}
                 className="w-full flex items-center gap-3 px-3 min-h-[48px] rounded-xl text-sm font-medium hover:bg-muted/60 text-foreground transition-colors"
               >
-                {theme === "dark" ? <SunIcon size={20} /> : <MoonIcon size={20} />}
-                {theme === "dark" ? "Switch to Light Mode" : "Switch to Dark Mode"}
+                {themeIcon}
+                {`Theme: ${themeLabel} (switch to ${nextThemeLabel})`}
               </button>
 
               {/* Mute toggle */}

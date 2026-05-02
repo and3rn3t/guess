@@ -63,6 +63,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast, Toaster } from "sonner";
 
 const analytics = () => import("@/lib/analytics");
+const THEME_ORDER = ["dark", "light", "system"] as const;
 
 function App() {
   // ========== PERSISTENT STATE ==========
@@ -174,7 +175,9 @@ function App() {
   }, [gamePhase, onboardingDone, gamesPlayed]);
 
   const toggleTheme = useCallback(() => {
-    setTheme(theme === "dark" ? "light" : "dark");
+    const currentIndex = THEME_ORDER.indexOf((theme as (typeof THEME_ORDER)[number]) ?? "dark");
+    const nextTheme = THEME_ORDER[(currentIndex + 1) % THEME_ORDER.length];
+    setTheme(nextTheme);
   }, [theme, setTheme]);
 
   const activeCharacters = characters || DEFAULT_CHARACTERS;

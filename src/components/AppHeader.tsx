@@ -68,6 +68,20 @@ function AppHeaderBase({
   canInstall = false,
   promptInstall,
 }: Readonly<AppHeaderProps>) {
+  let themeLabel = "Dark";
+  let nextThemeLabel = "Light";
+  let themeIcon: React.JSX.Element = <SunIcon size={22} />;
+
+  if (theme === "light") {
+    themeLabel = "Light";
+    nextThemeLabel = "System";
+    themeIcon = <MoonIcon size={22} />;
+  } else if (theme === "system") {
+    themeLabel = "System";
+    nextThemeLabel = "Dark";
+    themeIcon = <GearSixIcon size={22} weight="duotone" />;
+  }
+
   return (
     <header
       aria-label="Game navigation"
@@ -269,22 +283,10 @@ function AppHeaderBase({
               variant="ghost"
               size="icon"
               className="text-muted-foreground hover:text-foreground touch-target"
-              title={
-                theme === "dark"
-                  ? "Switch to light mode"
-                  : "Switch to dark mode"
-              }
-              aria-label={
-                theme === "dark"
-                  ? "Switch to light mode"
-                  : "Switch to dark mode"
-              }
+              title={`Theme: ${themeLabel} (switch to ${nextThemeLabel})`}
+              aria-label={`Theme: ${themeLabel} (switch to ${nextThemeLabel})`}
             >
-              {theme === "dark" ? (
-                <SunIcon size={22} />
-              ) : (
-                <MoonIcon size={22} />
-              )}
+              {themeIcon}
             </Button>
           </div>
         </div>

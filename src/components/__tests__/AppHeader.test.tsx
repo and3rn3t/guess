@@ -62,7 +62,7 @@ describe('AppHeader', () => {
     const user = userEvent.setup()
     const props = baseProps()
     render(<AppHeader {...props} />)
-    const themeBtn = screen.getByRole('button', { name: /switch to light mode/i })
+    const themeBtn = screen.getByRole('button', { name: /theme:/i })
     await user.click(themeBtn)
     expect(props.toggleTheme).toHaveBeenCalledOnce()
   })
