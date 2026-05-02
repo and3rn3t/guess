@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { AdminPageHeader } from '../AdminPageHeader'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { PlayIcon, StopIcon, ArrowsClockwiseIcon } from '@phosphor-icons/react'
@@ -104,45 +105,41 @@ export default function EnrichDashboardRoute(): React.JSX.Element {
     new Date(ts * 1000).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' })
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <h1 className="text-2xl font-bold">Live Enrichment Dashboard</h1>
-          <p className="text-sm text-muted-foreground mt-1 flex items-center gap-2">
-            {connected
-              ? <span className="inline-flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />Streaming live</span>
-              : <span className="inline-flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-muted" />Disconnected</span>
-            }
-          </p>
-        </div>
-        <div className="flex gap-2">
-          {!connected && (
-            <Button variant="outline" size="sm" onClick={connect}>
-              <ArrowsClockwiseIcon size={14} className="mr-2" />Reconnect
-            </Button>
-          )}
-          {jobActive
-            ? <Button variant="outline" size="sm" onClick={() => void sendSignal('stop')} className="text-red-400 border-red-500/40">
-                <StopIcon size={14} className="mr-2" />Stop
+    <div className="container mx-auto px-4 pb-8 max-w-5xl space-y-6">
+      <AdminPageHeader
+        title="Live Enrichment Dashboard"
+        subtitle={connected ? '\u25cf\u2009Streaming live' : '\u25cb\u2009Disconnected'}
+        sectionColor="emerald"
+        actions={
+          <div className="flex gap-2">
+            {!connected && (
+              <Button variant="outline" size="sm" onClick={connect}>
+                <ArrowsClockwiseIcon size={14} className="mr-2" />Reconnect
               </Button>
-            : <div className="flex items-center gap-2">
-                <label className="text-xs text-muted-foreground whitespace-nowrap" htmlFor="enrich-limit">Batch size</label>
-                <input
-                  id="enrich-limit"
-                  type="number"
-                  min={1}
-                  max={10}
-                  value={limit}
-                  onChange={(e) => setLimit(Math.min(10, Math.max(1, Number(e.target.value))))}
-                  className="w-14 rounded-md border bg-background px-2 py-1 text-sm text-center [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
-                />
-                <Button size="sm" onClick={() => void sendSignal('start')}>
-                  <PlayIcon size={14} className="mr-2" />Start enrichment run
+            )}
+            {jobActive
+              ? <Button variant="outline" size="sm" onClick={() => void sendSignal('stop')} className="text-red-400 border-red-500/40">
+                  <StopIcon size={14} className="mr-2" />Stop
                 </Button>
-              </div>
-          }
-        </div>
-      </div>
+              : <div className="flex items-center gap-2">
+                  <label className="text-xs text-muted-foreground whitespace-nowrap" htmlFor="enrich-limit">Batch size</label>
+                  <input
+                    id="enrich-limit"
+                    type="number"
+                    min={1}
+                    max={10}
+                    value={limit}
+                    onChange={(e) => setLimit(Math.min(10, Math.max(1, Number(e.target.value))))}
+                    className="w-14 rounded-md border bg-background px-2 py-1 text-sm text-center [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
+                  />
+                  <Button size="sm" onClick={() => void sendSignal('start')}>
+                    <PlayIcon size={14} className="mr-2" />Start enrichment run
+                  </Button>
+                </div>
+            }
+          </div>
+        }
+      />
 
       {actionMsg && (
         <div className="rounded-lg bg-blue-500/10 border border-blue-500/30 px-4 py-3 text-sm text-blue-400">{actionMsg}</div>

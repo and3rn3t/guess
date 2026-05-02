@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { AdminPageHeader } from '../AdminPageHeader'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
   ResponsiveContainer,
@@ -100,13 +101,12 @@ export default function FunnelRoute(): React.JSX.Element {
   }, [])
 
   return (
-    <div className="container mx-auto space-y-6 px-4 py-8">
-      <div>
-        <h1 className="text-2xl font-bold">Skip & Abandon Funnel</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Last {data?.windowDays ?? 30} days · derived from <code>client_events</code>.
-        </p>
-      </div>
+    <div className="container mx-auto px-4 pb-8 max-w-5xl space-y-6">
+      <AdminPageHeader
+        title="Skip & Abandon Funnel"
+        subtitle={`Last ${data?.windowDays ?? 30} days · derived from client_events`}
+        sectionColor="blue"
+      />
 
       {error && (
         <div className="rounded-md border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive">

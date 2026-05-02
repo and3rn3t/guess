@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { AdminPageHeader } from '../AdminPageHeader'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { ArrowLeftIcon, ArrowRightIcon, ChartBarIcon, LightningIcon, SparkleIcon, XIcon } from '@phosphor-icons/react'
@@ -108,23 +109,24 @@ export default function AnalyticsRoute(): React.JSX.Element {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <h1 className="text-2xl font-bold">Client Analytics</h1>
-          {data && <p className="text-sm text-muted-foreground mt-1">{data.total.toLocaleString()} events</p>}
-        </div>
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={() => void fetchInsights()}
-          disabled={insightsLoading || !data}
-          className="text-violet-400 border-violet-500/40 hover:bg-violet-500/10"
-        >
-          <SparkleIcon size={14} className={`mr-1.5 ${insightsLoading ? 'animate-pulse' : ''}`} />
-          {insightsLoading ? 'Thinking…' : 'AI Insights'}
-        </Button>
-      </div>
+    <div className="container mx-auto px-4 pb-8 max-w-5xl space-y-6">
+      <AdminPageHeader
+        title="Client Analytics"
+        subtitle={data ? `${data.total.toLocaleString()} events` : undefined}
+        sectionColor="blue"
+        actions={
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => void fetchInsights()}
+            disabled={insightsLoading || !data}
+            className="text-violet-400 border-violet-500/40 hover:bg-violet-500/10"
+          >
+            <SparkleIcon size={14} className={`mr-1.5 ${insightsLoading ? 'animate-pulse' : ''}`} />
+            {insightsLoading ? 'Thinking…' : 'AI Insights'}
+          </Button>
+        }
+      />
 
       {/* AI Insights Card */}
       {showInsights && (

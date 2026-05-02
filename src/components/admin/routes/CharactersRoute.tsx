@@ -1,4 +1,5 @@
 import { Fragment, useCallback, useEffect, useState } from 'react'
+import { AdminPageHeader } from '../AdminPageHeader'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
@@ -250,13 +251,13 @@ export default function CharactersRoute(): React.JSX.Element {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <h1 className="text-2xl font-bold">Character Manager</h1>
-          {data && <p className="text-sm text-muted-foreground mt-1">{data.total} characters</p>}
-        </div>
-        <div className="flex gap-2 flex-wrap">
+    <div className="container mx-auto px-4 pb-8 max-w-5xl space-y-6">
+      <AdminPageHeader
+        title="Character Manager"
+        subtitle={data ? `${data.total} characters` : undefined}
+        sectionColor="blue"
+        actions={
+          <div className="flex gap-2 flex-wrap">
           {selectedIds.size > 0 && (
             <Button
               size="sm"
@@ -277,7 +278,7 @@ export default function CharactersRoute(): React.JSX.Element {
             type="number"
             placeholder="Max coverage %"
             value={maxCoverage}
-            onChange={(e) => { setMaxCoverage(e.target.value); setPage(1) }}
+              onChange={(e) => { setMaxCoverage(e.target.value); setPage(1) }}
             className="w-36"
             min={0}
             max={100}
@@ -295,7 +296,8 @@ export default function CharactersRoute(): React.JSX.Element {
             ))}
           </select>
         </div>
-      </div>
+        }
+      />
 
       {error && (
         <div className="rounded-lg bg-destructive/10 border border-destructive/30 px-4 py-3 text-sm text-destructive">{error}</div>

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
+import { AdminPageHeader } from '../AdminPageHeader'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ArrowsClockwiseIcon, ChartBarIcon } from '@phosphor-icons/react'
@@ -127,17 +128,18 @@ export default function ConfusionRoute(): React.JSX.Element {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <h1 className="text-2xl font-bold">Confusion Matrix</h1>
-          <p className="text-sm text-muted-foreground mt-1">{copy.subtitle}</p>
-        </div>
-        <Button variant="outline" size="sm" onClick={() => void fetchData(source)} disabled={loading}>
-          <ArrowsClockwiseIcon size={14} className={`mr-2 ${loading ? 'animate-spin' : ''}`} />
-          Refresh
-        </Button>
-      </div>
+    <div className="container mx-auto px-4 pb-8 max-w-5xl space-y-6">
+      <AdminPageHeader
+        title="Confusion Matrix"
+        subtitle={copy.subtitle}
+        sectionColor="blue"
+        actions={
+          <Button variant="outline" size="sm" onClick={() => void fetchData(source)} disabled={loading}>
+            <ArrowsClockwiseIcon size={14} className={`mr-2 ${loading ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
+        }
+      />
 
       <Tabs value={source} onValueChange={handleSourceChange}>
         <TabsList>

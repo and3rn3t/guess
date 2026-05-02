@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { AdminPageHeader } from '../AdminPageHeader'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -132,24 +133,25 @@ export default function ProposedAttrsRoute(): React.JSX.Element {
   const formatDate = (ts: number) => new Date(ts * 1000).toLocaleDateString()
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <h1 className="text-2xl font-bold">Proposed Attributes</h1>
-          {data && <p className="text-sm text-muted-foreground mt-1">{data.total} proposals</p>}
-        </div>
-        <div className="flex gap-2">
-          {(['pending', 'approved', 'rejected', 'all'] as Filter[]).map((f) => (
-            <button
-              key={f}
-              onClick={() => { setFilter(f); setPage(1) }}
-              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${filter === f ? 'bg-violet-600 text-white' : 'bg-muted text-muted-foreground hover:text-foreground'}`}
-            >
-              {f.charAt(0).toUpperCase() + f.slice(1)}
-            </button>
-          ))}
-        </div>
-      </div>
+    <div className="container mx-auto px-4 pb-8 max-w-5xl space-y-6">
+      <AdminPageHeader
+        title="Proposed Attributes"
+        subtitle={data ? `${data.total} proposals` : undefined}
+        sectionColor="emerald"
+        actions={
+          <div className="flex gap-2">
+            {(['pending', 'approved', 'rejected', 'all'] as Filter[]).map((f) => (
+              <button
+                key={f}
+                onClick={() => { setFilter(f); setPage(1) }}
+                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${filter === f ? 'bg-violet-600 text-white' : 'bg-muted text-muted-foreground hover:text-foreground'}`}
+              >
+                {f.charAt(0).toUpperCase() + f.slice(1)}
+              </button>
+            ))}
+          </div>
+        }
+      />
 
       {error && (
         <div className="rounded-lg bg-destructive/10 border border-destructive/30 px-4 py-3 text-sm text-destructive">{error}</div>

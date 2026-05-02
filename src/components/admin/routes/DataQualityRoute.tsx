@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { AdminPageHeader } from '../AdminPageHeader'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
   ResponsiveContainer,
@@ -150,14 +151,12 @@ export default function DataQualityRoute(): React.JSX.Element {
   const healthSeries = history.map((row) => ({ day: toDay(row.captured_at), value: row.data_health_score }))
 
   return (
-    <div className="container mx-auto space-y-6 px-4 py-8">
-      <div>
-        <h1 className="text-2xl font-bold">Data Quality</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          DQ.7 · live snapshot computed on every load · trend window {data?.windowDays ?? 30} days · history written nightly by{' '}
-          <code>scripts/snapshot-data-quality.ts</code>.
-        </p>
-      </div>
+    <div className="container mx-auto px-4 pb-8 max-w-5xl space-y-6">
+      <AdminPageHeader
+        title="Data Quality"
+        subtitle={`Live snapshot · trend window ${data?.windowDays ?? 30} days · history written nightly`}
+        sectionColor="violet"
+      />
 
       {error && (
         <div className="rounded-md border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive">

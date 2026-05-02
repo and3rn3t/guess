@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { ArrowLeft, Warning, CheckCircle, TrendUp, Funnel, Sparkle, X } from '@phosphor-icons/react'
+import { AdminPageHeader } from '../AdminPageHeader'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
@@ -136,27 +137,28 @@ export default function CoverageRoute(): React.JSX.Element {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8 space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-3xl font-bold text-foreground">Attribute Coverage Report</h2>
-          <p className="text-muted-foreground mt-1">
-            {data.totalEnriched.toLocaleString()} enriched characters · {data.totalActive} active attributes
-          </p>
-        </div>
-        <Button onClick={() => window.history.back()} variant="outline">
-          <ArrowLeft size={20} className="mr-2" />
-          Back
-        </Button>
-        <Button
-          variant="outline"
-          onClick={() => void prioritize()}
-          disabled={prioritizing}
-        >
-          <Sparkle size={16} className={`mr-2 ${prioritizing ? 'animate-pulse' : ''}`} />
-          {prioritizing ? 'Analyzing…' : 'AI Prioritize'}
-        </Button>
-      </div>
+    <div className="container mx-auto px-4 pb-8 max-w-5xl space-y-6">
+      <AdminPageHeader
+        title="Attribute Coverage Report"
+        subtitle={`${data.totalEnriched.toLocaleString()} enriched characters · ${data.totalActive} active attributes`}
+        sectionColor="violet"
+        actions={
+          <div className="flex gap-2">
+            <Button onClick={() => window.history.back()} variant="outline">
+              <ArrowLeft size={20} className="mr-2" />
+              Back
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => void prioritize()}
+              disabled={prioritizing}
+            >
+              <Sparkle size={16} className={`mr-2 ${prioritizing ? 'animate-pulse' : ''}`} />
+              {prioritizing ? 'Analyzing…' : 'AI Prioritize'}
+            </Button>
+          </div>
+        }
+      />
 
       {/* AI Priority Card */}
       {priorities !== null && (

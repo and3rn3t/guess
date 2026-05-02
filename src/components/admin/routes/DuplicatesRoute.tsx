@@ -11,6 +11,7 @@
  * embed pass.
  */
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { AdminPageHeader } from '../AdminPageHeader'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Input } from '@/components/ui/input'
@@ -148,14 +149,13 @@ export default function DuplicatesRoute(): React.JSX.Element {
   )
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-6xl">
-      <header className="mb-6">
-        <h1 className="text-3xl font-bold mb-1">Question Deduplication</h1>
-        <p className="text-sm text-muted-foreground">
-          Cosine similarity between question embeddings. Merge or dismiss
-          near-duplicates to keep the question pool tight.
-        </p>
-      </header>
+    <div className="container mx-auto px-4 pb-8 max-w-5xl space-y-6">
+      <AdminPageHeader
+        title="Question Deduplication"
+        subtitle="Cosine similarity between question embeddings. Merge or dismiss near-duplicates to keep the question pool tight."
+        sectionColor="blue"
+        breadcrumbs={[{ label: 'Questions', to: '/questions' }, { label: 'Duplicate Queue' }]}
+      />
 
       <div className="flex flex-wrap items-end gap-4 mb-6">
         <div className="flex flex-col gap-1.5">

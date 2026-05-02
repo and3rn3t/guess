@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { AdminPageHeader } from '../AdminPageHeader'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { ArrowLeftIcon, ArrowRightIcon, ArrowsClockwiseIcon, TrashIcon, CaretDownIcon, CaretRightIcon } from '@phosphor-icons/react'
@@ -227,75 +228,69 @@ export default function ErrorLogsRoute(): React.JSX.Element {
   const totalPages = data ? Math.ceil(data.total / pageSize) : 1
 
   return (
-    <div className="container mx-auto px-4 py-8 space-y-6">
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <h1 className="text-2xl font-bold">Error Logs</h1>
-          {data && (
-            <p className="text-sm text-muted-foreground mt-1">
-              {data.total} entr{data.total === 1 ? 'y' : 'ies'} — capped at 1 000 rows
-            </p>
-          )}
-        </div>
+    <div className="container mx-auto px-4 pb-8 max-w-5xl space-y-6">
+      <AdminPageHeader
+        title="Error Logs"
+        subtitle={data ? `${data.total} entr${data.total === 1 ? 'y' : 'ies'} \u2014 capped at 1000 rows` : undefined}
+        sectionColor="emerald"
+      />
+      <div className="flex flex-wrap gap-2 items-center">
+        {/* Level filter */}
+        <select
+          value={filterLevel}
+          onChange={(e) => setFilterLevel(e.target.value)}
+          aria-label="Filter by log level"
+          title="Filter by log level"
+          className="h-9 rounded-md border border-input bg-background px-3 text-sm"
+        >
+          <option value="">All levels</option>
+          <option value="error">error</option>
+          <option value="warn">warn</option>
+        </select>
 
-        <div className="flex flex-wrap gap-2 items-center">
-          {/* Level filter */}
-          <select
-            value={filterLevel}
-            onChange={(e) => setFilterLevel(e.target.value)}
-            aria-label="Filter by log level"
-            title="Filter by log level"
-            className="h-9 rounded-md border border-input bg-background px-3 text-sm"
-          >
-            <option value="">All levels</option>
-            <option value="error">error</option>
-            <option value="warn">warn</option>
-          </select>
+        {/* Source filter (dynamic) */}
+        <select
+          value={filterSource}
+          onChange={(e) => setFilterSource(e.target.value)}
+          aria-label="Filter by source"
+          title="Filter by source"
+          className="h-9 rounded-md border border-input bg-background px-3 text-sm"
+        >
+          <option value="">All sources</option>
+          {(data?.sources ?? []).map((s) => (
+            <option key={s} value={s}>{s}</option>
+          ))}
+        </select>
 
-          {/* Source filter (dynamic) */}
-          <select
-            value={filterSource}
-            onChange={(e) => setFilterSource(e.target.value)}
-            aria-label="Filter by source"
-            title="Filter by source"
-            className="h-9 rounded-md border border-input bg-background px-3 text-sm"
-          >
-            <option value="">All sources</option>
-            {(data?.sources ?? []).map((s) => (
-              <option key={s} value={s}>{s}</option>
-            ))}
-          </select>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => void fetchData(page)}
+          disabled={loading}
+        >
+          <ArrowsClockwiseIcon size={14} className={loading ? 'animate-spin' : ''} />
+          Refresh
+        </Button>
 
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => void fetchData(page)}
-            disabled={loading}
-          >
-            <ArrowsClockwiseIcon size={14} className={loading ? 'animate-spin' : ''} />
-            Refresh
-          </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => void clearOld()}
+          disabled={clearing || loading}
+        >
+          <TrashIcon size={14} />
+          Clear &gt;7d
+        </Button>
 
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => void clearOld()}
-            disabled={clearing || loading}
-          >
-            <TrashIcon size={14} />
-            Clear &gt;7d
-          </Button>
-
-          <Button
-            variant="destructive"
-            size="sm"
-            onClick={() => void clearAll()}
-            disabled={clearing || loading}
-          >
-            <TrashIcon size={14} />
-            Clear all
-          </Button>
-        </div>
+        <Button
+          variant="destructive"
+          size="sm"
+          onClick={() => void clearAll()}
+          disabled={clearing || loading}
+        >
+          <TrashIcon size={14} />
+          Clear all
+        </Button>
       </div>
 
       {error && (

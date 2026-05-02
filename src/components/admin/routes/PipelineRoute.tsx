@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { AdminPageHeader } from '../AdminPageHeader'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
@@ -71,42 +72,41 @@ export default function PipelineRoute(): React.JSX.Element {
     new Date(ts * 1000).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' })
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <h1 className="text-2xl font-bold">Pipeline Audit Log</h1>
-          {data && <p className="text-sm text-muted-foreground mt-1">{data.total} pipeline run entries</p>}
-        </div>
-        <div className="flex gap-2">
-          <select
-            value={filterStep}
-            onChange={(e) => setFilterStep(e.target.value)}
-            className="h-9 rounded-md border border-input bg-background px-3 text-sm"
-          >
-            <option value="">All steps</option>
-            {STEPS.map((s) => <option key={s} value={s}>{s}</option>)}
-          </select>
-          <select
-            value={filterStatus}
-            onChange={(e) => setFilterStatus(e.target.value)}
-            className="h-9 rounded-md border border-input bg-background px-3 text-sm"
-          >
-            <option value="">All statuses</option>
-            {STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
-          </select>
-          <Input
-            placeholder="Batch UUID…"
-            value={filterBatch}
-            onChange={(e) => setFilterBatch(e.target.value)}
-            className="h-9 w-48 text-xs font-mono"
-          />
-          <Input
-            placeholder="Character ID…"
-            value={filterCharacter}
-            onChange={(e) => setFilterCharacter(e.target.value)}
-            className="h-9 w-40 text-xs font-mono"
-          />
-        </div>
+    <div className="container mx-auto px-4 pb-8 max-w-5xl space-y-6">
+      <AdminPageHeader
+        title="Pipeline Audit Log"
+        subtitle={data ? `${data.total} pipeline run entries` : undefined}
+        sectionColor="blue"
+      />
+      <div className="flex flex-wrap gap-2">
+        <select
+          value={filterStep}
+          onChange={(e) => setFilterStep(e.target.value)}
+          className="h-9 rounded-md border border-input bg-background px-3 text-sm"
+        >
+          <option value="">All steps</option>
+          {STEPS.map((s) => <option key={s} value={s}>{s}</option>)}
+        </select>
+        <select
+          value={filterStatus}
+          onChange={(e) => setFilterStatus(e.target.value)}
+          className="h-9 rounded-md border border-input bg-background px-3 text-sm"
+        >
+          <option value="">All statuses</option>
+          {STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
+        </select>
+        <Input
+          placeholder="Batch UUID…"
+          value={filterBatch}
+          onChange={(e) => setFilterBatch(e.target.value)}
+          className="h-9 w-48 text-xs font-mono"
+        />
+        <Input
+          placeholder="Character ID…"
+          value={filterCharacter}
+          onChange={(e) => setFilterCharacter(e.target.value)}
+          className="h-9 w-40 text-xs font-mono"
+        />
       </div>
 
       {data?.total === 0 && !loading && (

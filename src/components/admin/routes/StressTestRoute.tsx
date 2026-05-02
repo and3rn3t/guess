@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { AdminPageHeader } from '../AdminPageHeader'
 import { Button } from '@/components/ui/button'
 import { ArrowsClockwiseIcon, TargetIcon } from '@phosphor-icons/react'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts'
@@ -85,19 +86,18 @@ export default function StressTestRoute(): React.JSX.Element {
   }))
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <h1 className="text-2xl font-bold">Stress Test</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Simulation results — run <code className="text-xs bg-muted px-1 py-0.5 rounded">pnpm simulate --all --write-db</code> to populate
-          </p>
-        </div>
-        <Button variant="outline" size="sm" onClick={() => void fetchData()} disabled={loading}>
-          <ArrowsClockwiseIcon size={14} className={`mr-2 ${loading ? 'animate-spin' : ''}`} />
-          Refresh
-        </Button>
-      </div>
+    <div className="container mx-auto px-4 pb-8 max-w-5xl space-y-6">
+      <AdminPageHeader
+        title="Stress Test"
+        subtitle="Simulation results — run pnpm simulate --all --write-db to populate"
+        sectionColor="amber"
+        actions={
+          <Button variant="outline" size="sm" onClick={() => void fetchData()} disabled={loading}>
+            <ArrowsClockwiseIcon size={14} className={`mr-2 ${loading ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
+        }
+      />
 
       {error && (
         <div className="rounded-lg bg-destructive/10 border border-destructive/30 px-4 py-3 text-sm text-destructive">{error}</div>

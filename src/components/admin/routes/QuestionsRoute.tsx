@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { AdminPageHeader } from '../AdminPageHeader'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
@@ -174,17 +175,18 @@ export default function QuestionsRoute(): React.JSX.Element {
   const totalPages = data ? Math.ceil(data.total / pageSize) : 1
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Question Manager</h1>
-          {data && <p className="text-sm text-muted-foreground mt-1">{data.total} attribute definitions</p>}
-        </div>
-        <div className="relative w-72">
-          <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
-          <Input placeholder="Search questions…" value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
-        </div>
-      </div>
+    <div className="container mx-auto px-4 pb-8 max-w-5xl space-y-6">
+      <AdminPageHeader
+        title="Question Manager"
+        subtitle={data ? `${data.total} attribute definitions` : undefined}
+        sectionColor="blue"
+        actions={
+          <div className="relative w-72">
+            <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
+            <Input placeholder="Search questions…" value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
+          </div>
+        }
+      />
 
       {error && (
         <div className="rounded-lg bg-destructive/10 border border-destructive/30 px-4 py-3 text-sm text-destructive">{error}</div>

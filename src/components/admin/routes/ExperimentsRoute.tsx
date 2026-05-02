@@ -1,7 +1,8 @@
 import { useEffect, useState, useCallback } from 'react'
+import { AdminPageHeader } from '../AdminPageHeader'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
-import { ArrowsClockwiseIcon, FlaskIcon } from '@phosphor-icons/react'
+import { ArrowsClockwiseIcon } from '@phosphor-icons/react'
 
 interface ArmStat {
   variant: string
@@ -98,29 +99,25 @@ export default function ExperimentsRoute(): React.JSX.Element {
   const totalGames = data?.arms.reduce((sum, a) => sum + a.games, 0) ?? 0
 
   return (
-    <div className="container mx-auto px-4 py-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <FlaskIcon size={24} weight="duotone" />
-            Experiments
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            A/B variant performance over the last{' '}
-            <select
-              aria-label="Window size in days"
-              value={days}
-              onChange={(e) => setDays(Number.parseInt(e.target.value, 10))}
-              className="bg-muted rounded px-2 py-0.5 text-xs"
-            >
-              <option value={7}>7</option>
-              <option value={14}>14</option>
-              <option value={30}>30</option>
-              <option value={60}>60</option>
-            </select>{' '}
-            days. p-values are two-tailed z-tests on win rate vs control.
-          </p>
-        </div>
+    <div className="container mx-auto px-4 pb-8 max-w-5xl space-y-6">
+      <AdminPageHeader
+        title="Experiments (A/B)"
+        subtitle="Variant performance comparison"
+        sectionColor="blue"
+      />
+      <div className="flex items-center gap-3 flex-wrap">
+        <span className="text-sm text-muted-foreground">Window:</span>
+        <select
+          aria-label="Window size in days"
+          value={days}
+          onChange={(e) => setDays(Number.parseInt(e.target.value, 10))}
+          className="bg-muted rounded px-2 py-0.5 text-xs"
+        >
+          <option value={7}>7 days</option>
+          <option value={14}>14 days</option>
+          <option value={30}>30 days</option>
+          <option value={60}>60 days</option>
+        </select>
         <Button variant="outline" size="sm" onClick={() => void fetchData()} disabled={loading}>
           <ArrowsClockwiseIcon size={16} className={loading ? 'animate-spin' : ''} />
           Refresh

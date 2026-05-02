@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { AdminPageHeader } from '../AdminPageHeader'
 import {
   UsersIcon,
   ArrowsClockwiseIcon,
@@ -74,11 +75,11 @@ export default function LandingRoute(): React.JSX.Element {
   const s = data?.stats
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-4xl space-y-8">
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">Mission Control</h1>
-        <p className="text-sm text-muted-foreground mt-1">Overview of your game database.</p>
-      </div>
+    <div className="container mx-auto px-4 pb-8 max-w-5xl space-y-8">
+      <AdminPageHeader
+        title="Mission Control"
+        subtitle="Overview of your game database"
+      />
 
       {error && (
         <div className="rounded-lg bg-destructive/10 border border-destructive/30 px-4 py-3 text-sm text-destructive">{error}</div>

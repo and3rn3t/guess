@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { AdminPageHeader } from '../AdminPageHeader'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { CheckCircleIcon, XCircleIcon, ArrowsClockwiseIcon, UsersThreeIcon } from '@phosphor-icons/react'
@@ -63,20 +64,17 @@ export default function CommunityRoute(): React.JSX.Element {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <h1 className="text-2xl font-bold">Community Contributions</h1>
-          {data && (
-            <p className="text-sm text-muted-foreground mt-1">
-              {data.total} character{data.total !== 1 ? 's' : ''} with pending correction votes
-            </p>
-          )}
-        </div>
-        <Button variant="outline" size="sm" onClick={() => void fetchData()} disabled={loading}>
-          <ArrowsClockwiseIcon size={14} className={`mr-2 ${loading ? 'animate-spin' : ''}`} />Refresh
-        </Button>
-      </div>
+    <div className="container mx-auto px-4 pb-8 max-w-5xl space-y-6">
+      <AdminPageHeader
+        title="Community Contributions"
+        subtitle={data ? `${data.total} character${data.total !== 1 ? 's' : ''} with pending correction votes` : undefined}
+        sectionColor="emerald"
+        actions={
+          <Button variant="outline" size="sm" onClick={() => void fetchData()} disabled={loading}>
+            <ArrowsClockwiseIcon size={14} className={`mr-2 ${loading ? 'animate-spin' : ''}`} />Refresh
+          </Button>
+        }
+      />
 
       {error && (
         <div className="rounded-lg bg-destructive/10 border border-destructive/30 px-4 py-3 text-sm text-destructive">{error}</div>

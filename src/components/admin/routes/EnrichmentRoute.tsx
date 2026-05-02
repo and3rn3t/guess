@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { AdminPageHeader } from '../AdminPageHeader'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -97,17 +98,18 @@ export default function EnrichmentRoute(): React.JSX.Element {
   const totalPages = data ? Math.ceil(data.total / pageSize) : 1
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <h1 className="text-2xl font-bold">Enrichment Status</h1>
-          <p className="text-sm text-muted-foreground mt-1">Image enrichment pipeline coverage</p>
-        </div>
-        <Button onClick={() => void handleRetry()} disabled={retrying || (summary?.pending === 0)} variant="outline" size="sm">
-          <ArrowsClockwiseIcon size={16} className={`mr-2 ${retrying ? 'animate-spin' : ''}`} />
-          Retry pending
-        </Button>
-      </div>
+    <div className="container mx-auto px-4 pb-8 max-w-5xl space-y-6">
+      <AdminPageHeader
+        title="Enrichment Status"
+        subtitle="Image enrichment pipeline coverage"
+        sectionColor="blue"
+        actions={
+          <Button onClick={() => void handleRetry()} disabled={retrying || (summary?.pending === 0)} variant="outline" size="sm">
+            <ArrowsClockwiseIcon size={16} className={`mr-2 ${retrying ? 'animate-spin' : ''}`} />
+            Retry pending
+          </Button>
+        }
+      />
 
       {retryMsg && (
         <div className="rounded-lg bg-blue-500/10 border border-blue-500/30 px-4 py-3 text-sm text-blue-400">{retryMsg}</div>

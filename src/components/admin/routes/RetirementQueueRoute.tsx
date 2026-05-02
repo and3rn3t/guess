@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
+import { AdminPageHeader } from '../AdminPageHeader'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -152,15 +153,13 @@ export default function RetirementQueueRoute(): React.JSX.Element {
   const retired = data?.retired ?? []
 
   return (
-    <div className="container mx-auto space-y-6 px-4 py-8">
-      <div>
-        <h1 className="text-2xl font-bold">Question Retirement Queue</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Ranks questions by composite badness ={' '}
-          <code className="text-xs">0.4 × skipRate + 0.3 × maybeRate + 0.3 × imbalance</code>.
-          Last {data?.windowDays ?? 30} days · min {data?.minShown ?? 10} impressions.
-        </p>
-      </div>
+    <div className="container mx-auto px-4 pb-8 max-w-5xl space-y-6">
+      <AdminPageHeader
+        title="Question Retirement Queue"
+        subtitle={`Last ${data?.windowDays ?? 30} days · min ${data?.minShown ?? 10} impressions`}
+        sectionColor="blue"
+        breadcrumbs={[{ label: 'Questions', to: '/questions' }, { label: 'Retirement Queue' }]}
+      />
 
       <Tabs value={source} onValueChange={handleSourceChange}>
         <TabsList>

@@ -1,5 +1,6 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { AdminPageHeader } from "../AdminPageHeader";
 import {
   ArrowLeftIcon,
   ArrowRightIcon,
@@ -175,31 +176,28 @@ export default function DisputesRoute(): React.JSX.Element {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <h1 className="text-2xl font-bold">Attribute Disputes</h1>
-          {data && (
-            <p className="text-sm text-muted-foreground mt-1">
-              {data.total} disputes
-            </p>
-          )}
-        </div>
-        <div className="flex gap-2">
-          {(["open", "resolved", "dismissed", "all"] as Filter[]).map((f) => (
-            <button
-              key={f}
-              onClick={() => {
-                setFilter(f);
-                setPage(1);
-              }}
-              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${filter === f ? "bg-violet-600 text-white" : "bg-muted text-muted-foreground hover:text-foreground"}`}
-            >
-              {f.charAt(0).toUpperCase() + f.slice(1)}
-            </button>
-          ))}
-        </div>
-      </div>
+    <div className="container mx-auto px-4 pb-8 max-w-5xl space-y-6">
+      <AdminPageHeader
+        title="Attribute Disputes"
+        subtitle={data ? `${data.total} disputes` : undefined}
+        sectionColor="emerald"
+        actions={
+          <div className="flex gap-2">
+            {(["open", "resolved", "dismissed", "all"] as Filter[]).map((f) => (
+              <button
+                key={f}
+                onClick={() => {
+                  setFilter(f);
+                  setPage(1);
+                }}
+                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${filter === f ? "bg-violet-600 text-white" : "bg-muted text-muted-foreground hover:text-foreground"}`}
+              >
+                {f.charAt(0).toUpperCase() + f.slice(1)}
+              </button>
+            ))}
+          </div>
+        }
+      />
 
       {error && (
         <div className="rounded-lg bg-destructive/10 border border-destructive/30 px-4 py-3 text-sm text-destructive">

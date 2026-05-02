@@ -6,6 +6,7 @@
  * expands an inline step-by-step replay with the top-10 highlighted.
  */
 import { useCallback, useEffect, useState } from 'react'
+import { AdminPageHeader } from '../AdminPageHeader'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { ArrowsClockwiseIcon, CaretDownIcon, CaretRightIcon } from '@phosphor-icons/react'
@@ -195,25 +196,24 @@ export default function TriageRoute(): React.JSX.Element {
   const hasNext = offset + PAGE_SIZE < total
 
   return (
-    <div className="container mx-auto max-w-3xl px-4 py-8 space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Failure Triage</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Games where the engine never ranked the actual character in its top-10.
-          </p>
-        </div>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => void load(offset)}
-          disabled={loading}
-          className="gap-1.5"
-        >
-          <ArrowsClockwiseIcon size={14} className={loading ? 'animate-spin' : ''} />
-          Refresh
-        </Button>
-      </div>
+    <div className="container mx-auto px-4 pb-8 max-w-5xl space-y-6">
+      <AdminPageHeader
+        title="Failure Triage"
+        subtitle="Games where the engine never ranked the actual character in its top-10"
+        sectionColor="emerald"
+        actions={
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => void load(offset)}
+            disabled={loading}
+            className="gap-1.5"
+          >
+            <ArrowsClockwiseIcon size={14} className={loading ? 'animate-spin' : ''} />
+            Refresh
+          </Button>
+        }
+      />
 
       {error && <p className="text-sm text-red-400">{error}</p>}
 
