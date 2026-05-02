@@ -226,7 +226,7 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           wranglerVersion: ${{ env.WRANGLER_VERSION }}
-          command: pages deploy dist --project-name=guess --branch=${{ github.head_ref }}
+          command: pages deploy dist --project-name=guess --branch=${{ github.head_ref }} --commit-message="${{ github.event.pull_request.title }}"
 
       - name: Smoke test
         run: |
@@ -282,13 +282,23 @@ jobs:
         with:
           name: dist
           path: dist
+      # Extract the commit subject line and strip non-ASCII characters.
+      # Cloudflare Pages API (code 8000111) rejects commit messages containing
+      # multi-byte Unicode (e.g. ×, →, —) even though they are valid UTF-8.
+      # Using only the subject line (first line of the message) is sufficient
+      # for the Cloudflare dashboard and is always ASCII in this project.
+      - name: Extract commit subject
+        id: meta
+        run: |
+          subject=$(git log -1 --pretty=%s | LC_ALL=C tr -cd '[:print:]')
+          echo "subject=$subject" >> "$GITHUB_OUTPUT"
       - name: Deploy to Cloudflare Pages (production)
         uses: cloudflare/wrangler-action@9acf94ace14e7dc412b076f2c5c20b8ce93c79cd # v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           wranglerVersion: ${{ env.WRANGLER_VERSION }}
-          command: pages deploy dist --project-name=guess
+          command: pages deploy dist --project-name=guess --commit-message="${{ steps.meta.outputs.subject }}"
 
       - name: Smoke test
         run: |
