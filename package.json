@@ -13,6 +13,7 @@
     "preview": "vite preview",
     "deploy": "pnpm build && tsx scripts/upload-sourcemaps.ts --env=production && wrangler pages deploy",
     "deploy:preview": "pnpm build && tsx scripts/upload-sourcemaps.ts --env=preview && wrangler pages deploy --branch preview",
+    "build:worker": "wrangler deploy --dry-run --config tail-worker/wrangler.toml --env preview",
     "cf:login": "wrangler login",
     "cf:dev": "pnpm build && wrangler pages dev dist",
     "deploy:tail": "wrangler deploy --config tail-worker/wrangler.toml --env production",
