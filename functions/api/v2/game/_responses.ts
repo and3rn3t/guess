@@ -98,3 +98,18 @@ export function buildContradictionResponse(input: {
     questionCount: input.questionCount,
   }
 }
+
+export function buildExhaustedResponse(input: {
+  message: string
+  questionCount: number
+  guessCount: number
+  rejectCooldownRemaining: number
+}) {
+  return {
+    type: 'exhausted' as const,
+    message: input.message,
+    questionCount: input.questionCount,
+    guessCount: input.guessCount,
+    rejectCooldownRemaining: input.rejectCooldownRemaining,
+  }
+}

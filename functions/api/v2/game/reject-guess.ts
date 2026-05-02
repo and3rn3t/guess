@@ -8,17 +8,16 @@ import {
 import { RejectGuessRequestSchema } from '../../_schemas'
 import {
   filterPossibleCharacters,
-  selectBestQuestion,
   generateReasoning,
   loadSession,
   saveSessionState,
   loadAdaptiveData,
-  buildQuestionOptions,
   BONUS_QUESTIONS_PER_REJECT,
   DIFFICULTY_MAP,
 } from '../_game-engine'
 import { advanceToNextQuestion } from './_question-flow'
-import { buildQuestionResponse } from './_responses'
+import { selectNextQuestionForTurn } from './_question-selection'
+import { buildExhaustedResponse, buildQuestionResponse } from './_responses'
 import { queueRejectSessionSync } from './_turn-effects'
 
 // ── POST /api/v2/game/reject-guess ───────────────────────────
@@ -67,37 +66,42 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   // Check if any viable candidates remain
   if (filtered.length === 0) {
     await saveSessionState(kv, session)
-    return jsonResponse({
-      type: 'exhausted',
-      message: "I've run out of candidates — you stumped me!",
-      questionCount: session.answers.length,
-      guessCount: session.guessCount,
-      rejectCooldownRemaining: session.postRejectCooldown,
-    })
+    return jsonResponse(
+      buildExhaustedResponse({
+        message: "I've run out of candidates — you stumped me!",
+        questionCount: session.answers.length,
+        guessCount: session.guessCount,
+        rejectCooldownRemaining: session.postRejectCooldown,
+      })
+    )
   }
 
-  // Select next question (pass progress for dynamic top-K threshold)
-  const progress = session.answers.length / session.maxQuestions
+  // Select next question
   const scoring = { coverageMap: session.coverageMap, popularityMap: session.popularityMap }
 
   // Load runtime adaptive data (parallel — best-effort, failures are non-fatal)
   const db = context.env.GUESS_DB
   const adaptive = await loadAdaptiveData(kv, db)
 
-  const nextQuestion = selectBestQuestion(filtered, session.answers, session.questions,
-    buildQuestionOptions(session, scoring, adaptive, { progress })
-  )
+  const nextQuestion = selectNextQuestionForTurn({
+    session,
+    filtered,
+    questions: session.questions,
+    scoring,
+    adaptive,
+  })
 
   if (!nextQuestion) {
     // No more unanswered questions but candidates remain — exhausted
     await saveSessionState(kv, session)
-    return jsonResponse({
-      type: 'exhausted',
-      message: "I've run out of questions to ask — you stumped me!",
-      questionCount: session.answers.length,
-      guessCount: session.guessCount,
-      rejectCooldownRemaining: session.postRejectCooldown,
-    })
+    return jsonResponse(
+      buildExhaustedResponse({
+        message: "I've run out of questions to ask — you stumped me!",
+        questionCount: session.answers.length,
+        guessCount: session.guessCount,
+        rejectCooldownRemaining: session.postRejectCooldown,
+      })
+    )
   }
 
   const reasoning = generateReasoning(nextQuestion, filtered, session.answers, scoring)

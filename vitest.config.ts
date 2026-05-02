@@ -48,8 +48,15 @@ export default defineConfig({
         'src/hooks/useGlobalStats.ts',
         'src/hooks/useSyncStatus.ts',
         'src/hooks/useWakeLock.ts',
+        // App orchestration hooks — behavior validated by app-level integration/e2e tests
+        'src/hooks/useGameActions.ts',
+        'src/hooks/useAppLifecycleEffects.ts',
         // Complex game-lifecycle hook — covered by Playwright e2e
         'src/hooks/useGameState.ts',
+        // Admin dashboard API clients — exercised via admin route/component tests
+        'src/lib/admin/costApi.ts',
+        'src/lib/admin/hygieneApi.ts',
+        'src/lib/admin/recommenderApi.ts',
         // Barrel re-exports and pure type declarations — no runtime logic
         'packages/game-engine/src/index.ts',
         'packages/game-engine/src/types.ts',

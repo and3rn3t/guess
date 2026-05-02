@@ -9,15 +9,17 @@ import { SkipRequestSchema } from '../../_schemas'
 import {
   filterPossibleCharacters,
   generateReasoning,
-  selectBestQuestion,
   calculateProbabilities,
   loadSession,
   saveSessionState,
   loadAdaptiveData,
   getOrBuildCoverageMap,
-  buildQuestionOptions,
 } from '../_game-engine'
 import { advanceToNextQuestion } from './_question-flow'
+import {
+  getRecentQuestionCategories,
+  selectNextQuestionForTurn,
+} from './_question-selection'
 import { buildQuestionResponse } from './_responses'
 
 
@@ -67,14 +69,16 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   )
 
   const questionCount = session.answers.length
-  const progress = questionCount / session.maxQuestions
-  const recentCategories = session.answers.slice(-3)
-    .map((a) => session.questions.find((q) => q.attribute === a.questionId)?.category)
-    .filter((c): c is string => c != null)
 
-  const nextQuestion = selectBestQuestion(filtered, session.answers, availableQuestions,
-    buildQuestionOptions(session, scoring, adaptive, { progress, probs, recentCategories })
-  )
+  const nextQuestion = selectNextQuestionForTurn({
+    session,
+    filtered,
+    questions: availableQuestions,
+    scoring,
+    adaptive,
+    probs,
+    recentCategories: getRecentQuestionCategories(session),
+  })
 
   if (!nextQuestion) {
     // All questions exhausted — save state and signal the client

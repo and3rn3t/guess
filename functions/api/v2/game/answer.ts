@@ -11,14 +11,12 @@ import {
   detectContradictions,
   evaluateGuessReadiness,
   getBestGuessResult,
-  selectBestQuestion,
   generateReasoning,
   calculateProbabilities,
   loadSession,
   saveSessionState,
   loadAdaptiveData,
   getOrBuildCoverageMap,
-  buildQuestionOptions,
 } from '../_game-engine'
 import {
   buildContradictionResponse,
@@ -26,6 +24,10 @@ import {
   buildQuestionResponse,
 } from './_responses'
 import { advanceToNextQuestion } from './_question-flow'
+import {
+  getRecentQuestionCategories,
+  selectNextQuestionForTurn,
+} from './_question-selection'
 import {
   queueAnswerSessionSync,
   queueQuestionAttemptWrite,
@@ -192,15 +194,17 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   const db = context.env.GUESS_DB
   const adaptive = await loadAdaptiveData(kv, db)
 
-  // Select next question (pass progress + pre-computed probs for efficiency)
-  const progress = questionCount / session.maxQuestions
-  const recentCategories = session.answers.slice(-3)
-    .map((a) => session.questions.find((q) => q.attribute === a.questionId)?.category)
-    .filter((c): c is string => c != null)
-  const nextQuestion = selectBestQuestion(filtered, session.answers, session.questions,
-    buildQuestionOptions(session, scoring, adaptive, { progress, probs, recentCategories }),
-    session.selector ?? 'mcts'
-  )
+  // Select next question (pass pre-computed probs for efficiency)
+  const nextQuestion = selectNextQuestionForTurn({
+    session,
+    filtered,
+    questions: session.questions,
+    scoring,
+    adaptive,
+    probs,
+    recentCategories: getRecentQuestionCategories(session),
+    selector: session.selector ?? 'mcts',
+  })
 
   if (!nextQuestion) {
     // No more questions — force a guess

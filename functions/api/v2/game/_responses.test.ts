@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   buildContradictionResponse,
+  buildExhaustedResponse,
   buildGuessResponse,
   buildQuestionResponse,
 } from './_responses'
@@ -64,5 +65,22 @@ describe('game response builders', () => {
 
     expect(response.type).toBe('contradiction')
     expect(response.message).toContain('contradictory')
+  })
+
+  it('buildExhaustedResponse returns canonical exhausted payload shape', () => {
+    const response = buildExhaustedResponse({
+      message: 'No more candidates',
+      questionCount: 7,
+      guessCount: 2,
+      rejectCooldownRemaining: 1,
+    })
+
+    expect(response).toEqual({
+      type: 'exhausted',
+      message: 'No more candidates',
+      questionCount: 7,
+      guessCount: 2,
+      rejectCooldownRemaining: 1,
+    })
   })
 })
