@@ -104,15 +104,30 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   //   Fetch 2× POOL_SIZE to get popular chars, then randomly pick POOL_SIZE
   //   This ensures variety across games while keeping the pool reasonably well-known
   const candidateLimit = POOL_SIZE * 2
-  const candidates = await d1Query<CharacterRow>(
-    db,
-    `SELECT c.id, c.name, c.category, c.image_url, c.popularity, c.attributes_json, c.trivia
-     FROM characters c
-     ${where}
-     ORDER BY c.popularity DESC
-     LIMIT ?`,
-    [...params, candidateLimit]
-  )
+  let candidates: CharacterRow[] = []
+  try {
+    candidates = await d1Query<CharacterRow>(
+      db,
+      `SELECT c.id, c.name, c.category, c.image_url, c.popularity, c.attributes_json, c.trivia
+       FROM characters c
+       ${where}
+       ORDER BY c.popularity DESC
+       LIMIT ?`,
+      [...params, candidateLimit]
+    )
+  } catch (err) {
+    // Fallback: if trivia column doesn't exist (pre-migration), query without it
+    logError(context, 'Character query with trivia failed, falling back', err)
+    candidates = await d1Query<CharacterRow>(
+      db,
+      `SELECT c.id, c.name, c.category, c.image_url, c.popularity, c.attributes_json, NULL as trivia
+       FROM characters c
+       ${where}
+       ORDER BY c.popularity DESC
+       LIMIT ?`,
+      [...params, candidateLimit]
+    )
+  }
 
   // Shuffle candidates and take POOL_SIZE
   for (let i = candidates.length - 1; i > 0; i--) {
@@ -123,11 +138,22 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
   // Daily challenge: ensure the pinned character is in the pool
   if (pinnedCharId && !characters.some((c) => c.id === pinnedCharId)) {
-    const pinned = await d1First<CharacterRow>(
-      db,
-      'SELECT id, name, category, image_url, popularity, attributes_json, trivia FROM characters WHERE id = ?',
-      [pinnedCharId]
-    )
+    let pinned: CharacterRow | undefined
+    try {
+      pinned = await d1First<CharacterRow>(
+        db,
+        'SELECT id, name, category, image_url, popularity, attributes_json, trivia FROM characters WHERE id = ?',
+        [pinnedCharId]
+      )
+    } catch (err) {
+      // Fallback: if trivia column doesn't exist, query without it
+      logError(context, 'Pinned character query with trivia failed, falling back', err)
+      pinned = await d1First<CharacterRow>(
+        db,
+        'SELECT id, name, category, image_url, popularity, attributes_json, NULL as trivia FROM characters WHERE id = ?',
+        [pinnedCharId]
+      )
+    }
     if (pinned) {
       // Replace the last slot with the pinned character
       characters[characters.length - 1] = pinned
