@@ -162,10 +162,18 @@ export async function runServerEnrichBatch(env: Env, batchId: string, limit: num
     let promptTokens = 0
     let completionTokens = 0
 
+    // 25 s hard timeout — gives the finally block time to run before the
+    // Worker CPU budget expires (~30 s default). Without this, a hung
+    // OpenAI connection causes the Worker to be killed mid-flight, leaving
+    // pipeline_runs rows stuck as 'running' and the KV flag never cleared.
+    const llmAbort = new AbortController()
+    const llmTimeout = setTimeout(() => llmAbort.abort(), 25_000)
+
     try {
       const res = await fetch(getCompletionsEndpoint(env), {
         method: 'POST',
         headers: getLlmHeaders(env),
+        signal: llmAbort.signal,
         body: JSON.stringify({
           model: MODEL,
           messages: [
@@ -187,7 +195,11 @@ export async function runServerEnrichBatch(env: Env, batchId: string, limit: num
         llmError = `OpenAI ${res.status}: ${errText.slice(0, 300)}`
       }
     } catch (fetchErr) {
-      llmError = String(fetchErr).slice(0, 300)
+      llmError = (fetchErr instanceof Error && fetchErr.name === 'AbortError')
+        ? 'LLM request timed out after 25 s'
+        : String(fetchErr).slice(0, 300)
+    } finally {
+      clearTimeout(llmTimeout)
     }
 
     const durationMs = Date.now() - t0
