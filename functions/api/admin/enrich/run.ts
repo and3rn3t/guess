@@ -176,10 +176,10 @@ export async function runServerEnrichBatch(env: Env, batchId: string, origin?: s
     // 4. Call OpenAI in parallel chunks to stay well under the ~30 s wall-clock limit.
     // ~234 attrs × ~6 completion tokens each ≈ 1,400 tokens in a single call — at
     // gpt-4o-mini's throughput (~50 tok/s) that takes 28-30 s, right at the limit.
-    // Splitting into 2 parallel calls (~117 attrs each, ~700 tokens each) cuts
-    // response time to ~14 s, leaving ~16 s for the chain fetch in finally.
-    const half = Math.ceil(allAttrs.length / 2)
-    const attrChunks = [allAttrs.slice(0, half), allAttrs.slice(half)].filter((c) => c.length > 0)
+    // Splitting into 4 parallel calls (~58 attrs each, ~350 tokens each) cuts
+    // wall-clock response time to ~7 s, leaving ~23 s of headroom for chainOrClear.
+    const chunkSize = Math.ceil(allAttrs.length / 4)
+    const attrChunks = Array.from({ length: 4 }, (_, i) => allAttrs.slice(i * chunkSize, (i + 1) * chunkSize)).filter((c) => c.length > 0)
     const chunkResults = await Promise.all(attrChunks.map((chunk) => callOpenAIChunk(env, char, chunk)))
 
     let charError: string | null = null
@@ -266,9 +266,11 @@ async function callOpenAIChunk(
   const chunkKeySet = new Set(attrChunk.map((a) => a.key))
   const systemPrompt = buildSystemPrompt(attrChunk.map((a) => ({ key: a.key, questionText: null })))
   const llmAbort = new AbortController()
-  // 25 s — fires ~5 s before the 30 s wall-clock limit so the finally block
+  // 20 s — fires ~10 s before the 30 s wall-clock limit so the finally block
   // can write the error row and fire the chain before the Worker is killed.
-  const llmTimeout = setTimeout(() => llmAbort.abort(), 25_000)
+  // Each chunk is ~58 attrs / ~350 tokens and should complete in ~7 s, so 20 s
+  // gives ~13 s of slack even for the slowest OpenAI responses.
+  const llmTimeout = setTimeout(() => llmAbort.abort(), 20_000)
   try {
     const res = await fetch(OPENAI_DIRECT, {
       method: 'POST',
@@ -302,7 +304,7 @@ async function callOpenAIChunk(
     }
   } catch (fetchErr) {
     const error = (fetchErr instanceof Error && fetchErr.name === 'AbortError')
-      ? 'LLM request timed out after 25 s'
+      ? 'LLM request timed out after 20 s'
       : String(fetchErr).slice(0, 300)
     return { attrResult: {}, promptTokens: 0, completionTokens: 0, error }
   } finally {
