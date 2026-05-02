@@ -7,7 +7,6 @@ import {
 } from '../../_helpers'
 import { AnswerRequestSchema } from '../../_schemas'
 import {
-  filterPossibleCharacters,
   detectContradictions,
   evaluateGuessReadiness,
   getBestGuessResult,
@@ -19,19 +18,67 @@ import {
   getOrBuildCoverageMap,
 } from '../_game-engine'
 import {
-  buildContradictionResponse,
   buildGuessResponse,
   buildQuestionResponse,
 } from './_responses'
-import { advanceToNextQuestion } from './_question-flow'
+import { rollbackAndBuildContradictionResponse } from './_contradiction'
+import { calculateEliminatedCount } from './_elimination'
+import { buildGuessAnalytics } from './_guess-analytics'
+import {
+  advanceToNextQuestion,
+  applyAnswerAndFilter,
+} from './_question-flow'
 import {
   getRecentQuestionCategories,
   selectNextQuestionForTurn,
 } from './_question-selection'
+import { updatePosteriorHistory } from './_posterior-history'
+import { applyRejectCooldown } from './_readiness'
 import {
+  buildQuestionAttemptInput,
   queueAnswerSessionSync,
   queueQuestionAttemptWrite,
 } from './_turn-effects'
+
+async function finalizeGuessAndSave(input: {
+  kv: KVNamespace
+  session: NonNullable<Awaited<ReturnType<typeof loadSession>>>
+  guess: {
+    id: string
+    name: string
+    category: string
+    imageUrl: string | null
+    trivia?: string[]
+  }
+  probs: Map<string, number>
+  questionCount: number
+  remaining: number
+  readiness?: {
+    trigger?: string | null
+    blockedByRejectCooldown?: boolean
+    rejectCooldownRemaining?: number
+    topProbability?: number
+    gap?: number
+    aliveCount?: number
+    questionsRemaining?: number
+    forced?: boolean
+  }
+}): Promise<ReturnType<typeof buildGuessResponse>> {
+  const confidence = Math.round((input.probs.get(input.guess.id) || 0) * 100)
+
+  input.session.currentQuestion = null
+  input.session.guessCount += 1
+  await saveSessionState(input.kv, input.session)
+
+  return buildGuessResponse({
+    character: input.guess,
+    confidence,
+    questionCount: input.questionCount,
+    remaining: input.remaining,
+    guessCount: input.session.guessCount,
+    ...(input.readiness ? { readiness: input.readiness } : {}),
+  })
+}
 
 // ── POST /api/v2/game/answer ─────────────────────────────────
 // Processes the user's answer, returns next question or a guess
@@ -55,35 +102,28 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     return errorResponse('No pending question to answer', 400)
   }
 
-  // Record answer (questionId is the attribute key)
-  const newAnswer = {
-    questionId: session.currentQuestion.attribute,
-    value,
-  }
-  const questionIndex = session.answers.length // 0-based index of this answer
-  const askedQuestion = session.currentQuestion
-  const candidatesBefore = filterPossibleCharacters(
-    session.characters,
-    session.answers,
-    session.rejectedGuesses
-  ).length
-  session.answers.push(newAnswer)
-
-  // Filter characters (hard elimination + rejected guesses)
-  const filtered = filterPossibleCharacters(session.characters, session.answers, session.rejectedGuesses)
+  const {
+    askedQuestion,
+    questionIndex,
+    candidatesBefore,
+    filtered,
+  } = applyAnswerAndFilter(session, value)
 
   // Persist question_attempts row (fire-and-forget). Powers per-question empirical
   // info-gain analytics (kv:question-empirical-gain) and per-question skip/maybe rates.
-  queueQuestionAttemptWrite(context.waitUntil, context.env.GUESS_DB, {
-    sessionId,
-    questionId: askedQuestion.id,
-    attribute: askedQuestion.attribute,
-    answer: value,
-    candidatesBefore,
-    candidatesAfter: filtered.length,
-    questionIndex,
-    createdAt: Date.now(),
-  })
+  queueQuestionAttemptWrite(
+    context.waitUntil,
+    context.env.GUESS_DB,
+    buildQuestionAttemptInput({
+      sessionId,
+      askedQuestion,
+      answer: value,
+      candidatesBefore,
+      candidatesAfter: filtered.length,
+      questionIndex,
+      createdAt: Date.now(),
+    }),
+  )
 
   const coverageMap = getOrBuildCoverageMap(session)
   const scoring = { coverageMap, popularityMap: session.popularityMap }
@@ -92,36 +132,16 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   // to avoid redundant O(C×A) passes over the same data.
   const probs = calculateProbabilities(filtered, session.answers, scoring)
 
-  // AN.11/AN.21: record posterior history and top-10 after each answer (fire-and-update-session).
-  // posteriorHistory[i] = top candidate's normalized probability after answers[i].
-  // stepTopTen[i] = [{id, name}] of top-10 candidates after answers[i] (for triage).
-  {
-    const sortedEntries = Array.from(probs.entries()).sort((a, b) => b[1] - a[1])
-    const topProb = sortedEntries.length > 0 ? sortedEntries[0][1] : 0
-    const top10 = sortedEntries.slice(0, 10).map(([id]) => {
-      const c = filtered.find((ch) => ch.id === id)
-      return { id, name: c?.name ?? id }
-    })
-    if (!session.posteriorHistory) session.posteriorHistory = []
-    if (!session.stepTopTen) session.stepTopTen = []
-    session.posteriorHistory.push(topProb)
-    session.stepTopTen.push(top10)
-  }
+  // AN.11/AN.21: record posterior history and top-10 after each answer.
+  updatePosteriorHistory(session, probs, filtered)
 
   // Check for contradictions
   const { hasContradiction } = detectContradictions(filtered, session.answers)
   if (hasContradiction) {
-    // Undo the last answer
-    session.answers.pop()
-    // Restore current question
-    await saveSessionState(kv, session)
-
     return jsonResponse(
-      buildContradictionResponse({
-        question: session.currentQuestion,
-        reasoning: generateReasoning(session.currentQuestion, session.characters, session.answers),
-        remaining: session.characters.length,
-        questionCount: session.answers.length,
+      await rollbackAndBuildContradictionResponse({
+        kv,
+        session,
       })
     )
   }
@@ -138,52 +158,28 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     probs,
   )
 
-  const cooldownBeforeAnswer = session.postRejectCooldown
-  const blockedByRejectCooldown = cooldownBeforeAnswer > 0 && !readiness.forced
-  if (blockedByRejectCooldown) {
-    session.postRejectCooldown = Math.max(0, cooldownBeforeAnswer - 1)
-  }
-
-  const responseReadiness = {
-    ...readiness,
-    blockedByRejectCooldown,
-    rejectCooldownRemaining: session.postRejectCooldown,
-  }
+  const responseReadiness = applyRejectCooldown(session, readiness)
 
   // Check if we should guess
   if (responseReadiness.shouldGuess && !responseReadiness.blockedByRejectCooldown) {
     const { character: guess, probs } = getBestGuessResult(filtered, session.answers, session.rejectedGuesses, scoring)
     if (guess) {
-      const confidence = Math.round((probs.get(guess.id) || 0) * 100)
-
-      // Capture analytics at guess time
-      const probValues = Array.from(probs.values()).filter((p) => p > 0)
-      const guessEntropy = probValues.reduce((sum, p) => (p > 0 ? sum - p * Math.log2(p) : sum), 0)
-      const answerDist: Record<string, number> = { yes: 0, no: 0, maybe: 0, unknown: 0 }
-      for (const a of session.answers) answerDist[a.value] = (answerDist[a.value] || 0) + 1
-      session.guessAnalytics = {
-        confidence: confidence / 100,
-        entropy: Math.round(guessEntropy * 100) / 100,
+      session.guessAnalytics = buildGuessAnalytics({
+        guessId: guess.id,
+        probs,
+        answers: session.answers,
         remaining: filtered.length,
-        answerDistribution: answerDist,
-        trigger: responseReadiness.trigger,
-        forced: responseReadiness.forced,
-        gap: Math.round(responseReadiness.gap * 100) / 100,
-        aliveCount: responseReadiness.aliveCount,
-        questionsRemaining: responseReadiness.questionsRemaining,
-      }
-
-      session.currentQuestion = null
-      session.guessCount += 1
-      await saveSessionState(kv, session)
+        readiness: responseReadiness,
+      })
 
       return jsonResponse(
-        buildGuessResponse({
-          character: guess,
-          confidence,
+        await finalizeGuessAndSave({
+          kv,
+          session,
+          guess,
+          probs,
           questionCount,
           remaining: filtered.length,
-          guessCount: session.guessCount,
           readiness: responseReadiness,
         })
       )
@@ -209,20 +205,16 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   if (!nextQuestion) {
     // No more questions — force a guess
     const { character: guess, probs: guessProbs } = getBestGuessResult(filtered, session.answers, session.rejectedGuesses, scoring)
-    session.currentQuestion = null
-    session.guessCount += 1
-    await saveSessionState(kv, session)
 
     if (guess) {
-      const confidence = Math.round((guessProbs.get(guess.id) || 0) * 100)
-
       return jsonResponse(
-        buildGuessResponse({
-          character: guess,
-          confidence,
+        await finalizeGuessAndSave({
+          kv,
+          session,
+          guess,
+          probs: guessProbs,
           questionCount,
           remaining: filtered.length,
-          guessCount: session.guessCount,
         })
       )
     }
@@ -231,12 +223,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   }
 
   const reasoning = generateReasoning(nextQuestion, filtered, session.answers, scoring)
-  const previousFiltered = filterPossibleCharacters(
-    session.characters,
-    session.answers.slice(0, -1),
-    session.rejectedGuesses
-  )
-  const eliminated = previousFiltered.length - filtered.length
+  const eliminated = calculateEliminatedCount(session, filtered.length)
 
   await advanceToNextQuestion({
     env: context.env,

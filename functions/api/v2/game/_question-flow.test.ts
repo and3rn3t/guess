@@ -19,6 +19,7 @@ vi.mock('../_llm-rephrase', () => ({
 }))
 
 import { advanceToNextQuestion } from './_question-flow'
+import { applyAnswerAndFilter } from './_question-flow'
 
 function makeSession(): GameSession {
   return {
@@ -95,5 +96,30 @@ describe('advanceToNextQuestion', () => {
     expect(nextQuestion.displayText).toBeUndefined()
     expect(saveSessionStateMock).toHaveBeenCalledOnce()
     expect(rephraseQuestionMock).toHaveBeenCalledOnce()
+  })
+})
+
+describe('applyAnswerAndFilter', () => {
+  it('appends answer and returns candidates before/after snapshot', () => {
+    const session = makeSession()
+    session.characters = [
+      { id: 'a', name: 'A', category: 'test', imageUrl: null, attributes: { isHuman: true } },
+      { id: 'b', name: 'B', category: 'test', imageUrl: null, attributes: { isHuman: false } },
+    ]
+    session.answers = []
+    session.currentQuestion = {
+      id: 'q1',
+      text: 'Is human?',
+      attribute: 'isHuman',
+      category: 'traits',
+    }
+
+    const result = applyAnswerAndFilter(session, 'yes')
+
+    expect(result.askedQuestion.attribute).toBe('isHuman')
+    expect(result.questionIndex).toBe(0)
+    expect(result.candidatesBefore).toBe(2)
+    expect(result.filtered.map((c) => c.id)).toEqual(['a', 'b'])
+    expect(session.answers).toEqual([{ questionId: 'isHuman', value: 'yes' }])
   })
 })

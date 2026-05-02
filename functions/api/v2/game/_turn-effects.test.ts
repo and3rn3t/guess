@@ -9,6 +9,7 @@ vi.mock('../../_helpers', () => ({
 }))
 
 import {
+  buildQuestionAttemptInput,
   queueAnswerSessionSync,
   queueQuestionAttemptWrite,
   queueRejectSessionSync,
@@ -66,5 +67,28 @@ describe('turn side-effect adapters', () => {
       ['canFly', 18, 'sess-1'],
     )
     expect(waitUntil).toHaveBeenCalledOnce()
+  })
+
+  it('builds question_attempt payload from asked question shape', () => {
+    const payload = buildQuestionAttemptInput({
+      sessionId: 'sess-1',
+      askedQuestion: { id: 'q1', attribute: 'isHuman' },
+      answer: 'yes',
+      candidatesBefore: 100,
+      candidatesAfter: 50,
+      questionIndex: 2,
+      createdAt: 123,
+    })
+
+    expect(payload).toEqual({
+      sessionId: 'sess-1',
+      questionId: 'q1',
+      attribute: 'isHuman',
+      answer: 'yes',
+      candidatesBefore: 100,
+      candidatesAfter: 50,
+      questionIndex: 2,
+      createdAt: 123,
+    })
   })
 })

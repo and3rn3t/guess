@@ -211,4 +211,25 @@ describe('POST /api/v2/game/answer', () => {
       expect.objectContaining({ type: 'guess', character: expect.objectContaining({ id: 'mario' }) }),
     )
   })
+
+  it('returns fallback guess when no next question is available', async () => {
+    parseJsonBodyWithSchemaMock.mockResolvedValue({ success: true, data: { sessionId: 'x', value: 'yes' } })
+    loadSessionMock.mockResolvedValue({ ...SESSION })
+    filterPossibleCharactersMock.mockReturnValue([SESSION.characters[0]])
+    calculateProbabilitiesMock.mockReturnValue(new Map([['mario', 1.0]]))
+    detectContradictionsMock.mockReturnValue({ hasContradiction: false, remainingCount: 1 })
+    evaluateGuessReadinessMock.mockReturnValue({ ...READINESS, shouldGuess: false, forced: false })
+    selectBestQuestionMock.mockReturnValue(null)
+    getBestGuessResultMock.mockReturnValue({
+      character: SESSION.characters[0],
+      probs: new Map([['mario', 0.92]]),
+    })
+    const ctx = makeCtx({ sessionId: 'x', value: 'yes' })
+
+    await onRequestPost(ctx)
+
+    expect(jsonResponseMock).toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'guess', character: expect.objectContaining({ id: 'mario' }) }),
+    )
+  })
 })

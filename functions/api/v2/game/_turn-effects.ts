@@ -2,7 +2,7 @@ import { d1Run } from '../../_helpers'
 
 type WaitUntil = (promise: Promise<unknown>) => void
 
-interface QuestionAttemptInput {
+export interface QuestionAttemptInput {
   sessionId: string
   questionId: string
   attribute: string
@@ -11,6 +11,32 @@ interface QuestionAttemptInput {
   candidatesAfter: number
   questionIndex: number
   createdAt: number
+}
+
+interface BuildQuestionAttemptInput {
+  sessionId: string
+  askedQuestion: {
+    id: string
+    attribute: string
+  }
+  answer: string
+  candidatesBefore: number
+  candidatesAfter: number
+  questionIndex: number
+  createdAt: number
+}
+
+export function buildQuestionAttemptInput(input: BuildQuestionAttemptInput): QuestionAttemptInput {
+  return {
+    sessionId: input.sessionId,
+    questionId: input.askedQuestion.id,
+    attribute: input.askedQuestion.attribute,
+    answer: input.answer,
+    candidatesBefore: input.candidatesBefore,
+    candidatesAfter: input.candidatesAfter,
+    questionIndex: input.questionIndex,
+    createdAt: input.createdAt,
+  }
 }
 
 export function queueQuestionAttemptWrite(
