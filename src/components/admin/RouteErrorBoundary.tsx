@@ -10,6 +10,14 @@ interface FallbackProps {
   resetErrorBoundary: () => void
 }
 
+const CHUNK_RELOAD_GUARD_KEY = 'admin:chunk-reload-attempted'
+
+function isDynamicImportFetchError(message: string): boolean {
+  return /Failed to fetch dynamically imported module|Importing a module script failed|Loading chunk [\d]+ failed/i.test(
+    message,
+  )
+}
+
 /**
  * Inline error card rendered when an admin route throws. Stays within the
  * `<Outlet />` slot so the sidebar and shell remain mounted and usable.
@@ -24,12 +32,25 @@ function RouteErrorFallback({ error, resetErrorBoundary }: FallbackProps) {
   const message = error instanceof Error ? error.message : String(error)
   const stack = error instanceof Error ? error.stack : undefined
   const isDev = import.meta.env.DEV
+  const isChunkLoadFailure = isDynamicImportFetchError(message)
 
   // Telemetry: report once per error instance, only in production builds.
   useEffect(() => {
     if (isDev) return
     void import('@/lib/analytics').then((m) => m.trackUncaughtError(message, stack))
   }, [message, stack, isDev])
+
+  // Self-heal once when a deployed chunk hash has rotated under a stale shell.
+  useEffect(() => {
+    if (!isChunkLoadFailure) return
+    try {
+      if (sessionStorage.getItem(CHUNK_RELOAD_GUARD_KEY) === '1') return
+      sessionStorage.setItem(CHUNK_RELOAD_GUARD_KEY, '1')
+      window.location.reload()
+    } catch {
+      // If sessionStorage is unavailable, avoid crashing the fallback.
+    }
+  }, [isChunkLoadFailure])
 
   const handleCopy = async () => {
     const payload = stack ? `${message}\n\n${stack}` : message
@@ -67,6 +88,12 @@ function RouteErrorFallback({ error, resetErrorBoundary }: FallbackProps) {
           <RefreshCwIcon />
           Retry
         </Button>
+        {isChunkLoadFailure && (
+          <Button onClick={() => window.location.reload()} variant="outline" size="sm">
+            <RefreshCwIcon />
+            Reload page
+          </Button>
+        )}
         <Button onClick={handleCopy} variant="outline" size="sm">
           {copied ? <CheckIcon /> : <ClipboardCopyIcon />}
           {copied ? 'Copied' : 'Copy error'}
