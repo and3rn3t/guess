@@ -7,13 +7,17 @@
  * Steps for each batch:
  *  1. Load active attribute_definitions from D1
  *  2. Find characters with no character_attributes rows
- *  3. Call OpenAI (via AI Gateway) with all characters in one batch
+ *  3. Call OpenAI (direct — bypasses AI Gateway to ensure AbortController works)
  *  4. Parse response and write to character_attributes
  *  5. Log to pipeline_runs; clear KV job flag when done
  */
-import { type Env, getCompletionsEndpoint, getLlmHeaders } from '../../_helpers'
+import { type Env } from '../../_helpers'
 
 const MODEL = 'gpt-4o-mini'
+// Use direct OpenAI endpoint — the AI Gateway acts as a buffering proxy and
+// does not honour AbortController abort signals from the Worker, causing the
+// fetch to hang indefinitely even after the abort fires.
+const OPENAI_DIRECT = 'https://api.openai.com/v1/chat/completions'
 
 interface AttributeDef {
   key: string
@@ -185,9 +189,12 @@ export async function runServerEnrichBatch(env: Env, batchId: string, limit: num
       let completionTokens = 0
 
       try {
-        const res = await fetch(getCompletionsEndpoint(env), {
+        const res = await fetch(OPENAI_DIRECT, {
           method: 'POST',
-          headers: getLlmHeaders(env),
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${env.OPENAI_API_KEY}`,
+          },
           signal: llmAbort.signal,
           body: JSON.stringify({
             model: MODEL,
@@ -197,7 +204,9 @@ export async function runServerEnrichBatch(env: Env, batchId: string, limit: num
             ],
             temperature: 0.1,
             response_format: { type: 'json_object' },
-            max_tokens: 4096,
+            // 234 attrs × ~6 tokens per key:value pair ≈ 1,400 completion tokens.
+            // Cap at 2048 to fail fast if the model goes off-script.
+            max_tokens: 2048,
           }),
         })
         if (res.ok) {
