@@ -9,25 +9,18 @@ import { AnswerRequestSchema } from '../../_schemas'
 import {
   detectContradictions,
   evaluateGuessReadiness,
-  getBestGuessResult,
-  generateReasoning,
   calculateProbabilities,
   loadSession,
-  saveSessionState,
   loadAdaptiveData,
   getOrBuildCoverageMap,
 } from '../_game-engine'
-import {
-  buildGuessResponse,
-  buildQuestionResponse,
-} from './_responses'
 import { rollbackAndBuildContradictionResponse } from './_contradiction'
-import { calculateEliminatedCount } from './_elimination'
-import { buildGuessAnalytics } from './_guess-analytics'
 import {
-  advanceToNextQuestion,
+  buildNextQuestionResponse,
+  persistAndSyncAnswerTurn,
   applyAnswerAndFilter,
 } from './_question-flow'
+import { finalizeBestGuessForSession } from './_guess-flow'
 import {
   getRecentQuestionCategories,
   selectNextQuestionForTurn,
@@ -36,49 +29,8 @@ import { updatePosteriorHistory } from './_posterior-history'
 import { applyRejectCooldown } from './_readiness'
 import {
   buildQuestionAttemptInput,
-  queueAnswerSessionSync,
   queueQuestionAttemptWrite,
 } from './_turn-effects'
-
-async function finalizeGuessAndSave(input: {
-  kv: KVNamespace
-  session: NonNullable<Awaited<ReturnType<typeof loadSession>>>
-  guess: {
-    id: string
-    name: string
-    category: string
-    imageUrl: string | null
-    trivia?: string[]
-  }
-  probs: Map<string, number>
-  questionCount: number
-  remaining: number
-  readiness?: {
-    trigger?: string | null
-    blockedByRejectCooldown?: boolean
-    rejectCooldownRemaining?: number
-    topProbability?: number
-    gap?: number
-    aliveCount?: number
-    questionsRemaining?: number
-    forced?: boolean
-  }
-}): Promise<ReturnType<typeof buildGuessResponse>> {
-  const confidence = Math.round((input.probs.get(input.guess.id) || 0) * 100)
-
-  input.session.currentQuestion = null
-  input.session.guessCount += 1
-  await saveSessionState(input.kv, input.session)
-
-  return buildGuessResponse({
-    character: input.guess,
-    confidence,
-    questionCount: input.questionCount,
-    remaining: input.remaining,
-    guessCount: input.session.guessCount,
-    ...(input.readiness ? { readiness: input.readiness } : {}),
-  })
-}
 
 // ── POST /api/v2/game/answer ─────────────────────────────────
 // Processes the user's answer, returns next question or a guess
@@ -162,27 +114,18 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
   // Check if we should guess
   if (responseReadiness.shouldGuess && !responseReadiness.blockedByRejectCooldown) {
-    const { character: guess, probs } = getBestGuessResult(filtered, session.answers, session.rejectedGuesses, scoring)
-    if (guess) {
-      session.guessAnalytics = buildGuessAnalytics({
-        guessId: guess.id,
-        probs,
-        answers: session.answers,
-        remaining: filtered.length,
-        readiness: responseReadiness,
-      })
-
-      return jsonResponse(
-        await finalizeGuessAndSave({
-          kv,
-          session,
-          guess,
-          probs,
-          questionCount,
-          remaining: filtered.length,
-          readiness: responseReadiness,
-        })
-      )
+    const guessResponse = await finalizeBestGuessForSession({
+      kv,
+      session,
+      filtered,
+      scoring,
+      questionCount,
+      remaining: filtered.length,
+      readiness: responseReadiness,
+      recordAnalytics: true,
+    })
+    if (guessResponse) {
+      return jsonResponse(guessResponse)
     }
   }
 
@@ -204,53 +147,43 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
   if (!nextQuestion) {
     // No more questions — force a guess
-    const { character: guess, probs: guessProbs } = getBestGuessResult(filtered, session.answers, session.rejectedGuesses, scoring)
+    const guessResponse = await finalizeBestGuessForSession({
+      kv,
+      session,
+      filtered,
+      scoring,
+      questionCount,
+      remaining: filtered.length,
+    })
 
-    if (guess) {
-      return jsonResponse(
-        await finalizeGuessAndSave({
-          kv,
-          session,
-          guess,
-          probs: guessProbs,
-          questionCount,
-          remaining: filtered.length,
-        })
-      )
+    if (guessResponse) {
+      return jsonResponse(guessResponse)
     }
 
     return errorResponse('No questions or candidates available', 500)
   }
 
-  const reasoning = generateReasoning(nextQuestion, filtered, session.answers, scoring)
-  const eliminated = calculateEliminatedCount(session, filtered.length)
+  const { reasoning, response } = buildNextQuestionResponse({
+    session,
+    nextQuestion,
+    filtered,
+    scoring,
+    questionCount,
+    readiness: responseReadiness,
+  })
 
-  await advanceToNextQuestion({
+  await persistAndSyncAnswerTurn({
     env: context.env,
     kv,
+    db,
+    waitUntil: context.waitUntil,
     session,
     nextQuestion,
     reasoning,
     questionNumber: questionCount + 1,
   })
 
-  // Sync answers to D1 backup (non-blocking)
-  queueAnswerSessionSync(context.waitUntil, db, {
-    sessionId: session.id,
-    answersJson: JSON.stringify(session.answers),
-    currentQuestionAttr: nextQuestion.attribute,
-  })
-
-  return jsonResponse(
-    buildQuestionResponse({
-      question: nextQuestion,
-      reasoning,
-      remaining: filtered.length,
-      eliminated,
-      questionCount,
-      readiness: responseReadiness,
-    })
-  )
+  return jsonResponse(response)
   } catch (err) {
     console.error('POST /api/v2/game/answer error:', err)
     context.waitUntil(logError(context.env.GUESS_DB, 'answer', 'error', 'answer processing failed', err))
