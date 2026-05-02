@@ -19,6 +19,10 @@ interface PipelineRun {
 interface StreamPayload {
   runs: PipelineRun[]
   jobActive: boolean
+  /** Unix ms timestamp from the KV flag — when the job was queued. */
+  jobStartedAt: number | null
+  /** The batchId currently being processed, from the KV flag. */
+  activeBatchId: string | null
   pendingCount: number
   lastBatchStats: {
     batchId: string
@@ -29,6 +33,12 @@ interface StreamPayload {
     runAt: string
     status: 'success' | 'error'
   } | null
+}
+
+function formatElapsed(ms: number): string {
+  const s = Math.floor(ms / 1000)
+  if (s < 60) return `${s}s`
+  return `${Math.floor(s / 60)}m ${s % 60}s`
 }
 
 const STATUS_STYLES: Record<string, string> = {
@@ -43,8 +53,19 @@ export default function EnrichDashboardRoute(): React.JSX.Element {
   const [connected, setConnected] = useState(false)
   const [actionMsg, setActionMsg] = useState<string | null>(null)
   const [limit, setLimit] = useState(5)
+  const [now, setNow] = useState(Date.now())
   const esRef = useRef<EventSource | null>(null)
   const wasActiveRef = useRef(false)
+  const lastJobActiveRef = useRef(false)
+
+  // Tick every second while a job is running so elapsed times stay live
+  const runningCount = data?.runs.filter((r) => r.status === 'running').length ?? 0
+  const jobActive = data?.jobActive ?? false
+  useEffect(() => {
+    if (runningCount === 0 && !jobActive) return
+    const id = setInterval(() => setNow(Date.now()), 1000)
+    return () => clearInterval(id)
+  }, [runningCount, jobActive])
 
   const connect = () => {
     if (esRef.current) { esRef.current.close(); esRef.current = null }
@@ -56,6 +77,7 @@ export default function EnrichDashboardRoute(): React.JSX.Element {
       try {
         const payload = JSON.parse(e.data) as StreamPayload
         if (payload.jobActive) wasActiveRef.current = true
+        lastJobActiveRef.current = payload.jobActive
         setData(payload)
       } catch { /* ignore */ }
     }
@@ -66,10 +88,15 @@ export default function EnrichDashboardRoute(): React.JSX.Element {
     })
     es.addEventListener('done', () => {
       setConnected(false)
-      // Auto-reconnect if a job was active when the 90s stream window closed
-      if (wasActiveRef.current) {
+      // Reconnect only if the job was still active in the last payload — meaning
+      // the stream closed due to the 90-tick max, not because the job finished.
+      // The stream sends a final update with jobActive:false before emitting
+      // 'done' when a job completes, so lastJobActiveRef will be false then.
+      if (wasActiveRef.current && lastJobActiveRef.current) {
         wasActiveRef.current = false
         connect()
+      } else {
+        wasActiveRef.current = false
       }
     })
     es.onerror = () => setConnected(false)
@@ -96,13 +123,19 @@ export default function EnrichDashboardRoute(): React.JSX.Element {
   }
 
   const runs = data?.runs ?? []
-  const jobActive = data?.jobActive ?? false
   const successCount = runs.filter((r) => r.status === 'success').length
   const errorCount = runs.filter((r) => r.status === 'error').length
-  const runningCount = runs.filter((r) => r.status === 'running').length
 
   const formatDate = (ts: number) =>
     new Date(ts * 1000).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' })
+
+  const elapsedCell = (r: PipelineRun) => {
+    if (r.status === 'running') {
+      return <span className="tabular-nums text-blue-400">{formatElapsed(now - r.created_at * 1000)}</span>
+    }
+    if (r.duration_ms != null) return <span className="tabular-nums">{r.duration_ms}ms</span>
+    return <span>—</span>
+  }
 
   return (
     <div className="container mx-auto px-4 pb-8 max-w-5xl space-y-6">
@@ -181,7 +214,12 @@ export default function EnrichDashboardRoute(): React.JSX.Element {
       {jobActive && (
         <div className="rounded-lg bg-blue-500/10 border border-blue-500/30 px-4 py-3 text-sm text-blue-300 flex items-center gap-2">
           <ArrowsClockwiseIcon size={16} className="animate-spin shrink-0" />
-          Enrichment job is running server-side — pipeline_runs will update as each character completes.
+          <span>Enrichment job is running server-side — pipeline_runs will update as each character completes.</span>
+          {data?.jobStartedAt != null && (
+            <span className="ml-auto text-blue-400/70 tabular-nums text-xs">
+              {formatElapsed(now - data.jobStartedAt)} elapsed
+            </span>
+          )}
         </div>
       )}
 
@@ -200,14 +238,22 @@ export default function EnrichDashboardRoute(): React.JSX.Element {
                 <th className="text-left px-4 py-3 font-medium text-muted-foreground">Character</th>
                 <th className="text-left px-4 py-3 font-medium text-muted-foreground w-24">Step</th>
                 <th className="text-center px-4 py-3 font-medium text-muted-foreground w-24">Status</th>
-                <th className="text-right px-4 py-3 font-medium text-muted-foreground w-24">ms</th>
+                <th className="text-right px-4 py-3 font-medium text-muted-foreground w-24">Elapsed</th>
                 <th className="text-right px-4 py-3 font-medium text-muted-foreground w-36">Time</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {runs.map((r) => (
-                <tr key={r.id} className="hover:bg-muted/30 transition-colors">
-                  <td className="px-4 py-2.5 font-mono text-xs text-muted-foreground">{r.run_batch.slice(0, 7)}…</td>
+              {runs.map((r) => {
+                const isActive = data?.activeBatchId != null && r.run_batch === data.activeBatchId
+                return (
+                <tr
+                  key={r.id}
+                  className={`hover:bg-muted/30 transition-colors ${isActive ? 'bg-blue-500/5 ring-1 ring-inset ring-blue-500/20' : ''}`}
+                >
+                  <td className="px-4 py-2.5 font-mono text-xs text-muted-foreground">
+                    {r.run_batch.slice(0, 7)}…
+                    {isActive && <span className="ml-1.5 text-blue-400">●</span>}
+                  </td>
                   <td className="px-4 py-2.5">
                     <span className="text-sm">{r.character_name ?? r.character_id}</span>
                     {r.character_name && <span className="block text-xs font-mono text-muted-foreground">{r.character_id}</span>}
@@ -217,10 +263,11 @@ export default function EnrichDashboardRoute(): React.JSX.Element {
                     <Badge className={`text-xs ${STATUS_STYLES[r.status] ?? ''}`}>{r.status}</Badge>
                     {r.error && <p className="text-xs text-destructive mt-0.5 truncate max-w-[12rem]" title={r.error}>{r.error}</p>}
                   </td>
-                  <td className="px-4 py-2.5 text-right text-xs text-muted-foreground">{r.duration_ms ?? '—'}</td>
+                  <td className="px-4 py-2.5 text-right text-xs text-muted-foreground">{elapsedCell(r)}</td>
                   <td className="px-4 py-2.5 text-right text-xs text-muted-foreground">{formatDate(r.created_at)}</td>
                 </tr>
-              ))}
+                )
+              })}
             </tbody>
           </table>
         </div>
