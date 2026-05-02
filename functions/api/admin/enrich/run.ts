@@ -124,11 +124,13 @@ export async function runServerEnrichBatch(env: Env, batchId: string, origin?: s
   let processedStatus: 'success' | 'error' = 'error'
 
   try {
-    // 0. Clean up stale 'running' rows from any previous Worker crash / CPU timeout (> 5 min old)
+    // 0. Clean up stale 'running' rows from any previous Worker crash / wall-clock kill.
+    // 90 s is safely past the 25 s AbortController + chain overhead, but short enough
+    // that a stuck row is recovered on the next run attempt.
     await db
       .prepare(
         `UPDATE pipeline_runs SET status='error', error='Stale — previous Worker run did not complete'
-         WHERE step='enrich' AND status='running' AND created_at < unixepoch() - 300`
+         WHERE step='enrich' AND status='running' AND created_at < unixepoch() - 90`
       )
       .run()
 
@@ -138,12 +140,6 @@ export async function runServerEnrichBatch(env: Env, batchId: string, origin?: s
       .all<AttributeDef>()
     const allAttrs = attrRows.results ?? []
     if (allAttrs.length === 0) return
-
-    const validKeySet = new Set(allAttrs.map((a) => a.key))
-
-    // Build system prompt — omit question_text to keep the prompt at ~1,300 tokens
-    // (including question_text inflates it to ~7,000, causing >25 s LLM response times).
-    const systemPrompt = buildSystemPrompt(allAttrs.map((a) => ({ key: a.key, questionText: null })))
 
     // 2. Find ONE character with no character_attributes rows.
     // Each Worker invocation processes exactly one character; subsequent characters
@@ -172,52 +168,23 @@ export async function runServerEnrichBatch(env: Env, batchId: string, origin?: s
 
     const t0 = Date.now()
 
-    // 4. Call OpenAI directly (bypasses AI Gateway — the gateway buffers the TCP
-    // connection so AbortController signals don't reach OpenAI; the Worker hangs
-    // until the CF runtime kills it, leaving rows stuck as 'running').
-    const llmAbort = new AbortController()
-    const llmTimeout = setTimeout(() => llmAbort.abort(), 45_000)
+    // 4. Call OpenAI in parallel chunks to stay well under the ~30 s wall-clock limit.
+    // ~234 attrs × ~6 completion tokens each ≈ 1,400 tokens in a single call — at
+    // gpt-4o-mini's throughput (~50 tok/s) that takes 28-30 s, right at the limit.
+    // Splitting into 2 parallel calls (~117 attrs each, ~700 tokens each) cuts
+    // response time to ~14 s, leaving ~16 s for the chain fetch in finally.
+    const half = Math.ceil(allAttrs.length / 2)
+    const attrChunks = [allAttrs.slice(0, half), allAttrs.slice(half)].filter((c) => c.length > 0)
+    const chunkResults = await Promise.all(attrChunks.map((chunk) => callOpenAIChunk(env, char, chunk)))
 
     let charError: string | null = null
-    let attrResult: Record<string, boolean | null> = {}
+    const attrResult: Record<string, boolean | null> = {}
 
-    try {
-      const res = await fetch(OPENAI_DIRECT, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${env.OPENAI_API_KEY}`,
-        },
-        signal: llmAbort.signal,
-        body: JSON.stringify({
-          model: MODEL,
-          messages: [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: buildUserPrompt([char]) },
-          ],
-          temperature: 0.1,
-          response_format: { type: 'json_object' },
-          // ~234 attrs × ~6 tokens per key:value ≈ 1,400 completion tokens needed.
-          max_tokens: 2048,
-        }),
-      })
-      if (res.ok) {
-        const body = await res.json() as OpenAIResponse
-        const content = body.choices[0]?.message?.content ?? '{}'
-        promptTokens = body.usage?.prompt_tokens ?? 0
-        completionTokens = body.usage?.completion_tokens ?? 0
-        const parsed = parseOpenAIContent(content, [char.id], validKeySet)
-        attrResult = parsed[char.id] ?? {}
-      } else {
-        const errText = await res.text()
-        charError = `OpenAI ${res.status}: ${errText.slice(0, 300)}`
-      }
-    } catch (fetchErr) {
-      charError = (fetchErr instanceof Error && fetchErr.name === 'AbortError')
-        ? 'LLM request timed out after 45 s'
-        : String(fetchErr).slice(0, 300)
-    } finally {
-      clearTimeout(llmTimeout)
+    for (const r of chunkResults) {
+      if (r.error) { charError = r.error; break }
+      Object.assign(attrResult, r.attrResult)
+      promptTokens += r.promptTokens
+      completionTokens += r.completionTokens
     }
 
     const durationMs = Date.now() - t0
@@ -274,6 +241,67 @@ export async function runServerEnrichBatch(env: Env, batchId: string, origin?: s
     )
   } finally {
     await chainOrClear(env, batchId, origin, foundPending, processedStatus)
+  }
+}
+
+/**
+ * Call OpenAI for a single attribute chunk for one character.
+ * Using a per-chunk AbortController (25 s) ensures the abort fires before the
+ * ~30 s wall-clock limit kills the Worker, so the 'running' row gets cleaned up.
+ *
+ * Returns the parsed attribute map plus token counts. Never throws — errors are
+ * returned as { error: string } so callers can handle partial results.
+ */
+async function callOpenAIChunk(
+  env: Env,
+  char: PendingChar,
+  attrChunk: AttributeDef[],
+): Promise<{ attrResult: Record<string, boolean | null>; promptTokens: number; completionTokens: number; error: string | null }> {
+  // Only include keys from this chunk so the LLM response is scoped correctly.
+  const chunkKeySet = new Set(attrChunk.map((a) => a.key))
+  const systemPrompt = buildSystemPrompt(attrChunk.map((a) => ({ key: a.key, questionText: null })))
+  const llmAbort = new AbortController()
+  // 25 s — fires ~5 s before the 30 s wall-clock limit so the finally block
+  // can write the error row and fire the chain before the Worker is killed.
+  const llmTimeout = setTimeout(() => llmAbort.abort(), 25_000)
+  try {
+    const res = await fetch(OPENAI_DIRECT, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${env.OPENAI_API_KEY!}`,
+      },
+      signal: llmAbort.signal,
+      body: JSON.stringify({
+        model: MODEL,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: buildUserPrompt([char]) },
+        ],
+        temperature: 0.1,
+        response_format: { type: 'json_object' },
+        // ~117 attrs × ~6 tokens per key:value ≈ 700 completion tokens per chunk.
+        max_tokens: 1024,
+      }),
+    })
+    if (res.ok) {
+      const body = await res.json() as OpenAIResponse
+      const content = body.choices[0]?.message?.content ?? '{}'
+      const promptTokens = body.usage?.prompt_tokens ?? 0
+      const completionTokens = body.usage?.completion_tokens ?? 0
+      const parsed = parseOpenAIContent(content, [char.id], chunkKeySet)
+      return { attrResult: parsed[char.id] ?? {}, promptTokens, completionTokens, error: null }
+    } else {
+      const errText = await res.text()
+      return { attrResult: {}, promptTokens: 0, completionTokens: 0, error: `OpenAI ${res.status}: ${errText.slice(0, 300)}` }
+    }
+  } catch (fetchErr) {
+    const error = (fetchErr instanceof Error && fetchErr.name === 'AbortError')
+      ? 'LLM request timed out after 25 s'
+      : String(fetchErr).slice(0, 300)
+    return { attrResult: {}, promptTokens: 0, completionTokens: 0, error }
+  } finally {
+    clearTimeout(llmTimeout)
   }
 }
 

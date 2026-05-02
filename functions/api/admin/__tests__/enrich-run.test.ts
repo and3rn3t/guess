@@ -298,7 +298,7 @@ describe('runServerEnrichBatch', () => {
     // Only 1 pipeline_run row
     const runs = db.raw.prepare('SELECT COUNT(*) AS n FROM pipeline_runs').get() as { n: number }
     expect(runs.n).toBe(1)
-    // Only 1 LLM call made
-    expect(calls).toHaveLength(1)
+    // 2 parallel chunk calls per character (attrs split in half to stay under 30 s wall-clock)
+    expect(calls).toHaveLength(2)
   })
 })
