@@ -136,7 +136,7 @@ export default function MatrixRoute(): React.JSX.Element {
       <AdminPageHeader
         title="DNA Matrix"
         subtitle="Character × attribute heatmap — green=true, red=false, dark=unknown"
-        sectionColor="blue"
+        sectionColor="violet"
         actions={
           <Button variant="outline" size="sm" onClick={() => void fetchData()} disabled={loading}>
             <ArrowsClockwiseIcon size={14} className={`mr-2 ${loading ? 'animate-spin' : ''}`} />

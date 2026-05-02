@@ -132,7 +132,7 @@ export default function ConfusionRoute(): React.JSX.Element {
       <AdminPageHeader
         title="Confusion Matrix"
         subtitle={copy.subtitle}
-        sectionColor="blue"
+        sectionColor="violet"
         actions={
           <Button variant="outline" size="sm" onClick={() => void fetchData(source)} disabled={loading}>
             <ArrowsClockwiseIcon size={14} className={`mr-2 ${loading ? 'animate-spin' : ''}`} />

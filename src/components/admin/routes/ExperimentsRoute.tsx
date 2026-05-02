@@ -103,7 +103,7 @@ export default function ExperimentsRoute(): React.JSX.Element {
       <AdminPageHeader
         title="Experiments (A/B)"
         subtitle="Variant performance comparison"
-        sectionColor="blue"
+        sectionColor="violet"
       />
       <div className="flex items-center gap-3 flex-wrap">
         <span className="text-sm text-muted-foreground">Window:</span>

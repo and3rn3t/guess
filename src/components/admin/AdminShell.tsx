@@ -1,5 +1,5 @@
-import { useState, useCallback } from 'react'
-import { NavLink, Outlet } from 'react-router-dom'
+import { useState, useCallback, useMemo, useEffect } from 'react'
+import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import { cn } from '@/lib/utils'
 import {
   ChartBarIcon,
@@ -22,8 +22,10 @@ import {
   CopySimpleIcon,
   TrashIcon,
   CaretDownIcon,
+  MagnifyingGlassIcon,
 } from '@phosphor-icons/react'
 import { useAdminData } from './AdminDataContext'
+import { AdminCommandPalette, type CommandSection } from './AdminCommandPalette'
 import { LiveOpsProvider } from './LiveOpsContext'
 import { LiveOpsStrip } from './LiveOpsStrip'
 import { HealthBadge } from './HealthBadge'
@@ -68,14 +70,14 @@ const DATA_ITEMS: NavItem[] = [
   { to: 'questions/duplicates', label: 'Duplicate Queue', icon: <CopySimpleIcon size={16} weight="duotone" /> },
   { to: 'enrichment', label: 'Enrichment Status', icon: <ArrowsClockwiseIcon size={16} weight="duotone" /> },
   { to: 'pipeline', label: 'Pipeline Log', icon: <TreeStructureIcon size={16} weight="duotone" /> },
+]
+
+const INSIGHT_ITEMS: NavItem[] = [
   { to: 'analytics', label: 'Analytics', icon: <ChartBarIcon size={16} weight="duotone" /> },
   { to: 'funnel', label: 'Skip Funnel', icon: <ChartLineIcon size={16} weight="duotone" /> },
   { to: 'confusion', label: 'Confusion Matrix', icon: <GridFourIcon size={16} weight="duotone" /> },
   { to: 'matrix', label: 'DNA Matrix', icon: <DnaIcon size={16} weight="duotone" /> },
   { to: 'experiments', label: 'Experiments (A/B)', icon: <FlaskIcon size={16} weight="duotone" /> },
-]
-
-const INSIGHT_ITEMS: NavItem[] = [
   { to: 'coverage', label: 'Attribute Coverage', icon: <ChartBarIcon size={16} weight="duotone" /> },
   { to: 'cost', label: 'Cost Dashboard', icon: <ChartLineIcon size={16} weight="duotone" /> },
   { to: 'data-quality', label: 'Data Quality', icon: <ChartLineIcon size={16} weight="fill" /> },
@@ -103,23 +105,58 @@ const OVERFLOW_ITEMS: NavItem[] = [
   { to: 'demo', label: 'Question Gen Demo', icon: <BugIcon size={16} weight="duotone" /> },
 ]
 
+/** Fetches badge counts for actionable queues once on mount. */
+function useBadgeCounts(): Record<string, number> {
+  const [counts, setCounts] = useState<Record<string, number>>({})
+  useEffect(() => {
+    fetch('/api/admin/dashboard')
+      .then((r) => (r.ok ? (r.json() as Promise<{ stats: Record<string, number> }>) : null))
+      .then((d) => {
+        if (!d?.stats) return
+        const next: Record<string, number> = {}
+        if (d.stats.openDisputes > 0) next['disputes'] = d.stats.openDisputes
+        if (d.stats.pendingProposals > 0) next['proposed-attrs'] = d.stats.pendingProposals
+        setCounts(next)
+      })
+      .catch(() => {})
+  }, [])
+  return counts
+}
+
 function SidebarSection({
   title,
   items,
   storageKey,
   color = 'default',
   defaultOpen = true,
+  badgeMap,
 }: {
   title: string
   items: NavItem[]
   storageKey: string
   color?: SectionColor
   defaultOpen?: boolean
+  badgeMap?: Record<string, number>
 }): React.JSX.Element {
+  const location = useLocation()
+
+  const hasActiveChild = useMemo(
+    () =>
+      items.some((item) => {
+        const path = `/${item.to}`
+        return location.pathname === path || location.pathname.startsWith(`${path}/`)
+      }),
+    [items, location.pathname]
+  )
+
   const [open, setOpen] = useState<boolean>(() => {
+    if (hasActiveChild) return true
     const stored = localStorage.getItem(`admin-nav-${storageKey}`)
     return stored !== null ? stored === 'true' : defaultOpen
   })
+
+  // Force-open when user navigates into a child while the section is collapsed
+  const effectiveOpen = open || hasActiveChild
 
   const toggle = useCallback(() => {
     setOpen((prev) => {
@@ -145,29 +182,37 @@ function SidebarSection({
         <CaretDownIcon
           size={12}
           weight="bold"
-          className={cn('transition-transform duration-200', open ? 'rotate-0' : '-rotate-90')}
+          className={cn('transition-transform duration-200', effectiveOpen ? 'rotate-0' : '-rotate-90')}
         />
       </button>
-      {open && (
+      {effectiveOpen && (
         <ul className="mt-0.5 space-y-0.5">
-          {items.map((item) => (
-            <li key={item.to}>
-              <NavLink
-                to={item.to}
-                className={({ isActive }) =>
-                  cn(
-                    'flex items-center gap-2.5 rounded-md px-3 py-1.5 text-sm transition-colors',
-                    isActive
-                      ? cn(colors.activeItem, 'font-medium')
-                      : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-                  )
-                }
-              >
-                {item.icon}
-                {item.label}
-              </NavLink>
-            </li>
-          ))}
+          {items.map((item) => {
+            const badge = badgeMap?.[item.to]
+            return (
+              <li key={item.to}>
+                <NavLink
+                  to={item.to}
+                  className={({ isActive }) =>
+                    cn(
+                      'flex items-center gap-2.5 rounded-md px-3 py-1.5 text-sm transition-colors',
+                      isActive
+                        ? cn(colors.activeItem, 'font-medium')
+                        : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                    )
+                  }
+                >
+                  {item.icon}
+                  <span className="flex-1">{item.label}</span>
+                  {badge ? (
+                    <span className="text-[10px] font-semibold tabular-nums bg-amber-500/20 text-amber-400 rounded-full px-1.5 min-w-[18px] text-center leading-4 py-px">
+                      {badge > 99 ? '99+' : badge}
+                    </span>
+                  ) : null}
+                </NavLink>
+              </li>
+            )
+          })}
         </ul>
       )}
     </div>
@@ -176,9 +221,35 @@ function SidebarSection({
 
 export function AdminShell(): React.JSX.Element {
   const { characterLimit, setCharacterLimit, characters, loading } = useAdminData()
+  const badgeCounts = useBadgeCounts()
+  const [paletteOpen, setPaletteOpen] = useState(false)
+
+  useEffect(() => {
+    const down = (e: KeyboardEvent) => {
+      if (e.key === 'k' && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault()
+        setPaletteOpen((v) => !v)
+      }
+    }
+    document.addEventListener('keydown', down)
+    return () => document.removeEventListener('keydown', down)
+  }, [])
+
+  const commandSections: CommandSection[] = [
+    { title: 'Data', items: DATA_ITEMS },
+    { title: 'Insights', items: INSIGHT_ITEMS },
+    { title: 'Toolbox', items: TOOLBOX_ITEMS },
+    { title: 'Pipeline', items: PIPELINE_ITEMS },
+    { title: 'More', items: OVERFLOW_ITEMS },
+  ]
 
   return (
     <LiveOpsProvider>
+      <AdminCommandPalette
+        open={paletteOpen}
+        onClose={() => setPaletteOpen(false)}
+        sections={commandSections}
+      />
       <div className="min-h-screen bg-background flex">
         {/* Sidebar */}
         <aside className="w-60 shrink-0 border-r border-border/60 flex flex-col py-4 px-2 backdrop-blur supports-[backdrop-filter]:bg-background/80">
@@ -191,7 +262,15 @@ export function AdminShell(): React.JSX.Element {
             >
               Admin
             </NavLink>
-            <span className="ml-auto">
+            <span className="ml-auto flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={() => setPaletteOpen(true)}
+                title="Search (⌘K)"
+                className="text-muted-foreground/50 hover:text-muted-foreground transition-colors rounded p-0.5"
+              >
+                <MagnifyingGlassIcon size={14} />
+              </button>
               <HealthBadge />
             </span>
           </div>
@@ -200,7 +279,7 @@ export function AdminShell(): React.JSX.Element {
             <SidebarSection title="Data" items={DATA_ITEMS} storageKey="data" color="blue" />
             <SidebarSection title="Insights" items={INSIGHT_ITEMS} storageKey="insights" color="violet" />
             <SidebarSection title="Toolbox" items={TOOLBOX_ITEMS} storageKey="toolbox" color="amber" />
-            <SidebarSection title="Pipeline" items={PIPELINE_ITEMS} storageKey="pipeline" color="emerald" />
+            <SidebarSection title="Pipeline" items={PIPELINE_ITEMS} storageKey="pipeline" color="emerald" badgeMap={badgeCounts} />
             <SidebarSection title="More" items={OVERFLOW_ITEMS} storageKey="more" defaultOpen={false} />
           </nav>
 

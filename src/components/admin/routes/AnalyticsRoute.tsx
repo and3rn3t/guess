@@ -113,7 +113,7 @@ export default function AnalyticsRoute(): React.JSX.Element {
       <AdminPageHeader
         title="Client Analytics"
         subtitle={data ? `${data.total.toLocaleString()} events` : undefined}
-        sectionColor="blue"
+        sectionColor="violet"
         actions={
           <Button
             size="sm"

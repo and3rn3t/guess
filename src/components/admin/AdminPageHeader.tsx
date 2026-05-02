@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { cn } from '@/lib/utils'
 
@@ -33,6 +34,12 @@ export function AdminPageHeader({
   sectionColor,
 }: AdminPageHeaderProps): React.JSX.Element {
   const iconColorClass = sectionColor ? ICON_COLOR_MAP[sectionColor] : 'text-muted-foreground'
+
+  useEffect(() => {
+    const prev = document.title
+    document.title = `${title} \u2014 Admin`
+    return () => { document.title = prev }
+  }, [title])
 
   return (
     <div className="border-b border-border/40 py-5 mb-6">

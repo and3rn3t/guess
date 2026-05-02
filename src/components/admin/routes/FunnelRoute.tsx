@@ -105,7 +105,7 @@ export default function FunnelRoute(): React.JSX.Element {
       <AdminPageHeader
         title="Skip & Abandon Funnel"
         subtitle={`Last ${data?.windowDays ?? 30} days · derived from client_events`}
-        sectionColor="blue"
+        sectionColor="violet"
       />
 
       {error && (
