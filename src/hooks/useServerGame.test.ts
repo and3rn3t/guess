@@ -273,6 +273,52 @@ describe('useServerGame', () => {
     })
   })
 
+  describe('submitPostGameFeedback', () => {
+    it('throws when no completed session exists', async () => {
+      const { result } = renderHook(() => useServerGame(dispatch))
+
+      await expect(
+        result.current.submitPostGameFeedback(5, 'Great game'),
+      ).rejects.toThrow('No completed session available for feedback')
+    })
+
+    it('posts feedback for the last completed session', async () => {
+      mockFetch.mockResolvedValueOnce(new Response(
+        JSON.stringify({
+          sessionId: 'sess-feedback',
+          question: { id: 'q1', text: 'Q1', attribute: 'isHuman' },
+          reasoning: { why: '', impact: '', remaining: 10, confidence: 0, topCandidates: [] },
+          totalCharacters: 10,
+        }),
+        { status: 200 },
+      ))
+
+      const { result } = renderHook(() => useServerGame(dispatch))
+      await act(async () => {
+        await result.current.startServerGame([], 'medium')
+      })
+
+      mockFetch.mockResolvedValueOnce(new Response('{}', { status: 200 }))
+      await act(async () => {
+        result.current.postServerResult(true)
+        await new Promise((r) => setTimeout(r, 0))
+      })
+
+      mockFetch.mockResolvedValueOnce(new Response('{"success":true}', { status: 200 }))
+      await act(async () => {
+        await result.current.submitPostGameFeedback(4, '  Nice pacing  ')
+      })
+
+      const lastCall = mockFetch.mock.calls[mockFetch.mock.calls.length - 1] as [string, RequestInit]
+      const [url, options] = lastCall
+      expect(url).toBe('/api/v2/game/feedback')
+      expect(options.method).toBe('POST')
+      expect(options.body).toContain('"sessionId":"sess-feedback"')
+      expect(options.body).toContain('"rating":4')
+      expect(options.body).toContain('"feedbackText":"Nice pacing"')
+    })
+  })
+
   describe('auto-resume', () => {
     it('resumes from saved session on mount', async () => {
       sessionStore['server-session-id'] = 'saved-sess'

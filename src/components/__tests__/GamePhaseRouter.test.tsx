@@ -5,6 +5,10 @@ import { GamePhaseRouter } from '../GamePhaseRouter'
 import type { GameContextValue } from '@/contexts/GameContext'
 import type { GameState } from '@/hooks/useGameState'
 
+const gameOverSpy = vi.fn((_props: Record<string, unknown>) => (
+  <div data-testid="game-over-screen" />
+))
+
 // ── Heavy dep mocks ──────────────────────────────────────────
 vi.mock('motion/react', () => ({
   motion: {
@@ -26,7 +30,7 @@ vi.mock('@/components/PlayingScreen', () => ({
   PlayingScreen: () => <div data-testid="playing-screen" />,
 }))
 vi.mock('@/components/GameOver', () => ({
-  GameOver: () => <div data-testid="game-over-screen" />,
+  GameOver: (props: Record<string, unknown>) => gameOverSpy(props),
 }))
 vi.mock('@/components/GuessReveal', () => ({
   GuessReveal: () => <div data-testid="guess-reveal-screen" />,
@@ -122,6 +126,7 @@ function makeContext(phase: GameState['phase'], stateOverrides: Partial<GameStat
     handleShare: vi.fn(),
     handleCopyLink: vi.fn(),
     handleReveal: vi.fn(),
+    handleSubmitFeedback: vi.fn(),
     handleAddCharacter: vi.fn(),
     handleAddQuestions: vi.fn(),
   } as unknown as GameContextValue
@@ -166,5 +171,19 @@ describe('GamePhaseRouter', () => {
     vi.mocked(useGameContext).mockReturnValue(makeContext('gameOver'))
     render(<GamePhaseRouter />)
     expect(await screen.findByTestId('game-over-screen')).toBeInTheDocument()
+  })
+
+  it('forwards handleSubmitFeedback to GameOver', async () => {
+    const ctx = makeContext('gameOver')
+    vi.mocked(useGameContext).mockReturnValue(ctx)
+
+    render(<GamePhaseRouter />)
+    await screen.findByTestId('game-over-screen')
+
+    expect(gameOverSpy).toHaveBeenCalled()
+    const props = gameOverSpy.mock.calls[0]?.[0] as {
+      onSubmitFeedback?: unknown
+    }
+    expect(props.onSubmitFeedback).toBe(ctx.handleSubmitFeedback)
   })
 })
