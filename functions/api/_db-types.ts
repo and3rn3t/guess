@@ -36,6 +36,9 @@ export interface CharacterAttributesRow {
   attribute_key: string
   value: number | null
   confidence: number
+  evidence: string | null
+  agreement_score: number | null
+  agreement_signals: number
 }
 
 export interface QuestionsRow {
@@ -43,6 +46,8 @@ export interface QuestionsRow {
   text: string
   attribute_key: string
   priority: number
+  retired_at: number
+  retired_reason: string
 }
 
 export interface GameStatsRow {
@@ -66,6 +71,10 @@ export interface GameStatsRow {
   gap_at_guess: number | null
   alive_count_at_guess: number | null
   questions_remaining_at_guess: number | null
+  variant: string
+  selector: string
+  aha_attr: string | null
+  aha_jump: number | null
 }
 
 export interface GameSessionsRow {
@@ -171,5 +180,92 @@ export interface ErrorLogsRow {
   source: string
   message: string
   detail: string | null
+  created_at: number
+}
+
+export interface CharacterConfusionsRow {
+  character_a: string
+  character_b: string
+  confusion_count: number
+  last_seen: number
+}
+
+export interface QuestionAttemptsRow {
+  id: number
+  session_id: string
+  question_id: string | null
+  attribute: string
+  answer: string
+  probability_delta: number | null
+  candidates_before: number | null
+  candidates_after: number | null
+  question_index: number
+  created_at: number
+}
+
+export interface DataQualitySnapshotsRow {
+  id: number
+  captured_at: number
+  data_health_score: number
+  coverage_pct: number
+  evidence_pct: number
+  agreement_avg: number
+  open_disputes: number
+  golden_pass_rate: number | null
+  vision_pass_rate: number | null
+}
+
+export interface AttributeDriftRow {
+  id: number
+  character_id: string
+  attribute_key: string
+  old_value: number | null
+  new_value: number | null
+  source: string
+  batch_id: string | null
+  detected_at: number
+  contradicts_lock: number
+  evidence: string | null
+}
+
+export interface AlertsRow {
+  id: number
+  metric: string
+  value: number
+  baseline_mean: number
+  baseline_std: number
+  delta: number
+  z_score: number
+  direction: string
+  sample_size: number
+  webhook_status: string | null
+  webhook_error: string | null
+  created_at: number
+}
+
+export interface AttributeEmbeddingsRow {
+  attribute_key: string
+  embedding: ArrayBuffer
+  dim: number
+  model: string
+  text_hash: string
+  created_at: number
+}
+
+export interface QuestionDedupDismissedRow {
+  pair_key: string
+  attribute_key_a: string
+  attribute_key_b: string
+  similarity: number
+  dismissed_by: string | null
+  dismissed_at: number
+}
+
+export interface TriageQueueRow {
+  id: number
+  actual_character_id: string
+  actual_character_name: string | null
+  min_rank: number | null
+  steps_json: string
   created_at: number
 }
