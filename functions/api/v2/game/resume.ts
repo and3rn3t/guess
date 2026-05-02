@@ -3,6 +3,10 @@ import {
   jsonResponse,
   errorResponse,
   parseJsonBody,
+  getRequestId,
+  getActorId,
+  internalErrorResponse,
+  withRequestId,
   d1First,
   d1Query,
   logError,
@@ -128,13 +132,20 @@ async function reconstructFromD1(
 // Resumes an existing server session from KV, falling back to D1 backup
 
 export const onRequestPost: PagesFunction<Env> = async (context) => {
+  const requestId = getRequestId(context.request)
+  const actorId = getActorId(context.request)
+  const url = new URL(context.request.url)
+  const respond = (response: Response): Response => withRequestId(response, requestId)
+  const internalError = (): Response =>
+    respond(internalErrorResponse(requestId))
+
   try {
   const kv = context.env.GUESS_KV
-  if (!kv) return errorResponse('KV not configured', 503)
+  if (!kv) return respond(errorResponse('KV not configured', 503))
 
   const body = await parseJsonBody<ResumeRequest>(context.request)
   if (!body?.sessionId || typeof body.sessionId !== 'string') {
-    return errorResponse('Missing sessionId', 400)
+    return respond(errorResponse('Missing sessionId', 400))
   }
 
   let session = await loadSession(kv, body.sessionId)
@@ -152,7 +163,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   }
 
   if (!session) {
-    return jsonResponse({ expired: true }, 200)
+    return respond(jsonResponse({ expired: true }, 200))
   }
 
   const filtered = filterPossibleCharacters(session.characters, session.answers, session.rejectedGuesses)
@@ -186,7 +197,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     session.currentQuestion.displayText = rephrased
   }
 
-  return jsonResponse({
+  return respond(jsonResponse({
     expired: false,
     question: session.currentQuestion,
     reasoning,
@@ -198,11 +209,16 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       questionId: a.questionId,
       value: a.value,
     })),
-  })
+  }))
   } catch (err) {
     console.error('POST /api/v2/game/resume error:', err)
-    context.waitUntil(logError(context.env.GUESS_DB, 'resume', 'error', 'resume failed', err))
-    const message = err instanceof Error ? err.message : 'Unknown error'
-    return errorResponse(`Resume failed: ${message}`, 500)
+    context.waitUntil(logError(context.env.GUESS_DB, 'resume', 'error', 'resume failed', err, {
+      requestId,
+      actorId,
+      path: url.pathname,
+      method: context.request.method,
+      status: 500,
+    }))
+    return internalError()
   }
 }

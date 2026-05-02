@@ -109,6 +109,8 @@ const ALLOWED_EVENT_TYPES = [
   'feature_use',
   'question_skip',
   'guess_rejected',
+  'server_error',
+  'uncaught_error',
 ] as const
 
 export const ClientEventSchema = z.object({

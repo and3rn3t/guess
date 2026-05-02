@@ -37,6 +37,10 @@ export interface LiveOpsSummary extends LiveOpsCounts {
    * has no rows yet, or when the query fails.
    */
   p95LatencyMs: number | null
+  /** Server/exception invocations in worker telemetry over the last hour. */
+  telemetryErrors1h: number | null
+  /** True when telemetry shows server errors but error_logs has zero error rows. */
+  loggingGap: boolean | null
   /** UNIX seconds when this snapshot was assembled. */
   generatedAt: number
 }
@@ -58,6 +62,7 @@ export function buildLiveOpsSummary(
   raw: LiveOpsRow,
   p95LatencyMs: number | null,
   nowSeconds = Math.floor(Date.now() / 1000),
+  telemetryErrors1h: number | null = null,
 ): LiveOpsSummary {
   const games1h = Math.max(0, raw.games1h | 0)
   const wins1h = Math.max(0, Math.min(games1h, raw.wins1h | 0))
@@ -69,6 +74,11 @@ export function buildLiveOpsSummary(
   const errorsPerMin = round2(errors1h / 60)
   const winRate = games1h > 0 ? round4(wins1h / games1h) : null
   const errorRate = games1h > 0 ? round4(errors1h / games1h) : null
+  const telemetryErrors =
+    telemetryErrors1h == null
+      ? null
+      : Math.max(0, Math.round(telemetryErrors1h))
+  const loggingGap = telemetryErrors == null ? null : telemetryErrors > 0 && errors1h === 0
 
   return {
     games1h,
@@ -81,6 +91,8 @@ export function buildLiveOpsSummary(
     winRate,
     errorRate,
     p95LatencyMs: p95LatencyMs == null ? null : Math.max(0, Math.round(p95LatencyMs)),
+    telemetryErrors1h: telemetryErrors,
+    loggingGap,
     generatedAt: nowSeconds,
   }
 }
@@ -110,6 +122,14 @@ WHERE timestamp > NOW() - INTERVAL '${windowMinutes}' MINUTE
   AND blob4 != 'exception'`
 }
 
+/** Build AE SQL query for server/exception invocation count over the last window. */
+export function buildTelemetryErrorsQuery(dataset: string, windowMinutes = 60): string {
+  return `SELECT count() AS telemetry_errors
+FROM ${dataset}
+WHERE timestamp > NOW() - INTERVAL '${windowMinutes}' MINUTE
+  AND (blob4 = 'server_error' OR blob4 = 'exception')`
+}
+
 /**
  * Parse the AE SQL response shape.
  *
@@ -125,4 +145,16 @@ export function parseP95LatencyResponse(payload: unknown): number | null {
   const p95 = first?.['p95']
   if (typeof p95 !== 'number' || !Number.isFinite(p95)) return null
   return p95
+}
+
+/** Parse AE SQL response shape for telemetry error count. */
+export function parseTelemetryErrorsResponse(payload: unknown): number | null {
+  if (!payload || typeof payload !== 'object') return null
+  const obj = payload as Record<string, unknown>
+  const data = obj['data']
+  if (!Array.isArray(data) || data.length === 0) return null
+  const first = data[0] as Record<string, unknown> | undefined
+  const n = first?.['telemetry_errors']
+  if (typeof n !== 'number' || !Number.isFinite(n)) return null
+  return Math.max(0, Math.round(n))
 }

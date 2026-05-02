@@ -1,17 +1,33 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const {
+  getActorIdMock,
+  getRequestIdMock,
   checkRateLimitMock,
   getOrCreateUserIdMock,
   logErrorMock,
 } = vi.hoisted(() => ({
+  getActorIdMock: vi.fn(),
+  getRequestIdMock: vi.fn(),
   checkRateLimitMock: vi.fn(),
   getOrCreateUserIdMock: vi.fn(),
   logErrorMock: vi.fn(),
 }))
 
 vi.mock('./_helpers', () => ({
+  getActorId: getActorIdMock,
+  getRequestId: getRequestIdMock,
   checkRateLimit: checkRateLimitMock,
+  internalErrorResponse: (requestId: string) =>
+    new Response(JSON.stringify({ error: 'Internal server error', requestId }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
+    }),
+  jsonResponse: (data: unknown, status = 200) =>
+    new Response(JSON.stringify(data), {
+      status,
+      headers: { 'Content-Type': 'application/json' },
+    }),
   errorResponse: (message: string, status: number) =>
     new Response(JSON.stringify({ error: message }), {
       status,
@@ -23,6 +39,11 @@ vi.mock('./_helpers', () => ({
     if (!setCookieHeader) return response
     const next = new Response(response.body, response)
     next.headers.append('Set-Cookie', setCookieHeader)
+    return next
+  },
+  withRequestId: (response: Response, requestId: string) => {
+    const next = new Response(response.body, response)
+    next.headers.set('X-Request-Id', requestId)
     return next
   },
 }))
@@ -53,8 +74,12 @@ function makeContext(env: Partial<MockEnv> = {}, request?: Request) {
 beforeEach(() => {
   checkRateLimitMock.mockReset()
   getOrCreateUserIdMock.mockReset()
+  getRequestIdMock.mockReset()
+  getActorIdMock.mockReset()
   logErrorMock.mockReset()
   getOrCreateUserIdMock.mockResolvedValue({ userId: 'user-123' })
+  getRequestIdMock.mockReturnValue('req-123')
+  getActorIdMock.mockReturnValue('user:user-123')
 })
 
 describe('defineHandler', () => {
@@ -65,6 +90,7 @@ describe('defineHandler', () => {
     const res = await handler(makeContext({ GUESS_KV: undefined }))
     expect(res.status).toBe(503)
     expect(await res.json()).toEqual({ error: 'KV not configured' })
+    expect(res.headers.get('X-Request-Id')).toBe('req-123')
   })
 
   it('skips KV check when requireKv: false', async () => {
@@ -107,6 +133,15 @@ describe('defineHandler', () => {
     )
     const res = await handler(makeContext())
     expect(res.headers.get('Set-Cookie')).toBe('__gu_id=signed; Path=/')
+    expect(res.headers.get('X-Request-Id')).toBe('req-123')
+  })
+
+  it('always appends X-Request-Id header on success responses', async () => {
+    const handler = defineHandler({ name: 'test' }, async () =>
+      new Response('ok', { status: 200 }),
+    )
+    const res = await handler(makeContext())
+    expect(res.headers.get('X-Request-Id')).toBe('req-123')
   })
 
   it('does not set cookie when no setCookieHeader returned', async () => {
@@ -149,7 +184,7 @@ describe('defineHandler', () => {
     const ctx = makeContext()
     const res = await handler(ctx)
     expect(res.status).toBe(500)
-    expect(await res.json()).toEqual({ error: 'Internal server error' })
+    expect(await res.json()).toEqual({ error: 'Internal server error', requestId: 'req-123' })
     expect(ctx.waitUntil).toHaveBeenCalled()
     expect(logErrorMock).toHaveBeenCalledWith(
       ctx.env.GUESS_DB,
@@ -157,7 +192,15 @@ describe('defineHandler', () => {
       'error',
       'test handler error',
       expect.any(Error),
+      {
+        requestId: 'req-123',
+        actorId: 'user:user-123',
+        path: '/api/test',
+        method: 'GET',
+        status: 500,
+      },
     )
+    expect(res.headers.get('X-Request-Id')).toBe('req-123')
   })
 
   it('catches getOrCreateUserId failures (e.g. missing COOKIE_SECRET) as 500 + logError', async () => {
@@ -176,6 +219,13 @@ describe('defineHandler', () => {
       'error',
       'test handler error',
       expect.any(Error),
+      {
+        requestId: 'req-123',
+        actorId: 'user:user-123',
+        path: '/api/test',
+        method: 'GET',
+        status: 500,
+      },
     )
   })
 
@@ -194,6 +244,13 @@ describe('defineHandler', () => {
       'error',
       'test handler error',
       expect.any(Error),
+      {
+        requestId: 'req-123',
+        actorId: 'user:user-123',
+        path: '/api/test',
+        method: 'GET',
+        status: 500,
+      },
     )
   })
 

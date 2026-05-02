@@ -3,6 +3,10 @@ import {
   jsonResponse,
   errorResponse,
   parseJsonBodyWithSchema,
+  getRequestId,
+  getActorId,
+  internalErrorResponse,
+  withRequestId,
   logError,
 } from '../../_helpers'
 import { AnswerRequestSchema } from '../../_schemas'
@@ -36,22 +40,29 @@ import {
 // Processes the user's answer, returns next question or a guess
 
 export const onRequestPost: PagesFunction<Env> = async (context) => {
+  const requestId = getRequestId(context.request)
+  const actorId = getActorId(context.request)
+  const url = new URL(context.request.url)
+  const respond = (response: Response): Response => withRequestId(response, requestId)
+  const internalError = (): Response =>
+    respond(internalErrorResponse(requestId))
+
   try {
   const kv = context.env.GUESS_KV
-  if (!kv) return errorResponse('KV not configured', 503)
+  if (!kv) return respond(errorResponse('KV not configured', 503))
 
   const parsed = await parseJsonBodyWithSchema(context.request, AnswerRequestSchema)
-  if (!parsed.success) return parsed.response
+  if (!parsed.success) return respond(parsed.response)
   const { sessionId, value } = parsed.data
 
   // Load session
   const session = await loadSession(kv, sessionId)
   if (!session) {
-    return errorResponse('Session not found or expired', 404)
+    return respond(errorResponse('Session not found or expired', 404))
   }
 
   if (!session.currentQuestion) {
-    return errorResponse('No pending question to answer', 400)
+    return respond(errorResponse('No pending question to answer', 400))
   }
 
   const {
@@ -90,12 +101,12 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   // Check for contradictions
   const { hasContradiction } = detectContradictions(filtered, session.answers)
   if (hasContradiction) {
-    return jsonResponse(
+    return respond(jsonResponse(
       await rollbackAndBuildContradictionResponse({
         kv,
         session,
       })
-    )
+    ))
   }
 
   const questionCount = session.answers.length
@@ -125,7 +136,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       recordAnalytics: true,
     })
     if (guessResponse) {
-      return jsonResponse(guessResponse)
+      return respond(jsonResponse(guessResponse))
     }
   }
 
@@ -157,10 +168,10 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     })
 
     if (guessResponse) {
-      return jsonResponse(guessResponse)
+      return respond(jsonResponse(guessResponse))
     }
 
-    return errorResponse('No questions or candidates available', 500)
+    return respond(errorResponse('No questions or candidates available', 500))
   }
 
   const { reasoning, response } = buildNextQuestionResponse({
@@ -183,11 +194,16 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     questionNumber: questionCount + 1,
   })
 
-  return jsonResponse(response)
+  return respond(jsonResponse(response))
   } catch (err) {
     console.error('POST /api/v2/game/answer error:', err)
-    context.waitUntil(logError(context.env.GUESS_DB, 'answer', 'error', 'answer processing failed', err))
-    const message = err instanceof Error ? err.message : 'Unknown error'
-    return errorResponse(`Answer processing failed: ${message}`, 500)
+    context.waitUntil(logError(context.env.GUESS_DB, 'answer', 'error', 'answer processing failed', err, {
+      requestId,
+      actorId,
+      path: url.pathname,
+      method: context.request.method,
+      status: 500,
+    }))
+    return internalError()
   }
 }

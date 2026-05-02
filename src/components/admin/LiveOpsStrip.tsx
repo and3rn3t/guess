@@ -34,6 +34,7 @@ export function LiveOpsStrip(): React.JSX.Element {
       {data && typeof data.games1h === 'number' ? (
         <span className="text-muted-foreground/70">
           {data.games1h} games · {data.wins1h ?? 0}W/{data.losses1h ?? 0}L · {data.errors1h ?? 0} errors (last 1h)
+          {data.loggingGap ? ` · telemetry gap: ${data.telemetryErrors1h ?? 0} server errors seen, 0 logged` : ''}
         </span>
       ) : null}
 

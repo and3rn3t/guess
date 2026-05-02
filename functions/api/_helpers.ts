@@ -298,6 +298,11 @@ export function errorResponse(message: string, status: number): Response {
   })
 }
 
+/** Standardized internal 500 response payload with requestId for support correlation. */
+export function internalErrorResponse(requestId: string): Response {
+  return jsonResponse({ error: 'Internal server error', requestId }, 500)
+}
+
 /** Read a JSON array from KV, returning empty array if key doesn't exist */
 export async function kvGetArray<T>(kv: KVNamespace, key: string): Promise<T[]> {
   const raw = await kv.get(key)

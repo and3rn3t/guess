@@ -63,6 +63,9 @@ function describe(
 ): string {
   if (error) return `Live-ops error: ${error}`
   if (!data) return 'Loading live ops…'
+  if (data.loggingGap) {
+    return `CRITICAL · telemetry reports ${data.telemetryErrors1h ?? 0} server errors but error_logs has 0 rows (last 1h)`
+  }
   const errPct =
     data.errorRate == null ? 'n/a' : `${(data.errorRate * 100).toFixed(2)}% errors`
   return `${status.toUpperCase()} · ${data.games1h} games / ${data.errors1h} errors (last 1h) · ${errPct}`

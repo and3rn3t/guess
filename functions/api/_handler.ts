@@ -34,8 +34,12 @@ import {
   type Env,
   checkRateLimit,
   errorResponse,
+  getActorId,
   getOrCreateUserId,
+  getRequestId,
+  internalErrorResponse,
   logError,
+  withRequestId,
   withSetCookie,
 } from './_helpers'
 
@@ -72,9 +76,15 @@ export function defineHandler(
   return async (context) => {
     const { env, request } = context
     const kv = env.GUESS_KV
+    const requestId = getRequestId(request)
+    const actorId = getActorId(request)
+    const url = new URL(request.url)
+
+    const respond = (response: Response, setCookieHeader?: string): Response =>
+      withRequestId(withSetCookie(response, setCookieHeader), requestId)
 
     if (requireKv && !kv) {
-      return errorResponse('KV not configured', 503)
+      return respond(errorResponse('KV not configured', 503))
     }
 
     try {
@@ -93,7 +103,7 @@ export function defineHandler(
           // Apply Set-Cookie to the 429 too — otherwise a freshly minted
           // user-id never reaches the client on rate-limited requests, and
           // the next attempt re-mints another fresh user.
-          return withSetCookie(
+          return respond(
             errorResponse('Rate limit exceeded', 429),
             setCookieHeader,
           )
@@ -103,17 +113,23 @@ export function defineHandler(
       const response = await handler({
         env,
         request,
-        url: new URL(request.url),
+        url,
         waitUntil: context.waitUntil.bind(context),
         userId,
       })
-      return withSetCookie(response, setCookieHeader)
+      return respond(response, setCookieHeader)
     } catch (e) {
       console.error(`${name} handler error:`, e)
       context.waitUntil(
-        logError(env.GUESS_DB, name, 'error', `${name} handler error`, e),
+        logError(env.GUESS_DB, name, 'error', `${name} handler error`, e, {
+          requestId,
+          actorId,
+          path: url.pathname,
+          method: request.method,
+          status: 500,
+        }),
       )
-      return errorResponse('Internal server error', 500)
+      return respond(internalErrorResponse(requestId))
     }
   }
 }

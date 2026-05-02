@@ -11,7 +11,9 @@ import { type Env, jsonResponse, errorResponse } from '../_helpers'
 import {
   buildLiveOpsSummary,
   buildP95LatencyQuery,
+  buildTelemetryErrorsQuery,
   parseP95LatencyResponse,
+  parseTelemetryErrorsResponse,
   type LiveOpsRow,
 } from './_live_ops'
 
@@ -67,8 +69,11 @@ export const onRequestGet: PagesFunction<LiveOpsEnv> = async (context) => {
     warns1h: errorsRow?.warns ?? 0,
   }
 
-  const p95 = await fetchP95Latency(env)
-  const summary = buildLiveOpsSummary(counts, p95)
+  const [p95, telemetryErrors1h] = await Promise.all([
+    fetchP95Latency(env),
+    fetchTelemetryErrors(env),
+  ])
+  const summary = buildLiveOpsSummary(counts, p95, undefined, telemetryErrors1h)
 
   // Don't allow shared caches to serve a 30s-stale snapshot to multiple admins.
   return jsonResponse(summary, 200, { 'cache-control': 'private, max-age=15' })
@@ -93,6 +98,30 @@ async function fetchP95Latency(env: LiveOpsEnv): Promise<number | null> {
     if (!res.ok) return null
     const json = (await res.json()) as unknown
     return parseP95LatencyResponse(json)
+  } catch {
+    return null
+  }
+}
+
+async function fetchTelemetryErrors(env: LiveOpsEnv): Promise<number | null> {
+  if (!env.CF_ACCOUNT_ID || !env.CF_API_TOKEN) return null
+  const dataset = env.WORKER_TAIL_DATASET ?? 'worker_tail'
+  const sql = buildTelemetryErrorsQuery(dataset, 60)
+  try {
+    const res = await fetch(
+      `https://api.cloudflare.com/client/v4/accounts/${env.CF_ACCOUNT_ID}/analytics_engine/sql`,
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${env.CF_API_TOKEN}`,
+          'Content-Type': 'text/plain',
+        },
+        body: sql,
+      },
+    )
+    if (!res.ok) return null
+    const json = (await res.json()) as unknown
+    return parseTelemetryErrorsResponse(json)
   } catch {
     return null
   }

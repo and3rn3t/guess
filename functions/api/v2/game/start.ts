@@ -8,7 +8,11 @@ import {
   d1First,
   d1Run,
   getOrCreateUserId,
+  getRequestId,
+  getActorId,
+  internalErrorResponse,
   withSetCookie,
+  withRequestId,
   logError,
 } from '../../_helpers'
 import { StartRequestSchema } from '../../_schemas'
@@ -63,13 +67,20 @@ function parseTrivia(raw: string | null | undefined): string[] | undefined {
 // Creates a game session, selects character pool from D1, returns first question
 
 export const onRequestPost: PagesFunction<Env> = async (context) => {
+  const requestId = getRequestId(context.request)
+  const actorId = getActorId(context.request)
+  const url = new URL(context.request.url)
+  const respond = (response: Response): Response => withRequestId(response, requestId)
+  const internalError = (): Response =>
+    respond(internalErrorResponse(requestId))
+
   try {
   const db = context.env.GUESS_DB
   const kv = context.env.GUESS_KV
-  if (!db || !kv) return errorResponse('D1/KV not configured', 503)
+  if (!db || !kv) return respond(errorResponse('D1/KV not configured', 503))
 
   const parsed = await parseJsonBodyWithSchema(context.request, StartRequestSchema)
-  if (!parsed.success) return parsed.response
+  if (!parsed.success) return respond(parsed.response)
   const categories = (parsed.data.categories ?? []).filter(isValidCategory)
   const difficulty = parsed.data.difficulty ?? 'medium'
   const maxQuestions = DIFFICULTY_MAP[difficulty]
@@ -117,7 +128,13 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     )
   } catch (err) {
     // Fallback: if trivia column doesn't exist (pre-migration), query without it
-    logError(context, 'Character query with trivia failed, falling back', err)
+    logError(context.env.GUESS_DB, 'start', 'warn', 'Character query with trivia failed, falling back', err, {
+      requestId,
+      actorId,
+      path: url.pathname,
+      method: context.request.method,
+      extra: { fallback: 'characters_without_trivia' },
+    }).catch(() => {})
     candidates = await d1Query<CharacterRow>(
       db,
       `SELECT c.id, c.name, c.category, c.image_url, c.popularity, c.attributes_json, NULL as trivia
@@ -147,7 +164,13 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       )
     } catch (err) {
       // Fallback: if trivia column doesn't exist, query without it
-      logError(context, 'Pinned character query with trivia failed, falling back', err)
+      logError(context.env.GUESS_DB, 'start', 'warn', 'Pinned character query with trivia failed, falling back', err, {
+        requestId,
+        actorId,
+        path: url.pathname,
+        method: context.request.method,
+        extra: { fallback: 'pinned_character_without_trivia' },
+      }).catch(() => {})
       pinned = await d1First<CharacterRow>(
         db,
         'SELECT id, name, category, image_url, popularity, attributes_json, NULL as trivia FROM characters WHERE id = ?',
@@ -161,7 +184,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   }
 
   if (characters.length < 2) {
-    return errorResponse('Not enough characters with attribute data for selected categories', 400)
+    return respond(errorResponse('Not enough characters with attribute data for selected categories', 400))
   }
 
   // Build character objects from denormalized attributes_json (no separate D1 attribute query)
@@ -214,7 +237,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     gameDifficulty: difficulty as 'easy' | 'medium' | 'hard',
   })
   if (!firstQuestion) {
-    return errorResponse('No questions available', 500)
+    return respond(errorResponse('No questions available', 500))
   }
 
   const reasoning = generateReasoning(firstQuestion, serverChars, [])
@@ -267,17 +290,22 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     ).catch(() => {})
   )
 
-  return withSetCookie(jsonResponse({
+  return respond(withSetCookie(jsonResponse({
     sessionId,
     question: firstQuestion,
     reasoning,
     totalCharacters: serverChars.length,
     maxQuestions,
-  }), setCookieHeader)
+  }), setCookieHeader))
   } catch (err) {
     console.error('POST /api/v2/game/start error:', err)
-    context.waitUntil(logError(context.env.GUESS_DB, 'start', 'error', 'game start failed', err))
-    const message = err instanceof Error ? err.message : 'Unknown error'
-    return errorResponse(`Game start failed: ${message}`, 500)
+    context.waitUntil(logError(context.env.GUESS_DB, 'start', 'error', 'game start failed', err, {
+      requestId,
+      actorId,
+      path: url.pathname,
+      method: context.request.method,
+      status: 500,
+    }))
+    return internalError()
   }
 }

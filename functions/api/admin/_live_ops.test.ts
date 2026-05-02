@@ -2,7 +2,9 @@ import { describe, it, expect } from 'vitest'
 import {
   buildLiveOpsSummary,
   buildP95LatencyQuery,
+  buildTelemetryErrorsQuery,
   parseP95LatencyResponse,
+  parseTelemetryErrorsResponse,
 } from './_live_ops'
 
 describe('buildLiveOpsSummary', () => {
@@ -22,6 +24,8 @@ describe('buildLiveOpsSummary', () => {
     expect(summary.winRate).toBe(0.75)
     expect(summary.errorRate).toBe(0.05)
     expect(summary.p95LatencyMs).toBe(824)
+    expect(summary.telemetryErrors1h).toBeNull()
+    expect(summary.loggingGap).toBeNull()
     expect(summary.generatedAt).toBe(1714509000)
   })
 
@@ -32,6 +36,8 @@ describe('buildLiveOpsSummary', () => {
     expect(summary.errorRate).toBeNull()
     expect(summary.errorsPerMin).toBe(0.05)
     expect(summary.p95LatencyMs).toBeNull()
+    expect(summary.telemetryErrors1h).toBeNull()
+    expect(summary.loggingGap).toBeNull()
   })
 
   it('clamps wins to games and rejects negatives', () => {
@@ -44,6 +50,8 @@ describe('buildLiveOpsSummary', () => {
     expect(summary.errors1h).toBe(0)
     expect(summary.warns1h).toBe(0)
     expect(summary.p95LatencyMs).toBe(0)
+    expect(summary.telemetryErrors1h).toBeNull()
+    expect(summary.loggingGap).toBeNull()
   })
 
   it('handles non-finite latency by returning null', () => {
@@ -54,6 +62,28 @@ describe('buildLiveOpsSummary', () => {
     // NaN coerces to null via the response parser; here we treat it as a
     // pass-through of whatever caller supplied. The parser is tested below.
     expect(Number.isNaN(summary.p95LatencyMs)).toBe(true)
+  })
+
+  it('flags logging gap when telemetry reports server errors but error_logs has none', () => {
+    const summary = buildLiveOpsSummary(
+      { games1h: 0, wins1h: 0, errors1h: 0, warns1h: 0 },
+      null,
+      1714509000,
+      7,
+    )
+    expect(summary.telemetryErrors1h).toBe(7)
+    expect(summary.loggingGap).toBe(true)
+  })
+
+  it('does not flag logging gap when error_logs contain errors', () => {
+    const summary = buildLiveOpsSummary(
+      { games1h: 10, wins1h: 5, errors1h: 2, warns1h: 0 },
+      100,
+      1714509000,
+      7,
+    )
+    expect(summary.telemetryErrors1h).toBe(7)
+    expect(summary.loggingGap).toBe(false)
   })
 })
 
@@ -71,6 +101,13 @@ describe('buildP95LatencyQuery', () => {
     expect(sql).toContain("INTERVAL '15' MINUTE")
     expect(sql).toContain('FROM worker_tail_preview')
   })
+
+  it('builds telemetry error query with server/exception outcomes', () => {
+    const sql = buildTelemetryErrorsQuery('worker_tail', 60)
+    expect(sql).toContain('FROM worker_tail')
+    expect(sql).toContain("blob4 = 'server_error'")
+    expect(sql).toContain("blob4 = 'exception'")
+  })
 })
 
 describe('parseP95LatencyResponse', () => {
@@ -87,5 +124,18 @@ describe('parseP95LatencyResponse', () => {
     expect(parseP95LatencyResponse(null)).toBeNull()
     expect(parseP95LatencyResponse('oops')).toBeNull()
     expect(parseP95LatencyResponse({ errors: [{ message: 'no dataset' }] })).toBeNull()
+  })
+})
+
+describe('parseTelemetryErrorsResponse', () => {
+  it('extracts telemetry error count from AE shape', () => {
+    expect(parseTelemetryErrorsResponse({ data: [{ telemetry_errors: 12 }] })).toBe(12)
+  })
+
+  it('returns null on empty or malformed payload', () => {
+    expect(parseTelemetryErrorsResponse({ data: [] })).toBeNull()
+    expect(parseTelemetryErrorsResponse({ data: [{ telemetry_errors: null }] })).toBeNull()
+    expect(parseTelemetryErrorsResponse(null)).toBeNull()
+    expect(parseTelemetryErrorsResponse('oops')).toBeNull()
   })
 })

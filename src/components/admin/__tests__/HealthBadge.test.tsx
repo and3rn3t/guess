@@ -10,6 +10,8 @@ interface SummaryFields {
   errors1h?: number
   warns1h?: number
   errorRate?: number | null
+  telemetryErrors1h?: number | null
+  loggingGap?: boolean | null
   generatedAt?: number
 }
 
@@ -25,6 +27,8 @@ function buildSummary(over: SummaryFields = {}): Record<string, unknown> {
     winRate: 0.6,
     errorRate: 0,
     p95LatencyMs: 250,
+    telemetryErrors1h: null,
+    loggingGap: null,
     generatedAt: Math.floor(Date.now() / 1000),
     ...over,
   }
@@ -56,6 +60,12 @@ describe('computeStatus', () => {
   it('returns critical when errorRate > 5%', () => {
     expect(
       computeStatus(buildSummary({ errorRate: 0.1 }) as never),
+    ).toBe('critical')
+  })
+
+  it('returns critical when logging gap is detected', () => {
+    expect(
+      computeStatus(buildSummary({ loggingGap: true }) as never),
     ).toBe('critical')
   })
 })

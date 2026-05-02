@@ -12,6 +12,8 @@ export interface LiveOpsSummary {
   winRate: number | null
   errorRate: number | null
   p95LatencyMs: number | null
+  telemetryErrors1h: number | null
+  loggingGap: boolean | null
   generatedAt: number
 }
 
@@ -39,6 +41,7 @@ export function useLiveOps(): LiveOpsContextValue {
 
 export function computeStatus(data: LiveOpsSummary | null): HealthStatus {
   if (!data) return 'unknown'
+  if (data.loggingGap) return 'critical'
   const rate = data.errorRate ?? 0
   if (rate > 0.05) return 'critical'
   if (rate > 0.01 || (data.warns1h ?? 0) > 0) return 'warn'
