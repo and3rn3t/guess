@@ -351,7 +351,7 @@ const headerLines = [
   `-- env=${ENV_FLAG} sample=${SAMPLE_SIZE} model=${MODEL}`,
   `-- batch_id=${BATCH_ID}  events=${flatEvents.length}`,
   `-- generated_at=${new Date().toISOString()}`,
-  'BEGIN TRANSACTION;',
+  '-- Note: no BEGIN TRANSACTION/COMMIT — D1 remote API rejects raw transaction control statements',
 ]
 const sqlEscape = (s: string): string => s.replaceAll("'", "''")
 const valueLit = (v: AttributeValue): string => (v === null ? 'NULL' : String(v))
@@ -364,7 +364,7 @@ for (const { character, events } of allDrift) {
     )
   }
 }
-const lines = [...headerLines, ...insertLines, 'COMMIT;']
+const lines = [...headerLines, ...insertLines]
 
 const outFile = path.join(OUT_DIR, `drift-${ENV_FLAG}-${BATCH_ID.slice(0, 8)}.sql`)
 writeFileSync(outFile, lines.join('\n'))

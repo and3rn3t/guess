@@ -214,7 +214,7 @@ const headerLines = [
   `-- env=${ENV_FLAG} days=${DAYS} min-votes=${MIN_VOTES} threshold=${THRESHOLD}`,
   `-- pairs-evaluated=${evaluated} disputes-filed=${disputes.length}`,
   `-- generated_at=${new Date().toISOString()}`,
-  'BEGIN TRANSACTION;',
+  '-- Note: no BEGIN TRANSACTION/COMMIT — D1 remote API rejects raw transaction control statements',
 ]
 const sqlEscape = (s: string): string => s.replaceAll("'", "''")
 const insertLines = disputes.map((d) => {
@@ -223,7 +223,7 @@ const insertLines = disputes.map((d) => {
   const reason = sqlEscape(d.reason)
   return `INSERT OR IGNORE INTO attribute_disputes (character_id, attribute_key, current_value, dispute_reason, confidence, disputed_by, status) VALUES ('${charId}', '${attr}', ${d.storedValue}, '${reason}', ${d.confidence}, 'player-corroboration', 'open');`
 })
-const lines = [...headerLines, ...insertLines, 'COMMIT;']
+const lines = [...headerLines, ...insertLines]
 
 const outFile = path.join(OUT_DIR, `disputes-${ENV_FLAG}.sql`)
 fs.writeFileSync(outFile, lines.join('\n'))
