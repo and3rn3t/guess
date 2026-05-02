@@ -1,22 +1,22 @@
 // ── Bayesian scoring weights ──────────────────────────────────────────────────
 /** Perfect match: attribute value equals the expected answer. */
-export const SCORE_MATCH = 1.0
+export const SCORE_MATCH = 1.0;
 /** Soft mismatch: non-zero so 1–2 noisy/erroneous attribute values don't eliminate a character.
- * Reduced from 0.05 → 0.03 to shrink residual probability of contradicted characters in
+ * Reduced from 0.03 → 0.01 to shrink residual probability of contradicted characters in
  * large pools, reducing aliveCount inflation and wrong-character survival. */
-export const SCORE_MISMATCH = 0.03
+export const SCORE_MISMATCH = 0.01;
 /** Unknown (null) attribute: penalised below 0.5 to discourage sparse characters. */
-export const SCORE_UNKNOWN = 0.35
+export const SCORE_UNKNOWN = 0.35;
 /** "Maybe" answer — character has the attribute: soft positive. */
-export const SCORE_MAYBE = 0.7
+export const SCORE_MAYBE = 0.8;
 /** "Maybe" answer — character lacks the attribute: soft negative. */
-export const SCORE_MAYBE_MISS = 0.3
+export const SCORE_MAYBE_MISS = 0.2;
 /** Prior probability that the user answers "maybe" on any given question. */
-export const MAYBE_ANSWER_PROB = 0.15
+export const MAYBE_ANSWER_PROB = 0.15;
 
 // ── Guess-readiness thresholds ────────────────────────────────────────────────
 /** Characters with probability below this value are considered eliminated. */
-export const ALIVE_THRESHOLD = 0.001
+export const ALIVE_THRESHOLD = 0.001;
 
 // ── Question selection ────────────────────────────────────────────────────────
 /**
@@ -26,7 +26,7 @@ export const ALIVE_THRESHOLD = 0.001
  * when better alternatives exist. Prevents wasting turns on near-zero-gain
  * attributes (e.g. 100% unknown attrs, or globally unimportant questions).
  */
-export const MIN_INFO_GAIN = 0.01
+export const MIN_INFO_GAIN = 0.01;
 
 /**
  * Net-gain floor (0–1, normalized) below which questions are excluded from the
@@ -35,4 +35,4 @@ export const MIN_INFO_GAIN = 0.01
  * that consistently elicit 'unknown' answers, which add no information.
  * Injectable per-game via `QuestionSelectionOptions.structuralWeights.netGainFloor`.
  */
-export const NET_GAIN_FLOOR = 0.05
+export const NET_GAIN_FLOOR = 0.05;

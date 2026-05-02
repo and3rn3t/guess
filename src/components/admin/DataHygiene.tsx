@@ -16,7 +16,7 @@ import {
   validateAllCharacters,
 } from "@/lib/admin/dataCleanup";
 import type { Character, Question } from "@/lib/types";
-import { ArrowLeft } from "@phosphor-icons/react";
+import { ArrowLeftIcon } from "@phosphor-icons/react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -34,9 +34,11 @@ export function DataHygiene({
   onUpdateCharacter,
   onUpdateQuestion,
   onBack,
-}: DataHygieneProps) {
+}: Readonly<DataHygieneProps>) {
+
   // Attribute cleanup
   const [attrIssues, setAttrIssues] = useState<AttributeIssue[]>([]);
+  const [attrHasRun, setAttrHasRun] = useState(false);
   const [attrProgress, setAttrProgress] = useState<{
     done: number;
     total: number;
@@ -45,6 +47,7 @@ export function DataHygiene({
 
   // Duplicates
   const [dupeGroups, setDupeGroups] = useState<DuplicateGroup[]>([]);
+  const [dupeHasRun, setDupeHasRun] = useState(false);
   const [dupeProgress, setDupeProgress] = useState<{
     done: number;
     total: number;
@@ -53,16 +56,24 @@ export function DataHygiene({
 
   // Question quality
   const [qScores, setQScores] = useState<QuestionScore[]>([]);
+  const [qHasRun, setQHasRun] = useState(false);
   const [qProgress, setQProgress] = useState<{
     done: number;
     total: number;
   } | null>(null);
   const [qRunning, setQRunning] = useState(false);
 
+  const flaggedQuestionScores = qScores.filter(
+    (score) =>
+      score.rewrite
+      || Math.min(score.scores.clarity, score.scores.power, score.scores.grammar) < 3,
+  );
+
   // Categories
   const [catSuggestions, setCatSuggestions] = useState<CategorySuggestion[]>(
     [],
   );
+  const [catHasRun, setCatHasRun] = useState(false);
   const [catProgress, setCatProgress] = useState<{
     done: number;
     total: number;
@@ -71,14 +82,16 @@ export function DataHygiene({
 
   const runAttrCleanup = async () => {
     setAttrRunning(true);
+    setAttrHasRun(false);
     setAttrIssues([]);
     try {
       const results = await validateAllCharacters(characters, (done, total) =>
         setAttrProgress({ done, total }),
       );
       setAttrIssues(results);
+      setAttrHasRun(true);
     } catch {
-      toast.error('Attribute scan failed');
+      toast.error("Attribute scan failed");
     } finally {
       setAttrRunning(false);
       setAttrProgress(null);
@@ -87,14 +100,16 @@ export function DataHygiene({
 
   const runDupeCheck = async () => {
     setDupeRunning(true);
+    setDupeHasRun(false);
     setDupeGroups([]);
     try {
       const results = await findDuplicates(characters, (done, total) =>
         setDupeProgress({ done, total }),
       );
       setDupeGroups(results);
+      setDupeHasRun(true);
     } catch {
-      toast.error('Duplicate check failed');
+      toast.error("Duplicate check failed");
     } finally {
       setDupeRunning(false);
       setDupeProgress(null);
@@ -103,14 +118,16 @@ export function DataHygiene({
 
   const runQScoring = async () => {
     setQRunning(true);
+    setQHasRun(false);
     setQScores([]);
     try {
       const results = await scoreQuestions(questions, (done, total) =>
         setQProgress({ done, total }),
       );
       setQScores(results);
+      setQHasRun(true);
     } catch {
-      toast.error('Question scoring failed');
+      toast.error("Question scoring failed");
     } finally {
       setQRunning(false);
       setQProgress(null);
@@ -119,14 +136,16 @@ export function DataHygiene({
 
   const runCategorization = async () => {
     setCatRunning(true);
+    setCatHasRun(false);
     setCatSuggestions([]);
     try {
       const results = await categorizeAllCharacters(characters, (done, total) =>
         setCatProgress({ done, total }),
       );
       setCatSuggestions(results);
+      setCatHasRun(true);
     } catch {
-      toast.error('Categorization failed');
+      toast.error("Categorization failed");
     } finally {
       setCatRunning(false);
       setCatProgress(null);
@@ -171,7 +190,7 @@ export function DataHygiene({
           </p>
         </div>
         <Button onClick={onBack} variant="outline" className="gap-2">
-          <ArrowLeft size={18} />
+          <ArrowLeftIcon size={18} />
           Back
         </Button>
       </div>
@@ -196,9 +215,9 @@ export function DataHygiene({
           </TabsTrigger>
           <TabsTrigger value="questions" className="text-xs sm:text-sm">
             Questions{" "}
-            {qScores.filter((s) => s.rewrite).length > 0 && (
+            {flaggedQuestionScores.length > 0 && (
               <Badge variant="destructive" className="ml-1">
-                {qScores.filter((s) => s.rewrite).length}
+                {flaggedQuestionScores.length}
               </Badge>
             )}
           </TabsTrigger>
@@ -226,6 +245,11 @@ export function DataHygiene({
               value={(attrProgress.done / attrProgress.total) * 100}
               className="h-2"
             />
+          )}
+          {!attrRunning && attrHasRun && attrIssues.length === 0 && (
+            <p className="text-sm text-muted-foreground">
+              Analysis complete. No attribute issues found.
+            </p>
           )}
           {attrIssues.map((issue, i) => (
             <Card
@@ -273,8 +297,16 @@ export function DataHygiene({
               className="h-2"
             />
           )}
-          {dupeGroups.map((group, i) => (
-            <Card key={`dupe-${i}`} className="p-4">
+          {!dupeRunning && dupeHasRun && dupeGroups.length === 0 && (
+            <p className="text-sm text-muted-foreground">
+              Analysis complete. No duplicate candidates found.
+            </p>
+          )}
+          {dupeGroups.map((group) => (
+            <Card
+              key={`${group.canonical.id}-${group.duplicates.map((duplicate) => duplicate.id).join("-")}`}
+              className="p-4"
+            >
               <p className="font-medium text-foreground">
                 Keep: {group.canonical.name}
               </p>
@@ -303,61 +335,60 @@ export function DataHygiene({
               className="h-2"
             />
           )}
-          {qScores
-            .filter(
-              (s) =>
-                s.rewrite ||
-                Math.min(s.scores.clarity, s.scores.power, s.scores.grammar) <
-                  3,
-            )
-            .map((score) => (
-              <Card key={score.questionId} className="p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="font-medium text-foreground">
-                      {score.questionText}
-                    </p>
-                    <div className="flex gap-2 mt-1">
-                      <Badge
-                        variant={
-                          score.scores.clarity < 3 ? "destructive" : "secondary"
-                        }
-                      >
-                        Clarity: {score.scores.clarity}
-                      </Badge>
-                      <Badge
-                        variant={
-                          score.scores.power < 3 ? "destructive" : "secondary"
-                        }
-                      >
-                        Power: {score.scores.power}
-                      </Badge>
-                      <Badge
-                        variant={
-                          score.scores.grammar < 3 ? "destructive" : "secondary"
-                        }
-                      >
-                        Grammar: {score.scores.grammar}
-                      </Badge>
-                    </div>
-                    {score.rewrite && (
-                      <p className="text-sm text-accent mt-1">
-                        Suggested: {score.rewrite}
-                      </p>
-                    )}
+          {!qRunning && qHasRun && flaggedQuestionScores.length === 0 && (
+            <p className="text-sm text-muted-foreground">
+              Analysis complete. No question rewrites or low-quality prompts
+              were flagged.
+            </p>
+          )}
+          {flaggedQuestionScores.map((score) => (
+            <Card key={score.questionId} className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-medium text-foreground">
+                    {score.questionText}
+                  </p>
+                  <div className="flex gap-2 mt-1">
+                    <Badge
+                      variant={
+                        score.scores.clarity < 3 ? "destructive" : "secondary"
+                      }
+                    >
+                      Clarity: {score.scores.clarity}
+                    </Badge>
+                    <Badge
+                      variant={
+                        score.scores.power < 3 ? "destructive" : "secondary"
+                      }
+                    >
+                      Power: {score.scores.power}
+                    </Badge>
+                    <Badge
+                      variant={
+                        score.scores.grammar < 3 ? "destructive" : "secondary"
+                      }
+                    >
+                      Grammar: {score.scores.grammar}
+                    </Badge>
                   </div>
                   {score.rewrite && (
-                    <Button
-                      onClick={() => applyQuestionRewrite(score)}
-                      size="sm"
-                      variant="outline"
-                    >
-                      Apply
-                    </Button>
+                    <p className="text-sm text-accent mt-1">
+                      Suggested: {score.rewrite}
+                    </p>
                   )}
                 </div>
-              </Card>
-            ))}
+                {score.rewrite && (
+                  <Button
+                    onClick={() => applyQuestionRewrite(score)}
+                    size="sm"
+                    variant="outline"
+                  >
+                    Apply
+                  </Button>
+                )}
+              </div>
+            </Card>
+          ))}
         </TabsContent>
 
         <TabsContent value="categories" className="space-y-4">
@@ -374,6 +405,11 @@ export function DataHygiene({
               value={(catProgress.done / catProgress.total) * 100}
               className="h-2"
             />
+          )}
+          {!catRunning && catHasRun && catSuggestions.length === 0 && (
+            <p className="text-sm text-muted-foreground">
+              Analysis complete. No category changes were suggested.
+            </p>
           )}
           {catSuggestions.map((suggestion) => (
             <Card key={suggestion.characterId} className="p-4">

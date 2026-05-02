@@ -112,6 +112,19 @@ describe('validateCharacterAttributes', () => {
     const issues = await validateCharacterAttributes(char('mario', 'Mario'))
     expect(issues).toEqual([])
   })
+
+  it('parses fenced JSON responses from the LLM', async () => {
+    const { validateCharacterAttributes } = await import('./dataCleanup')
+    mockLlm.mockResolvedValueOnce(
+      '```json\n'
+      + '{"issues":[{"characterId":"mario","attribute":"wearsHat","currentValue":false,"suggestedValue":true,"reason":"Mario is usually shown with a hat"}]}'
+      + '\n```'
+    )
+
+    const issues = await validateCharacterAttributes(char('mario', 'Mario'))
+    expect(issues).toHaveLength(1)
+    expect(issues[0].attribute).toBe('wearsHat')
+  })
 })
 
 // ── categorizeCharacter ───────────────────────────────────────

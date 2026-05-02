@@ -38,6 +38,28 @@ export interface CategorySuggestion {
   reasoning: string
 }
 
+function parseLlmJson<T>(response: string): T {
+  const trimmed = response.trim()
+
+  try {
+    return JSON.parse(trimmed) as T
+  } catch {
+    const fencedJsonPattern = /```(?:json)?\s*([\s\S]*?)\s*```/i
+    const fencedMatch = fencedJsonPattern.exec(trimmed)
+    if (fencedMatch) {
+      return JSON.parse(fencedMatch[1]) as T
+    }
+
+    const firstBrace = trimmed.indexOf('{')
+    const lastBrace = trimmed.lastIndexOf('}')
+    if (firstBrace >= 0 && lastBrace > firstBrace) {
+      return JSON.parse(trimmed.slice(firstBrace, lastBrace + 1)) as T
+    }
+
+    throw new Error('Invalid JSON response from LLM')
+  }
+}
+
 // ---------------------------------------------------------------------------
 // 8.1 Attribute Validation
 // ---------------------------------------------------------------------------
@@ -52,7 +74,7 @@ export async function validateCharacterAttributes(
 
   try {
     const response = await llm(`${system}\n\n${user}\n\nCharacter attributes: ${JSON.stringify(character.attributes)}`, 'gpt-4o-mini', true)
-    const parsed = JSON.parse(response) as {
+    const parsed = parseLlmJson<{
       issues: Array<{
         characterId: string
         attribute: string
@@ -60,7 +82,7 @@ export async function validateCharacterAttributes(
         suggestedValue: boolean | null
         reason: string
       }>
-    }
+    }>(response)
 
     return parsed.issues.map((issue) => ({
       ...issue,
@@ -159,9 +181,9 @@ export async function findDuplicates(
         'duplicates'
       )
       const response = await llm(`${system}\n\n${user}`, 'gpt-4o-mini', true)
-      const parsed = JSON.parse(response) as {
+      const parsed = parseLlmJson<{
         groups: Array<{ canonical: string; duplicates: string[] }>
-      }
+      }>(response)
 
       if (parsed.groups.length > 0) {
         const group = parsed.groups[0]
@@ -214,7 +236,7 @@ Return JSON: { "scores": [{ "questionId": "id", "clarity": 1-5, "power": 1-5, "g
 
     try {
       const response = await llm(prompt, 'gpt-4o-mini', true)
-      const parsed = JSON.parse(response) as {
+      const parsed = parseLlmJson<{
         scores: Array<{
           questionId: string
           clarity: number
@@ -222,7 +244,7 @@ Return JSON: { "scores": [{ "questionId": "id", "clarity": 1-5, "power": 1-5, "g
           grammar: number
           rewrite?: string
         }>
-      }
+      }>(response)
 
       for (const score of parsed.scores) {
         const q = batch.find((b) => b.id === score.questionId)
@@ -267,12 +289,12 @@ export async function categorizeCharacter(
       'gpt-4o-mini',
       true
     )
-    const parsed = JSON.parse(response) as {
+    const parsed = parseLlmJson<{
       suggestions: Array<{
         characterId: string
         suggestedCategory: CharacterCategory
       }>
-    }
+    }>(response)
 
     if (parsed.suggestions.length > 0) {
       const suggestion = parsed.suggestions[0]
