@@ -131,6 +131,9 @@ export async function runServerEnrichBatch(env: Env, batchId: string, limit: num
     const allKeys = allAttrs.map((a) => a.key)
     const validKeySet = new Set(allKeys)
 
+    // Build system prompt once — reused for every character's call
+    const systemPrompt = buildSystemPrompt(allAttrs.map((a) => ({ key: a.key, questionText: a.question_text })))
+
     // 2. Find characters with no character_attributes rows
     const charRows = await db
       .prepare(
@@ -146,131 +149,123 @@ export async function runServerEnrichBatch(env: Env, batchId: string, limit: num
     const pending = charRows.results ?? []
     if (pending.length === 0) return
 
-    // 3. Insert pipeline_run rows as 'running'
-    const insertRunStmts = pending.map((c) =>
-      db.prepare(
-        `INSERT INTO pipeline_runs (run_batch, character_id, step, status) VALUES (?, ?, 'enrich', 'running')`
-      ).bind(batchId, c.id)
-    )
-    await db.batch(insertRunStmts)
+    // 3–5. Process one character at a time so each LLM call is small:
+    //   prompt ~4k tokens (system) + ~50 tokens (user) → response ~500 tokens
+    //   (~4–8 s per call vs 30–40 s for a 5-char batch at 221 attributes).
+    //   This also gives the dashboard live per-row progress updates.
+    let totalPromptTokens = 0
+    let totalCompletionTokens = 0
+    let successCount = 0
 
-    const t0 = Date.now()
+    for (const char of pending) {
+      // Mark this character as running before the LLM call
+      await db
+        .prepare(`INSERT INTO pipeline_runs (run_batch, character_id, step, status) VALUES (?, ?, 'enrich', 'running')`)
+        .bind(batchId, char.id)
+        .run()
 
-    // 4. Single OpenAI call for the whole batch
-    let content = '{}'
-    let llmError: string | null = null
-    let promptTokens = 0
-    let completionTokens = 0
+      const t0 = Date.now()
 
-    // 25 s hard timeout — gives the finally block time to run before the
-    // Worker CPU budget expires (~30 s default). Without this, a hung
-    // OpenAI connection causes the Worker to be killed mid-flight, leaving
-    // pipeline_runs rows stuck as 'running' and the KV flag never cleared.
-    const llmAbort = new AbortController()
-    const llmTimeout = setTimeout(() => llmAbort.abort(), 25_000)
+      // 25 s hard timeout per character — same reasoning as before, but now
+      // the completion is ~500 tokens so this is very unlikely to fire.
+      const llmAbort = new AbortController()
+      const llmTimeout = setTimeout(() => llmAbort.abort(), 25_000)
 
-    try {
-      const res = await fetch(getCompletionsEndpoint(env), {
-        method: 'POST',
-        headers: getLlmHeaders(env),
-        signal: llmAbort.signal,
-        body: JSON.stringify({
-          model: MODEL,
-          messages: [
-            { role: 'system', content: buildSystemPrompt(allAttrs.map((a) => ({ key: a.key, questionText: a.question_text }))) },
-            { role: 'user', content: buildUserPrompt(pending) },
-          ],
-          temperature: 0.1,
-          response_format: { type: 'json_object' },
-          max_tokens: 16384,
-        }),
-      })
-      if (res.ok) {
-        const body = await res.json() as OpenAIResponse
-        content = body.choices[0]?.message?.content ?? '{}'
-        promptTokens = body.usage?.prompt_tokens ?? 0
-        completionTokens = body.usage?.completion_tokens ?? 0
-      } else {
-        const errText = await res.text()
-        llmError = `OpenAI ${res.status}: ${errText.slice(0, 300)}`
+      let charError: string | null = null
+      let attrResult: Record<string, boolean | null> = {}
+      let promptTokens = 0
+      let completionTokens = 0
+
+      try {
+        const res = await fetch(getCompletionsEndpoint(env), {
+          method: 'POST',
+          headers: getLlmHeaders(env),
+          signal: llmAbort.signal,
+          body: JSON.stringify({
+            model: MODEL,
+            messages: [
+              { role: 'system', content: systemPrompt },
+              { role: 'user', content: buildUserPrompt([char]) },
+            ],
+            temperature: 0.1,
+            response_format: { type: 'json_object' },
+            max_tokens: 4096,
+          }),
+        })
+        if (res.ok) {
+          const body = await res.json() as OpenAIResponse
+          const content = body.choices[0]?.message?.content ?? '{}'
+          promptTokens = body.usage?.prompt_tokens ?? 0
+          completionTokens = body.usage?.completion_tokens ?? 0
+          const parsed = parseOpenAIContent(content, [char.id], validKeySet)
+          attrResult = parsed[char.id] ?? {}
+        } else {
+          const errText = await res.text()
+          charError = `OpenAI ${res.status}: ${errText.slice(0, 300)}`
+        }
+      } catch (fetchErr) {
+        charError = (fetchErr instanceof Error && fetchErr.name === 'AbortError')
+          ? 'LLM request timed out after 25 s'
+          : String(fetchErr).slice(0, 300)
+      } finally {
+        clearTimeout(llmTimeout)
       }
-    } catch (fetchErr) {
-      llmError = (fetchErr instanceof Error && fetchErr.name === 'AbortError')
-        ? 'LLM request timed out after 25 s'
-        : String(fetchErr).slice(0, 300)
-    } finally {
-      clearTimeout(llmTimeout)
+
+      const durationMs = Date.now() - t0
+      totalPromptTokens += promptTokens
+      totalCompletionTokens += completionTokens
+
+      if (charError || Object.keys(attrResult).length === 0) {
+        await db
+          .prepare(
+            `UPDATE pipeline_runs SET status='error', error=?, duration_ms=?
+             WHERE run_batch=? AND character_id=? AND step='enrich' AND status='running'`
+          )
+          .bind(charError ?? 'No result in LLM response', durationMs, batchId, char.id)
+          .run()
+        continue
+      }
+
+      // Write character_attributes (chunked to stay within D1 batch limit of 100)
+      const attrStmts = Object.entries(attrResult).map(([key, val]) => {
+        const intVal = val === true ? 1 : val === false ? 0 : null
+        const confidence = val === null ? 0.65 : 0.85
+        return db
+          .prepare(
+            `INSERT OR REPLACE INTO character_attributes (character_id, attribute_key, value, confidence, evidence)
+             VALUES (?, ?, ?, ?, ?)`
+          )
+          .bind(char.id, key, intVal, confidence, evidence)
+      })
+      for (let i = 0; i < attrStmts.length; i += 100) {
+        await db.batch(attrStmts.slice(i, i + 100))
+      }
+
+      await db
+        .prepare(
+          `UPDATE pipeline_runs SET status='success', duration_ms=?
+           WHERE run_batch=? AND character_id=? AND step='enrich' AND status='running'`
+        )
+        .bind(durationMs, batchId, char.id)
+        .run()
+
+      successCount++
     }
 
-    const durationMs = Date.now() - t0
-
-    // Persist token stats for dashboard display regardless of success/error (7-day TTL)
+    // Persist batch-level token stats for dashboard display (7-day TTL)
     await env.GUESS_KV?.put(
       'enrich:last-batch-stats',
       JSON.stringify({
         batchId,
-        promptTokens,
-        completionTokens,
-        totalTokens: promptTokens + completionTokens,
+        promptTokens: totalPromptTokens,
+        completionTokens: totalCompletionTokens,
+        totalTokens: totalPromptTokens + totalCompletionTokens,
         characters: pending.length,
         runAt: runIso,
-        status: llmError ? 'error' : 'success',
+        status: successCount > 0 ? 'success' : 'error',
       }),
       { expirationTtl: 604800 },
     )
-
-    if (llmError) {
-      // Mark all pipeline_runs as error
-      const errorStmts = pending.map((c) =>
-        db.prepare(
-          `UPDATE pipeline_runs SET status='error', error=?, duration_ms=?
-           WHERE run_batch=? AND character_id=? AND step='enrich' AND status='running'`
-        ).bind(llmError, durationMs, batchId, c.id)
-      )
-      await db.batch(errorStmts)
-      return
-    }
-
-    // 5. Parse response and build D1 write statements
-    const parsed = parseOpenAIContent(content, pending.map((c) => c.id), validKeySet)
-    const attrStmts: ReturnType<D1Database['prepare']>[] = []
-    const runUpdateStmts: ReturnType<D1Database['prepare']>[] = []
-
-    for (const char of pending) {
-      const charResult = parsed[char.id]
-      if (!charResult || Object.keys(charResult).length === 0) {
-        runUpdateStmts.push(
-          db.prepare(
-            `UPDATE pipeline_runs SET status='error', error='No result in LLM response', duration_ms=?
-             WHERE run_batch=? AND character_id=? AND step='enrich' AND status='running'`
-          ).bind(durationMs, batchId, char.id)
-        )
-        continue
-      }
-
-      for (const [key, val] of Object.entries(charResult)) {
-        const intVal = val === true ? 1 : val === false ? 0 : null
-        const confidence = val === null ? 0.65 : 0.85
-        attrStmts.push(
-          db.prepare(
-            `INSERT OR REPLACE INTO character_attributes (character_id, attribute_key, value, confidence, evidence)
-             VALUES (?, ?, ?, ?, ?)`
-          ).bind(char.id, key, intVal, confidence, evidence)
-        )
-      }
-      runUpdateStmts.push(
-        db.prepare(
-          `UPDATE pipeline_runs SET status='success', duration_ms=?
-           WHERE run_batch=? AND character_id=? AND step='enrich' AND status='running'`
-        ).bind(durationMs, batchId, char.id)
-      )
-    }
-
-    // D1 batch limit is 100 — chunk if needed
-    const allStmts = [...attrStmts, ...runUpdateStmts]
-    for (let i = 0; i < allStmts.length; i += 100) {
-      await db.batch(allStmts.slice(i, i + 100))
-    }
   } finally {
     await env.GUESS_KV?.delete('admin:enrich-start')
   }
