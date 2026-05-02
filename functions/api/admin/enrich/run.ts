@@ -151,6 +151,11 @@ export async function runServerEnrichBatch(env: Env, batchId: string, origin?: s
          WHERE NOT EXISTS (
            SELECT 1 FROM character_attributes ca WHERE ca.character_id = c.id LIMIT 1
          )
+         AND (
+           SELECT COUNT(*) FROM pipeline_runs pr
+           WHERE pr.character_id = c.id AND pr.step = 'enrich' AND pr.status = 'error'
+           AND pr.created_at > unixepoch() - 3600
+         ) < 3
          ORDER BY popularity DESC
          LIMIT 1`
       )
