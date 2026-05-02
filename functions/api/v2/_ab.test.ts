@@ -22,6 +22,29 @@ afterEach(() => {
 })
 
 describe('assignVariant', () => {
+  it('uses question_expansion_v1 flag when configured', async () => {
+    const kv = makeKv({
+      'ff:question_expansion_v1_pct': '100',
+      'ff:question_expansion_v1_selector': 'greedy',
+      'ab:experiment-pct': '0',
+    })
+    const result = await assignVariant(kv as unknown as KVNamespace, 'user-1')
+    expect(result).toEqual({ variant: 'experiment', selector: 'greedy' })
+  })
+
+  it('uses stable per-user bucketing for question_expansion_v1', async () => {
+    const kv = makeKv({
+      'ff:question_expansion_v1_pct': '50',
+      'ff:question_expansion_v1_selector': 'mcts',
+    })
+
+    const day1 = await assignVariant(kv as unknown as KVNamespace, 'sticky-user')
+    vi.setSystemTime(new Date('2025-11-14T12:00:00Z'))
+    const day14 = await assignVariant(kv as unknown as KVNamespace, 'sticky-user')
+
+    expect(day14).toEqual(day1)
+  })
+
   it('returns control + default selector when KV is empty', async () => {
     const kv = makeKv({})
     const result = await assignVariant(kv as unknown as KVNamespace, 'user-1')

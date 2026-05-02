@@ -48,6 +48,9 @@ export interface QuestionsRow {
   priority: number
   retired_at: number
   retired_reason: string
+  theme: string
+  surprise_factor: number
+  difficulty_tag: string
 }
 
 export interface GameStatsRow {
@@ -267,5 +270,23 @@ export interface TriageQueueRow {
   actual_character_name: string | null
   min_rank: number | null
   steps_json: string
+  created_at: number
+}
+
+export interface PlayerQuestionAffinityRow {
+  id: number
+  player_cohort: string
+  question_id: string
+  avg_info_gain: number | null
+  skew_score: number | null
+  updated_at: number
+}
+
+export interface GameFeedbackRow {
+  id: number
+  session_id: string
+  game_id: string | null
+  rating: number
+  feedback_text: string | null
   created_at: number
 }

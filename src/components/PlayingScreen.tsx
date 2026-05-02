@@ -225,6 +225,23 @@ In 1-2 sentences, react in character to this answer and what it reveals. Be conc
     }, 200);
   }, [dispatch, isUndoing]);
 
+  const confidenceDelta = useMemo(() => {
+    if (confidenceHistory.length < 2) return null;
+    const prev = confidenceHistory[confidenceHistory.length - 2] ?? 0;
+    const curr = confidenceHistory[confidenceHistory.length - 1] ?? 0;
+    return curr - prev;
+  }, [confidenceHistory]);
+
+  const qualityBadge = useMemo(() => {
+    const trigger = readiness?.trigger;
+    if (!trigger) return { label: 'Calibrating', tone: 'neutral' as const };
+    if (trigger === 'singleton') return { label: 'Locked', tone: 'strong' as const };
+    if (trigger === 'high_certainty') return { label: 'High Signal', tone: 'strong' as const };
+    if (trigger === 'strict_readiness') return { label: 'Strong Signal', tone: 'good' as const };
+    if (trigger === 'time_pressure') return { label: 'Time Pressure', tone: 'warn' as const };
+    return { label: 'Calibrating', tone: 'neutral' as const };
+  }, [readiness?.trigger]);
+
   const readinessSummary = readiness?.blockedByRejectCooldown
     ? `Holding the next guess until I collect ${readiness.rejectCooldownRemaining} more answer${readiness.rejectCooldownRemaining === 1 ? "" : "s"}.`
     : readiness?.trigger === "high_certainty"
@@ -262,6 +279,30 @@ In 1-2 sentences, react in character to this answer and what it reveals. Be conc
             <span className="text-sm font-semibold text-accent whitespace-nowrap tabular-nums">
               {confidence}% confident
             </span>
+            <span
+              className={`rounded-full px-2 py-0.5 text-[11px] font-semibold whitespace-nowrap ${
+                qualityBadge.tone === 'strong'
+                  ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
+                  : qualityBadge.tone === 'good'
+                    ? 'bg-cyan-500/15 text-cyan-400 border border-cyan-500/30'
+                    : qualityBadge.tone === 'warn'
+                      ? 'bg-amber-500/15 text-amber-400 border border-amber-500/30'
+                      : 'bg-secondary/50 text-muted-foreground border border-border/60'
+              }`}
+              title={readinessSummary}
+            >
+              {qualityBadge.label}
+            </span>
+            {confidenceDelta !== null && (
+              <span
+                className={`text-xs font-medium whitespace-nowrap tabular-nums ${
+                  confidenceDelta >= 0 ? 'text-emerald-400' : 'text-rose-400'
+                }`}
+                title="Change since the previous answer"
+              >
+                {confidenceDelta >= 0 ? '+' : ''}{confidenceDelta.toFixed(0)}%
+              </span>
+            )}
             <span className="text-xs text-muted-foreground whitespace-nowrap tabular-nums">
               {maxQuestions - answers.length} left
             </span>
