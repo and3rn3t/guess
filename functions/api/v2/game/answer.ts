@@ -3,7 +3,6 @@ import {
   jsonResponse,
   errorResponse,
   parseJsonBodyWithSchema,
-  d1Run,
   logError,
 } from '../../_helpers'
 import { AnswerRequestSchema } from '../../_schemas'
@@ -21,7 +20,16 @@ import {
   getOrBuildCoverageMap,
   buildQuestionOptions,
 } from '../_game-engine'
-import { rephraseQuestion } from '../_llm-rephrase'
+import {
+  buildContradictionResponse,
+  buildGuessResponse,
+  buildQuestionResponse,
+} from './_responses'
+import { advanceToNextQuestion } from './_question-flow'
+import {
+  queueAnswerSessionSync,
+  queueQuestionAttemptWrite,
+} from './_turn-effects'
 
 // ── POST /api/v2/game/answer ─────────────────────────────────
 // Processes the user's answer, returns next question or a guess
@@ -64,26 +72,16 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
   // Persist question_attempts row (fire-and-forget). Powers per-question empirical
   // info-gain analytics (kv:question-empirical-gain) and per-question skip/maybe rates.
-  const dbForAttempt = context.env.GUESS_DB
-  if (dbForAttempt) {
-    context.waitUntil(
-      d1Run(
-        dbForAttempt,
-        `INSERT INTO question_attempts (session_id, question_id, attribute, answer, probability_delta, candidates_before, candidates_after, question_index, created_at)
-         VALUES (?, ?, ?, ?, NULL, ?, ?, ?, ?)`,
-        [
-          sessionId,
-          askedQuestion.id,
-          askedQuestion.attribute,
-          value,
-          candidatesBefore,
-          filtered.length,
-          questionIndex,
-          Date.now(),
-        ]
-      ).catch(() => { /* non-critical */ })
-    )
-  }
+  queueQuestionAttemptWrite(context.waitUntil, context.env.GUESS_DB, {
+    sessionId,
+    questionId: askedQuestion.id,
+    attribute: askedQuestion.attribute,
+    answer: value,
+    candidatesBefore,
+    candidatesAfter: filtered.length,
+    questionIndex,
+    createdAt: Date.now(),
+  })
 
   const coverageMap = getOrBuildCoverageMap(session)
   const scoring = { coverageMap, popularityMap: session.popularityMap }
@@ -116,14 +114,14 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     // Restore current question
     await saveSessionState(kv, session)
 
-    return jsonResponse({
-      type: 'contradiction',
-      message: 'Your answers seem contradictory — no characters match. Last answer was undone.',
-      question: session.currentQuestion,
-      reasoning: generateReasoning(session.currentQuestion, session.characters, session.answers),
-      remaining: session.characters.length,
-      questionCount: session.answers.length,
-    })
+    return jsonResponse(
+      buildContradictionResponse({
+        question: session.currentQuestion,
+        reasoning: generateReasoning(session.currentQuestion, session.characters, session.answers),
+        remaining: session.characters.length,
+        questionCount: session.answers.length,
+      })
+    )
   }
 
   const questionCount = session.answers.length
@@ -177,21 +175,16 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       session.guessCount += 1
       await saveSessionState(kv, session)
 
-      return jsonResponse({
-        type: 'guess',
-        character: {
-          id: guess.id,
-          name: guess.name,
-          category: guess.category,
-          imageUrl: guess.imageUrl,
-          trivia: guess.trivia,
-        },
-        confidence,
-        questionCount,
-        remaining: filtered.length,
-        guessCount: session.guessCount,
-        readiness: responseReadiness,
-      })
+      return jsonResponse(
+        buildGuessResponse({
+          character: guess,
+          confidence,
+          questionCount,
+          remaining: filtered.length,
+          guessCount: session.guessCount,
+          readiness: responseReadiness,
+        })
+      )
     }
   }
 
@@ -219,20 +212,15 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     if (guess) {
       const confidence = Math.round((guessProbs.get(guess.id) || 0) * 100)
 
-      return jsonResponse({
-        type: 'guess',
-        character: {
-          id: guess.id,
-          name: guess.name,
-          category: guess.category,
-          imageUrl: guess.imageUrl,
-          trivia: guess.trivia,
-        },
-        confidence,
-        questionCount,
-        remaining: filtered.length,
-        guessCount: session.guessCount,
-      })
+      return jsonResponse(
+        buildGuessResponse({
+          character: guess,
+          confidence,
+          questionCount,
+          remaining: filtered.length,
+          guessCount: session.guessCount,
+        })
+      )
     }
 
     return errorResponse('No questions or candidates available', 500)
@@ -246,46 +234,32 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   )
   const eliminated = previousFiltered.length - filtered.length
 
-  // Build a lookup so rephraseQuestion can reference question text in context
-  const questionLookup = new Map(session.questions.map((q) => [q.attribute, q.text]))
-
-  // Parallelize: rephrase next question + save session state
-  session.currentQuestion = nextQuestion
-  const [rephrased] = await Promise.all([
-    rephraseQuestion(
-      context.env,
-      nextQuestion,
-      session.answers,
-      reasoning,
-      questionCount + 1,
-      session.maxQuestions,
-      questionLookup,
-      session.persona,
-    ),
-    saveSessionState(kv, session),
-  ])
-  if (rephrased) nextQuestion.displayText = rephrased
+  await advanceToNextQuestion({
+    env: context.env,
+    kv,
+    session,
+    nextQuestion,
+    reasoning,
+    questionNumber: questionCount + 1,
+  })
 
   // Sync answers to D1 backup (non-blocking)
-  if (db) {
-    context.waitUntil(
-      d1Run(
-        db,
-        `UPDATE game_sessions SET answers = ?, current_question_attr = ? WHERE id = ?`,
-        [JSON.stringify(session.answers), nextQuestion.attribute, session.id]
-      ).catch(() => {/* non-critical */})
-    )
-  }
-
-  return jsonResponse({
-    type: 'question',
-    question: nextQuestion,
-    reasoning,
-    remaining: filtered.length,
-    eliminated,
-    questionCount,
-    readiness: responseReadiness,
+  queueAnswerSessionSync(context.waitUntil, db, {
+    sessionId: session.id,
+    answersJson: JSON.stringify(session.answers),
+    currentQuestionAttr: nextQuestion.attribute,
   })
+
+  return jsonResponse(
+    buildQuestionResponse({
+      question: nextQuestion,
+      reasoning,
+      remaining: filtered.length,
+      eliminated,
+      questionCount,
+      readiness: responseReadiness,
+    })
+  )
   } catch (err) {
     console.error('POST /api/v2/game/answer error:', err)
     context.waitUntil(logError(context.env.GUESS_DB, 'answer', 'error', 'answer processing failed', err))

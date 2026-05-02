@@ -3,7 +3,6 @@ import {
   jsonResponse,
   errorResponse,
   parseJsonBodyWithSchema,
-  d1Run,
   logError,
 } from '../../_helpers'
 import { RejectGuessRequestSchema } from '../../_schemas'
@@ -18,7 +17,9 @@ import {
   BONUS_QUESTIONS_PER_REJECT,
   DIFFICULTY_MAP,
 } from '../_game-engine'
-import { rephraseQuestion } from '../_llm-rephrase'
+import { advanceToNextQuestion } from './_question-flow'
+import { buildQuestionResponse } from './_responses'
+import { queueRejectSessionSync } from './_turn-effects'
 
 // ── POST /api/v2/game/reject-guess ───────────────────────────
 // User rejected the AI's guess. Exclude that character, extend
@@ -101,47 +102,33 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
   const reasoning = generateReasoning(nextQuestion, filtered, session.answers, scoring)
 
-  // Build a lookup so rephraseQuestion can reference question text in context
-  const questionLookup = new Map(session.questions.map((q) => [q.attribute, q.text]))
-
-  // Parallelize: rephrase next question + save session state
-  session.currentQuestion = nextQuestion
-  const [rephrased] = await Promise.all([
-    rephraseQuestion(
-      context.env,
-      nextQuestion,
-      session.answers,
-      reasoning,
-      session.answers.length + 1,
-      session.maxQuestions,
-      questionLookup,
-      session.persona,
-    ),
-    saveSessionState(kv, session),
-  ])
-  if (rephrased) nextQuestion.displayText = rephrased
+  await advanceToNextQuestion({
+    env: context.env,
+    kv,
+    session,
+    nextQuestion,
+    reasoning,
+    questionNumber: session.answers.length + 1,
+  })
 
   // Sync to D1 backup (non-blocking)
-  if (db) {
-    context.waitUntil(
-      d1Run(
-        db,
-        `UPDATE game_sessions SET current_question_attr = ?, max_questions = ? WHERE id = ?`,
-        [nextQuestion.attribute, session.maxQuestions, session.id]
-      ).catch(() => {/* non-critical */})
-    )
-  }
-
-  return jsonResponse({
-    type: 'question',
-    question: nextQuestion,
-    reasoning,
-    remaining: filtered.length,
-    questionCount: session.answers.length,
+  queueRejectSessionSync(context.waitUntil, db, {
+    sessionId: session.id,
+    currentQuestionAttr: nextQuestion.attribute,
     maxQuestions: session.maxQuestions,
-    guessCount: session.guessCount,
-    rejectCooldownRemaining: session.postRejectCooldown,
   })
+
+  return jsonResponse(
+    buildQuestionResponse({
+      question: nextQuestion,
+      reasoning,
+      remaining: filtered.length,
+      questionCount: session.answers.length,
+      maxQuestions: session.maxQuestions,
+      guessCount: session.guessCount,
+      rejectCooldownRemaining: session.postRejectCooldown,
+    })
+  )
   } catch (err) {
     console.error('POST /api/v2/game/reject-guess error:', err)
     context.waitUntil(logError(context.env.GUESS_DB, 'reject-guess', 'error', 'reject-guess failed', err))

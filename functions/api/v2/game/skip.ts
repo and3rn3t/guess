@@ -17,7 +17,8 @@ import {
   getOrBuildCoverageMap,
   buildQuestionOptions,
 } from '../_game-engine'
-import { rephraseQuestion } from '../_llm-rephrase'
+import { advanceToNextQuestion } from './_question-flow'
+import { buildQuestionResponse } from './_responses'
 
 
 // ── POST /api/v2/game/skip ───────────────────────────────────
@@ -82,32 +83,25 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   }
 
   const reasoning = generateReasoning(nextQuestion, filtered, session.answers, scoring)
-  const questionLookup = new Map(session.questions.map((q) => [q.attribute, q.text]))
 
-  session.currentQuestion = nextQuestion
-  const [rephrased] = await Promise.all([
-    rephraseQuestion(
-      context.env,
-      nextQuestion,
-      session.answers,
-      reasoning,
-      questionCount + 1,
-      session.maxQuestions,
-      questionLookup,
-      session.persona,
-    ),
-    saveSessionState(kv, session),
-  ])
-  if (rephrased) nextQuestion.displayText = rephrased
-
-  return jsonResponse({
-    type: 'question',
-    question: nextQuestion,
+  await advanceToNextQuestion({
+    env: context.env,
+    kv,
+    session,
+    nextQuestion,
     reasoning,
-    remaining: filtered.length,
-    questionCount,
-    skippedCount: session.skippedQuestions.length,
+    questionNumber: questionCount + 1,
   })
+
+  return jsonResponse(
+    buildQuestionResponse({
+      question: nextQuestion,
+      reasoning,
+      remaining: filtered.length,
+      questionCount,
+      skippedCount: session.skippedQuestions.length,
+    })
+  )
   } catch (err) {
     console.error('POST /api/v2/game/skip error:', err)
     context.waitUntil(logError(context.env.GUESS_DB, 'skip', 'error', 'skip failed', err))

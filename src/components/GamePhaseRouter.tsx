@@ -7,7 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useGameContext } from "@/contexts/GameContext";
 import { DEFAULT_CHARACTERS, DEFAULT_QUESTIONS } from "@/lib/database";
 import { AnimatePresence, motion } from "motion/react";
-import { lazy, Suspense, useEffect, useRef } from "react";
+import { lazy, Suspense, useEffect, useRef, type ReactNode } from "react";
 
 const TeachingMode = lazy(() =>
   import("@/components/TeachingMode").then((m) => ({ default: m.TeachingMode })),
@@ -138,265 +138,278 @@ export function GamePhaseRouter() {
     containerRef.current?.focus();
   }, [gamePhase]);
 
+  type AnimatedPhase = "welcome" | "playing" | "guessing" | "gameOver";
+  const isAnimatedPhase = (phase: typeof gamePhase): phase is AnimatedPhase =>
+    phase === "welcome" ||
+    phase === "playing" ||
+    phase === "guessing" ||
+    phase === "gameOver";
+
+  const animatedPhaseManifest: Record<
+    AnimatedPhase,
+    () => ReactNode
+  > = {
+    welcome: () => (
+      <WelcomeScreen
+        startGame={() => void startGame()}
+        serverTotal={serverTotal}
+        online={online}
+        maxQuestions={maxQuestions}
+        gameHistory={gameHistory}
+        gamesPlayed={gamesPlayed}
+        hasSavedSession={hasSavedSession}
+        resumeSession={resumeSession}
+        clearSession={clearSession}
+        showDevTools={showDevTools}
+        navigate={navigate}
+        characters={characters}
+        globalStats={globalStats}
+        difficulty={difficulty}
+        setDifficulty={setDifficulty}
+        categories={categories}
+        setCategories={setCategories}
+        streak={dailyStreak}
+        personalBest={personalBest}
+        achievements={achievements}
+        weeklyRecap={weeklyRecap}
+      />
+    ),
+    playing: () => (
+      <PlayingScreen
+        answers={answers}
+        maxQuestions={maxQuestions}
+        confidence={confidence}
+        effectiveRemaining={effectiveRemaining}
+        eliminatedCount={eliminatedCount}
+        possibleCharacters={possibleCharacters}
+        currentQuestion={currentQuestion}
+        isThinking={isThinking}
+        reasoning={reasoning}
+        handleAnswer={(v) => void handleAnswer(v)}
+        dispatch={dispatch}
+        gameSteps={gameSteps}
+        gamesPlayed={gamesPlayed}
+        showOnboarding={showOnboarding}
+        setShowOnboarding={setShowOnboarding}
+        activeCharacters={activeCharacters}
+        readiness={serverReadiness}
+        onRetry={retryAfterReject}
+        onSkip={handleSkip}
+        onGiveUp={handleGiveUp}
+        inlineError={serverLastError}
+        onClearInlineError={clearServerError}
+        onRetryInlineError={retryServerAction}
+      />
+    ),
+    guessing: () => (
+      <div className="max-w-2xl mx-auto">
+        <GuessReveal
+          character={finalGuess!}
+          confidence={confidence}
+          guessNumber={guessCount}
+          onCorrect={handleCorrectGuess}
+          onIncorrect={handleIncorrectGuess}
+          onRejectGuess={handleRejectGuess}
+        />
+      </div>
+    ),
+    gameOver: () => (
+      <div className="max-w-2xl mx-auto">
+        <GameOver
+          won={gameWon}
+          exhausted={exhausted}
+          surrendered={surrendered}
+          character={finalGuess}
+          maxQuestions={maxQuestions}
+          questionsAsked={gameSteps.length}
+          guessesUsed={guessCount}
+          remainingCharacters={effectiveRemaining}
+          gamesPlayed={gamesPlayed}
+          onPlayAgain={() => void startGame()}
+          onNewGame={() => navigate("welcome")}
+          onTeachMode={
+            gameWon ? undefined : () => navigate("teaching")
+          }
+          onViewHistory={() => navigate("history")}
+          onViewStats={() => navigate("stats")}
+          onShare={() => void handleShare()}
+          onCopyLink={() => void handleCopyLink()}
+          answeredQuestions={answers.map((a, i) => {
+            const q = (questions || DEFAULT_QUESTIONS).find(
+              (q) => q.id === a.questionId,
+            );
+            const hist = remainingHistoryRef.current ?? [];
+            const eliminated =
+              i === 0
+                ? 0
+                : (hist[i - 1] ?? 0) -
+                  (hist[i] ?? hist[i - 1] ?? 0);
+            return {
+              question: q?.text || "",
+              answer: a.value,
+              eliminated,
+            };
+          })}
+          onReveal={gameWon ? undefined : handleReveal}
+          onSubmitFeedback={handleSubmitFeedback}
+          persona={persona}
+          isPersonalBest={isNewPersonalBest}
+          personalBest={personalBest}
+        />
+      </div>
+    ),
+  };
+
+  const animatedPhase = isAnimatedPhase(gamePhase) ? gamePhase : null;
+  const shouldRenderAnimatedPhase =
+    animatedPhase != null &&
+    (animatedPhase !== "guessing" || finalGuess != null);
+  const animatedContent =
+    shouldRenderAnimatedPhase && animatedPhase
+      ? animatedPhaseManifest[animatedPhase]()
+      : null;
+
+  const staticPhaseManifest: Partial<
+    Record<typeof gamePhase, () => ReactNode>
+  > = {
+    teaching: () => (
+      <div className="max-w-2xl mx-auto">
+        <Suspense fallback={<Skeleton className="h-96 w-full" />}>
+          <TeachingMode
+            answers={answers}
+            existingCharacters={characters || DEFAULT_CHARACTERS}
+            onAddCharacter={handleAddCharacter}
+            onAddQuestions={handleAddQuestions}
+            onPlayAgain={() => void startGame()}
+            onGoHome={() => navigate("welcome")}
+          />
+        </Suspense>
+      </div>
+    ),
+    describeYourself: () => (
+      <div className="max-w-xl mx-auto">
+        <Suspense fallback={<Skeleton className="h-96 w-full" />}>
+          <DescribeYourselfScreen
+            questions={questions || DEFAULT_QUESTIONS}
+            characters={activeCharacters}
+            persona={persona}
+            onClose={() => navigate("welcome")}
+          />
+        </Suspense>
+      </div>
+    ),
+    manage: () => (
+      <div className="max-w-4xl mx-auto space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-3xl font-bold text-foreground">
+              Question Pool Manager
+            </h2>
+            <p className="text-muted-foreground mt-1">
+              Generate new questions from user-taught characters
+            </p>
+          </div>
+          <Button onClick={() => navigate("welcome")} variant="outline">
+            Back to Game
+          </Button>
+        </div>
+        <Suspense fallback={<Skeleton className="h-96 w-full" />}>
+          <QuestionManager
+            characters={characters || DEFAULT_CHARACTERS}
+            questions={questions || DEFAULT_QUESTIONS}
+            onAddQuestions={handleAddQuestions}
+          />
+        </Suspense>
+        <div className="bg-card/50 backdrop-blur-sm border border-border/50 rounded-lg p-6">
+          <h3 className="text-lg font-semibold text-foreground mb-3">
+            Current Statistics
+          </h3>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            <div className="bg-background/50 rounded-lg p-4">
+              <div className="text-2xl font-bold text-accent">
+                {(characters || DEFAULT_CHARACTERS).length}
+              </div>
+              <div className="text-sm text-muted-foreground">
+                Total Characters
+              </div>
+            </div>
+            <div className="bg-background/50 rounded-lg p-4">
+              <div className="text-2xl font-bold text-accent">
+                {(questions || DEFAULT_QUESTIONS).length}
+              </div>
+              <div className="text-sm text-muted-foreground">
+                Total Questions
+              </div>
+            </div>
+            <div className="bg-background/50 rounded-lg p-4">
+              <div className="text-2xl font-bold text-accent">
+                {
+                  (characters || DEFAULT_CHARACTERS).filter((c) =>
+                    c.id.startsWith("char-"),
+                  ).length
+                }
+              </div>
+              <div className="text-sm text-muted-foreground">
+                User-Taught
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    ),
+    stats: () => (
+      <div className="max-w-4xl mx-auto">
+        <Suspense fallback={<Skeleton className="h-96 w-full" />}>
+          <StatsDashboard
+            stats={globalStats}
+            loading={statsLoading}
+            onBack={() => navigate("welcome")}
+          />
+        </Suspense>
+      </div>
+    ),
+    history: () => (
+      <div className="max-w-4xl mx-auto">
+        <Suspense fallback={<Skeleton className="h-96 w-full" />}>
+          <GameHistory
+            history={gameHistory}
+            loading={statsLoading}
+            onBack={() => navigate("welcome")}
+          />
+        </Suspense>
+      </div>
+    ),
+    compare: () => (
+      <div className="max-w-4xl mx-auto">
+        <Suspense fallback={<Skeleton className="h-96 w-full" />}>
+          <CharacterComparison
+            characters={characters || DEFAULT_CHARACTERS}
+            onBack={() => navigate("welcome")}
+          />
+        </Suspense>
+      </div>
+    ),
+  };
+
+  const staticContent = staticPhaseManifest[gamePhase]?.() ?? null;
+
   return (
     <div ref={containerRef} tabIndex={-1} className="outline-none">
       <AnimatePresence mode="wait">
-        {gamePhase === "welcome" && (
-          <motion.div key="welcome" initial={slideIn} animate={{ opacity: 1, x: 0 }} exit={slideOut} transition={slideTrans}>
-          <WelcomeScreen
-            startGame={() => void startGame()}
-            serverTotal={serverTotal}
-            online={online}
-            maxQuestions={maxQuestions}
-            gameHistory={gameHistory}
-            gamesPlayed={gamesPlayed}
-            hasSavedSession={hasSavedSession}
-            resumeSession={resumeSession}
-            clearSession={clearSession}
-            showDevTools={showDevTools}
-            navigate={navigate}
-            characters={characters}
-            globalStats={globalStats}
-            difficulty={difficulty}
-            setDifficulty={setDifficulty}
-            categories={categories}
-            setCategories={setCategories}
-            streak={dailyStreak}
-            personalBest={personalBest}
-            achievements={achievements}
-            weeklyRecap={weeklyRecap}
-          />
-          </motion.div>
-        )}
-
-        {gamePhase === "playing" && (
-          <motion.div key="playing" initial={slideIn} animate={{ opacity: 1, x: 0 }} exit={slideOut} transition={slideTrans}>
-          <PlayingScreen
-            answers={answers}
-            maxQuestions={maxQuestions}
-            confidence={confidence}
-            effectiveRemaining={effectiveRemaining}
-            eliminatedCount={eliminatedCount}
-            possibleCharacters={possibleCharacters}
-            currentQuestion={currentQuestion}
-            isThinking={isThinking}
-            reasoning={reasoning}
-            handleAnswer={(v) => void handleAnswer(v)}
-            dispatch={dispatch}
-            gameSteps={gameSteps}
-            gamesPlayed={gamesPlayed}
-            showOnboarding={showOnboarding}
-            setShowOnboarding={setShowOnboarding}
-            activeCharacters={activeCharacters}
-            readiness={serverReadiness}
-            onRetry={retryAfterReject}
-            onSkip={handleSkip}
-            onGiveUp={handleGiveUp}
-            inlineError={serverLastError}
-            onClearInlineError={clearServerError}
-            onRetryInlineError={retryServerAction}
-          />
-          </motion.div>
-        )}
-
-        {gamePhase === "guessing" && finalGuess && (
+        {animatedContent && (
           <motion.div
-            key="guessing"
+            key={animatedPhase!}
             initial={slideIn}
             animate={{ opacity: 1, x: 0 }}
             exit={slideOut}
             transition={slideTrans}
           >
-            <div className="max-w-2xl mx-auto">
-              <GuessReveal
-                character={finalGuess}
-                confidence={confidence}
-                guessNumber={guessCount}
-                onCorrect={handleCorrectGuess}
-                onIncorrect={handleIncorrectGuess}
-                onRejectGuess={handleRejectGuess}
-              />
-            </div>
-          </motion.div>
-        )}
-
-        {gamePhase === "gameOver" && (
-          <motion.div
-            key="gameOver"
-            initial={slideIn}
-            animate={{ opacity: 1, x: 0 }}
-            exit={slideOut}
-            transition={slideTrans}
-          >
-            <div className="max-w-2xl mx-auto">
-              <GameOver
-                won={gameWon}
-                exhausted={exhausted}
-                surrendered={surrendered}
-                character={finalGuess}
-                maxQuestions={maxQuestions}
-                questionsAsked={gameSteps.length}
-                guessesUsed={guessCount}
-                remainingCharacters={effectiveRemaining}
-                gamesPlayed={gamesPlayed}
-                onPlayAgain={() => void startGame()}
-                onNewGame={() => navigate("welcome")}
-                onTeachMode={
-                  gameWon ? undefined : () => navigate("teaching")
-                }
-                onViewHistory={() => navigate("history")}
-                onViewStats={() => navigate("stats")}
-                onShare={() => void handleShare()}
-                onCopyLink={() => void handleCopyLink()}
-                answeredQuestions={answers.map((a, i) => {
-                  const q = (questions || DEFAULT_QUESTIONS).find(
-                    (q) => q.id === a.questionId,
-                  );
-                  const hist = remainingHistoryRef.current ?? [];
-                  const eliminated =
-                    i === 0
-                      ? 0
-                      : (hist[i - 1] ?? 0) -
-                        (hist[i] ?? hist[i - 1] ?? 0);
-                  return {
-                    question: q?.text || "",
-                    answer: a.value,
-                    eliminated,
-                  };
-                })}
-                onReveal={gameWon ? undefined : handleReveal}
-                onSubmitFeedback={handleSubmitFeedback}
-                persona={persona}
-                isPersonalBest={isNewPersonalBest}
-                personalBest={personalBest}
-              />
-            </div>
+            {animatedContent}
           </motion.div>
         )}
       </AnimatePresence>
 
-      {gamePhase === "teaching" && (
-        <div className="max-w-2xl mx-auto">
-          <Suspense fallback={<Skeleton className="h-96 w-full" />}>
-            <TeachingMode
-              answers={answers}
-              existingCharacters={characters || DEFAULT_CHARACTERS}
-              onAddCharacter={handleAddCharacter}
-              onAddQuestions={handleAddQuestions}
-              onPlayAgain={() => void startGame()}
-              onGoHome={() => navigate("welcome")}
-            />
-          </Suspense>
-        </div>
-      )}
-
-      {gamePhase === "describeYourself" && (
-        <div className="max-w-xl mx-auto">
-          <Suspense fallback={<Skeleton className="h-96 w-full" />}>
-            <DescribeYourselfScreen
-              questions={questions || DEFAULT_QUESTIONS}
-              characters={activeCharacters}
-              persona={persona}
-              onClose={() => navigate("welcome")}
-            />
-          </Suspense>
-        </div>
-      )}
-
-      {gamePhase === "manage" && (
-        <div className="max-w-4xl mx-auto space-y-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-3xl font-bold text-foreground">
-                Question Pool Manager
-              </h2>
-              <p className="text-muted-foreground mt-1">
-                Generate new questions from user-taught characters
-              </p>
-            </div>
-            <Button onClick={() => navigate("welcome")} variant="outline">
-              Back to Game
-            </Button>
-          </div>
-          <Suspense fallback={<Skeleton className="h-96 w-full" />}>
-            <QuestionManager
-              characters={characters || DEFAULT_CHARACTERS}
-              questions={questions || DEFAULT_QUESTIONS}
-              onAddQuestions={handleAddQuestions}
-            />
-          </Suspense>
-          <div className="bg-card/50 backdrop-blur-sm border border-border/50 rounded-lg p-6">
-            <h3 className="text-lg font-semibold text-foreground mb-3">
-              Current Statistics
-            </h3>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-              <div className="bg-background/50 rounded-lg p-4">
-                <div className="text-2xl font-bold text-accent">
-                  {(characters || DEFAULT_CHARACTERS).length}
-                </div>
-                <div className="text-sm text-muted-foreground">
-                  Total Characters
-                </div>
-              </div>
-              <div className="bg-background/50 rounded-lg p-4">
-                <div className="text-2xl font-bold text-accent">
-                  {(questions || DEFAULT_QUESTIONS).length}
-                </div>
-                <div className="text-sm text-muted-foreground">
-                  Total Questions
-                </div>
-              </div>
-              <div className="bg-background/50 rounded-lg p-4">
-                <div className="text-2xl font-bold text-accent">
-                  {
-                    (characters || DEFAULT_CHARACTERS).filter((c) =>
-                      c.id.startsWith("char-"),
-                    ).length
-                  }
-                </div>
-                <div className="text-sm text-muted-foreground">
-                  User-Taught
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {gamePhase === "stats" && (
-        <div className="max-w-4xl mx-auto">
-          <Suspense fallback={<Skeleton className="h-96 w-full" />}>
-            <StatsDashboard
-              stats={globalStats}
-              loading={statsLoading}
-              onBack={() => navigate("welcome")}
-            />
-          </Suspense>
-        </div>
-      )}
-
-      {gamePhase === "history" && (
-        <div className="max-w-4xl mx-auto">
-          <Suspense fallback={<Skeleton className="h-96 w-full" />}>
-            <GameHistory
-              history={gameHistory}
-              loading={statsLoading}
-              onBack={() => navigate("welcome")}
-            />
-          </Suspense>
-        </div>
-      )}
-
-      {gamePhase === "compare" && (
-        <div className="max-w-4xl mx-auto">
-          <Suspense fallback={<Skeleton className="h-96 w-full" />}>
-            <CharacterComparison
-              characters={characters || DEFAULT_CHARACTERS}
-              onBack={() => navigate("welcome")}
-            />
-          </Suspense>
-        </div>
-      )}
+      {staticContent}
     </div>
   );
 }
