@@ -54,9 +54,9 @@ test.describe("Game flow", () => {
   });
 
   test("can toggle theme", async ({ gamePage }) => {
-    await gamePage.getByRole("button", { name: /switch to.*mode/i }).click();
+    await gamePage.getByRole("button", { name: /theme.*switch to/i }).click();
     await expect(
-      gamePage.getByRole("button", { name: /switch to.*mode/i }),
+      gamePage.getByRole("button", { name: /theme.*switch to/i }),
     ).toBeVisible();
   });
 
