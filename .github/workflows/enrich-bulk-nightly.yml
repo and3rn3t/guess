@@ -1,0 +1,143 @@
+name: Nightly bulk character enrichment
+
+# Processes unenriched characters (no `character_attributes` rows) in
+# production D1, working through the backlog highest-popularity-first.
+#
+# Unlike the admin-dashboard pipeline (CF Worker self-chaining, ~30s/char
+# wall-clock limit), this script runs directly in GH Actions with no
+# time constraint, batching N characters per OpenAI call and processing
+# multiple batches in parallel.
+#
+# Throughput (defaults: limit=1000, batch-size=5, concurrency=3, attr-chunks=4):
+#   3 concurrent batches × 5 chars × 4 attr-chunks ≈ 90-150 chars/min
+#   → 1 000-char limit runs complete in ~7-11 min
+#   → ~$0.10/night at gpt-4o-mini rates
+#
+# Lives in GH Actions (not the H.3 Cron Worker) because:
+#   1. Workers waitUntil() is hard-capped at ~30 s — insufficient for bulk work.
+#   2. The OpenAI key is not wired into the CF Worker environment.
+
+on:
+  schedule:
+    # Twice daily: 01:00 UTC (after reconcile/sparse-fill) and 13:00 UTC.
+    # Two runs at 1 000 chars each → 2 000 chars/day → ~18 days to clear the backlog.
+    - cron: '0 1 * * *'
+    - cron: '0 13 * * *'
+  workflow_dispatch:
+    inputs:
+      env:
+        description: 'Target environment'
+        required: true
+        default: 'production'
+        type: choice
+        options:
+          - production
+          - preview
+      limit:
+        description: 'Max characters to enrich this run'
+        required: false
+        default: '1000'
+      batch_size:
+        description: 'Characters per LLM call'
+        required: false
+        default: '5'
+      concurrency:
+        description: 'Parallel LLM batches'
+        required: false
+        default: '3'
+      attr_chunks:
+        description: 'Attribute partitions per batch (mirrors server-side chunking)'
+        required: false
+        default: '4'
+      flush_every:
+        description: 'Apply results to D1 every N chars (preserves partial progress on failure)'
+        required: false
+        default: '50'
+      dry_run:
+        description: 'Dry run (skip OpenAI + D1 write)'
+        required: false
+        default: 'false'
+        type: choice
+        options:
+          - 'false'
+          - 'true'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: enrich-bulk-${{ github.event.inputs.env || 'production' }}
+  cancel-in-progress: false
+
+jobs:
+  bulk-enrich:
+    runs-on: ubuntu-latest
+    # 1 000 chars at ~90-150 chars/min ≈ 7-11 min; 60-min cap gives ample
+    # headroom for larger manual runs (up to ~6 000 chars).
+    timeout-minutes: 60
+    if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
+
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+      - uses: ./.github/actions/setup
+
+      - name: Verify required secrets exist
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          missing=()
+          [ -z "$OPENAI_API_KEY" ] && missing+=("OPENAI_API_KEY")
+          [ -z "$CLOUDFLARE_API_TOKEN" ] && missing+=("CLOUDFLARE_API_TOKEN")
+          [ -z "$CLOUDFLARE_ACCOUNT_ID" ] && missing+=("CLOUDFLARE_ACCOUNT_ID")
+          if [ ${#missing[@]} -gt 0 ]; then
+            echo "::error::Missing required secrets: ${missing[*]}"
+            exit 1
+          fi
+          echo "All required secrets present."
+
+      - name: Run bulk enrichment
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -o pipefail
+          ENV_FLAG="${{ github.event.inputs.env || 'production' }}"
+          LIMIT="${{ github.event.inputs.limit || '1000' }}"
+          BATCH_SIZE="${{ github.event.inputs.batch_size || '5' }}"
+          CONCURRENCY="${{ github.event.inputs.concurrency || '3' }}"
+          ATTR_CHUNKS="${{ github.event.inputs.attr_chunks || '4' }}"
+          FLUSH_EVERY="${{ github.event.inputs.flush_every || '50' }}"
+          DRY_RUN_FLAG=""
+          if [ "${{ github.event.inputs.dry_run || 'false' }}" = "true" ]; then
+            DRY_RUN_FLAG="--dry-run"
+          fi
+          npx tsx scripts/bulk-enrich-characters.ts \
+            --env "$ENV_FLAG" \
+            --limit "$LIMIT" \
+            --batch-size "$BATCH_SIZE" \
+            --concurrency "$CONCURRENCY" \
+            --attr-chunks "$ATTR_CHUNKS" \
+            --flush-every "$FLUSH_EVERY" \
+            $DRY_RUN_FLAG \
+            | tee bulk-enrich-output.log
+
+      - name: Upload enrichment SQL artifact
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: bulk-enrich-sql
+          path: data/bulk-enrich/*.sql
+          if-no-files-found: ignore
+          retention-days: 30
+
+      - name: Upload run log
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: bulk-enrich-log
+          path: bulk-enrich-output.log
+          if-no-files-found: ignore
+          retention-days: 30
