@@ -51,27 +51,22 @@ jobs:
   sparse-fill:
     runs-on: ubuntu-latest
     timeout-minutes: 25
-    if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
+    if: ${{ github.event_name != 'pull_request' }}
 
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
       - uses: ./.github/actions/setup
+      - name: Prepare sparse-fill artifacts
+        run: mkdir -p .ci-artifacts/sparse-fill
 
       - name: Verify required secrets exist
+        uses: ./.github/actions/verify-secrets
+        with:
+          names: OPENAI_API_KEY CLOUDFLARE_API_TOKEN CLOUDFLARE_ACCOUNT_ID
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: |
-          missing=()
-          [ -z "$OPENAI_API_KEY" ] && missing+=("OPENAI_API_KEY")
-          [ -z "$CLOUDFLARE_API_TOKEN" ] && missing+=("CLOUDFLARE_API_TOKEN")
-          [ -z "$CLOUDFLARE_ACCOUNT_ID" ] && missing+=("CLOUDFLARE_ACCOUNT_ID")
-          if [ ${#missing[@]} -gt 0 ]; then
-            echo "::error::Missing required secrets: ${missing[*]}"
-            exit 1
-          fi
-          echo "All required secrets present."
 
       - name: Run nightly sparse-fill
         env:
@@ -84,12 +79,19 @@ jobs:
           BUDGET="${{ github.event.inputs.budget || '200' }}"
           MAX_PER_CHAR="${{ github.event.inputs.max_per_char || '30' }}"
           DAYS="${{ github.event.inputs.days || '30' }}"
+          {
+            echo "env=$ENV_FLAG"
+            echo "budget=$BUDGET"
+            echo "max_per_char=$MAX_PER_CHAR"
+            echo "days=$DAYS"
+            echo "sha=${{ github.sha }}"
+          } > .ci-artifacts/sparse-fill/metadata.txt
           npx tsx scripts/sparse-fill-attributes.ts \
             --env "$ENV_FLAG" \
             --budget "$BUDGET" \
             --max-per-char "$MAX_PER_CHAR" \
             --days "$DAYS" \
-            | tee sparse-fill-output.log
+            | tee .ci-artifacts/sparse-fill/sparse-fill-output.log
 
       - name: Upload fill SQL artifact
         if: always()
@@ -105,6 +107,26 @@ jobs:
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: sparse-fill-log
-          path: sparse-fill-output.log
+          path: .ci-artifacts/sparse-fill/sparse-fill-output.log
           if-no-files-found: ignore
           retention-days: 30
+
+      - name: Upload sparse-fill metadata
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: sparse-fill-metadata
+          path: .ci-artifacts/sparse-fill/metadata.txt
+          if-no-files-found: ignore
+          retention-days: 30
+
+      - name: Sparse-fill summary
+        if: always()
+        run: |
+          {
+            echo "### Sparse Fill Artifacts"
+            echo ""
+            echo "- Artifact: sparse-fill-sql"
+            echo "- Artifact: sparse-fill-log"
+            echo "- Artifact: sparse-fill-metadata"
+          } >> "$GITHUB_STEP_SUMMARY"

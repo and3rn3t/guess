@@ -1,0 +1,70 @@
+name: Smoke test URL
+description: Verifies URL availability, app shell root marker, and optional API health endpoint.
+
+inputs:
+  url:
+    description: Base URL to test.
+    required: true
+  retries:
+    description: Number of HTTP retries.
+    required: false
+    default: "3"
+  sleep-seconds:
+    description: Delay between retries in seconds.
+    required: false
+    default: "5"
+  require-root:
+    description: Require id="root" in response body.
+    required: false
+    default: "true"
+  api-path:
+    description: Optional API path (for example /api/v2/stats) that must return 200.
+    required: false
+    default: ""
+
+runs:
+  using: composite
+  steps:
+    - name: Smoke test deployment
+      shell: bash
+      run: |
+        set -euo pipefail
+
+        URL="${{ inputs.url }}"
+        RETRIES="${{ inputs.retries }}"
+        SLEEP_SECS="${{ inputs.sleep-seconds }}"
+
+        echo "Smoke-testing $URL ..."
+        STATUS=""
+        for ((i=1; i<=RETRIES; i++)); do
+          STATUS=$(curl -s -o /tmp/smoke_body -w '%{http_code}' "$URL")
+          if [ "$STATUS" = "200" ]; then
+            break
+          fi
+          echo "  Attempt $i: HTTP $STATUS — retrying in ${SLEEP_SECS}s"
+          sleep "$SLEEP_SECS"
+        done
+
+        if [ "$STATUS" != "200" ]; then
+          echo "::error::Smoke test failed — HTTP $STATUS"
+          exit 1
+        fi
+
+        if [ "${{ inputs.require-root }}" = "true" ]; then
+          if grep -q 'id="root"' /tmp/smoke_body; then
+            echo "App shell check OK"
+          else
+            echo "::error::Root element not found in response"
+            exit 1
+          fi
+        fi
+
+        API_PATH="${{ inputs.api-path }}"
+        if [ -n "$API_PATH" ]; then
+          API_STATUS=$(curl -s -o /dev/null -w '%{http_code}' "$URL$API_PATH")
+          if [ "$API_STATUS" != "200" ]; then
+            echo "::error::Worker API check failed — HTTP $API_STATUS"
+            exit 1
+          fi
+          echo "API check OK"
+        fi

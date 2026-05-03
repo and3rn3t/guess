@@ -38,11 +38,22 @@ jobs:
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
       - uses: ./.github/actions/setup
+      - name: Prepare export diagnostics
+        run: mkdir -p .ci-artifacts/adaptive/export
       - name: Export from D1
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: pnpm simulate:export --env production
+        run: |
+          set -o pipefail
+          pnpm simulate:export --env production 2>&1 | tee .ci-artifacts/adaptive/export/export.log
+      - name: Record export metadata
+        run: |
+          {
+            echo "env=production"
+            echo "sample=${{ github.event.inputs.sample || '100' }}"
+            echo "sha=${{ github.sha }}"
+          } > .ci-artifacts/adaptive/export/metadata.txt
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: sim-data
@@ -50,43 +61,67 @@ jobs:
             scripts/simulate/data/characters.json
             scripts/simulate/data/questions.json
           retention-days: 1
+      - name: Upload export diagnostics
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: adaptive-export-diagnostics
+          path: .ci-artifacts/adaptive/export/
+          retention-days: 14
 
   # ── 2. Run simulations in parallel across all three difficulties
   simulate:
     name: Simulate (${{ matrix.difficulty }})
-    needs: [export]
+    needs: [ export ]
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
       contents: read
     strategy:
       matrix:
-        difficulty: [easy, medium, hard]
+        difficulty: [ easy, medium, hard ]
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
       - uses: ./.github/actions/setup
+      - name: Prepare simulate diagnostics
+        run: mkdir -p .ci-artifacts/adaptive/simulate
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
           name: sim-data
           path: scripts/simulate/data
       - name: Run simulations
         run: |
+          set -o pipefail
           SAMPLE=${{ github.event.inputs.sample || '100' }}
+          {
+            echo "difficulty=${{ matrix.difficulty }}"
+            echo "sample=$SAMPLE"
+            echo "sha=${{ github.sha }}"
+          } > .ci-artifacts/adaptive/simulate/metadata-${{ matrix.difficulty }}.txt
           pnpm simulate \
             --sample "$SAMPLE" \
             --difficulty ${{ matrix.difficulty }} \
             --parallel \
-            --output scripts/simulate/data/results-ci-${{ matrix.difficulty }}.jsonl
+            --output scripts/simulate/data/results-ci-${{ matrix.difficulty }}.jsonl 2>&1 | tee .ci-artifacts/adaptive/simulate/simulate-${{ matrix.difficulty }}.log
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: sim-results-${{ matrix.difficulty }}
           path: scripts/simulate/data/results-ci-${{ matrix.difficulty }}.jsonl
           retention-days: 1
+      - name: Upload simulate diagnostics
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: adaptive-simulate-diagnostics-${{ matrix.difficulty }}
+          path: |
+            .ci-artifacts/adaptive/simulate/simulate-${{ matrix.difficulty }}.log
+            .ci-artifacts/adaptive/simulate/metadata-${{ matrix.difficulty }}.txt
+          retention-days: 14
 
   # ── 3. Merge results, compute adaptive data, upload to KV ────
   compute-and-upload:
     name: Compute adaptive data + upload to KV
-    needs: [simulate]
+    needs: [ simulate ]
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
@@ -94,6 +129,8 @@ jobs:
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
       - uses: ./.github/actions/setup
+      - name: Prepare compute diagnostics
+        run: mkdir -p .ci-artifacts/adaptive/compute
 
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
@@ -110,57 +147,69 @@ jobs:
 
       - name: Merge simulation results
         run: |
+          set -o pipefail
           cat \
             scripts/simulate/data/results-ci-easy.jsonl \
             scripts/simulate/data/results-ci-medium.jsonl \
             scripts/simulate/data/results-ci-hard.jsonl \
           > scripts/simulate/data/results-ci-all.jsonl
-          echo "Total games: $(wc -l < scripts/simulate/data/results-ci-all.jsonl)"
+          TOTAL=$(wc -l < scripts/simulate/data/results-ci-all.jsonl)
+          echo "Total games: ${TOTAL}"
+          echo "Total games: ${TOTAL}" > .ci-artifacts/adaptive/compute/merge.log
 
       - name: Compute maybe-rates
-        run: pnpm simulate:maybe-rates --input "$PWD/scripts/simulate/data/results-ci-all.jsonl"
+        run: |
+          set -o pipefail
+          pnpm simulate:maybe-rates --input "$PWD/scripts/simulate/data/results-ci-all.jsonl" 2>&1 | tee .ci-artifacts/adaptive/compute/maybe-rates.log
 
       - name: Compute net-gains
-        run: pnpm simulate:net-gains --input "$PWD/scripts/simulate/data/results-ci-all.jsonl"
+        run: |
+          set -o pipefail
+          pnpm simulate:net-gains --input "$PWD/scripts/simulate/data/results-ci-all.jsonl" 2>&1 | tee .ci-artifacts/adaptive/compute/net-gains.log
 
       - name: Compute confusion-discriminators
-        run: pnpm simulate:confusion-pairs --input "$PWD/scripts/simulate/data/results-ci-all.jsonl"
+        run: |
+          set -o pipefail
+          pnpm simulate:confusion-pairs --input "$PWD/scripts/simulate/data/results-ci-all.jsonl" 2>&1 | tee .ci-artifacts/adaptive/compute/confusion-discriminators.log
 
       - name: Upload maybe-rates to KV
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
+          set -o pipefail
           pnpm wrangler kv key put \
             --binding GUESS_KV \
             --path scripts/simulate/data/maybe-rates.json \
             --env production \
             --remote \
-            "kv:attribute-maybe-rates"
+            "kv:attribute-maybe-rates" 2>&1 | tee .ci-artifacts/adaptive/compute/kv-maybe-rates.log
 
       - name: Upload net-gains to KV
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
+          set -o pipefail
           pnpm wrangler kv key put \
             --binding GUESS_KV \
             --path scripts/simulate/data/net-gains.json \
             --env production \
             --remote \
-            "kv:attribute-net-gains"
+            "kv:attribute-net-gains" 2>&1 | tee .ci-artifacts/adaptive/compute/kv-net-gains.log
 
       - name: Upload confusion-discriminators to KV
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
+          set -o pipefail
           pnpm wrangler kv key put \
             --binding GUESS_KV \
             --path scripts/simulate/data/confusion-discriminators.json \
             --env production \
             --remote \
-            "kv:confusion-discriminators"
+            "kv:confusion-discriminators" 2>&1 | tee .ci-artifacts/adaptive/compute/kv-confusion-discriminators.log
 
       - name: Print summary
         run: |
@@ -174,3 +223,16 @@ jobs:
           done
           echo "" >> "$GITHUB_STEP_SUMMARY"
           echo "Uploaded to: \`kv:attribute-maybe-rates\`, \`kv:attribute-net-gains\`, \`kv:confusion-discriminators\`" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload compute diagnostics
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: adaptive-compute-diagnostics
+          path: |
+            .ci-artifacts/adaptive/compute/
+            scripts/simulate/data/maybe-rates.json
+            scripts/simulate/data/net-gains.json
+            scripts/simulate/data/confusion-discriminators.json
+          if-no-files-found: ignore
+          retention-days: 14

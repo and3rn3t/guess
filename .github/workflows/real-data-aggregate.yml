@@ -38,92 +38,97 @@ jobs:
 
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
-
-      - uses: pnpm/action-setup@903f9c1a6ebcba6cf41d87230be49611ac97822e # v6.0.3
-
-      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
-        with:
-          node-version: 24
-          cache: 'pnpm'
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+      - uses: ./.github/actions/setup
+      - name: Prepare aggregate artifacts
+        run: mkdir -p .ci-artifacts/real-aggregate
 
       - name: Aggregate real-game signals
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
+          set -o pipefail
           ENV_FLAG="${{ github.event.inputs.env || 'production' }}"
           DAYS="${{ github.event.inputs.days || '30' }}"
-          npx tsx scripts/aggregate-real-game-signals.ts --env "$ENV_FLAG" --days "$DAYS"
+          {
+            echo "env=$ENV_FLAG"
+            echo "days=$DAYS"
+            echo "sha=${{ github.sha }}"
+          } > .ci-artifacts/real-aggregate/metadata.txt
+          npx tsx scripts/aggregate-real-game-signals.ts --env "$ENV_FLAG" --days "$DAYS" 2>&1 | tee .ci-artifacts/real-aggregate/aggregate.log
 
       - name: Upload attribute-trust to KV
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
+          set -o pipefail
           ENV_FLAG="${{ github.event.inputs.env || 'production' }}"
           pnpm wrangler kv key put \
             --binding GUESS_KV \
             --path data/real/attribute-trust.json \
             --env "$ENV_FLAG" \
             --remote \
-            "kv:attribute-trust"
+            "kv:attribute-trust" 2>&1 | tee .ci-artifacts/real-aggregate/kv-attribute-trust.log
 
       - name: Upload character-popularity to KV
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
+          set -o pipefail
           ENV_FLAG="${{ github.event.inputs.env || 'production' }}"
           pnpm wrangler kv key put \
             --binding GUESS_KV \
             --path data/real/character-popularity.json \
             --env "$ENV_FLAG" \
             --remote \
-            "kv:character-popularity"
+            "kv:character-popularity" 2>&1 | tee .ci-artifacts/real-aggregate/kv-character-popularity.log
 
       - name: Upload question-empirical-gain to KV
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
+          set -o pipefail
           ENV_FLAG="${{ github.event.inputs.env || 'production' }}"
           pnpm wrangler kv key put \
             --binding GUESS_KV \
             --path data/real/question-empirical-gain.json \
             --env "$ENV_FLAG" \
             --remote \
-            "kv:question-empirical-gain"
+            "kv:question-empirical-gain" 2>&1 | tee .ci-artifacts/real-aggregate/kv-question-empirical-gain.log
 
       - name: Upload question-quality-penalty to KV
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
+          set -o pipefail
           ENV_FLAG="${{ github.event.inputs.env || 'production' }}"
           pnpm wrangler kv key put \
             --binding GUESS_KV \
             --path data/real/question-quality-penalty.json \
             --env "$ENV_FLAG" \
             --remote \
-            "kv:question-quality-penalty"
+            "kv:question-quality-penalty" 2>&1 | tee .ci-artifacts/real-aggregate/kv-question-quality-penalty.log
 
       - name: Apply character-confusions UPSERTs to D1
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
+          set -o pipefail
           ENV_FLAG="${{ github.event.inputs.env || 'production' }}"
           DB_NAME=$([ "$ENV_FLAG" = "production" ] && echo "guess-db" || echo "guess-db-preview")
           if [ -s data/real/character-confusions.sql ] && ! grep -q '^-- no rows' data/real/character-confusions.sql; then
             pnpm wrangler d1 execute "$DB_NAME" \
               --env "$ENV_FLAG" \
               --remote \
-              --file data/real/character-confusions.sql
+              --file data/real/character-confusions.sql 2>&1 | tee .ci-artifacts/real-aggregate/d1-character-confusions.log
           else
             echo "No confusion pairs in this window — skipping D1 upsert."
+            echo "No confusion pairs in this window — skipping D1 upsert." > .ci-artifacts/real-aggregate/d1-character-confusions.log
           fi
 
       - name: Print summary
@@ -144,3 +149,18 @@ jobs:
             LINES=$(grep -c '^INSERT' data/real/character-confusions.sql || echo 0)
             echo "Upserted **${LINES}** rows into \`character_confusions\`." >> "$GITHUB_STEP_SUMMARY"
           fi
+
+      - name: Upload aggregate diagnostics artifact
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: real-data-aggregate-diagnostics
+          path: |
+            .ci-artifacts/real-aggregate/
+            data/real/attribute-trust.json
+            data/real/character-popularity.json
+            data/real/question-empirical-gain.json
+            data/real/question-quality-penalty.json
+            data/real/character-confusions.sql
+          if-no-files-found: ignore
+          retention-days: 14

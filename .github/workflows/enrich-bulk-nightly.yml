@@ -75,27 +75,22 @@ jobs:
     # 1 000 chars at ~90-150 chars/min ≈ 7-11 min; 60-min cap gives ample
     # headroom for larger manual runs (up to ~6 000 chars).
     timeout-minutes: 60
-    if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
+    if: ${{ github.event_name != 'pull_request' }}
 
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
       - uses: ./.github/actions/setup
+      - name: Prepare bulk-enrich artifacts
+        run: mkdir -p .ci-artifacts/bulk-enrich
 
       - name: Verify required secrets exist
+        uses: ./.github/actions/verify-secrets
+        with:
+          names: OPENAI_API_KEY CLOUDFLARE_API_TOKEN CLOUDFLARE_ACCOUNT_ID
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: |
-          missing=()
-          [ -z "$OPENAI_API_KEY" ] && missing+=("OPENAI_API_KEY")
-          [ -z "$CLOUDFLARE_API_TOKEN" ] && missing+=("CLOUDFLARE_API_TOKEN")
-          [ -z "$CLOUDFLARE_ACCOUNT_ID" ] && missing+=("CLOUDFLARE_ACCOUNT_ID")
-          if [ ${#missing[@]} -gt 0 ]; then
-            echo "::error::Missing required secrets: ${missing[*]}"
-            exit 1
-          fi
-          echo "All required secrets present."
 
       - name: Run bulk enrichment
         env:
@@ -114,6 +109,16 @@ jobs:
           if [ "${{ github.event.inputs.dry_run || 'false' }}" = "true" ]; then
             DRY_RUN_FLAG="--dry-run"
           fi
+          {
+            echo "env=$ENV_FLAG"
+            echo "limit=$LIMIT"
+            echo "batch_size=$BATCH_SIZE"
+            echo "concurrency=$CONCURRENCY"
+            echo "attr_chunks=$ATTR_CHUNKS"
+            echo "flush_every=$FLUSH_EVERY"
+            echo "dry_run=${{ github.event.inputs.dry_run || 'false' }}"
+            echo "sha=${{ github.sha }}"
+          } > .ci-artifacts/bulk-enrich/metadata.txt
           npx tsx scripts/bulk-enrich-characters.ts \
             --env "$ENV_FLAG" \
             --limit "$LIMIT" \
@@ -122,7 +127,7 @@ jobs:
             --attr-chunks "$ATTR_CHUNKS" \
             --flush-every "$FLUSH_EVERY" \
             $DRY_RUN_FLAG \
-            | tee bulk-enrich-output.log
+            | tee .ci-artifacts/bulk-enrich/bulk-enrich-output.log
 
       - name: Upload enrichment SQL artifact
         if: always()
@@ -138,6 +143,26 @@ jobs:
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: bulk-enrich-log
-          path: bulk-enrich-output.log
+          path: .ci-artifacts/bulk-enrich/bulk-enrich-output.log
           if-no-files-found: ignore
           retention-days: 30
+
+      - name: Upload bulk-enrich metadata
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: bulk-enrich-metadata
+          path: .ci-artifacts/bulk-enrich/metadata.txt
+          if-no-files-found: ignore
+          retention-days: 30
+
+      - name: Bulk-enrich summary
+        if: always()
+        run: |
+          {
+            echo "### Bulk Enrichment Artifacts"
+            echo ""
+            echo "- Artifact: bulk-enrich-sql"
+            echo "- Artifact: bulk-enrich-log"
+            echo "- Artifact: bulk-enrich-metadata"
+          } >> "$GITHUB_STEP_SUMMARY"

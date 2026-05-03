@@ -33,13 +33,6 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
       - uses: ./.github/actions/setup
 
-      # characters.json + questions.json are gitignored (too large for git).
-      # regression.ts automatically falls back to scripts/simulate/ci-data/ (committed
-      # top-2000 snapshot) when the live-exported data/ is absent.
-      # Refresh the snapshot locally with:
-      #   pnpm simulate:export && pnpm simulate:regression --update-baseline
-      # then commit scripts/simulate/ci-data/ and scripts/simulate/baseline.jsonl.
-
       # baseline.jsonl must be committed — fail hard if missing.
       - name: Verify baseline exists
         run: |

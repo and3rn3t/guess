@@ -1,0 +1,49 @@
+name: Reusable Node Verify
+
+on:
+  workflow_call:
+    inputs:
+      command:
+        description: Command to run after checkout and setup.
+        required: true
+        type: string
+      timeout-minutes:
+        description: Job timeout in minutes.
+        required: false
+        default: 15
+        type: number
+      upload-artifact:
+        description: Whether to upload an artifact after command execution.
+        required: false
+        default: false
+        type: boolean
+      artifact-name:
+        description: Artifact name when upload-artifact is true.
+        required: false
+        default: output
+        type: string
+      artifact-path:
+        description: Artifact path when upload-artifact is true.
+        required: false
+        default: ""
+        type: string
+
+permissions: {}
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: ${{ inputs.timeout-minutes }}
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+      - uses: ./.github/actions/setup
+      - name: Run verify command
+        run: ${{ inputs.command }}
+      - name: Upload artifact
+        if: ${{ inputs.upload-artifact && inputs.artifact-path != '' }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: ${{ inputs.artifact-name }}
+          path: ${{ inputs.artifact-path }}

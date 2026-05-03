@@ -108,6 +108,8 @@ All gameplay runs through the server-side Bayesian engine, querying D1 (53K+ cha
 
 See [ARCHITECTURE.md](ARCHITECTURE.md) for the full system design, game engine internals, API reference, data layer details, and CI/CD pipeline.
 
+For CI logs and downloadable artifact outputs by job, see [docs/ci-artifacts.md](docs/ci-artifacts.md).
+
 ## Project Structure
 
 ```

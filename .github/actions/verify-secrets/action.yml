@@ -1,0 +1,28 @@
+name: Verify required secrets
+description: Fails the job when one or more required secret env vars are missing.
+
+inputs:
+  names:
+    description: Space-separated environment variable names to require.
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Validate required secrets
+      shell: bash
+      run: |
+        set -euo pipefail
+        missing=()
+        for name in ${{ inputs.names }}; do
+          if [ -z "${!name:-}" ]; then
+            missing+=("$name")
+          fi
+        done
+
+        if [ ${#missing[@]} -gt 0 ]; then
+          echo "::error::Missing required secrets: ${missing[*]}"
+          exit 1
+        fi
+
+        echo "All required secrets present."

@@ -62,6 +62,8 @@ jobs:
               - 'wrangler.toml'
               - '.github/workflows/ci.yml'
               - '.github/actions/setup/action.yml'
+              - '.github/actions/smoke-test-url/action.yml'
+              - '.github/actions/verify-secrets/action.yml'
             frontend:
               - 'src/**'
               - 'packages/**'
@@ -91,9 +93,36 @@ jobs:
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
       - uses: ./.github/actions/setup
-      - run: pnpm lint
-      - run: tsc -b
-      - run: pnpm test:coverage
+      - name: Prepare checks artifacts
+        run: mkdir -p .ci-artifacts/checks
+      - name: Lint
+        run: |
+          set -o pipefail
+          pnpm lint 2>&1 | tee .ci-artifacts/checks/lint.log
+      - name: Type check
+        run: |
+          set -o pipefail
+          tsc -b 2>&1 | tee .ci-artifacts/checks/typecheck.log
+      - name: Test coverage
+        run: |
+          set -o pipefail
+          pnpm test:coverage 2>&1 | tee .ci-artifacts/checks/test-coverage.log
+      - name: Upload checks logs
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: ci-checks-logs
+          path: .ci-artifacts/checks/
+          retention-days: 7
+      - name: Checks summary
+        if: always()
+        run: |
+          {
+            echo "### Checks Artifacts"
+            echo ""
+            echo "- Artifact: ci-checks-logs"
+            echo "- Files: lint.log, typecheck.log, test-coverage.log"
+          } >> "$GITHUB_STEP_SUMMARY"
 
   test-e2e:
     needs: [changes, build]
@@ -139,26 +168,56 @@ jobs:
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
       - uses: ./.github/actions/setup
-      - run: pnpm build
+      - name: Prepare build artifacts
+        run: mkdir -p .ci-artifacts/build
+      - name: Build app
+        run: |
+          set -o pipefail
+          pnpm build 2>&1 | tee .ci-artifacts/build/build.log
 
       - name: Check bundle size
         run: |
+          set -o pipefail
           MAX_KB=600
           LARGEST=$(find dist/assets -name '*.js' -exec du -k {} + | sort -rn | head -1 | awk '{print $1}')
           echo "Largest JS chunk: ${LARGEST}KB (limit: ${MAX_KB}KB)"
+          echo "Largest JS chunk: ${LARGEST}KB (limit: ${MAX_KB}KB)" > .ci-artifacts/build/bundle-size.log
           if [ "$LARGEST" -gt "$MAX_KB" ]; then
             echo "::error::Bundle size ${LARGEST}KB exceeds ${MAX_KB}KB limit"
             exit 1
           fi
 
       - name: Check named chunk budgets
-        run: pnpm size
+        run: |
+          set -o pipefail
+          pnpm size 2>&1 | tee .ci-artifacts/build/named-chunk-budgets.log
+
+      - name: Record built asset sizes
+        run: |
+          find dist/assets -type f -name '*.js' -exec du -k {} + | sort -rn > .ci-artifacts/build/js-asset-sizes-kb.txt
 
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: dist
           path: dist/
           retention-days: 3
+      - name: Upload build logs
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: ci-build-logs
+          path: .ci-artifacts/build/
+          retention-days: 7
+      - name: Build summary
+        if: always()
+        run: |
+          {
+            echo "### Build Artifacts"
+            echo ""
+            echo "- Artifact: dist"
+            echo "- Artifact: ci-build-logs"
+            echo "- Files: build.log, bundle-size.log, named-chunk-budgets.log, js-asset-sizes-kb.txt"
+          } >> "$GITHUB_STEP_SUMMARY"
 
   # ── DB checks: type drift + migration idempotency ──────────
   db-checks:
@@ -171,16 +230,24 @@ jobs:
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
       - uses: ./.github/actions/setup
+      - name: Prepare db-checks artifacts
+        run: mkdir -p .ci-artifacts/db-checks
       - name: Regenerate DB types
-        run: pnpm db:types
+        run: |
+          set -o pipefail
+          pnpm db:types 2>&1 | tee .ci-artifacts/db-checks/db-types.log
       - name: Check for drift
         run: |
+          set -o pipefail
           if ! git diff --exit-code functions/api/_db-types.ts; then
             echo "::error::Generated DB types (functions/api/_db-types.ts) are out of sync with the schema. Run 'pnpm db:types' and commit the result."
             exit 1
           fi
+          echo "No DB type drift detected." > .ci-artifacts/db-checks/db-drift.log
       - name: Validate migration idempotency
-        run: pnpm migrate:validate
+        run: |
+          set -o pipefail
+          pnpm migrate:validate 2>&1 | tee .ci-artifacts/db-checks/migrate-validate.log
       - name: D1 migration dry-run (preview)
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -188,7 +255,25 @@ jobs:
         # Applies migrations against a local SQLite instance (--local) to
         # validate SQL parses correctly — catches column drift, CHECK violations,
         # and unparsable SQL. (--dry-run was removed from wrangler; DX.12)
-        run: pnpm migrate:dry-run:preview
+        run: |
+          set -o pipefail
+          pnpm migrate:dry-run:preview 2>&1 | tee .ci-artifacts/db-checks/migrate-dry-run-preview.log
+      - name: Upload db-checks logs
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: ci-db-checks-logs
+          path: .ci-artifacts/db-checks/
+          retention-days: 7
+      - name: DB checks summary
+        if: always()
+        run: |
+          {
+            echo "### DB Checks Artifacts"
+            echo ""
+            echo "- Artifact: ci-db-checks-logs"
+            echo "- Files: db-types.log, db-drift.log, migrate-validate.log, migrate-dry-run-preview.log"
+          } >> "$GITHUB_STEP_SUMMARY"
 
   # ── Deploy preview (PRs) ────────────────────────────────────
   deploy-preview:
@@ -234,26 +319,33 @@ jobs:
           wranglerVersion: ${{ env.WRANGLER_VERSION }}
           command: pages deploy dist --project-name=guess --branch=${{ github.head_ref }} --commit-message="${{ steps.meta.outputs.title }}"
 
-      - name: Smoke test
+      - name: Prepare deploy-preview artifacts
+        run: mkdir -p .ci-artifacts/deploy-preview
+
+      - name: Record deploy-preview metadata
         run: |
-          URL="${{ steps.deploy.outputs.deployment-url }}"
-          echo "Smoke-testing $URL …"
-          for i in 1 2 3; do
-            STATUS=$(curl -s -o /tmp/body -w '%{http_code}' "$URL")
-            if [ "$STATUS" = "200" ]; then break; fi
-            echo "  Attempt $i: HTTP $STATUS — retrying in 5s"
-            sleep 5
-          done
-          if [ "$STATUS" != "200" ]; then
-            echo "::error::Smoke test failed — HTTP $STATUS"
-            exit 1
-          fi
-          if grep -q 'id="root"' /tmp/body; then
-            echo "✓ App shell OK"
-          else
-            echo "::error::Root element not found in response"
-            exit 1
-          fi
+          {
+            echo "deployment_url=${{ steps.deploy.outputs.deployment-url }}"
+            echo "pr_title=${{ steps.meta.outputs.title }}"
+            echo "branch=${{ github.head_ref }}"
+            echo "sha=${{ github.sha }}"
+          } > .ci-artifacts/deploy-preview/metadata.txt
+
+      - name: Smoke test
+        uses: ./.github/actions/smoke-test-url
+        with:
+          url: ${{ steps.deploy.outputs.deployment-url }}
+          retries: "3"
+          sleep-seconds: "5"
+          require-root: "true"
+
+      - name: Upload deploy-preview artifacts
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: ci-deploy-preview-metadata
+          path: .ci-artifacts/deploy-preview/
+          retention-days: 7
 
     outputs:
       url: ${{ steps.deploy.outputs.deployment-url }}
@@ -300,39 +392,40 @@ jobs:
           echo "subject=$subject" >> "$GITHUB_OUTPUT"
       - name: Deploy to Cloudflare Pages (production)
         uses: cloudflare/wrangler-action@9acf94ace14e7dc412b076f2c5c20b8ce93c79cd # v3
+        id: deploy
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           wranglerVersion: ${{ env.WRANGLER_VERSION }}
           command: pages deploy dist --project-name=guess --commit-message="${{ steps.meta.outputs.subject }}"
 
-      - name: Smoke test
+      - name: Prepare deploy-production artifacts
+        run: mkdir -p .ci-artifacts/deploy-production
+
+      - name: Record deploy-production metadata
         run: |
-          BASE="https://guess.andernet.dev"
-          echo "Smoke-testing $BASE …"
-          for i in 1 2 3 4 5; do
-            STATUS=$(curl -s -o /tmp/body -w '%{http_code}' "$BASE")
-            if [ "$STATUS" = "200" ]; then break; fi
-            echo "  Attempt $i: HTTP $STATUS — retrying in 10s"
-            sleep 10
-          done
-          if [ "$STATUS" != "200" ]; then
-            echo "::error::Smoke test failed — HTTP $STATUS"
-            exit 1
-          fi
-          if grep -q 'id="root"' /tmp/body; then
-            echo "✓ App shell OK"
-          else
-            echo "::error::Root element not found in response"
-            exit 1
-          fi
-          echo "Checking Worker API …"
-          API_STATUS=$(curl -s -o /dev/null -w '%{http_code}' "$BASE/api/v2/stats")
-          if [ "$API_STATUS" != "200" ]; then
-            echo "::error::Worker API check failed — HTTP $API_STATUS"
-            exit 1
-          fi
-          echo "✓ Worker API OK"
+          {
+            echo "deployment_url=https://guess.andernet.dev"
+            echo "commit_subject=${{ steps.meta.outputs.subject }}"
+            echo "sha=${{ github.sha }}"
+          } > .ci-artifacts/deploy-production/metadata.txt
+
+      - name: Smoke test
+        uses: ./.github/actions/smoke-test-url
+        with:
+          url: https://guess.andernet.dev
+          retries: "5"
+          sleep-seconds: "10"
+          require-root: "true"
+          api-path: /api/v2/stats
+
+      - name: Upload deploy-production artifacts
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: ci-deploy-production-metadata
+          path: .ci-artifacts/deploy-production/
+          retention-days: 7
 
   # ── PR report (bundle stats + preview link) ─────────────────
   pr-report:

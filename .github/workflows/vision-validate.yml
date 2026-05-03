@@ -2,7 +2,7 @@ name: Vision Validation Gate (DQ.2)
 
 on:
   push:
-    branches: [main]
+    branches: [ main ]
     paths:
       - "data/data-quality-golden.json"
       - "data/golden-image-sources.json"
@@ -10,7 +10,7 @@ on:
       - "scripts/vision-validate.ts"
       - ".github/workflows/vision-validate.yml"
   pull_request:
-    branches: [main]
+    branches: [ main ]
     paths:
       - "data/data-quality-golden.json"
       - "data/golden-image-sources.json"
@@ -35,8 +35,20 @@ jobs:
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
       - uses: ./.github/actions/setup
+      - name: Prepare schema artifacts
+        run: mkdir -p .ci-artifacts/vision/schema
       - name: Schema-only check (no LLM)
-        run: pnpm vision:check
+        run: |
+          set -o pipefail
+          pnpm vision:check 2>&1 | tee .ci-artifacts/vision/schema/schema-check.log
+      - name: Upload schema logs
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: vision-schema-logs
+          path: .ci-artifacts/vision/schema/
+          if-no-files-found: ignore
+          retention-days: 7
 
   llm-vision:
     name: Vision agreement (≥90%)
@@ -44,28 +56,29 @@ jobs:
     timeout-minutes: 20
     needs: schema
     # Only run when the OpenAI key is available — forks and dependabot PRs skip.
-    if: ${{ github.event_name == 'workflow_dispatch' || github.event.pull_request.head.repo.full_name == github.repository }}
+    if: ${{ github.event_name == 'workflow_dispatch' ||
+      github.event.pull_request.head.repo.full_name == github.repository }}
     permissions:
       contents: read
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
       - uses: ./.github/actions/setup
+      - name: Prepare llm artifacts
+        run: mkdir -p .ci-artifacts/vision/llm
 
       - name: Verify OPENAI_API_KEY secret exists
+        uses: ./.github/actions/verify-secrets
+        with:
+          names: OPENAI_API_KEY
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-        run: |
-          if [ -z "${OPENAI_API_KEY}" ]; then
-            echo "::error::OPENAI_API_KEY secret is not configured. The DQ.2 gate cannot run."
-            echo "::error::Add the secret in repo Settings → Secrets and variables → Actions."
-            exit 1
-          fi
-          echo "OpenAI key present (length: ${#OPENAI_API_KEY})."
 
       - name: Run vision validation
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-        run: pnpm vision:validate --json vision-report.json
+        run: |
+          set -o pipefail
+          pnpm vision:validate --json vision-report.json 2>&1 | tee .ci-artifacts/vision/llm/vision-validation.log
 
       - name: Upload vision report
         if: always()
@@ -74,3 +87,11 @@ jobs:
           name: vision-validation-report
           path: vision-report.json
           if-no-files-found: ignore
+      - name: Upload llm logs
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: vision-llm-logs
+          path: .ci-artifacts/vision/llm/
+          if-no-files-found: ignore
+          retention-days: 7
