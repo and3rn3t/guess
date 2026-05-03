@@ -64,42 +64,46 @@ const COLOR_MAP: Record<SectionColor, { title: string; activeItem: string }> = {
 }
 
 const DATA_ITEMS: NavItem[] = [
+  { to: '.', label: 'Mission Control', icon: <HouseIcon size={16} weight="duotone" /> },
+]
+
+const WORKFLOW_CURATE_ITEMS: NavItem[] = [
   { to: 'characters', label: 'Characters', icon: <UsersIcon size={16} weight="duotone" /> },
+  { to: 'data-quality', label: 'Data Quality', icon: <ChartLineIcon size={16} weight="fill" /> },
+  { to: 'hygiene', label: 'Data Hygiene', icon: <WrenchIcon size={16} weight="duotone" /> },
   { to: 'questions', label: 'Questions', icon: <ListChecksIcon size={16} weight="duotone" /> },
+  { to: 'coverage', label: 'Attribute Coverage', icon: <ChartBarIcon size={16} weight="duotone" /> },
   { to: 'questions/retire', label: 'Retirement Queue', icon: <TrashIcon size={16} weight="duotone" /> },
   { to: 'questions/duplicates', label: 'Duplicate Queue', icon: <CopySimpleIcon size={16} weight="duotone" /> },
+]
+
+const WORKFLOW_EXPAND_ITEMS: NavItem[] = [
+  { to: 'recommender', label: 'Attribute Recommender', icon: <LightningIcon size={16} weight="duotone" /> },
+  { to: 'category-recommender', label: 'Category Recommender', icon: <TreeStructureIcon size={16} weight="duotone" /> },
+  { to: 'enrich', label: 'Live Enrichment', icon: <LightningIcon size={16} weight="duotone" /> },
   { to: 'enrichment', label: 'Enrichment Status', icon: <ArrowsClockwiseIcon size={16} weight="duotone" /> },
   { to: 'pipeline', label: 'Pipeline Log', icon: <TreeStructureIcon size={16} weight="duotone" /> },
-]
-
-const INSIGHT_ITEMS: NavItem[] = [
-  { to: 'analytics', label: 'Analytics', icon: <ChartBarIcon size={16} weight="duotone" /> },
-  { to: 'funnel', label: 'Skip Funnel', icon: <ChartLineIcon size={16} weight="duotone" /> },
-  { to: 'confusion', label: 'Confusion Matrix', icon: <GridFourIcon size={16} weight="duotone" /> },
   { to: 'matrix', label: 'DNA Matrix', icon: <DnaIcon size={16} weight="duotone" /> },
-  { to: 'experiments', label: 'Experiments (A/B)', icon: <FlaskIcon size={16} weight="duotone" /> },
-  { to: 'coverage', label: 'Attribute Coverage', icon: <ChartBarIcon size={16} weight="duotone" /> },
-  { to: 'cost', label: 'Cost Dashboard', icon: <ChartLineIcon size={16} weight="duotone" /> },
-  { to: 'data-quality', label: 'Data Quality', icon: <ChartLineIcon size={16} weight="fill" /> },
 ]
 
-const TOOLBOX_ITEMS: NavItem[] = [
-  { to: 'hygiene', label: 'Data Hygiene', icon: <WrenchIcon size={16} weight="duotone" /> },
-  { to: 'recommender', label: 'Attr Recommender', icon: <LightningIcon size={16} weight="duotone" /> },
-  { to: 'category-recommender', label: 'Category Recommender', icon: <TreeStructureIcon size={16} weight="duotone" /> },
-  { to: 'stress-test', label: 'Stress Test', icon: <TargetIcon size={16} weight="duotone" /> },
-]
-
-const PIPELINE_ITEMS: NavItem[] = [
-  { to: 'enrich', label: 'Live Enrichment', icon: <LightningIcon size={16} weight="duotone" /> },
+const WORKFLOW_GOVERN_ITEMS: NavItem[] = [
   { to: 'proposed-attrs', label: 'Proposed Attrs', icon: <QueueIcon size={16} weight="duotone" /> },
   { to: 'disputes', label: 'Attr Disputes', icon: <WarningOctagonIcon size={16} weight="duotone" /> },
   { to: 'community', label: 'Community Queue', icon: <UsersThreeIcon size={16} weight="duotone" /> },
+]
+
+const WORKFLOW_MONITOR_ITEMS: NavItem[] = [
+  { to: 'analytics', label: 'Analytics', icon: <ChartBarIcon size={16} weight="duotone" /> },
+  { to: 'funnel', label: 'Skip Funnel', icon: <ChartLineIcon size={16} weight="duotone" /> },
+  { to: 'confusion', label: 'Confusion Matrix', icon: <GridFourIcon size={16} weight="duotone" /> },
+  { to: 'experiments', label: 'Experiments (A/B)', icon: <FlaskIcon size={16} weight="duotone" /> },
+  { to: 'cost', label: 'Cost Dashboard', icon: <ChartLineIcon size={16} weight="duotone" /> },
   { to: 'error-logs', label: 'Error Logs', icon: <WarningOctagonIcon size={16} weight="fill" /> },
   { to: 'triage', label: 'Failure Triage', icon: <WarningOctagonIcon size={16} weight="duotone" /> },
 ]
 
 const OVERFLOW_ITEMS: NavItem[] = [
+  { to: 'stress-test', label: 'Stress Test', icon: <TargetIcon size={16} weight="duotone" /> },
   { to: 'env', label: 'Environment Test', icon: <FlaskIcon size={16} weight="duotone" /> },
   { to: 'bulk-habitat', label: 'Bulk Habitat', icon: <ArrowsClockwiseIcon size={16} weight="duotone" /> },
   { to: 'demo', label: 'Question Gen Demo', icon: <BugIcon size={16} weight="duotone" /> },
@@ -237,11 +241,12 @@ export function AdminShell(): React.JSX.Element {
   }, [])
 
   const commandSections: CommandSection[] = [
-    { title: 'Data', items: DATA_ITEMS },
-    { title: 'Insights', items: INSIGHT_ITEMS },
-    { title: 'Toolbox', items: TOOLBOX_ITEMS },
-    { title: 'Pipeline', items: PIPELINE_ITEMS },
-    { title: 'More', items: OVERFLOW_ITEMS },
+    { title: 'Mission Control', items: DATA_ITEMS },
+    { title: 'Curate Core Data', items: WORKFLOW_CURATE_ITEMS },
+    { title: 'Expand Knowledge', items: WORKFLOW_EXPAND_ITEMS },
+    { title: 'Govern Community Input', items: WORKFLOW_GOVERN_ITEMS },
+    { title: 'Monitor & Improve', items: WORKFLOW_MONITOR_ITEMS },
+    { title: 'Labs & Utilities', items: OVERFLOW_ITEMS },
   ]
 
   return (
@@ -277,11 +282,12 @@ export function AdminShell(): React.JSX.Element {
           </div>
 
           <nav className="flex-1 overflow-y-auto space-y-1">
-            <SidebarSection title="Data" items={DATA_ITEMS} storageKey="data" color="blue" />
-            <SidebarSection title="Insights" items={INSIGHT_ITEMS} storageKey="insights" color="violet" />
-            <SidebarSection title="Toolbox" items={TOOLBOX_ITEMS} storageKey="toolbox" color="amber" />
-            <SidebarSection title="Pipeline" items={PIPELINE_ITEMS} storageKey="pipeline" color="emerald" badgeMap={badgeCounts} />
-            <SidebarSection title="More" items={OVERFLOW_ITEMS} storageKey="more" defaultOpen={false} />
+            <SidebarSection title="Mission Control" items={DATA_ITEMS} storageKey="mission-control" color="blue" />
+            <SidebarSection title="Curate Core Data" items={WORKFLOW_CURATE_ITEMS} storageKey="curate" color="blue" />
+            <SidebarSection title="Expand Knowledge" items={WORKFLOW_EXPAND_ITEMS} storageKey="expand" color="amber" />
+            <SidebarSection title="Govern Community Input" items={WORKFLOW_GOVERN_ITEMS} storageKey="govern" color="emerald" badgeMap={badgeCounts} />
+            <SidebarSection title="Monitor & Improve" items={WORKFLOW_MONITOR_ITEMS} storageKey="monitor" color="violet" />
+            <SidebarSection title="Labs & Utilities" items={OVERFLOW_ITEMS} storageKey="labs" defaultOpen={false} />
           </nav>
 
           {/* Working-set selector */}

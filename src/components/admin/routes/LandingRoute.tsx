@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { AdminPageHeader } from '../AdminPageHeader'
 import { FreshnessPill } from '../FreshnessPill'
@@ -61,6 +61,111 @@ interface StatCardProps {
   color: string
   to?: string
   alert?: boolean
+}
+
+interface WorkflowPlaybook {
+  id: string
+  title: string
+  outcome: string
+  primary: { to: string; label: string }
+  supporting: Array<{ to: string; label: string }>
+}
+
+interface WorkflowProgress {
+  activeTo: string | null
+  completed: boolean
+}
+
+type WorkflowProgressMap = Record<string, WorkflowProgress>
+type WorkflowSyncStatus = 'hydrating' | 'syncing' | 'saved' | 'retry'
+
+const WORKFLOW_PLAYBOOKS: WorkflowPlaybook[] = [
+  {
+    id: 'curate-core',
+    title: 'Curate Core Data',
+    outcome: 'Keep character/question quality high before model iteration.',
+    primary: { to: 'characters', label: 'Start in Characters' },
+    supporting: [
+      { to: 'questions', label: 'Questions' },
+      { to: 'questions/duplicates', label: 'Duplicate Queue' },
+      { to: 'data-quality', label: 'Data Quality' },
+    ],
+  },
+  {
+    id: 'expand-knowledge',
+    title: 'Expand Knowledge Base',
+    outcome: 'Increase discriminative attributes and keep enrichment flowing.',
+    primary: { to: 'recommender', label: 'Start in Attribute Recommender' },
+    supporting: [
+      { to: 'category-recommender', label: 'Category Recommender' },
+      { to: 'enrichment', label: 'Enrichment Status' },
+      { to: 'pipeline', label: 'Pipeline Log' },
+    ],
+  },
+  {
+    id: 'govern-inputs',
+    title: 'Govern Community Inputs',
+    outcome: 'Resolve incoming community changes safely and consistently.',
+    primary: { to: 'proposed-attrs', label: 'Start in Proposed Attributes' },
+    supporting: [
+      { to: 'disputes', label: 'Attribute Disputes' },
+      { to: 'community', label: 'Community Queue' },
+      { to: 'triage', label: 'Failure Triage' },
+    ],
+  },
+  {
+    id: 'monitor-loop',
+    title: 'Monitor & Improve Loop',
+    outcome: 'Track behavior and close the loop on friction and regressions.',
+    primary: { to: 'analytics', label: 'Start in Analytics' },
+    supporting: [
+      { to: 'funnel', label: 'Skip Funnel' },
+      { to: 'confusion', label: 'Confusion Matrix' },
+      { to: 'experiments', label: 'Experiments' },
+    ],
+  },
+]
+
+const WORKFLOW_PROGRESS_STORAGE_KEY = 'admin.missionControl.workflowProgress.v1'
+const WORKFLOW_PROGRESS_API = '/api/admin/workflow-progress'
+
+function buildDefaultWorkflowProgress(): WorkflowProgressMap {
+  const entries = WORKFLOW_PLAYBOOKS.map((playbook) => [
+    playbook.id,
+    { activeTo: null, completed: false },
+  ] as const)
+  return Object.fromEntries(entries)
+}
+
+function parseWorkflowProgress(raw: string | null): WorkflowProgressMap {
+  const defaults = buildDefaultWorkflowProgress()
+  if (!raw) return defaults
+
+  try {
+    const parsed = JSON.parse(raw) as unknown
+    if (typeof parsed !== 'object' || parsed === null) return defaults
+
+    const next: WorkflowProgressMap = { ...defaults }
+    for (const playbook of WORKFLOW_PLAYBOOKS) {
+      const candidate = (parsed as Record<string, unknown>)[playbook.id]
+      if (typeof candidate !== 'object' || candidate === null) continue
+      const progress = candidate as Record<string, unknown>
+      next[playbook.id] = {
+        activeTo: typeof progress.activeTo === 'string' ? progress.activeTo : null,
+        completed: progress.completed === true,
+      }
+    }
+    return next
+  } catch {
+    return defaults
+  }
+}
+
+function playbookStepLabel(playbook: WorkflowPlaybook, activeTo: string | null): string {
+  if (!activeTo) return 'Not started'
+  if (playbook.primary.to === activeTo) return playbook.primary.label
+  const match = playbook.supporting.find((step) => step.to === activeTo)
+  return match?.label ?? 'Custom step'
 }
 
 function StatCard({ label, value, icon, color, to, alert }: StatCardProps): React.JSX.Element {
@@ -149,12 +254,142 @@ function parseThresholds(raw: string | null): AlertThresholds {
   }
 }
 
+function workflowSyncBadge(status: WorkflowSyncStatus): { label: string; className: string } {
+  if (status === 'saved') {
+    return { label: 'Saved', className: 'bg-emerald-500/20 text-emerald-300' }
+  }
+  if (status === 'syncing') {
+    return { label: 'Syncing', className: 'bg-blue-500/20 text-blue-300' }
+  }
+  if (status === 'hydrating') {
+    return { label: 'Hydrating', className: 'bg-muted text-muted-foreground' }
+  }
+  return { label: 'Retry', className: 'bg-amber-500/20 text-amber-300' }
+}
+
+function useWorkflowProgressSync(): {
+  workflowProgress: WorkflowProgressMap
+  workflowSyncStatus: WorkflowSyncStatus
+  completedPlaybooks: number
+  setPlaybookActiveStep: (playbookId: string, to: string) => void
+  togglePlaybookCompleted: (playbookId: string) => void
+  resetPlaybook: (playbookId: string) => void
+} {
+  const [workflowProgress, setWorkflowProgress] = useState<WorkflowProgressMap>(buildDefaultWorkflowProgress())
+  const [workflowProgressHydrated, setWorkflowProgressHydrated] = useState(false)
+  const [workflowSyncStatus, setWorkflowSyncStatus] = useState<WorkflowSyncStatus>('hydrating')
+  const lastSyncedWorkflowProgress = useRef<string>('')
+
+  useEffect(() => {
+    const stored = localStorage.getItem(WORKFLOW_PROGRESS_STORAGE_KEY)
+    setWorkflowProgress(parseWorkflowProgress(stored))
+
+    void fetch(WORKFLOW_PROGRESS_API)
+      .then((response) => (response.ok ? response.json() : null))
+      .then((json) => {
+        const parsed = parseWorkflowProgress(
+          json && typeof json === 'object' && 'progress' in (json as Record<string, unknown>)
+            ? JSON.stringify((json as { progress: unknown }).progress)
+            : null,
+        )
+        setWorkflowProgress(parsed)
+        lastSyncedWorkflowProgress.current = JSON.stringify(parsed)
+        setWorkflowSyncStatus('saved')
+      })
+      .catch(() => {
+        setWorkflowSyncStatus('retry')
+      })
+      .finally(() => {
+        setWorkflowProgressHydrated(true)
+      })
+  }, [])
+
+  useEffect(() => {
+    localStorage.setItem(WORKFLOW_PROGRESS_STORAGE_KEY, JSON.stringify(workflowProgress))
+  }, [workflowProgress])
+
+  useEffect(() => {
+    if (!workflowProgressHydrated) return
+
+    const serialized = JSON.stringify(workflowProgress)
+    if (serialized === lastSyncedWorkflowProgress.current) return
+
+    const timer = setTimeout(() => {
+      setWorkflowSyncStatus('syncing')
+      void fetch(WORKFLOW_PROGRESS_API, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ progress: workflowProgress }),
+      })
+        .then((response) => {
+          if (!response.ok) {
+            setWorkflowSyncStatus('retry')
+            return
+          }
+          lastSyncedWorkflowProgress.current = serialized
+          setWorkflowSyncStatus('saved')
+        })
+        .catch(() => {
+          setWorkflowSyncStatus('retry')
+        })
+    }, 250)
+
+    return () => clearTimeout(timer)
+  }, [workflowProgress, workflowProgressHydrated])
+
+  const setPlaybookActiveStep = (playbookId: string, to: string) => {
+    setWorkflowProgress((prev) => ({
+      ...prev,
+      [playbookId]: {
+        activeTo: to,
+        completed: prev[playbookId]?.completed ?? false,
+      },
+    }))
+  }
+
+  const togglePlaybookCompleted = (playbookId: string) => {
+    setWorkflowProgress((prev) => ({
+      ...prev,
+      [playbookId]: {
+        activeTo: prev[playbookId]?.activeTo ?? null,
+        completed: !(prev[playbookId]?.completed ?? false),
+      },
+    }))
+  }
+
+  const resetPlaybook = (playbookId: string) => {
+    setWorkflowProgress((prev) => ({
+      ...prev,
+      [playbookId]: { activeTo: null, completed: false },
+    }))
+  }
+
+  const completedPlaybooks = WORKFLOW_PLAYBOOKS.filter((playbook) => workflowProgress[playbook.id]?.completed).length
+
+  return {
+    workflowProgress,
+    workflowSyncStatus,
+    completedPlaybooks,
+    setPlaybookActiveStep,
+    togglePlaybookCompleted,
+    resetPlaybook,
+  }
+}
+
 export default function LandingRoute(): React.JSX.Element {
   const [data, setData] = useState<DashboardData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [lastFetchedAt, setLastFetchedAt] = useState<number | null>(null)
   const [thresholds, setThresholds] = useState<AlertThresholds>(DEFAULT_THRESHOLDS)
+  const {
+    workflowProgress,
+    workflowSyncStatus,
+    completedPlaybooks,
+    setPlaybookActiveStep,
+    togglePlaybookCompleted,
+    resetPlaybook,
+  } = useWorkflowProgressSync()
 
   const setThreshold = (field: keyof AlertThresholds, value: string) => {
     const next = Number.parseInt(value, 10)
@@ -197,6 +432,7 @@ export default function LandingRoute(): React.JSX.Element {
   const enrichmentPct = s && s.totalCharacters > 0 ? Math.round((s.enriched / s.totalCharacters) * 100) : 0
   const proposalLoad = s ? s.pendingProposals + s.openDisputes : 0
   const priorityItems = buildPriorityItems(s, thresholds)
+  const syncBadge = workflowSyncBadge(workflowSyncStatus)
 
   return (
     <div className="container mx-auto px-4 pb-8 max-w-5xl space-y-8">
@@ -428,25 +664,83 @@ export default function LandingRoute(): React.JSX.Element {
         </div>
       )}
 
-      {/* Quick links */}
+      {/* Workflow playbooks */}
       <div className="space-y-3">
-        <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-widest">Quick Links</h2>
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-          {[
-            { to: 'characters', label: 'Manage Characters' },
-            { to: 'questions', label: 'Manage Questions' },
-            { to: 'enrichment', label: 'Enrichment Status' },
-            { to: 'disputes', label: 'Attribute Disputes' },
-            { to: 'proposed-attrs', label: 'Proposed Attributes' },
-            { to: 'analytics', label: 'Client Analytics' },
-          ].map(({ to, label }) => (
-            <Link
-              key={to}
-              to={to}
-              className="rounded-lg border bg-card px-4 py-3 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted/30 transition-colors"
-            >
-              {label}
-            </Link>
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-widest">Workflow Playbooks</h2>
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <span>{completedPlaybooks}/{WORKFLOW_PLAYBOOKS.length} completed</span>
+            <span className={`rounded-full px-2 py-0.5 uppercase tracking-widest text-[10px] ${syncBadge.className}`}>
+              {syncBadge.label}
+            </span>
+          </div>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          {WORKFLOW_PLAYBOOKS.map((playbook) => (
+            <div key={playbook.id} className="rounded-xl border bg-card px-4 py-4 space-y-3">
+              <div>
+                <div className="flex items-center justify-between gap-2">
+                  <h3 className="text-sm font-semibold text-foreground">{playbook.title}</h3>
+                  {workflowProgress[playbook.id]?.completed ? (
+                    <span className="rounded-full bg-emerald-500/20 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-widest text-emerald-300">
+                      Complete
+                    </span>
+                  ) : (
+                    <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+                      In Progress
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">{playbook.outcome}</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Active step: {playbookStepLabel(playbook, workflowProgress[playbook.id]?.activeTo ?? null)}
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Link
+                  to={playbook.primary.to}
+                  onClick={() => setPlaybookActiveStep(playbook.id, playbook.primary.to)}
+                  className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+                    workflowProgress[playbook.id]?.activeTo === playbook.primary.to
+                      ? 'border border-emerald-500/40 bg-emerald-500/15 text-emerald-300'
+                      : 'border border-violet-500/40 bg-violet-500/10 text-violet-300 hover:bg-violet-500/20'
+                  }`}
+                >
+                  {playbook.primary.label}
+                </Link>
+                {playbook.supporting.map((step) => (
+                  <Link
+                    key={step.to}
+                    to={step.to}
+                    onClick={() => setPlaybookActiveStep(playbook.id, step.to)}
+                    className={`rounded-md border px-3 py-1.5 text-xs transition-colors ${
+                      workflowProgress[playbook.id]?.activeTo === step.to
+                        ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-300'
+                        : 'border-border text-muted-foreground hover:text-foreground hover:bg-muted/30'
+                    }`}
+                  >
+                    {step.label}
+                  </Link>
+                ))}
+              </div>
+              <div className="flex items-center gap-3 pt-1">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => togglePlaybookCompleted(playbook.id)}
+                  className="h-7 text-xs"
+                >
+                  {workflowProgress[playbook.id]?.completed ? 'Mark in progress' : 'Mark complete'}
+                </Button>
+                <button
+                  type="button"
+                  onClick={() => resetPlaybook(playbook.id)}
+                  className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  Reset
+                </button>
+              </div>
+            </div>
           ))}
         </div>
       </div>
