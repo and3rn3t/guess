@@ -65,6 +65,7 @@ const COLOR_MAP: Record<SectionColor, { title: string; activeItem: string }> = {
 
 const DATA_ITEMS: NavItem[] = [
   { to: '.', label: 'Mission Control', icon: <HouseIcon size={16} weight="duotone" /> },
+  { to: 'about', label: 'About', icon: <ListChecksIcon size={16} weight="duotone" /> },
 ]
 
 const WORKFLOW_CURATE_ITEMS: NavItem[] = [

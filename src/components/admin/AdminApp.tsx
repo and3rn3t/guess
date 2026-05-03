@@ -34,6 +34,7 @@ const ExperimentsRoute = lazy(() => import('./routes/ExperimentsRoute'))
 const DataQualityRoute = lazy(() => import('./routes/DataQualityRoute'))
 const TriageRoute = lazy(() => import('./routes/TriageRoute'))
 const ApiDocsRoute = lazy(() => import('./routes/ApiDocsRoute'))
+const AboutRoute = lazy(() => import('./routes/AboutRoute'))
 
 function RouteWrapper({ children }: Readonly<{ children: React.ReactNode }>): React.JSX.Element {
   return (
@@ -84,6 +85,7 @@ export function AdminApp(): React.JSX.Element {
             <Route path="error-logs" element={<RouteWrapper><ErrorLogsRoute /></RouteWrapper>} />
             <Route path="triage" element={<RouteWrapper><TriageRoute /></RouteWrapper>} />
             <Route path="api-docs" element={<RouteWrapper><ApiDocsRoute /></RouteWrapper>} />
+            <Route path="about" element={<RouteWrapper><AboutRoute /></RouteWrapper>} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Route>
         </Routes>
