@@ -8,7 +8,26 @@
  * Protected by the Basic-auth gate in functions/_middleware.ts.
  */
 import { type Env, jsonResponse, errorResponse } from '../_helpers'
+import { computeDataCompletenessScore } from '../_data_completeness'
 import { computeDataHealthScore } from '../_data_health'
+
+const DQ_CATEGORIES = [
+  'video-games',
+  'movies',
+  'anime',
+  'comics',
+  'books',
+  'cartoons',
+  'tv-shows',
+  'pop-culture',
+] as const
+
+const DQ31_DEFAULTS = {
+  warnScore: 0.92,
+  failScore: 0.95,
+  defaultCategoryFloor: 0.9,
+  disputeBudget: 25,
+} as const
 
 interface SnapshotRow {
   captured_at: number
@@ -19,6 +38,18 @@ interface SnapshotRow {
   open_disputes: number
   golden_pass_rate: number | null
   vision_pass_rate: number | null
+  closure_total_pairs: number | null
+  closure_automation_pairs: number | null
+  closure_manual_pairs: number | null
+}
+
+interface CountRow {
+  n: number
+}
+
+interface CategoryCountRow {
+  category: string
+  n: number
 }
 
 export const onRequestGet: PagesFunction<Env> = async (context) => {
@@ -33,6 +64,12 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     activeAttrsRow,
     attrRowsRow,
     evidenceRowsRow,
+    filledActiveRow,
+    evidenceActiveRow,
+    sourceCoverageRow,
+    openHighDisputesRow,
+    charsByCategoryRows,
+    filledByCategoryRows,
     agreementRow,
     openDisputesRow,
     history,
@@ -46,6 +83,46 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       .prepare("SELECT COUNT(*) AS n FROM character_attributes WHERE evidence IS NOT NULL AND TRIM(evidence) <> ''")
       .first<{ n: number }>(),
     db
+      .prepare(
+        `SELECT COUNT(*) AS n
+           FROM character_attributes ca
+           JOIN attribute_definitions ad ON ad.key = ca.attribute_key
+          WHERE ad.is_active = 1 AND ca.value IS NOT NULL`
+      )
+      .first<CountRow>(),
+    db
+      .prepare(
+        `SELECT COUNT(*) AS n
+           FROM character_attributes ca
+           JOIN attribute_definitions ad ON ad.key = ca.attribute_key
+          WHERE ad.is_active = 1
+            AND ca.value IS NOT NULL
+            AND ca.evidence IS NOT NULL
+            AND TRIM(ca.evidence) <> ''`
+      )
+      .first<CountRow>(),
+    db
+      .prepare(
+        `SELECT COUNT(*) AS n
+           FROM characters
+          WHERE source = 'default' OR (source_id IS NOT NULL AND TRIM(source_id) <> '')`
+      )
+      .first<CountRow>(),
+    db
+      .prepare("SELECT COUNT(*) AS n FROM attribute_disputes WHERE status = 'open' AND confidence >= 0.8")
+      .first<CountRow>(),
+    db.prepare('SELECT category, COUNT(*) AS n FROM characters GROUP BY category').all<CategoryCountRow>(),
+    db
+      .prepare(
+        `SELECT c.category AS category, COUNT(*) AS n
+           FROM characters c
+           LEFT JOIN character_attributes ca ON ca.character_id = c.id AND ca.value IS NOT NULL
+           LEFT JOIN attribute_definitions ad ON ad.key = ca.attribute_key
+          WHERE ad.is_active = 1
+          GROUP BY c.category`
+      )
+      .all<CategoryCountRow>(),
+    db
       .prepare('SELECT AVG(agreement_score) AS avg, COUNT(*) AS n FROM character_attributes WHERE agreement_score IS NOT NULL')
       .first<{ avg: number | null; n: number }>(),
     db
@@ -54,7 +131,8 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     db
       .prepare(
         `SELECT captured_at, data_health_score, coverage_pct, evidence_pct,
-                agreement_avg, open_disputes, golden_pass_rate, vision_pass_rate
+          agreement_avg, open_disputes, golden_pass_rate, vision_pass_rate,
+          closure_total_pairs, closure_automation_pairs, closure_manual_pairs
            FROM data_quality_snapshots
           WHERE captured_at >= unixepoch('now', '-' || ?1 || ' days')
           ORDER BY captured_at ASC`
@@ -74,6 +152,46 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
   const denomCells = totalChars * activeAttrs
   const coveragePct = denomCells > 0 ? attrRows / denomCells : 0
   const evidencePct = attrRows > 0 ? evidenceRows / attrRows : 0
+
+  const filledActiveRows = filledActiveRow?.n ?? 0
+  const evidenceActiveRows = evidenceActiveRow?.n ?? 0
+  const sourceCoverageCount = sourceCoverageRow?.n ?? 0
+  const openHighPriorityDisputes = openHighDisputesRow?.n ?? 0
+
+  const charsByCategory = new Map<string, number>()
+  for (const row of charsByCategoryRows.results ?? []) {
+    charsByCategory.set(row.category, row.n)
+  }
+
+  const filledByCategory = new Map<string, number>()
+  for (const row of filledByCategoryRows.results ?? []) {
+    filledByCategory.set(row.category, row.n)
+  }
+
+  const categoryCompleteness: Record<string, number> = {}
+  for (const category of DQ_CATEGORIES) {
+    const categoryChars = charsByCategory.get(category) ?? 0
+    const categoryRequiredCells = categoryChars * activeAttrs
+    const categoryFilledCells = filledByCategory.get(category) ?? 0
+    categoryCompleteness[category] = categoryRequiredCells > 0 ? categoryFilledCells / categoryRequiredCells : 1
+  }
+
+  const totalRequiredCells = totalChars * activeAttrs
+  const globalCompleteness = totalRequiredCells > 0 ? filledActiveRows / totalRequiredCells : 0
+  const evidenceCoverage = filledActiveRows > 0 ? evidenceActiveRows / filledActiveRows : 0
+  const sourceIdCoverage = totalChars > 0 ? sourceCoverageCount / totalChars : 0
+
+  const completeness = computeDataCompletenessScore({
+    globalCompleteness,
+    categoryCompleteness,
+    evidenceCoverage,
+    sourceIdCoverage,
+    openHighPriorityDisputes,
+    disputeBudget: DQ31_DEFAULTS.disputeBudget,
+    categoryFloorThreshold: DQ31_DEFAULTS.defaultCategoryFloor,
+    warnScoreThreshold: DQ31_DEFAULTS.warnScore,
+    failScoreThreshold: DQ31_DEFAULTS.failScore,
+  })
 
   const breakdown = computeDataHealthScore({
     coveragePct,
@@ -97,6 +215,21 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       totalCharacters: totalChars,
       activeAttributes: activeAttrs,
       attributeRows: attrRows,
+      completeness: {
+        dataCompleteScore: completeness.score,
+        components: completeness.components,
+        weights: completeness.weights,
+        categoryFloorScore: completeness.categoryFloorScore,
+        categoryCompleteness,
+        globalCompleteness,
+        evidenceCoverage,
+        sourceIdCoverage,
+        openHighPriorityDisputes,
+        totalRequiredCells,
+        filledRequiredCells: filledActiveRows,
+        gate: completeness.gate,
+        config: DQ31_DEFAULTS,
+      },
     },
     history: history.results ?? [],
     windowDays: days,

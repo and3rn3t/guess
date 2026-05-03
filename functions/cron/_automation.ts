@@ -4,6 +4,11 @@ import { computeDataHealthScore } from '../api/_data_health'
 import { handleBackfill } from '../api/admin/questions/duplicates/_handlers'
 import { computeRetirementQueue, type RetirementAttemptRow, type RetirementSkipRow } from '../api/admin/_retirement'
 import { runServerEnrichBatch } from '../api/admin/enrich/run'
+import {
+  buildClosureQueueReport,
+  CLOSURE_QUEUE_REPORT_KEY,
+  type ClosureQueueReport,
+} from '../api/admin/data-quality/_closure_queue'
 
 export interface AutomationEnv {
   GUESS_DB?: D1Database
@@ -15,6 +20,8 @@ export interface AutomationEnv {
   AUTO_DUPLICATES_BACKFILL?: string
   AUTO_DUPLICATES_LIMIT?: string
   AUTO_ENRICH_ONE?: string
+  AUTO_CLOSURE_QUEUE?: string
+  AUTO_CLOSURE_QUEUE_LIMIT?: string
   AUTO_RETIRE_ENABLED?: string
   AUTO_RETIRE_LIMIT?: string
   AUTO_RETIRE_MIN_SCORE?: string
@@ -30,17 +37,26 @@ export interface AutomationSummary {
   snapshot: 'inserted' | 'skipped' | 'error'
   duplicatesEmbedded: number
   enrichmentKick: 'started' | 'skipped' | 'error'
+  closureQueue: {
+    status: 'generated' | 'skipped' | 'error'
+    totalCandidatePairs: number
+    totalPairs: number
+    automationPairs: number
+    manualPairs: number
+  }
   retiredQuestions: number
   stepDurationsMs: {
     snapshot: number
     duplicates: number
     enrichment: number
+    closureQueue: number
     retirement: number
   }
   stepErrors: {
     snapshot: string | null
     duplicates: string | null
     enrichment: string | null
+    closureQueue: string | null
     retirement: string | null
   }
   notes: string[]
@@ -65,7 +81,14 @@ function parseFloatClamped(raw: string | undefined, fallback: number, min: numbe
   return Math.max(min, Math.min(max, parsed))
 }
 
-async function maybeCaptureDataQualitySnapshot(env: AutomationEnv): Promise<'inserted' | 'skipped' | 'error'> {
+async function maybeCaptureDataQualitySnapshot(
+  env: AutomationEnv,
+  closureSummary?: {
+    totalPairs: number
+    automationPairs: number
+    manualPairs: number
+  },
+): Promise<'inserted' | 'skipped' | 'error'> {
   if (!env.GUESS_DB) return 'skipped'
   if (!flagEnabled(env.AUTO_CAPTURE_DQ_SNAPSHOT, true)) return 'skipped'
 
@@ -110,10 +133,29 @@ async function maybeCaptureDataQualitySnapshot(env: AutomationEnv): Promise<'ins
 
     await env.GUESS_DB.prepare(
       `INSERT INTO data_quality_snapshots
-        (captured_at, data_health_score, coverage_pct, evidence_pct, agreement_avg, open_disputes)
-       VALUES (unixepoch('now'), ?, ?, ?, ?, ?)`,
+        (
+          captured_at,
+          data_health_score,
+          coverage_pct,
+          evidence_pct,
+          agreement_avg,
+          open_disputes,
+          closure_total_pairs,
+          closure_automation_pairs,
+          closure_manual_pairs
+        )
+       VALUES (unixepoch('now'), ?, ?, ?, ?, ?, ?, ?, ?)`,
     )
-      .bind(breakdown.score, coveragePct, evidencePct, agreementAvg, openDisputes)
+      .bind(
+        breakdown.score,
+        coveragePct,
+        evidencePct,
+        agreementAvg,
+        openDisputes,
+        closureSummary?.totalPairs ?? null,
+        closureSummary?.automationPairs ?? null,
+        closureSummary?.manualPairs ?? null,
+      )
       .run()
 
     return 'inserted'
@@ -160,6 +202,28 @@ async function maybeKickEnrichment(env: AutomationEnv, batchId: string): Promise
     return 'started'
   } catch {
     return 'error'
+  }
+}
+
+async function maybeMaterializeClosureQueue(
+  env: AutomationEnv,
+): Promise<{ status: 'generated' | 'skipped' | 'error'; report: ClosureQueueReport | null }> {
+  if (!env.GUESS_DB) return { status: 'skipped', report: null }
+  if (!flagEnabled(env.AUTO_CLOSURE_QUEUE, true)) return { status: 'skipped', report: null }
+
+  const limit = parseIntClamped(env.AUTO_CLOSURE_QUEUE_LIMIT, 200, 1, 500)
+
+  try {
+    const report = await buildClosureQueueReport(env.GUESS_DB, limit)
+    const kv = env.GUESS_ASSETS ?? env.GUESS_KV
+    if (kv) {
+      await kv.put(CLOSURE_QUEUE_REPORT_KEY, JSON.stringify(report), {
+        expirationTtl: 8 * 24 * 60 * 60,
+      })
+    }
+    return { status: 'generated', report }
+  } catch {
+    return { status: 'error', report: null }
   }
 }
 
@@ -257,17 +321,26 @@ export async function runAdminAutomation(
     snapshot: 'skipped',
     duplicatesEmbedded: 0,
     enrichmentKick: 'skipped',
+    closureQueue: {
+      status: 'skipped',
+      totalCandidatePairs: 0,
+      totalPairs: 0,
+      automationPairs: 0,
+      manualPairs: 0,
+    },
     retiredQuestions: 0,
     stepDurationsMs: {
       snapshot: 0,
       duplicates: 0,
       enrichment: 0,
+      closureQueue: 0,
       retirement: 0,
     },
     stepErrors: {
       snapshot: null,
       duplicates: null,
       enrichment: null,
+      closureQueue: null,
       retirement: null,
     },
     notes: [],
@@ -276,25 +349,6 @@ export async function runAdminAutomation(
   if (!env.GUESS_DB) {
     summary.notes.push('automation skipped: DB unavailable')
   } else {
-    {
-      const t0 = Date.now()
-      try {
-        summary.snapshot = await maybeCaptureDataQualitySnapshot(env)
-        if (summary.snapshot === 'error') {
-          summary.errorCount += 1
-          summary.stepErrors.snapshot = 'snapshot run returned error status'
-          summary.notes.push('snapshot failed')
-        }
-      } catch (err) {
-        summary.snapshot = 'error'
-        summary.errorCount += 1
-        summary.stepErrors.snapshot = (err as Error).message
-        summary.notes.push('snapshot failed')
-      } finally {
-        summary.stepDurationsMs.snapshot = Date.now() - t0
-      }
-    }
-
     {
       const t0 = Date.now()
       try {
@@ -327,6 +381,64 @@ export async function runAdminAutomation(
         summary.notes.push('enrichment kick failed')
       } finally {
         summary.stepDurationsMs.enrichment = Date.now() - t0
+      }
+    }
+
+    {
+      const t0 = Date.now()
+      try {
+        const closure = await maybeMaterializeClosureQueue(env)
+        const report = closure.report
+        summary.closureQueue = {
+          status: closure.status,
+          totalCandidatePairs: report?.totalCandidatePairs ?? 0,
+          totalPairs: report?.summary.totalPairs ?? 0,
+          automationPairs: report?.summary.automationPairs ?? 0,
+          manualPairs: report?.summary.manualPairs ?? 0,
+        }
+        if (closure.status === 'error') {
+          summary.errorCount += 1
+          summary.stepErrors.closureQueue = 'closure queue run returned error status'
+          summary.notes.push('closure queue materialization failed')
+        } else if (closure.status === 'generated') {
+          summary.notes.push(
+            `closure queue materialized: ${summary.closureQueue.totalPairs}/${summary.closureQueue.totalCandidatePairs}`,
+          )
+        }
+      } catch (err) {
+        summary.errorCount += 1
+        summary.closureQueue.status = 'error'
+        summary.stepErrors.closureQueue = (err as Error).message
+        summary.notes.push('closure queue materialization failed')
+      } finally {
+        summary.stepDurationsMs.closureQueue = Date.now() - t0
+      }
+    }
+
+    {
+      const t0 = Date.now()
+      try {
+        const closureForSnapshot =
+          summary.closureQueue.status === 'generated'
+            ? {
+                totalPairs: summary.closureQueue.totalPairs,
+                automationPairs: summary.closureQueue.automationPairs,
+                manualPairs: summary.closureQueue.manualPairs,
+              }
+            : undefined
+        summary.snapshot = await maybeCaptureDataQualitySnapshot(env, closureForSnapshot)
+        if (summary.snapshot === 'error') {
+          summary.errorCount += 1
+          summary.stepErrors.snapshot = 'snapshot run returned error status'
+          summary.notes.push('snapshot failed')
+        }
+      } catch (err) {
+        summary.snapshot = 'error'
+        summary.errorCount += 1
+        summary.stepErrors.snapshot = (err as Error).message
+        summary.notes.push('snapshot failed')
+      } finally {
+        summary.stepDurationsMs.snapshot = Date.now() - t0
       }
     }
 

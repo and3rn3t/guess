@@ -6,7 +6,11 @@ on:
     branches: [main]
     paths:
       - "migrations/**"
+      - "data/attribute-completeness-sla.json"
+      - "functions/api/_data_completeness.ts"
       - "scripts/validate-online.ts"
+      - "scripts/data-quality/check-sla.ts"
+      - "scripts/data-quality/compute-completeness.ts"
       - "scripts/vision-validate.ts"
       - ".github/workflows/online-validation.yml"
       - ".github/workflows/vision-validate.yml"
@@ -15,7 +19,11 @@ on:
     branches: [main]
     paths:
       - "migrations/**"
+      - "data/attribute-completeness-sla.json"
+      - "functions/api/_data_completeness.ts"
       - "scripts/validate-online.ts"
+      - "scripts/data-quality/check-sla.ts"
+      - "scripts/data-quality/compute-completeness.ts"
       - "scripts/vision-validate.ts"
       - ".github/workflows/online-validation.yml"
       - ".github/workflows/vision-validate.yml"
@@ -32,6 +40,8 @@ jobs:
     name: Validate online checks
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    env:
+      DQ_COMPLETENESS_ENFORCE: 'false'
     permissions:
       contents: read
     steps:
@@ -49,6 +59,28 @@ jobs:
           set -o pipefail
           pnpm validate:online 2>&1 | tee .ci-artifacts/online-validation/validate-online.log
 
+      - name: Data completeness gate (enforce)
+        if: env.DQ_COMPLETENESS_ENFORCE == 'true'
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -o pipefail
+          pnpm dq:sla:check 2>&1 | tee .ci-artifacts/online-validation/dq-sla-check.log
+          pnpm dq:completeness:ci:fail 2>&1 | tee .ci-artifacts/online-validation/dq-completeness.log
+
+      # Warn-only rollout: collect production completeness signal before blocking merges.
+      - name: Data completeness gate (warn-only)
+        if: env.DQ_COMPLETENESS_ENFORCE != 'true'
+        continue-on-error: true
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -o pipefail
+          pnpm dq:sla:check 2>&1 | tee .ci-artifacts/online-validation/dq-sla-check.log
+          pnpm dq:completeness:ci:warn 2>&1 | tee .ci-artifacts/online-validation/dq-completeness.log
+
       - name: Upload online-validation logs
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
@@ -64,6 +96,7 @@ jobs:
             echo "### Online Validation Artifacts"
             echo ""
             echo "- Artifact: ci-online-validation-logs"
-            echo "- File: validate-online.log"
-            echo "- Behavior: checks run when credentials are present; otherwise they are skipped"
+            echo "- Files: validate-online.log, dq-sla-check.log, dq-completeness.log"
+            echo "- Rollout mode: ${{ env.DQ_COMPLETENESS_ENFORCE == 'true' && 'enforce' || 'warn-only' }}"
+            echo "- Toggle: set DQ_COMPLETENESS_ENFORCE='true' in this workflow to enforce"
           } >> "$GITHUB_STEP_SUMMARY"

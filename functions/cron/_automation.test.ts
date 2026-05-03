@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { createTestDb, createTestKv, seedAttributeDefinition, type TestDb, type TestKv } from '../api/admin/__tests__/harness'
 import { runAdminAutomation } from './_automation'
+import { CLOSURE_QUEUE_REPORT_KEY } from '../api/admin/data-quality/_closure_queue'
 
 let db: TestDb
 let kv: TestKv
@@ -56,6 +57,7 @@ describe('runAdminAutomation', () => {
       GUESS_KV: kv as unknown as KVNamespace,
       AUTO_DUPLICATES_BACKFILL: '0',
       AUTO_ENRICH_ONE: '0',
+      AUTO_CLOSURE_QUEUE: '0',
       AUTO_RETIRE_ENABLED: '0',
     }
 
@@ -92,6 +94,7 @@ describe('runAdminAutomation', () => {
       AUTO_CAPTURE_DQ_SNAPSHOT: '0',
       AUTO_DUPLICATES_BACKFILL: '0',
       AUTO_ENRICH_ONE: '0',
+      AUTO_CLOSURE_QUEUE: '0',
       AUTO_RETIRE_ENABLED: '1',
       AUTO_RETIRE_LIMIT: '1',
       AUTO_RETIRE_MIN_SHOWN: '10',
@@ -114,5 +117,69 @@ describe('runAdminAutomation', () => {
     const summary = await runAdminAutomation(trigger, {}, () => {})
     expect(summary.snapshot).toBe('skipped')
     expect(summary.notes).toContain('automation skipped: DB unavailable')
+  })
+
+  it('materializes the closure queue report to KV when enabled', async () => {
+    seedAttributeDefinition(db, 'isHuman')
+    seedAttributeDefinition(db, 'firstAppearedYear')
+    seedAttributeDefinition(db, 'personality')
+
+    db.raw
+      .prepare(`INSERT INTO characters (id, name, category, source, popularity, created_at) VALUES (?, ?, ?, 'default', ?, ?)`)
+      .run('anime-1', 'Alpha', 'anime', 1, Math.floor(Date.now() / 1000) - 45 * 24 * 60 * 60)
+
+    db.raw
+      .prepare(`INSERT INTO questions (id, text, attribute_key) VALUES (?, ?, ?)`)
+      .run('q-human', 'Is the character human?', 'isHuman')
+
+    db.raw
+      .prepare(
+        `INSERT INTO question_attempts (session_id, question_id, attribute, answer, question_index, created_at)
+         VALUES (?, ?, ?, ?, 0, ?)`,
+      )
+      .run('sess-closure-1', 'q-human', 'isHuman', 'yes', Math.floor(Date.now() / 1000) - 60)
+
+    const trigger = { cron: '5 0 * * *', scheduledTime: Date.now() }
+    const env = {
+      GUESS_DB: db.d1 as unknown as D1Database,
+      GUESS_KV: kv as unknown as KVNamespace,
+      AUTO_CAPTURE_DQ_SNAPSHOT: '1',
+      AUTO_DUPLICATES_BACKFILL: '0',
+      AUTO_ENRICH_ONE: '0',
+      AUTO_RETIRE_ENABLED: '0',
+      AUTO_CLOSURE_QUEUE: '1',
+      AUTO_CLOSURE_QUEUE_LIMIT: '50',
+    }
+
+    const summary = await runAdminAutomation(trigger, env, () => {})
+    expect(summary.closureQueue.status).toBe('generated')
+    expect(summary.closureQueue.totalCandidatePairs).toBeGreaterThan(0)
+    expect(summary.closureQueue.totalPairs).toBeGreaterThan(0)
+
+    const report = await kv.get(CLOSURE_QUEUE_REPORT_KEY, 'json') as {
+      summary?: { totalPairs?: number }
+      totalCandidatePairs?: number
+      queue?: Array<{ characterName: string }>
+    } | null
+    expect(report).not.toBeNull()
+    expect(report?.totalCandidatePairs).toBeGreaterThan(0)
+    expect(report?.summary?.totalPairs).toBeGreaterThan(0)
+    expect(report?.queue?.[0]?.characterName).toBe('Alpha')
+
+    const snapshotRow = db.raw
+      .prepare(
+        `SELECT closure_total_pairs, closure_automation_pairs, closure_manual_pairs
+           FROM data_quality_snapshots
+          ORDER BY captured_at DESC
+          LIMIT 1`,
+      )
+      .get() as {
+      closure_total_pairs: number | null
+      closure_automation_pairs: number | null
+      closure_manual_pairs: number | null
+    }
+    expect(snapshotRow.closure_total_pairs).toBeGreaterThan(0)
+    expect(snapshotRow.closure_automation_pairs ?? 0).toBeGreaterThanOrEqual(0)
+    expect(snapshotRow.closure_manual_pairs ?? 0).toBeGreaterThanOrEqual(0)
   })
 })

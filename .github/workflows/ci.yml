@@ -103,6 +103,10 @@ jobs:
         run: |
           set -o pipefail
           tsc -b 2>&1 | tee .ci-artifacts/checks/typecheck.log
+      - name: Data quality SLA contract
+        run: |
+          set -o pipefail
+          pnpm dq:sla:check 2>&1 | tee .ci-artifacts/checks/dq-sla-check.log
       - name: Test coverage
         run: |
           set -o pipefail
@@ -121,7 +125,7 @@ jobs:
             echo "### Checks Artifacts"
             echo ""
             echo "- Artifact: ci-checks-logs"
-            echo "- Files: lint.log, typecheck.log, test-coverage.log"
+            echo "- Files: lint.log, typecheck.log, dq-sla-check.log, test-coverage.log"
           } >> "$GITHUB_STEP_SUMMARY"
 
   test-e2e:

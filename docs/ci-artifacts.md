@@ -22,6 +22,7 @@ Source: .github/workflows/ci.yml
 - Contents:
   - lint.log
   - typecheck.log
+  - dq-sla-check.log
   - test-coverage.log
 - Use when: lint, type-check, or unit test coverage fails.
 
@@ -59,7 +60,10 @@ Source: .github/workflows/online-validation.yml
 - Artifact: ci-online-validation-logs
 - Contents:
   - validate-online.log
-- Use when: credentialed validation checks (D1 dry-run, vision gate) fail or were unexpectedly skipped.
+  - dq-sla-check.log
+  - dq-completeness.log
+- Use when: credentialed validation checks (D1 dry-run, vision gate, completeness gate) fail or were unexpectedly skipped.
+- Rollout toggle: set `DQ_COMPLETENESS_ENFORCE: 'true'` in `.github/workflows/online-validation.yml` to enforce the completeness gate.
 
 ## Strict changed workflow
 

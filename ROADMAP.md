@@ -255,7 +255,8 @@ The active execution plan, sequenced by **priority × ease**. Pull items top-dow
 > **Maintain this block first.** It's the single answer to "what should I work on?" — agents and humans check it before scanning tables. Update in the same commit as the work it describes.
 
 - 🟡 **In progress:** [I.1](#i-1) preview AI Gateway 24h verification window · [I.9](#i-9) AI Gateway semantic caching 7d cache-hit window
-- ▶ **Up next:** [AP.10](#ap-10) `⌘K` command palette → then [DQ.31](#dq-31) definition-of-complete + release gate
+- 🟡 **In progress:** [DQ.31](#dq-31) definition-of-complete + release gate · [DQ.33](#dq-33) deterministic null-closure queue
+- ▶ **Up next:** [DQ.32](#dq-32) attribute completeness SLA matrix → then [DQ.34](#dq-34) source-ID completeness guardrail
 - ✅ **Recently completed:** [P.7](#p-7) `/about` + `/credits` pages (2026-05-03) · [P.8](#p-8) light theme + 3-state toggle (system/dark/light) (2026-05-03) · [P.9](#p-9) daily challenge leaderboard foundation (2026-05-03) · [DX.4](#dx-4) MSW for API-dependent component tests (2026-05-02) · admin recommender + Data Hygiene + cost dashboard migrated to server endpoints with request-id/rate-limit/logging hardening (2026-05-02) · post-game reflection feedback capture + coverage tests (2026-05-02) · [EN.29](#en-29) trivia card on reveal (2026-05-02)
 - 🧫 **Blocked / waiting on:** _none_
 - 🎯 **Current wave focus:** Wave 4 complete. Next: Wave 5 — Polish & Depth (admin polish, DX leverage, data completeness push).
@@ -338,9 +339,9 @@ Pull from these once the foundation is solid. Ordered by ease within each cluste
 
 | Status | Order | # | Item | Effort | Why now | Done when |
 |---|---|---|---|---|---|---|
-| ⬜ | 1 | [DQ.31](#dq-31) | Definition of complete + release gate | M | Establishes one acceptance bar for all closure work. | CI publishes score and enforces warn/fail thresholds exactly as defined in the canonical gate block. |
+| 🟡 | 1 | [DQ.31](#dq-31) | Definition of complete + release gate | M | Establishes one acceptance bar for all closure work. | CI publishes score and enforces warn/fail thresholds exactly as defined in the canonical gate block. |
 | ⬜ | 2 | [DQ.32](#dq-32) | Attribute completeness SLA matrix | M | Turns "complete" into explicit per-attribute/category targets. | `data/attribute-completeness-sla.json` is committed, validated in CI, and rendered in admin completeness views. |
-| ⬜ | 3 | [DQ.33](#dq-33) | Deterministic null-closure queue | M | Ensures high-impact NULLs are closed first, not random backlog slices. | Daily queue exists, is consumed by automation/manual workflows, and backlog burn rate improves week-over-week. |
+| 🟡 | 3 | [DQ.33](#dq-33) | Deterministic null-closure queue | M | Ensures high-impact NULLs are closed first, not random backlog slices. | Daily queue exists, is consumed by automation/manual workflows, and backlog burn rate improves week-over-week. |
 | ⬜ | 4 | [DQ.34](#dq-34) | Source-ID completeness guardrail | S | Broken source IDs silently degrade enrichment and evidence quality. | Daily source-health check runs; invalid IDs are queued and visible in admin with aging/count metrics. |
 | ⬜ | 5 | [DQ.35](#dq-35) | Image health completeness guardrail | S | Portrait quality gaps degrade both playability and visual-attribute quality. | Image-health queue is generated daily; unusable portrait rate trends down and is visible in admin. |
 | ⬜ | 6 | [DQ.36](#dq-36) | Manual curator closure queue | M | Captures irreducible ambiguity and prevents retry loops. | Curator queue supports assign/resolve/lock and unresolved aging is tracked in completeness dashboards. |
@@ -902,6 +903,8 @@ The shell ships 24 routes across three sidebar groups (Tools / Data / Pipeline).
 | 2026-05 | Post-game reflection feedback shipped as a thin slice | Added end-to-end feedback persistence after game end (`POST /api/v2/game/feedback`) with session-safe hook wiring and Game Over rating/comment UI, then backfilled focused tests for `GameOver`, `useServerGame`, and prop forwarding in `GamePhaseRouter`. Scope deliberately stayed incremental (no new roadmap row) to close the current Phase 4 reflection gap quickly while keeping validation green (`pnpm validate` 977/977). |
 | 2026-05 | Admin endpoint hardening uses best-effort rate limits + correlation IDs | New admin migration endpoints now enforce per-route rate limits and attach `X-Request-Id` to all responses, but rate limiting is intentionally best-effort when KV/DO bindings are absent so local/test harnesses remain non-flaky. Structured `logError` metadata now includes request/actor/path/method context for traceability. |
 | 2026-05 | Data completeness elevated to explicit closure program | Roadmap editing pass re-centered data quality around completion outcomes, not just signal generation. Added DQ.31-DQ.38 covering definition-of-complete release gating, per-attribute SLA matrix, deterministic null-closure prioritization, source-id and image-health completeness guardrails, curator closure queueing, risk-tiered revalidation, and weekly completeness burndown artifacts. Wave 5 now explicitly prioritizes this completeness cluster as the next highest-leverage path after in-progress infra items. |
+| 2026-05 | Wave 5 pull-order override: DQ completeness before AP.10 | Execution moved from AP.10 to DQ.31 intentionally to establish measurable data-completeness gates before additional admin polish. Updated In Progress/Up Next accordingly and will return to AP.10 after DQ.31-DQ.33 foundational slices. |
+| 2026-05-03 | DQ.33 started once DQ.31/DQ.32 foundations were wired | Began the deterministic null-closure queue before formally shipping the full completeness program because the shared scorer, SLA source of truth, admin completeness payload, and warn-only CI gate were already in place. This keeps Wave 5 work on the same dependency chain without context-switching to unrelated polish. |
 
 ---
 
