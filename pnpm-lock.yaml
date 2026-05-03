@@ -97,14 +97,14 @@ importers:
         version: 1.4.0
       zod:
         specifier: ^4.3.6
-        version: 4.4.1
+        version: 4.4.2
     devDependencies:
       '@aws-sdk/client-s3':
         specifier: ^3.1038.0
         version: 3.1041.0
       '@cloudflare/workers-types':
         specifier: ^4.20260501.1
-        version: 4.20260501.1
+        version: 4.20260503.1
       '@eslint/js':
         specifier: ^10.0.0
         version: 10.0.1(eslint@10.3.0(jiti@2.6.1))
@@ -203,7 +203,7 @@ importers:
         version: 4.1.5(@types/node@25.6.0)(@vitest/coverage-v8@4.1.5)(jsdom@29.1.1)(msw@2.14.2(@types/node@25.6.0)(typescript@6.0.3))(vite@8.0.10(@types/node@25.6.0)(esbuild@0.27.7)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.3))
       wrangler:
         specifier: ^4.86.0
-        version: 4.87.0(@cloudflare/workers-types@4.20260501.1)
+        version: 4.87.0(@cloudflare/workers-types@4.20260503.1)
 
   packages/game-engine:
     dependencies:
@@ -512,8 +512,8 @@ packages:
     cpu: [x64]
     os: [win32]
 
-  '@cloudflare/workers-types@4.20260501.1':
-    resolution: {integrity: sha512-B/VX2w3my/sCqxKyWOX7SxUpFC1uD8Gh7I2zbI1d3zA8p7Tx03AFsnuEx8lYLmcd8yONAA93YsAZb1wAaLK83w==}
+  '@cloudflare/workers-types@4.20260503.1':
+    resolution: {integrity: sha512-8VKtafR4fNMtddutOnam3yq3AQvrl9bzuMio3B3AEAfrdx7xaaDV0Oyxz54P07lODwX0jydukGLC1rpDdYXAAA==}
 
   '@cspotcode/source-map-support@0.8.1':
     resolution: {integrity: sha512-IchNf6dN4tHoMFIn/7OE8LWZ19Y6q/67Bmf6vnGREv8RSbBVb9LPJxEcnwrcwX6ixSvaiGoomAUvu4YSxXrVgw==}
@@ -4622,6 +4622,9 @@ packages:
   zod@4.4.1:
     resolution: {integrity: sha512-a6ENMBBGZBsnlSebQ/eKCguSBeGKSf4O7BPnqVPmYGtpBYI7VSqoVqw+QcB7kPRjbqPwhYTpFbVj/RqNz/CT0Q==}
 
+  zod@4.4.2:
+    resolution: {integrity: sha512-IynmDyxsEsb9RKzO3J9+4SxXnl2FTFSzNBaKKaMV6tsSk0rw9gYw9gs+JFCq/qk2LCZ78KDwyj+Z289TijSkUw==}
+
 snapshots:
 
   '@adobe/css-tools@4.4.4': {}
@@ -5224,7 +5227,7 @@ snapshots:
   '@cloudflare/workerd-windows-64@1.20260430.1':
     optional: true
 
-  '@cloudflare/workers-types@4.20260501.1': {}
+  '@cloudflare/workers-types@4.20260503.1': {}
 
   '@cspotcode/source-map-support@0.8.1':
     dependencies:
@@ -7532,8 +7535,8 @@ snapshots:
       '@babel/parser': 7.29.2
       eslint: 10.3.0(jiti@2.6.1)
       hermes-parser: 0.25.1
-      zod: 4.4.1
-      zod-validation-error: 4.0.2(zod@4.4.1)
+      zod: 4.4.2
+      zod-validation-error: 4.0.2(zod@4.4.2)
     transitivePeerDependencies:
       - supports-color
 
@@ -9286,7 +9289,7 @@ snapshots:
       '@cloudflare/workerd-linux-arm64': 1.20260430.1
       '@cloudflare/workerd-windows-64': 1.20260430.1
 
-  wrangler@4.87.0(@cloudflare/workers-types@4.20260501.1):
+  wrangler@4.87.0(@cloudflare/workers-types@4.20260503.1):
     dependencies:
       '@cloudflare/kv-asset-handler': 0.5.0
       '@cloudflare/unenv-preset': 2.16.1(unenv@2.0.0-rc.24)(workerd@1.20260430.1)
@@ -9297,7 +9300,7 @@ snapshots:
       unenv: 2.0.0-rc.24
       workerd: 1.20260430.1
     optionalDependencies:
-      '@cloudflare/workers-types': 4.20260501.1
+      '@cloudflare/workers-types': 4.20260503.1
       fsevents: 2.3.3
     transitivePeerDependencies:
       - bufferutil
@@ -9363,10 +9366,12 @@ snapshots:
       cookie: 1.1.1
       youch-core: 0.3.3
 
-  zod-validation-error@4.0.2(zod@4.4.1):
+  zod-validation-error@4.0.2(zod@4.4.2):
     dependencies:
-      zod: 4.4.1
+      zod: 4.4.2
 
   zod@3.25.76: {}
 
   zod@4.4.1: {}
+
+  zod@4.4.2: {}
