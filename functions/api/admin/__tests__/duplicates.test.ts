@@ -336,7 +336,7 @@ describe('POST /api/admin/questions/duplicates/merge', () => {
   it('retires the source, auto-dismisses the pair, and busts the KV cache', async () => {
     seedQuestion(db, 'isHero', 'Is this a hero?')
     seedQuestion(db, 'isProtagonist', 'Is this the protagonist?')
-    kv._store.set('meta:questions', 'cached')
+    kv._store.set('meta:questions', { value: 'cached' })
     const res = await invokeHandler<{ retired: string; target: string }>(mergePost, {
       env: { GUESS_DB: db.d1, GUESS_KV: kv } as never,
       method: 'POST',

@@ -71,14 +71,26 @@ describe('advanceToNextQuestion', () => {
     vi.clearAllMocks()
     saveSessionStateMock.mockResolvedValue(undefined)
     rephraseQuestionMock.mockResolvedValue(null)
-    generateReasoningMock.mockReturnValue({ confidence: 70, topCandidates: [] })
+    generateReasoningMock.mockReturnValue({
+      why: 'test rationale',
+      impact: 'test impact',
+      remaining: 0,
+      confidence: 70,
+      topCandidates: [],
+    })
     calculateEliminatedCountMock.mockReturnValue(3)
   })
 
   it('sets current question, saves session, and applies rephrased text when available', async () => {
     const session = makeSession()
     const nextQuestion: ServerQuestion = { id: 'q3', text: 'Is magical?', attribute: 'isMagical' }
-    const reasoning = { confidence: 74, topCandidates: [{ id: 'c1', name: 'A', probability: 0.74 }] }
+    const reasoning = {
+      why: 'focused split',
+      impact: 'reduces uncertainty',
+      remaining: 4,
+      confidence: 74,
+      topCandidates: [{ name: 'A', probability: 0.74 }],
+    }
     rephraseQuestionMock.mockResolvedValue('Could they be magical?')
 
     await advanceToNextQuestion({
@@ -108,7 +120,13 @@ describe('advanceToNextQuestion', () => {
   it('keeps original question text when rephrase returns null', async () => {
     const session = makeSession()
     const nextQuestion: ServerQuestion = { id: 'q3', text: 'Is magical?', attribute: 'isMagical' }
-    const reasoning = { confidence: 52, topCandidates: [] }
+    const reasoning = {
+      why: 'fallback wording',
+      impact: 'keeps progress',
+      remaining: 3,
+      confidence: 52,
+      topCandidates: [],
+    }
 
     await advanceToNextQuestion({
       env: {} as never,
@@ -182,7 +200,7 @@ describe('buildNextQuestionResponse', () => {
     expect(result.response).toEqual(expect.objectContaining({
       type: 'question',
       question: nextQuestion,
-      reasoning: { confidence: 70, topCandidates: [] },
+      reasoning: expect.objectContaining({ confidence: 70, topCandidates: [] }),
       remaining: 1,
       eliminated: 3,
       questionCount: 4,
@@ -201,7 +219,13 @@ describe('persistAndSyncAnswerTurn', () => {
   it('advances question state and queues non-blocking answer sync', async () => {
     const session = makeSession()
     const nextQuestion: ServerQuestion = { id: 'q3', text: 'Is magical?', attribute: 'isMagical' }
-    const reasoning = { confidence: 65, topCandidates: [] }
+    const reasoning = {
+      why: 'persist turn',
+      impact: 'advance game',
+      remaining: 2,
+      confidence: 65,
+      topCandidates: [],
+    }
     const waitUntil = vi.fn<(promise: Promise<unknown>) => void>()
 
     await persistAndSyncAnswerTurn({

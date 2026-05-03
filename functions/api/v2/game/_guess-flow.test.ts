@@ -104,6 +104,7 @@ describe('finalizeGuessAndSave', () => {
         name: 'Alpha',
         category: 'test',
         imageUrl: null,
+        attributes: {},
       },
       probs: new Map([['a', 0.92]]),
       questionCount: 3,

@@ -68,6 +68,7 @@ function mockLlmResponse(text: string, status = 200) {
 
 beforeEach(() => {
   mockFetch.mockReset()
+  vi.spyOn(console, 'warn').mockImplementation(() => {})
 })
 
 // ── Tests ─────────────────────────────────────────────────────

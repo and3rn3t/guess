@@ -1,5 +1,6 @@
 import {
   d1Query,
+  type Env,
   errorResponse,
   getOrCreateUserId,
   getRequestId,
@@ -27,7 +28,7 @@ function isValidDateKey(value: string): boolean {
   return /^\d{4}-\d{2}-\d{2}$/.test(value)
 }
 
-export const onRequestGet: PagesFunction = async (context) => {
+export const onRequestGet: PagesFunction<Env> = async (context) => {
   const requestId = getRequestId(context.request)
   const respond = (response: Response): Response => withRequestId(response, requestId)
 

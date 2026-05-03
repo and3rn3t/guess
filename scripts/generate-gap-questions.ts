@@ -284,13 +284,13 @@ function main() {
     `SELECT key, display_text, question_text
      FROM attribute_definitions
      WHERE key IN (${inList})`
-  ) as AttributeDefinitionRow[]
+  ) as unknown as AttributeDefinitionRow[]
 
   let existingRows = d1Query(
     `SELECT id, attribute_key, text
      FROM questions
      WHERE attribute_key IN (${inList}) AND retired_at IS NULL`
-  ) as ExistingQuestionRow[]
+  ) as unknown as ExistingQuestionRow[]
 
   let effectiveTargetKeys = targetKeys
 
@@ -311,7 +311,7 @@ function main() {
        HAVING character_count > 25
        ORDER BY question_count ASC, character_count DESC
        LIMIT ${Math.max(120, LIMIT * 6)}`
-    ) as CoverageRow[]
+    ) as unknown as CoverageRow[]
 
     effectiveTargetKeys = pickTargetsFromCoverage(coverageRows, LIMIT)
 
@@ -321,13 +321,13 @@ function main() {
         `SELECT key, display_text, question_text
          FROM attribute_definitions
          WHERE key IN (${fallbackInList})`
-      ) as AttributeDefinitionRow[]
+      ) as unknown as AttributeDefinitionRow[]
 
       existingRows = d1Query(
         `SELECT id, attribute_key, text
          FROM questions
          WHERE attribute_key IN (${fallbackInList}) AND retired_at IS NULL`
-      ) as ExistingQuestionRow[]
+      ) as unknown as ExistingQuestionRow[]
       console.log(`     Fallback selected ${effectiveTargetKeys.length} active attributes from DB coverage`)
     }
   }

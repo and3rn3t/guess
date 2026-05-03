@@ -126,7 +126,6 @@ async function trackTokenUsage(
 
 /** Check per-user rate limit using cookie-based user ID, returning 429 Response or null */
 async function enforceRateLimit(
-  kv: KVNamespace,
   request: Request,
   env: Env,
 ): Promise<Response | null> {
@@ -151,7 +150,7 @@ async function checkEdgeCache(
   cacheKey: string,
   requestUrl: string,
 ): Promise<Response | null> {
-  const cache = caches.default;
+  const cache = (caches as unknown as { default: Cache }).default;
   const cacheUrl = new URL(`/cache/${cacheKey}`, requestUrl).toString();
   const cached = await cache.match(new Request(cacheUrl));
   if (!cached) return null;
@@ -167,7 +166,7 @@ async function putEdgeCache(
   requestUrl: string,
   content: string,
 ): Promise<void> {
-  const cache = caches.default;
+  const cache = (caches as unknown as { default: Cache }).default;
   const cacheUrl = new URL(`/cache/${cacheKey}`, requestUrl).toString();
   const response = new Response(content, {
     headers: {
@@ -298,7 +297,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
   // Rate limiting
   if (kv) {
-    const rateLimited = await enforceRateLimit(kv, context.request, context.env);
+    const rateLimited = await enforceRateLimit(context.request, context.env);
     if (rateLimited) return rateLimited;
   }
 

@@ -169,9 +169,9 @@ function main() {
     WHERE ca.value IS NOT NULL
     GROUP BY ca.attribute_key
     ORDER BY char_count DESC
-  `) as PopularityRow[]
+  `) as unknown as PopularityRow[]
 
-  const totalCharsResult = d1Query(`SELECT COUNT(*) as count FROM characters`)[0] as TotalCharsRow | undefined
+  const totalCharsResult = d1Query(`SELECT COUNT(*) as count FROM characters`)[0] as unknown as TotalCharsRow | undefined
   const totalChars = totalCharsResult?.count ?? 0
 
   // ── Step 2: Get question counts per attribute ────────────────────────────
@@ -182,7 +182,7 @@ function main() {
     FROM questions
     WHERE deleted_at IS NULL
     GROUP BY attribute
-  `) as QuestionCountRow[]
+  `) as unknown as QuestionCountRow[]
   const questionCountByAttr = new Map(
     questionCountRows.map((r) => [r.attribute, r.question_count])
   )
@@ -206,7 +206,7 @@ function main() {
     FROM question_attempts qa
     WHERE qa.created_at > unixepoch('now', '-90 days')
     GROUP BY qa.attribute
-  `) as QualityRow[]
+  `) as unknown as QualityRow[]
   const qualityByAttr = new Map(
     qualityRows.map((r) => [
       r.attribute,

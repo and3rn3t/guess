@@ -77,6 +77,7 @@ beforeEach(() => {
   getRequestIdMock.mockReset()
   getActorIdMock.mockReset()
   logErrorMock.mockReset()
+  vi.spyOn(console, 'error').mockImplementation(() => {})
   getOrCreateUserIdMock.mockResolvedValue({ userId: 'user-123' })
   getRequestIdMock.mockReturnValue('req-123')
   getActorIdMock.mockReturnValue('user:user-123')

@@ -66,7 +66,7 @@ export const CreateCharacterRequestSchema = z.object({
   name: z.string().min(2).max(50),
   category: CharacterCategorySchema,
   attributes: z
-    .record(z.union([z.boolean(), z.null()]))
+    .record(z.string(), z.union([z.boolean(), z.null()]))
     .refine(
       (attrs) => Object.values(attrs).filter((v) => v !== null).length >= 5,
       { message: 'Character must have at least 5 non-null attributes' },

@@ -76,7 +76,9 @@ export const onRequestGet: PagesFunction<LiveOpsEnv> = async (context) => {
   const summary = buildLiveOpsSummary(counts, p95, undefined, telemetryErrors1h)
 
   // Don't allow shared caches to serve a 30s-stale snapshot to multiple admins.
-  return jsonResponse(summary, 200, { 'cache-control': 'private, max-age=15' })
+  const response = jsonResponse(summary, 200)
+  response.headers.set('cache-control', 'private, max-age=15')
+  return response
 }
 
 async function fetchP95Latency(env: LiveOpsEnv): Promise<number | null> {

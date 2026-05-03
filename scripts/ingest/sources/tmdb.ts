@@ -43,7 +43,6 @@ interface TmdbTvResult {
 
 // TMDb genre IDs for animation
 const ANIMATION_GENRE = 16;
-const _SCIFI_GENRE = 878;
 
 async function tmdbFetch<T>(path: string, params: Record<string, string> = {}): Promise<T> {
   const config = getConfig();

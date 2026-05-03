@@ -1,4 +1,4 @@
-import type { Env } from './_helpers'
+import type { Env } from '../_helpers'
 
 /**
  * Serve character images from R2.

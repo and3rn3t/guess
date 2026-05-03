@@ -7,7 +7,6 @@ import {
   parseJsonBodyWithSchema,
 } from './_helpers'
 import { CreateQuestionRequestSchema } from './_schemas'
-import { CreateQuestionRequestSchema } from './_schemas'
 
 const DEPRECATION_HEADERS = {
   Deprecation: 'true',

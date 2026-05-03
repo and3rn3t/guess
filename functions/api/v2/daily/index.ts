@@ -1,5 +1,6 @@
 import {
   d1Run,
+  type Env,
   errorResponse,
   getOrCreateUserId,
   getRequestId,
@@ -22,7 +23,7 @@ function isMissingDailyResultsTableError(error: unknown): boolean {
   return message.includes('no such table: daily_results')
 }
 
-export const onRequestGet: PagesFunction = async (context) => {
+export const onRequestGet: PagesFunction<Env> = async (context) => {
   const requestId = getRequestId(context.request)
   const respond = (response: Response): Response => withRequestId(response, requestId)
 
@@ -73,7 +74,7 @@ export const onRequestGet: PagesFunction = async (context) => {
   }
 }
 
-export const onRequestPost: PagesFunction = async (context) => {
+export const onRequestPost: PagesFunction<Env> = async (context) => {
   const requestId = getRequestId(context.request)
   const respond = (response: Response): Response => withRequestId(response, requestId)
 

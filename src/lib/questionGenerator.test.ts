@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   analyzeAndGenerateQuestions,
   getQuestionGenerationInsight,
@@ -8,6 +8,10 @@ import type { Character, Question } from "./types";
 vi.mock("./llm", () => ({
   llm: vi.fn(),
 }));
+
+beforeEach(() => {
+  vi.spyOn(console, 'error').mockImplementation(() => {})
+})
 
 const CHARS: Character[] = [
   {

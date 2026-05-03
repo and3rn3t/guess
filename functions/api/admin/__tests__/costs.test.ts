@@ -79,7 +79,9 @@ describe("GET /api/admin/costs", () => {
 
   it("walks paginated KV list results", async () => {
     const today = daysAgo(0);
+    const store = new Map<string, { value: string }>();
     const kv = {
+      _store: store,
       async get(
         key: string,
         type?: "json" | "text" | { type: "json" } | { type: "text" },
@@ -117,7 +119,7 @@ describe("GET /api/admin/costs", () => {
       totals: { promptTokens: number; completionTokens: number; calls: number };
     }>(onRequestGet, {
       method: "GET",
-      env: buildEnv({ kv: kv as unknown as KVNamespace }),
+      env: buildEnv({ kv }),
     });
 
     expect(res.status).toBe(200);

@@ -22,6 +22,7 @@ const fakeHistory = { games: [], total: 5 }
 describe('useGlobalStats', () => {
   beforeEach(async () => {
     vi.clearAllMocks()
+    vi.spyOn(console, 'warn').mockImplementation(() => {})
     vi.resetModules()
     ;({ useGlobalStats } = await import('./useGlobalStats'))
   })

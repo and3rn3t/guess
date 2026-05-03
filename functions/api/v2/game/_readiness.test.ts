@@ -22,11 +22,16 @@ function makeSession(postRejectCooldown: number): GameSession {
 function makeReadiness(partial: Partial<GuessReadiness> = {}): GuessReadiness {
   return {
     shouldGuess: false,
-    trigger: null,
+    trigger: 'insufficient_data',
     topProbability: 0,
+    secondProbability: 0,
     gap: 0,
+    entropy: 0,
     aliveCount: 0,
     questionsRemaining: 0,
+    requiredConfidence: 0,
+    requiredGap: 0,
+    requiredEntropy: 0,
     forced: false,
     blockedByRejectCooldown: false,
     rejectCooldownRemaining: 0,

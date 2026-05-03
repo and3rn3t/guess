@@ -7,7 +7,7 @@ import { AboutPage } from './components/static/AboutPage.tsx'
 import { CreditsPage } from './components/static/CreditsPage.tsx'
 
 // Catch async errors that bypass ErrorBoundary (event handlers, setTimeout, etc.)
-globalThis.addEventListener('unhandledrejection', (event) => {
+globalThis.addEventListener('unhandledrejection', (event: PromiseRejectionEvent) => {
   console.error('Unhandled promise rejection:', event.reason)
   const message = event.reason instanceof Error ? event.reason.message : String(event.reason)
   const stack = event.reason instanceof Error ? event.reason.stack : undefined

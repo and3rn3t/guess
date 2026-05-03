@@ -45,6 +45,9 @@ export const onRequestPost = defineHandler(
     const parsed = await parseJsonBodyWithSchema(request, CreateCharacterRequestSchema)
     if (!parsed.success) return parsed.response
     const { name, category, attributes } = parsed.data
+    const normalizedAttributes = Object.fromEntries(
+      Object.entries(attributes),
+    ) as Record<string, boolean | null>
 
     const kv = env.GUESS_KV
     const existing = await kvGetArray<StoredCharacter>(kv, KV_KEY)
@@ -59,7 +62,7 @@ export const onRequestPost = defineHandler(
       id: `char-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       name,
       category,
-      attributes,
+      attributes: normalizedAttributes,
       createdBy: userId,
       createdAt: Date.now(),
     }

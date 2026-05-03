@@ -63,8 +63,8 @@ describe('useOnlineStatus', () => {
     const removeSpy = vi.spyOn(globalThis, 'removeEventListener')
     const { unmount } = renderHook(() => useOnlineStatus())
 
-    const onlineHandler = addSpy.mock.calls.find(c => c[0] === 'online')?.[1]
-    const offlineHandler = addSpy.mock.calls.find(c => c[0] === 'offline')?.[1]
+    const onlineHandler = addSpy.mock.calls.find(c => String(c[0]) === 'online')?.[1]
+    const offlineHandler = addSpy.mock.calls.find(c => String(c[0]) === 'offline')?.[1]
 
     unmount()
 

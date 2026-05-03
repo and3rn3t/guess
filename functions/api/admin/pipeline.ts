@@ -24,6 +24,14 @@ export interface PipelineRun {
 const VALID_STEPS = new Set<string>(['fetch', 'dedup', 'enrich', 'image', 'upload'])
 const VALID_STATUSES = new Set<string>(['pending', 'running', 'success', 'error'])
 
+function isPipelineStep(value: string): value is PipelineStep {
+  return VALID_STEPS.has(value)
+}
+
+function isPipelineStatus(value: string): value is PipelineStatus {
+  return VALID_STATUSES.has(value)
+}
+
 export const onRequestGet: PagesFunction<Env> = async (context) => {
   const db = context.env.GUESS_DB
   if (!db) return errorResponse('D1 not configured', 503)
@@ -77,16 +85,20 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       .all<PipelineRunsRow>(),
   ])
 
-  const runs: PipelineRun[] = (rows.results ?? []).map((r) => ({
-    id: r.id,
-    runBatch: r.run_batch,
-    characterId: r.character_id,
-    step: r.step,
-    status: r.status,
-    error: r.error,
-    durationMs: r.duration_ms,
-    createdAt: r.created_at,
-  }))
+  const runs: PipelineRun[] = []
+  for (const r of rows.results ?? []) {
+    if (!isPipelineStep(r.step) || !isPipelineStatus(r.status)) continue
+    runs.push({
+      id: r.id,
+      runBatch: r.run_batch,
+      characterId: r.character_id,
+      step: r.step,
+      status: r.status,
+      error: r.error,
+      durationMs: r.duration_ms,
+      createdAt: r.created_at,
+    })
+  }
 
   return jsonResponse({ runs, total: countResult?.total ?? 0, page, pageSize })
 }

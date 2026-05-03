@@ -172,7 +172,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
   // Daily challenge: ensure the pinned character is in the pool
   if (pinnedCharId && !characters.some((c) => c.id === pinnedCharId)) {
-    let pinned: CharacterRow | undefined
+    let pinned: CharacterRow | null
     try {
       pinned = await d1First<CharacterRow>(
         db,

@@ -220,7 +220,7 @@ function main() {
       ORDER BY created_at DESC
       LIMIT ${Math.max(2000, SAMPLE_SIZE * 6)}
     `
-  ) as GameStatsRow[]
+  ) as unknown as GameStatsRow[]
   console.log(`     Loaded ${rows.length} rows`)
 
   console.log()

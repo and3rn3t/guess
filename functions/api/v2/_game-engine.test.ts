@@ -594,6 +594,7 @@ const BASE_SESSION: GameSession = {
   maxQuestions: 15,
   createdAt: 1000000,
   rejectedGuesses: [],
+  skippedQuestions: [],
   guessCount: 0,
   postRejectCooldown: 0,
 }

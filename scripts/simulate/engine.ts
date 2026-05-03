@@ -143,6 +143,8 @@ function _filterPool(
   });
 }
 
+void _filterPool;
+
 // ── Best guess (mirrors getBestGuessResult in _game-engine.ts) ────────────────
 
 function getBestGuess(
