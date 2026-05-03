@@ -26,6 +26,114 @@
     }
   ],
   "paths": {
+    "/api/admin/about": {
+      "get": {
+        "operationId": "get-admin-about",
+        "summary": "Get admin build and data freshness metadata",
+        "tags": [
+          "admin",
+          "about"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "appVersion": {
+                      "type": "string"
+                    },
+                    "schemaVersion": {
+                      "type": "number"
+                    },
+                    "lastEnrichmentRun": {
+                      "type": "object",
+                      "properties": {
+                        "timestamp": {
+                          "type": [
+                            "number",
+                            "null"
+                          ]
+                        },
+                        "batchId": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "timestamp",
+                        "batchId"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "lastCronRun": {
+                      "type": "object",
+                      "properties": {
+                        "timestamp": {
+                          "type": [
+                            "number",
+                            "null"
+                          ]
+                        },
+                        "name": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "timestamp",
+                        "name"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "lastD1Backup": {
+                      "type": "object",
+                      "properties": {
+                        "timestamp": {
+                          "type": [
+                            "number",
+                            "null"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "timestamp"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "appVersion",
+                    "schemaVersion",
+                    "lastEnrichmentRun",
+                    "lastCronRun",
+                    "lastD1Backup"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "security": [
+          {
+            "basicAuth": []
+          }
+        ]
+      }
+    },
     "/api/admin/analytics": {
       "get": {
         "operationId": "get-admin-analytics",
@@ -718,6 +826,83 @@
         }
       }
     },
+    "/api/admin/curator-queue": {
+      "get": {
+        "operationId": "get-admin-curator-queue",
+        "summary": "GET /api/admin/curator-queue",
+        "tags": [
+          "admin",
+          "curator-queue"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "security": [
+          {
+            "basicAuth": []
+          }
+        ]
+      },
+      "post": {
+        "operationId": "post-admin-curator-queue",
+        "summary": "POST /api/admin/curator-queue",
+        "tags": [
+          "admin",
+          "curator-queue"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "security": [
+          {
+            "basicAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/admin/dashboard": {
       "get": {
         "operationId": "get-admin-dashboard",
@@ -759,6 +944,40 @@
         "tags": [
           "admin",
           "data-quality"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "security": [
+          {
+            "basicAuth": []
+          }
+        ]
+      }
+    },
+    "/api/admin/data-quality-sla": {
+      "get": {
+        "operationId": "get-admin-data-quality-sla",
+        "summary": "GET /api/admin/data-quality-sla",
+        "tags": [
+          "admin",
+          "data-quality-sla"
         ],
         "responses": {
           "200": {
@@ -1376,6 +1595,40 @@
             }
           }
         }
+      }
+    },
+    "/api/admin/image-health": {
+      "get": {
+        "operationId": "get-admin-image-health",
+        "summary": "GET /api/admin/image-health",
+        "tags": [
+          "admin",
+          "image-health"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "security": [
+          {
+            "basicAuth": []
+          }
+        ]
       }
     },
     "/api/admin/live-ops": {
@@ -2328,6 +2581,74 @@
         }
       }
     },
+    "/api/admin/source-health": {
+      "get": {
+        "operationId": "get-admin-source-health",
+        "summary": "GET /api/admin/source-health",
+        "tags": [
+          "admin",
+          "source-health"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "security": [
+          {
+            "basicAuth": []
+          }
+        ]
+      }
+    },
+    "/api/admin/source-health-status": {
+      "get": {
+        "operationId": "get-admin-source-health-status",
+        "summary": "GET /api/admin/source-health-status",
+        "tags": [
+          "admin",
+          "source-health-status"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "security": [
+          {
+            "basicAuth": []
+          }
+        ]
+      }
+    },
     "/api/admin/stress-test": {
       "get": {
         "operationId": "get-admin-stress-test",
@@ -2991,7 +3312,7 @@
     "/api/v2/attributes": {
       "get": {
         "operationId": "get-v2-attributes",
-        "summary": "GET /api/v2/attributes",
+        "summary": "List attribute definitions with optional coverage",
         "tags": [
           "v2",
           "attributes"
@@ -3002,8 +3323,88 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true
+                  "oneOf": [
+                    {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "key": {
+                            "type": "string"
+                          },
+                          "display_text": {
+                            "type": "string"
+                          },
+                          "question_text": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "categories": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "created_at": {
+                            "type": [
+                              "number",
+                              "null"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "key",
+                          "display_text"
+                        ],
+                        "additionalProperties": true
+                      }
+                    },
+                    {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "key": {
+                            "type": "string"
+                          },
+                          "display_text": {
+                            "type": "string"
+                          },
+                          "total_characters": {
+                            "type": "number"
+                          },
+                          "filled_count": {
+                            "type": "number"
+                          },
+                          "true_count": {
+                            "type": "number"
+                          },
+                          "false_count": {
+                            "type": "number"
+                          },
+                          "null_count": {
+                            "type": "number"
+                          },
+                          "coverage_pct": {
+                            "type": "number"
+                          }
+                        },
+                        "required": [
+                          "key",
+                          "display_text",
+                          "total_characters",
+                          "filled_count",
+                          "true_count",
+                          "false_count",
+                          "null_count",
+                          "coverage_pct"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  ]
                 }
               }
             }
@@ -3020,7 +3421,7 @@
     "/api/v2/characters": {
       "get": {
         "operationId": "get-v2-characters",
-        "summary": "GET /api/v2/characters",
+        "summary": "List characters or fetch one character by id",
         "tags": [
           "v2",
           "characters"
@@ -3031,8 +3432,86 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "category": {
+                          "type": "string"
+                        },
+                        "attributes": {
+                          "type": "object",
+                          "additionalProperties": {
+                            "oneOf": [
+                              {
+                                "type": "boolean"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          }
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name",
+                        "category",
+                        "attributes"
+                      ],
+                      "additionalProperties": true
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "characters": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": "string"
+                              },
+                              "category": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "name",
+                              "category"
+                            ],
+                            "additionalProperties": true
+                          }
+                        },
+                        "total": {
+                          "type": "number"
+                        },
+                        "limit": {
+                          "type": "number"
+                        },
+                        "offset": {
+                          "type": "number"
+                        }
+                      },
+                      "required": [
+                        "characters",
+                        "total",
+                        "limit",
+                        "offset"
+                      ],
+                      "additionalProperties": false
+                    }
+                  ]
                 }
               }
             }
@@ -3047,7 +3526,7 @@
       },
       "post": {
         "operationId": "post-v2-characters",
-        "summary": "POST /api/v2/characters",
+        "summary": "Create a new custom character",
         "tags": [
           "v2",
           "characters"
@@ -3059,7 +3538,30 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "additionalProperties": true
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "category": {
+                      "type": "string"
+                    },
+                    "description": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name",
+                    "category",
+                    "description"
+                  ],
+                  "additionalProperties": false
                 }
               }
             }
@@ -3077,7 +3579,39 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "additionalProperties": true
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 2,
+                    "maxLength": 50
+                  },
+                  "category": {
+                    "type": "string"
+                  },
+                  "description": {
+                    "type": "string",
+                    "maxLength": 2000
+                  },
+                  "attributes": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "oneOf": [
+                        {
+                          "type": "boolean"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  }
+                },
+                "required": [
+                  "name",
+                  "category",
+                  "attributes"
+                ],
+                "additionalProperties": false
               }
             }
           }
@@ -3099,7 +3633,82 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "additionalProperties": true
+                  "properties": {
+                    "date": {
+                      "type": "string"
+                    },
+                    "characterId": {
+                      "type": "string"
+                    },
+                    "completed": {
+                      "type": "boolean"
+                    },
+                    "result": {
+                      "oneOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "won": {
+                              "type": "boolean"
+                            },
+                            "questionsAsked": {
+                              "type": "number"
+                            },
+                            "completedAt": {
+                              "type": "number"
+                            }
+                          },
+                          "required": [
+                            "won",
+                            "questionsAsked",
+                            "completedAt"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "revealedCharacter": {
+                      "oneOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            },
+                            "name": {
+                              "type": "string"
+                            },
+                            "imageUrl": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            }
+                          },
+                          "required": [
+                            "id",
+                            "name",
+                            "imageUrl"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  },
+                  "required": [
+                    "date",
+                    "characterId",
+                    "completed",
+                    "result",
+                    "revealedCharacter"
+                  ],
+                  "additionalProperties": false
                 }
               }
             }
@@ -3126,7 +3735,23 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "additionalProperties": true
+                  "properties": {
+                    "ok": {
+                      "type": "boolean"
+                    },
+                    "date": {
+                      "type": "string"
+                    },
+                    "characterId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "ok",
+                    "date",
+                    "characterId"
+                  ],
+                  "additionalProperties": false
                 }
               }
             }
@@ -3167,7 +3792,7 @@
     "/api/v2/daily/leaderboard": {
       "get": {
         "operationId": "get-v2-daily-leaderboard",
-        "summary": "GET /api/v2/daily/leaderboard",
+        "summary": "Get daily challenge leaderboard",
         "tags": [
           "v2",
           "daily"
@@ -3179,7 +3804,51 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "additionalProperties": true
+                  "properties": {
+                    "date": {
+                      "type": "string"
+                    },
+                    "leaderboard": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "rank": {
+                            "type": "number"
+                          },
+                          "userLabel": {
+                            "type": "string"
+                          },
+                          "won": {
+                            "type": "boolean"
+                          },
+                          "questionsAsked": {
+                            "type": "number"
+                          },
+                          "completedAt": {
+                            "type": "number"
+                          },
+                          "isYou": {
+                            "type": "boolean"
+                          }
+                        },
+                        "required": [
+                          "rank",
+                          "userLabel",
+                          "won",
+                          "questionsAsked",
+                          "completedAt",
+                          "isYou"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "date",
+                    "leaderboard"
+                  ],
+                  "additionalProperties": false
                 }
               }
             }
@@ -3208,7 +3877,15 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "additionalProperties": true
+                  "properties": {
+                    "accepted": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "accepted"
+                  ],
+                  "additionalProperties": false
                 }
               }
             }
@@ -4091,7 +4768,7 @@
     "/api/v2/game/reveal": {
       "post": {
         "operationId": "post-v2-game-reveal",
-        "summary": "POST /api/v2/game/reveal",
+        "summary": "Submit reveal outcome after an incorrect guess",
         "tags": [
           "v2",
           "game"
@@ -4103,7 +4780,37 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "additionalProperties": true
+                  "properties": {
+                    "found": {
+                      "type": "boolean"
+                    },
+                    "characterId": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "characterName": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "attributesFilled": {
+                      "type": "number"
+                    },
+                    "discrepancies": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "found",
+                    "characterId",
+                    "characterName",
+                    "attributesFilled",
+                    "discrepancies"
+                  ],
+                  "additionalProperties": false
                 }
               }
             }
@@ -4121,7 +4828,36 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "additionalProperties": true
+                "properties": {
+                  "characterName": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "answers": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "questionId": {
+                          "type": "string"
+                        },
+                        "value": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "questionId",
+                        "value"
+                      ],
+                      "additionalProperties": false
+                    }
+                  }
+                },
+                "required": [
+                  "characterName",
+                  "answers"
+                ],
+                "additionalProperties": false
               }
             }
           }
@@ -4384,7 +5120,7 @@
     "/api/v2/history": {
       "get": {
         "operationId": "get-v2-history",
-        "summary": "GET /api/v2/history",
+        "summary": "Fetch game history for current user",
         "tags": [
           "v2",
           "history"
@@ -4396,7 +5132,83 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "additionalProperties": true
+                  "properties": {
+                    "games": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "characterId": {
+                            "type": "string"
+                          },
+                          "characterName": {
+                            "type": "string"
+                          },
+                          "won": {
+                            "type": "boolean"
+                          },
+                          "difficulty": {
+                            "type": "string"
+                          },
+                          "questionsAsked": {
+                            "type": "number"
+                          },
+                          "poolSize": {
+                            "type": "number"
+                          },
+                          "steps": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "questionText": {
+                                  "type": "string"
+                                },
+                                "attribute": {
+                                  "type": "string"
+                                },
+                                "answer": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "questionText",
+                                "attribute",
+                                "answer"
+                              ],
+                              "additionalProperties": false
+                            }
+                          },
+                          "timestamp": {
+                            "type": "number"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "characterId",
+                          "characterName",
+                          "won",
+                          "difficulty",
+                          "questionsAsked",
+                          "poolSize",
+                          "steps",
+                          "timestamp"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "total": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "games",
+                    "total"
+                  ],
+                  "additionalProperties": false
                 }
               }
             }
@@ -4413,7 +5225,7 @@
     "/api/v2/questions": {
       "get": {
         "operationId": "get-v2-questions",
-        "summary": "GET /api/v2/questions",
+        "summary": "List questions with optional attribute coverage",
         "tags": [
           "v2",
           "questions"
@@ -4424,8 +5236,74 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true
+                  "oneOf": [
+                    {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "number"
+                          },
+                          "text": {
+                            "type": "string"
+                          },
+                          "attribute_key": {
+                            "type": "string"
+                          },
+                          "priority": {
+                            "type": "number"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "text",
+                          "attribute_key",
+                          "priority"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "number"
+                          },
+                          "text": {
+                            "type": "string"
+                          },
+                          "attribute_key": {
+                            "type": "string"
+                          },
+                          "priority": {
+                            "type": "number"
+                          },
+                          "total_characters": {
+                            "type": "number"
+                          },
+                          "filled_count": {
+                            "type": "number"
+                          },
+                          "coverage_pct": {
+                            "type": "number"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "text",
+                          "attribute_key",
+                          "priority",
+                          "total_characters",
+                          "filled_count",
+                          "coverage_pct"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  ]
                 }
               }
             }
@@ -4442,7 +5320,7 @@
     "/api/v2/stats": {
       "get": {
         "operationId": "get-v2-stats",
-        "summary": "GET /api/v2/stats",
+        "summary": "Get aggregate catalog and gameplay stats",
         "tags": [
           "v2",
           "stats"
@@ -4454,7 +5332,202 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "additionalProperties": true
+                  "properties": {
+                    "characters": {
+                      "type": "number"
+                    },
+                    "attributes": {
+                      "type": "number"
+                    },
+                    "questions": {
+                      "type": "number"
+                    },
+                    "characterAttributes": {
+                      "type": "object",
+                      "properties": {
+                        "total": {
+                          "type": "number"
+                        },
+                        "filled": {
+                          "type": "number"
+                        },
+                        "fillRate": {
+                          "type": "number"
+                        }
+                      },
+                      "required": [
+                        "total",
+                        "filled",
+                        "fillRate"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "byCategory": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "category": {
+                            "type": "string"
+                          },
+                          "count": {
+                            "type": "number"
+                          }
+                        },
+                        "required": [
+                          "category",
+                          "count"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "bySource": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "source": {
+                            "type": "string"
+                          },
+                          "count": {
+                            "type": "number"
+                          }
+                        },
+                        "required": [
+                          "source",
+                          "count"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "gameStats": {
+                      "oneOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "totalGames": {
+                              "type": "number"
+                            },
+                            "wins": {
+                              "type": "number"
+                            },
+                            "winRate": {
+                              "type": "number"
+                            },
+                            "avgQuestions": {
+                              "type": "number"
+                            },
+                            "avgPoolSize": {
+                              "type": "number"
+                            }
+                          },
+                          "required": [
+                            "totalGames",
+                            "wins",
+                            "winRate",
+                            "avgQuestions",
+                            "avgPoolSize"
+                          ],
+                          "additionalProperties": true
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "confusion": {
+                      "oneOf": [
+                        {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "targetName": {
+                                "type": "string"
+                              },
+                              "secondBestName": {
+                                "type": "string"
+                              },
+                              "count": {
+                                "type": "number"
+                              },
+                              "lossRate": {
+                                "type": "number"
+                              }
+                            },
+                            "required": [
+                              "targetName",
+                              "secondBestName",
+                              "count",
+                              "lossRate"
+                            ],
+                            "additionalProperties": false
+                          }
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "calibration": {
+                      "oneOf": [
+                        {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "difficulty": {
+                                "type": "string"
+                              },
+                              "realGames": {
+                                "type": "number"
+                              },
+                              "realWinRate": {
+                                "type": "number"
+                              },
+                              "realAvgQ": {
+                                "type": "number"
+                              },
+                              "simGames": {
+                                "type": "number"
+                              },
+                              "simWinRate": {
+                                "type": "number"
+                              },
+                              "simAvgQ": {
+                                "type": "number"
+                              }
+                            },
+                            "required": [
+                              "difficulty",
+                              "realGames",
+                              "realWinRate",
+                              "realAvgQ",
+                              "simGames",
+                              "simWinRate",
+                              "simAvgQ"
+                            ],
+                            "additionalProperties": false
+                          }
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  },
+                  "required": [
+                    "characters",
+                    "attributes",
+                    "questions",
+                    "characterAttributes",
+                    "byCategory",
+                    "bySource",
+                    "gameStats",
+                    "confusion",
+                    "calibration"
+                  ],
+                  "additionalProperties": false
                 }
               }
             }

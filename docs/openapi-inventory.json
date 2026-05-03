@@ -1,6 +1,18 @@
 {
-  "endpointCount": 76,
+  "endpointCount": 82,
   "endpoints": [
+    {
+      "filePath": "functions/api/admin/about.ts",
+      "routePath": "/api/admin/about",
+      "methods": [
+        "get"
+      ],
+      "domain": "admin",
+      "tags": [
+        "admin",
+        "about"
+      ]
+    },
     {
       "filePath": "functions/api/admin/analytics.ts",
       "routePath": "/api/admin/analytics",
@@ -174,6 +186,19 @@
       ]
     },
     {
+      "filePath": "functions/api/admin/curator-queue.ts",
+      "routePath": "/api/admin/curator-queue",
+      "methods": [
+        "get",
+        "post"
+      ],
+      "domain": "admin",
+      "tags": [
+        "admin",
+        "curator-queue"
+      ]
+    },
+    {
       "filePath": "functions/api/admin/dashboard.ts",
       "routePath": "/api/admin/dashboard",
       "methods": [
@@ -195,6 +220,18 @@
       "tags": [
         "admin",
         "data-quality"
+      ]
+    },
+    {
+      "filePath": "functions/api/admin/data-quality-sla.ts",
+      "routePath": "/api/admin/data-quality-sla",
+      "methods": [
+        "get"
+      ],
+      "domain": "admin",
+      "tags": [
+        "admin",
+        "data-quality-sla"
       ]
     },
     {
@@ -342,6 +379,18 @@
       "tags": [
         "admin",
         "hygiene-question-scores"
+      ]
+    },
+    {
+      "filePath": "functions/api/admin/image-health.ts",
+      "routePath": "/api/admin/image-health",
+      "methods": [
+        "get"
+      ],
+      "domain": "admin",
+      "tags": [
+        "admin",
+        "image-health"
       ]
     },
     {
@@ -574,6 +623,30 @@
       "tags": [
         "admin",
         "resolve-stack"
+      ]
+    },
+    {
+      "filePath": "functions/api/admin/source-health.ts",
+      "routePath": "/api/admin/source-health",
+      "methods": [
+        "get"
+      ],
+      "domain": "admin",
+      "tags": [
+        "admin",
+        "source-health"
+      ]
+    },
+    {
+      "filePath": "functions/api/admin/source-health-status.ts",
+      "routePath": "/api/admin/source-health-status",
+      "methods": [
+        "get"
+      ],
+      "domain": "admin",
+      "tags": [
+        "admin",
+        "source-health-status"
       ]
     },
     {

@@ -272,6 +272,516 @@ const FEEDBACK_RESPONSE_SCHEMA: Record<string, unknown> = {
   additionalProperties: false,
 };
 
+const DAILY_GET_RESPONSE_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    date: { type: "string" },
+    characterId: { type: "string" },
+    completed: { type: "boolean" },
+    result: {
+      oneOf: [
+        {
+          type: "object",
+          properties: {
+            won: { type: "boolean" },
+            questionsAsked: { type: "number" },
+            completedAt: { type: "number" },
+          },
+          required: ["won", "questionsAsked", "completedAt"],
+          additionalProperties: false,
+        },
+        { type: "null" },
+      ],
+    },
+    revealedCharacter: {
+      oneOf: [
+        {
+          type: "object",
+          properties: {
+            id: { type: "string" },
+            name: { type: "string" },
+            imageUrl: { type: ["string", "null"] },
+          },
+          required: ["id", "name", "imageUrl"],
+          additionalProperties: false,
+        },
+        { type: "null" },
+      ],
+    },
+  },
+  required: ["date", "characterId", "completed", "result", "revealedCharacter"],
+  additionalProperties: false,
+};
+
+const DAILY_POST_RESPONSE_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    ok: { type: "boolean" },
+    date: { type: "string" },
+    characterId: { type: "string" },
+  },
+  required: ["ok", "date", "characterId"],
+  additionalProperties: false,
+};
+
+const DAILY_LEADERBOARD_RESPONSE_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    date: { type: "string" },
+    leaderboard: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          rank: { type: "number" },
+          userLabel: { type: "string" },
+          won: { type: "boolean" },
+          questionsAsked: { type: "number" },
+          completedAt: { type: "number" },
+          isYou: { type: "boolean" },
+        },
+        required: [
+          "rank",
+          "userLabel",
+          "won",
+          "questionsAsked",
+          "completedAt",
+          "isYou",
+        ],
+        additionalProperties: false,
+      },
+    },
+  },
+  required: ["date", "leaderboard"],
+  additionalProperties: false,
+};
+
+const EVENTS_BATCH_RESPONSE_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    accepted: { type: "number" },
+  },
+  required: ["accepted"],
+  additionalProperties: false,
+};
+
+const HISTORY_RESPONSE_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    games: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          id: { type: "string" },
+          characterId: { type: "string" },
+          characterName: { type: "string" },
+          won: { type: "boolean" },
+          difficulty: { type: "string" },
+          questionsAsked: { type: "number" },
+          poolSize: { type: "number" },
+          steps: {
+            type: "array",
+            items: {
+              type: "object",
+              properties: {
+                questionText: { type: "string" },
+                attribute: { type: "string" },
+                answer: { type: "string" },
+              },
+              required: ["questionText", "attribute", "answer"],
+              additionalProperties: false,
+            },
+          },
+          timestamp: { type: "number" },
+        },
+        required: [
+          "id",
+          "characterId",
+          "characterName",
+          "won",
+          "difficulty",
+          "questionsAsked",
+          "poolSize",
+          "steps",
+          "timestamp",
+        ],
+        additionalProperties: false,
+      },
+    },
+    total: { type: "number" },
+  },
+  required: ["games", "total"],
+  additionalProperties: false,
+};
+
+const QUESTIONS_LIST_ITEM_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    id: { type: "number" },
+    text: { type: "string" },
+    attribute_key: { type: "string" },
+    priority: { type: "number" },
+  },
+  required: ["id", "text", "attribute_key", "priority"],
+  additionalProperties: false,
+};
+
+const QUESTIONS_WITH_COVERAGE_ITEM_SCHEMA: Record<string, unknown> = {
+  ...QUESTIONS_LIST_ITEM_SCHEMA,
+  properties: {
+    ...(QUESTIONS_LIST_ITEM_SCHEMA.properties as Record<string, unknown>),
+    total_characters: { type: "number" },
+    filled_count: { type: "number" },
+    coverage_pct: { type: "number" },
+  },
+  required: [
+    "id",
+    "text",
+    "attribute_key",
+    "priority",
+    "total_characters",
+    "filled_count",
+    "coverage_pct",
+  ],
+};
+
+const QUESTIONS_RESPONSE_SCHEMA: Record<string, unknown> = {
+  oneOf: [
+    {
+      type: "array",
+      items: QUESTIONS_LIST_ITEM_SCHEMA,
+    },
+    {
+      type: "array",
+      items: QUESTIONS_WITH_COVERAGE_ITEM_SCHEMA,
+    },
+  ],
+};
+
+const ATTRIBUTES_RESPONSE_SCHEMA: Record<string, unknown> = {
+  oneOf: [
+    {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          key: { type: "string" },
+          display_text: { type: "string" },
+          question_text: { type: ["string", "null"] },
+          categories: { type: ["string", "null"] },
+          created_at: { type: ["number", "null"] },
+        },
+        required: ["key", "display_text"],
+        additionalProperties: true,
+      },
+    },
+    {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          key: { type: "string" },
+          display_text: { type: "string" },
+          total_characters: { type: "number" },
+          filled_count: { type: "number" },
+          true_count: { type: "number" },
+          false_count: { type: "number" },
+          null_count: { type: "number" },
+          coverage_pct: { type: "number" },
+        },
+        required: [
+          "key",
+          "display_text",
+          "total_characters",
+          "filled_count",
+          "true_count",
+          "false_count",
+          "null_count",
+          "coverage_pct",
+        ],
+        additionalProperties: false,
+      },
+    },
+  ],
+};
+
+const CHARACTER_BASE_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    id: { type: "string" },
+    name: { type: "string" },
+    category: { type: "string" },
+  },
+  required: ["id", "name", "category"],
+  additionalProperties: true,
+};
+
+const CHARACTERS_GET_RESPONSE_SCHEMA: Record<string, unknown> = {
+  oneOf: [
+    {
+      type: "object",
+      properties: {
+        ...(CHARACTER_BASE_SCHEMA.properties as Record<string, unknown>),
+        attributes: {
+          type: "object",
+          additionalProperties: {
+            oneOf: [{ type: "boolean" }, { type: "null" }],
+          },
+        },
+      },
+      required: ["id", "name", "category", "attributes"],
+      additionalProperties: true,
+    },
+    {
+      type: "object",
+      properties: {
+        characters: {
+          type: "array",
+          items: CHARACTER_BASE_SCHEMA,
+        },
+        total: { type: "number" },
+        limit: { type: "number" },
+        offset: { type: "number" },
+      },
+      required: ["characters", "total", "limit", "offset"],
+      additionalProperties: false,
+    },
+  ],
+};
+
+const CHARACTERS_POST_REQUEST_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    name: { type: "string", minLength: 2, maxLength: 50 },
+    category: { type: "string" },
+    description: { type: "string", maxLength: 2000 },
+    attributes: {
+      type: "object",
+      additionalProperties: {
+        oneOf: [{ type: "boolean" }, { type: "null" }],
+      },
+    },
+  },
+  required: ["name", "category", "attributes"],
+  additionalProperties: false,
+};
+
+const CHARACTERS_POST_RESPONSE_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    id: { type: "string" },
+    name: { type: "string" },
+    category: { type: "string" },
+    description: { type: ["string", "null"] },
+  },
+  required: ["id", "name", "category", "description"],
+  additionalProperties: false,
+};
+
+const REVEAL_REQUEST_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    characterName: { type: "string", minLength: 1 },
+    answers: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          questionId: { type: "string" },
+          value: { type: "string" },
+        },
+        required: ["questionId", "value"],
+        additionalProperties: false,
+      },
+    },
+  },
+  required: ["characterName", "answers"],
+  additionalProperties: false,
+};
+
+const REVEAL_RESPONSE_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    found: { type: "boolean" },
+    characterId: { type: ["string", "null"] },
+    characterName: { type: ["string", "null"] },
+    attributesFilled: { type: "number" },
+    discrepancies: { type: "number" },
+  },
+  required: [
+    "found",
+    "characterId",
+    "characterName",
+    "attributesFilled",
+    "discrepancies",
+  ],
+  additionalProperties: false,
+};
+
+const STATS_RESPONSE_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    characters: { type: "number" },
+    attributes: { type: "number" },
+    questions: { type: "number" },
+    characterAttributes: {
+      type: "object",
+      properties: {
+        total: { type: "number" },
+        filled: { type: "number" },
+        fillRate: { type: "number" },
+      },
+      required: ["total", "filled", "fillRate"],
+      additionalProperties: false,
+    },
+    byCategory: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          category: { type: "string" },
+          count: { type: "number" },
+        },
+        required: ["category", "count"],
+        additionalProperties: false,
+      },
+    },
+    bySource: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          source: { type: "string" },
+          count: { type: "number" },
+        },
+        required: ["source", "count"],
+        additionalProperties: false,
+      },
+    },
+    gameStats: {
+      oneOf: [
+        {
+          type: "object",
+          properties: {
+            totalGames: { type: "number" },
+            wins: { type: "number" },
+            winRate: { type: "number" },
+            avgQuestions: { type: "number" },
+            avgPoolSize: { type: "number" },
+          },
+          required: ["totalGames", "wins", "winRate", "avgQuestions", "avgPoolSize"],
+          additionalProperties: true,
+        },
+        { type: "null" },
+      ],
+    },
+    confusion: {
+      oneOf: [
+        {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              targetName: { type: "string" },
+              secondBestName: { type: "string" },
+              count: { type: "number" },
+              lossRate: { type: "number" },
+            },
+            required: ["targetName", "secondBestName", "count", "lossRate"],
+            additionalProperties: false,
+          },
+        },
+        { type: "null" },
+      ],
+    },
+    calibration: {
+      oneOf: [
+        {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              difficulty: { type: "string" },
+              realGames: { type: "number" },
+              realWinRate: { type: "number" },
+              realAvgQ: { type: "number" },
+              simGames: { type: "number" },
+              simWinRate: { type: "number" },
+              simAvgQ: { type: "number" },
+            },
+            required: [
+              "difficulty",
+              "realGames",
+              "realWinRate",
+              "realAvgQ",
+              "simGames",
+              "simWinRate",
+              "simAvgQ",
+            ],
+            additionalProperties: false,
+          },
+        },
+        { type: "null" },
+      ],
+    },
+  },
+  required: [
+    "characters",
+    "attributes",
+    "questions",
+    "characterAttributes",
+    "byCategory",
+    "bySource",
+    "gameStats",
+    "confusion",
+    "calibration",
+  ],
+  additionalProperties: false,
+};
+
+const ADMIN_ABOUT_RESPONSE_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    appVersion: { type: "string" },
+    schemaVersion: { type: "number" },
+    lastEnrichmentRun: {
+      type: "object",
+      properties: {
+        timestamp: { type: ["number", "null"] },
+        batchId: { type: ["string", "null"] },
+      },
+      required: ["timestamp", "batchId"],
+      additionalProperties: false,
+    },
+    lastCronRun: {
+      type: "object",
+      properties: {
+        timestamp: { type: ["number", "null"] },
+        name: { type: ["string", "null"] },
+      },
+      required: ["timestamp", "name"],
+      additionalProperties: false,
+    },
+    lastD1Backup: {
+      type: "object",
+      properties: {
+        timestamp: { type: ["number", "null"] },
+      },
+      required: ["timestamp"],
+      additionalProperties: false,
+    },
+  },
+  required: [
+    "appVersion",
+    "schemaVersion",
+    "lastEnrichmentRun",
+    "lastCronRun",
+    "lastD1Backup",
+  ],
+  additionalProperties: false,
+};
+
 const RESUME_RESPONSE_SCHEMA: Record<string, unknown> = {
   oneOf: [
     {
@@ -396,13 +906,54 @@ const OPERATION_METADATA: Record<string, OperationMetadata> = {
         },
       },
     },
+    responseSchema: EVENTS_BATCH_RESPONSE_SCHEMA,
   },
   "post /api/v2/daily": {
     summary: "Record daily challenge completion result",
     requestSchema: DAILY_RESULT_REQUEST_SCHEMA,
+    responseSchema: DAILY_POST_RESPONSE_SCHEMA,
   },
   "get /api/v2/daily": {
     summary: "Get current user daily challenge status",
+    responseSchema: DAILY_GET_RESPONSE_SCHEMA,
+  },
+  "get /api/v2/daily/leaderboard": {
+    summary: "Get daily challenge leaderboard",
+    responseSchema: DAILY_LEADERBOARD_RESPONSE_SCHEMA,
+  },
+  "get /api/v2/attributes": {
+    summary: "List attribute definitions with optional coverage",
+    responseSchema: ATTRIBUTES_RESPONSE_SCHEMA,
+  },
+  "get /api/v2/characters": {
+    summary: "List characters or fetch one character by id",
+    responseSchema: CHARACTERS_GET_RESPONSE_SCHEMA,
+  },
+  "post /api/v2/characters": {
+    summary: "Create a new custom character",
+    requestSchema: CHARACTERS_POST_REQUEST_SCHEMA,
+    responseSchema: CHARACTERS_POST_RESPONSE_SCHEMA,
+  },
+  "get /api/v2/history": {
+    summary: "Fetch game history for current user",
+    responseSchema: HISTORY_RESPONSE_SCHEMA,
+  },
+  "get /api/v2/questions": {
+    summary: "List questions with optional attribute coverage",
+    responseSchema: QUESTIONS_RESPONSE_SCHEMA,
+  },
+  "get /api/v2/stats": {
+    summary: "Get aggregate catalog and gameplay stats",
+    responseSchema: STATS_RESPONSE_SCHEMA,
+  },
+  "post /api/v2/game/reveal": {
+    summary: "Submit reveal outcome after an incorrect guess",
+    requestSchema: REVEAL_REQUEST_SCHEMA,
+    responseSchema: REVEAL_RESPONSE_SCHEMA,
+  },
+  "get /api/admin/about": {
+    summary: "Get admin build and data freshness metadata",
+    responseSchema: ADMIN_ABOUT_RESPONSE_SCHEMA,
   },
 };
 
