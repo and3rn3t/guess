@@ -338,6 +338,96 @@ function toDay(unixSeconds: number): string {
   return new Date(unixSeconds * 1000).toISOString().slice(0, 10)
 }
 
+function relativeFromIso(iso: string): string {
+  const ts = Date.parse(iso)
+  if (!Number.isFinite(ts)) return 'unknown'
+  const deltaMs = Math.max(0, Date.now() - ts)
+  const mins = Math.floor(deltaMs / 60000)
+  if (mins < 1) return 'just now'
+  if (mins < 60) return `${mins}m ago`
+  const hours = Math.floor(mins / 60)
+  if (hours < 48) return `${hours}h ago`
+  const days = Math.floor(hours / 24)
+  return `${days}d ago`
+}
+
+function formatAutomationShareDelta(delta: number | null): string {
+  return delta === null ? 'n/a' : fmtPp(delta)
+}
+
+interface TrendSeriesData {
+  goldenSeries: Array<{ day: string; value: number }>
+  visionSeries: Array<{ day: string; value: number }>
+  agreementSeries: Array<{ day: string; value: number }>
+  disputeSeries: Array<{ day: string; value: number }>
+  healthSeries: Array<{ day: string; value: number }>
+  closureTotalSeries: Array<{ day: string; value: number }>
+  closureAutomationSeries: Array<{ day: string; value: number }>
+  closureManualSeries: Array<{ day: string; value: number }>
+  closureLaneMixSeries: Array<{ day: string; automation: number; manual: number }>
+  latestLaneMix: { day: string; automation: number; manual: number } | null
+  automationShareDeltaPp: number | null
+}
+
+function buildTrendSeries(history: HistoryRow[]): TrendSeriesData {
+  const goldenSeries = history
+    .filter((row) => row.golden_pass_rate !== null)
+    .map((row) => ({ day: toDay(row.captured_at), value: row.golden_pass_rate as number }))
+  const visionSeries = history
+    .filter((row) => row.vision_pass_rate !== null)
+    .map((row) => ({ day: toDay(row.captured_at), value: row.vision_pass_rate as number }))
+  const agreementSeries = history.map((row) => ({ day: toDay(row.captured_at), value: row.agreement_avg }))
+  const disputeSeries = history.map((row) => ({ day: toDay(row.captured_at), value: row.open_disputes }))
+  const healthSeries = history.map((row) => ({ day: toDay(row.captured_at), value: row.data_health_score }))
+  const closureTotalSeries = history
+    .filter((row) => row.closure_total_pairs !== null)
+    .map((row) => ({ day: toDay(row.captured_at), value: row.closure_total_pairs as number }))
+  const closureAutomationSeries = history
+    .filter((row) => row.closure_automation_pairs !== null)
+    .map((row) => ({ day: toDay(row.captured_at), value: row.closure_automation_pairs as number }))
+  const closureManualSeries = history
+    .filter((row) => row.closure_manual_pairs !== null)
+    .map((row) => ({ day: toDay(row.captured_at), value: row.closure_manual_pairs as number }))
+  const closureLaneMixSeries = history
+    .filter(
+      (row) =>
+        row.closure_total_pairs !== null &&
+        row.closure_total_pairs > 0 &&
+        row.closure_automation_pairs !== null &&
+        row.closure_manual_pairs !== null,
+    )
+    .map((row) => {
+      const total = row.closure_total_pairs as number
+      const automation = (row.closure_automation_pairs as number) / total
+      const manual = (row.closure_manual_pairs as number) / total
+      return {
+        day: toDay(row.captured_at),
+        automation,
+        manual,
+      }
+    })
+  const latestLaneMix = closureLaneMixSeries.length > 0 ? closureLaneMixSeries[closureLaneMixSeries.length - 1] : null
+  const previousLaneMix = closureLaneMixSeries.length > 1 ? closureLaneMixSeries[closureLaneMixSeries.length - 2] : null
+  const automationShareDeltaPp =
+    latestLaneMix && previousLaneMix
+      ? (latestLaneMix.automation - previousLaneMix.automation) * 100
+      : null
+
+  return {
+    goldenSeries,
+    visionSeries,
+    agreementSeries,
+    disputeSeries,
+    healthSeries,
+    closureTotalSeries,
+    closureAutomationSeries,
+    closureManualSeries,
+    closureLaneMixSeries,
+    latestLaneMix,
+    automationShareDeltaPp,
+  }
+}
+
 export default function DataQualityRoute(): React.JSX.Element {
   const [data, setData] = useState<DataQualityResponse | null>(null)
   const [closureQueue, setClosureQueue] = useState<ClosureQueueResponse | null>(null)
@@ -346,19 +436,6 @@ export default function DataQualityRoute(): React.JSX.Element {
   const [sourceHealthStatus, setSourceHealthStatus] = useState<SourceHealthStatusResponse | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-
-  function relativeFromIso(iso: string): string {
-    const ts = Date.parse(iso)
-    if (!Number.isFinite(ts)) return 'unknown'
-    const deltaMs = Math.max(0, Date.now() - ts)
-    const mins = Math.floor(deltaMs / 60000)
-    if (mins < 1) return 'just now'
-    if (mins < 60) return `${mins}m ago`
-    const hours = Math.floor(mins / 60)
-    if (hours < 48) return `${hours}h ago`
-    const days = Math.floor(hours / 24)
-    return `${days}d ago`
-  }
 
   useEffect(() => {
     let cancelled = false
@@ -402,48 +479,19 @@ export default function DataQualityRoute(): React.JSX.Element {
   }, [])
 
   const history = data?.history ?? []
-  const goldenSeries = history
-    .filter((row) => row.golden_pass_rate !== null)
-    .map((row) => ({ day: toDay(row.captured_at), value: row.golden_pass_rate as number }))
-  const visionSeries = history
-    .filter((row) => row.vision_pass_rate !== null)
-    .map((row) => ({ day: toDay(row.captured_at), value: row.vision_pass_rate as number }))
-  const agreementSeries = history.map((row) => ({ day: toDay(row.captured_at), value: row.agreement_avg }))
-  const disputeSeries = history.map((row) => ({ day: toDay(row.captured_at), value: row.open_disputes }))
-  const healthSeries = history.map((row) => ({ day: toDay(row.captured_at), value: row.data_health_score }))
-  const closureTotalSeries = history
-    .filter((row) => row.closure_total_pairs !== null)
-    .map((row) => ({ day: toDay(row.captured_at), value: row.closure_total_pairs as number }))
-  const closureAutomationSeries = history
-    .filter((row) => row.closure_automation_pairs !== null)
-    .map((row) => ({ day: toDay(row.captured_at), value: row.closure_automation_pairs as number }))
-  const closureManualSeries = history
-    .filter((row) => row.closure_manual_pairs !== null)
-    .map((row) => ({ day: toDay(row.captured_at), value: row.closure_manual_pairs as number }))
-  const closureLaneMixSeries = history
-    .filter(
-      (row) =>
-        row.closure_total_pairs !== null &&
-        row.closure_total_pairs > 0 &&
-        row.closure_automation_pairs !== null &&
-        row.closure_manual_pairs !== null,
-    )
-    .map((row) => {
-      const total = row.closure_total_pairs as number
-      const automation = (row.closure_automation_pairs as number) / total
-      const manual = (row.closure_manual_pairs as number) / total
-      return {
-        day: toDay(row.captured_at),
-        automation,
-        manual,
-      }
-    })
-  const latestLaneMix = closureLaneMixSeries.length > 0 ? closureLaneMixSeries[closureLaneMixSeries.length - 1] : null
-  const previousLaneMix = closureLaneMixSeries.length > 1 ? closureLaneMixSeries[closureLaneMixSeries.length - 2] : null
-  const automationShareDeltaPp =
-    latestLaneMix && previousLaneMix
-      ? (latestLaneMix.automation - previousLaneMix.automation) * 100
-      : null
+  const {
+    goldenSeries,
+    visionSeries,
+    agreementSeries,
+    disputeSeries,
+    healthSeries,
+    closureTotalSeries,
+    closureAutomationSeries,
+    closureManualSeries,
+    closureLaneMixSeries,
+    latestLaneMix,
+    automationShareDeltaPp,
+  } = buildTrendSeries(history)
   const completenessVerdict = data ? gateTone(data.live) : null
   const categoryRows = data
     ? Object.entries(data.live.completeness.categoryCompleteness).sort((a, b) => a[1] - b[1])
@@ -525,7 +573,7 @@ export default function DataQualityRoute(): React.JSX.Element {
                 />
               </div>
 
-              <div className={`min-w-[260px] rounded-lg border px-4 py-3 ${completenessVerdict?.className ?? ''}`}>
+              <div className={`min-w-65 rounded-lg border px-4 py-3 ${completenessVerdict?.className ?? ''}`}>
                 <p className="text-xs font-semibold uppercase tracking-[0.2em]">Gate verdict</p>
                 <p className="mt-2 text-3xl font-semibold">{completenessVerdict?.label}</p>
                 <p className="mt-2 text-sm opacity-90">{completenessVerdict?.hint}</p>
@@ -750,7 +798,7 @@ export default function DataQualityRoute(): React.JSX.Element {
               />
               <Kpi
                 label="Automation share delta"
-                value={automationShareDeltaPp !== null ? fmtPp(automationShareDeltaPp) : 'n/a'}
+                value={formatAutomationShareDelta(automationShareDeltaPp)}
                 hint="Change versus previous snapshot"
               />
             </div>

@@ -2,8 +2,19 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
+import type { ReactNode } from 'react'
 
 import DataQualityRoute from '../routes/DataQualityRoute'
+
+vi.mock('recharts', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('recharts')>()
+  return {
+    ...actual,
+    ResponsiveContainer: ({ children }: { children?: ReactNode }) => (
+      <div className="h-80 w-200">{children}</div>
+    ),
+  }
+})
 
 afterEach(() => {
   vi.restoreAllMocks()
@@ -12,7 +23,11 @@ afterEach(() => {
 describe('DataQualityRoute', () => {
   it('renders completeness gate metrics from the admin API payload', async () => {
     const fetchMock = vi.fn().mockImplementation(async (input: RequestInfo | URL) => {
-      const url = typeof input === 'string' ? input : input.toString()
+      const url = (() => {
+        if (typeof input === 'string') return input
+        if (input instanceof URL) return input.toString()
+        return input.url
+      })()
       if (url.includes('/api/admin/data-quality/closure-queue-status')) {
         return {
           ok: true,
@@ -155,9 +170,9 @@ describe('DataQualityRoute', () => {
                 avgAgedDays: 2,
               },
               perIssueType: {
-                cannot_infer: { count: 5, percentOfTotal: 50.0 },
-                canon_conflict: { count: 3, percentOfTotal: 30.0 },
-                subjective: { count: 2, percentOfTotal: 20.0 },
+                cannot_infer: { count: 5, percentOfTotal: 50 },
+                canon_conflict: { count: 3, percentOfTotal: 30 },
+                subjective: { count: 2, percentOfTotal: 20 },
               },
               items: [],
             },
