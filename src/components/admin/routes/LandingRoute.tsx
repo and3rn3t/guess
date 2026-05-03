@@ -4,6 +4,7 @@ import { AdminPageHeader } from '../AdminPageHeader'
 import { FreshnessPill } from '../FreshnessPill'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { fetchAdminAutomationStatus, type AdminAutomationReport } from '@/lib/admin/adminApi'
 import {
   UsersIcon,
   ArrowsClockwiseIcon,
@@ -74,6 +75,11 @@ interface WorkflowPlaybook {
 interface WorkflowProgress {
   activeTo: string | null
   completed: boolean
+}
+
+interface AutomationStatusCardProps {
+  report: AdminAutomationReport | null
+  fetchedAt: number | null
 }
 
 type WorkflowProgressMap = Record<string, WorkflowProgress>
@@ -267,6 +273,111 @@ function workflowSyncBadge(status: WorkflowSyncStatus): { label: string; classNa
   return { label: 'Retry', className: 'bg-amber-500/20 text-amber-300' }
 }
 
+function formatElapsed(ms: number): string {
+  if (!Number.isFinite(ms) || ms < 0) return 'n/a'
+  if (ms < 1000) return `${ms} ms`
+  return `${(ms / 1000).toFixed(2)} s`
+}
+
+function formatRunAge(ranAt: number | null): string {
+  if (!ranAt || !Number.isFinite(ranAt)) return 'No run yet'
+  const delta = Date.now() - ranAt
+  if (delta < 60_000) return `${Math.max(1, Math.floor(delta / 1000))}s ago`
+  if (delta < 3_600_000) return `${Math.floor(delta / 60_000)}m ago`
+  if (delta < 86_400_000) return `${Math.floor(delta / 3_600_000)}h ago`
+  return `${Math.floor(delta / 86_400_000)}d ago`
+}
+
+function stepTone(status: 'inserted' | 'skipped' | 'error' | 'started'): string {
+  if (status === 'error') return 'text-red-300'
+  if (status === 'skipped') return 'text-muted-foreground'
+  return 'text-emerald-300'
+}
+
+function AutomationStatusCard({ report, fetchedAt }: AutomationStatusCardProps): React.JSX.Element {
+  return (
+    <div className="rounded-xl border bg-card p-4 space-y-3">
+      <div className="flex items-center justify-between gap-2">
+        <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-widest">Automation Pulse</h2>
+        <span className="text-xs text-muted-foreground">{report ? formatRunAge(report.ranAt) : 'No report'}</span>
+      </div>
+      {!report ? (
+        <p className="text-sm text-muted-foreground">
+          No cron automation report yet. After the next cron tick, this card will show status and timing.
+        </p>
+      ) : (
+        <>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+            <div className="rounded border border-border px-2 py-2">
+              <div className="text-[11px] uppercase tracking-widest text-muted-foreground">Total</div>
+              <div className="text-sm font-semibold text-foreground">{formatElapsed(report.durationMs)}</div>
+            </div>
+            <div className="rounded border border-border px-2 py-2">
+              <div className="text-[11px] uppercase tracking-widest text-muted-foreground">Errors</div>
+              <div className={`text-sm font-semibold ${report.errorCount > 0 ? 'text-red-300' : 'text-emerald-300'}`}>
+                {report.errorCount}
+              </div>
+            </div>
+            <div className="rounded border border-border px-2 py-2">
+              <div className="text-[11px] uppercase tracking-widest text-muted-foreground">Embedded</div>
+              <div className="text-sm font-semibold text-violet-300">{report.duplicatesEmbedded}</div>
+            </div>
+            <div className="rounded border border-border px-2 py-2">
+              <div className="text-[11px] uppercase tracking-widest text-muted-foreground">Retired</div>
+              <div className="text-sm font-semibold text-amber-300">{report.retiredQuestions}</div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
+            <div className="rounded border border-border px-3 py-2">
+              <div className="flex items-center justify-between">
+                <span className="uppercase tracking-widest text-muted-foreground">Snapshot</span>
+                <span className={stepTone(report.snapshot)}>{report.snapshot}</span>
+              </div>
+              <div className="text-muted-foreground mt-1">{formatElapsed(report.stepDurationsMs.snapshot)}</div>
+            </div>
+            <div className="rounded border border-border px-3 py-2">
+              <div className="flex items-center justify-between">
+                <span className="uppercase tracking-widest text-muted-foreground">Duplicates</span>
+                <span className={stepTone(report.duplicatesEmbedded > 0 ? 'started' : 'skipped')}>
+                  {report.duplicatesEmbedded > 0 ? 'updated' : 'idle'}
+                </span>
+              </div>
+              <div className="text-muted-foreground mt-1">{formatElapsed(report.stepDurationsMs.duplicates)}</div>
+            </div>
+            <div className="rounded border border-border px-3 py-2">
+              <div className="flex items-center justify-between">
+                <span className="uppercase tracking-widest text-muted-foreground">Enrichment</span>
+                <span className={stepTone(report.enrichmentKick)}>{report.enrichmentKick}</span>
+              </div>
+              <div className="text-muted-foreground mt-1">{formatElapsed(report.stepDurationsMs.enrichment)}</div>
+            </div>
+            <div className="rounded border border-border px-3 py-2">
+              <div className="flex items-center justify-between">
+                <span className="uppercase tracking-widest text-muted-foreground">Auto-retire</span>
+                <span className={stepTone(report.retiredQuestions > 0 ? 'started' : 'skipped')}>
+                  {report.retiredQuestions > 0 ? 'active' : 'idle'}
+                </span>
+              </div>
+              <div className="text-muted-foreground mt-1">{formatElapsed(report.stepDurationsMs.retirement)}</div>
+            </div>
+          </div>
+
+          {!!report.notes.length && (
+            <div className="rounded border border-border px-3 py-2 text-xs text-muted-foreground">
+              {report.notes.join(' | ')}
+            </div>
+          )}
+
+          <div className="text-[11px] text-muted-foreground">
+            Fetched: {fetchedAt ? new Date(fetchedAt).toLocaleTimeString() : 'n/a'}
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
+
 function useWorkflowProgressSync(): {
   workflowProgress: WorkflowProgressMap
   workflowSyncStatus: WorkflowSyncStatus
@@ -381,6 +492,8 @@ export default function LandingRoute(): React.JSX.Element {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [lastFetchedAt, setLastFetchedAt] = useState<number | null>(null)
+  const [automationReport, setAutomationReport] = useState<AdminAutomationReport | null>(null)
+  const [automationFetchedAt, setAutomationFetchedAt] = useState<number | null>(null)
   const [thresholds, setThresholds] = useState<AlertThresholds>(DEFAULT_THRESHOLDS)
   const {
     workflowProgress,
@@ -403,10 +516,15 @@ export default function LandingRoute(): React.JSX.Element {
     setLoading(true)
     setError(null)
     try {
-      const response = await fetch('/api/admin/dashboard')
-      if (!response.ok) throw new Error(`${response.status}`)
-      const json = await response.json() as DashboardData
+      const [dashboardResponse, automation] = await Promise.all([
+        fetch('/api/admin/dashboard'),
+        fetchAdminAutomationStatus(),
+      ])
+      if (!dashboardResponse.ok) throw new Error(`${dashboardResponse.status}`)
+      const json = await dashboardResponse.json() as DashboardData
       setData(json)
+      setAutomationReport(automation?.report ?? null)
+      setAutomationFetchedAt(automation?.fetchedAt ?? null)
       setLastFetchedAt(Date.now())
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed')
@@ -631,6 +749,8 @@ export default function LandingRoute(): React.JSX.Element {
           </div>
         </div>
       </div>
+
+      <AutomationStatusCard report={automationReport} fetchedAt={automationFetchedAt} />
 
       {/* Recent games */}
       {(data?.recentGames.length ?? 0) > 0 && (

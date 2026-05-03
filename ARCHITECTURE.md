@@ -385,6 +385,7 @@ Calibration queries live in [docs/guess-readiness-queries.sql](docs/guess-readin
 | `/api/admin/attribute-disputes` | GET, PATCH | Adversarial validation dispute review |
 | `/api/admin/proposed-attributes` | GET, POST, PATCH | Community-proposed attribute management |
 | `/api/admin/analytics` | GET | Admin analytics dashboard data |
+| `/api/admin/automation-status` | GET | Latest cron automation run report for Mission Control |
 | `/api/admin/error-logs` | GET | Worker error log viewer |
 | `/api/admin/pipeline` | GET | Enrichment pipeline status |
 
@@ -392,7 +393,7 @@ Calibration queries live in [docs/guess-readiness-queries.sql](docs/guess-readin
 
 | Schedule (UTC) | Handler | Purpose |
 |---|---|---|
-| `5 0 * * *` (00:05 daily) | `functions/cron/index.ts` → `runScheduled` | Nightly housekeeping. Logs a `cron.tick` for `wrangler tail` then runs the AN.33 anomaly check (`functions/cron/_anomaly_check.ts`) over `data_quality_snapshots`. Future consumers: `daily_stats` rollup (migration 0036), `info_gain_avg` EMA update, `feature_flags` D1→KV sync, DQ.6 attribute reconciliation, DQ.22 sparse-attribute auto-fill. |
+| `5 0 * * *` (00:05 daily) | `functions/cron/index.ts` → `runScheduled` | Nightly housekeeping. Logs a `cron.tick`, runs AN.33 anomaly checks (`functions/cron/_anomaly_check.ts`), then runs guarded admin automation (`functions/cron/_automation.ts`): daily data-quality snapshot capture, duplicate-embedding backfill, one-step enrichment kick, and optional auto-retirement for low-signal questions. |
 
 Cron Triggers for the Pages project must be enabled via the Cloudflare dashboard
 (Workers & Pages → guess → Settings → Triggers → Add Cron Trigger). `wrangler.toml`
@@ -405,6 +406,23 @@ per metric over `data_quality_snapshots` (`data_health_score`, `coverage_pct`,
 POSTed as a Slack/Discord-compatible `{ text }` payload. `ALERTS_DASHBOARD_URL`
 optionally appends a "view chart" link. Webhook failures are recorded inline on
 the alert row and never fail the cron run.
+
+**Admin automation switches** — the same cron tick also runs conservative
+maintenance workloads behind env flags so operators can stage rollout safely:
+
+- `AUTO_CAPTURE_DQ_SNAPSHOT` (default on): writes one `data_quality_snapshots`
+  row/day when one does not already exist for UTC "today".
+- `AUTO_DUPLICATES_BACKFILL` (default on) + `AUTO_DUPLICATES_LIMIT` (default 40,
+  clamp 1..200): runs duplicate-question embedding backfill using Workers AI.
+- `AUTO_ENRICH_ONE` (default on): runs one server-side enrichment step per tick
+  when `OPENAI_API_KEY` is present and no enrich run is currently flagged.
+- `AUTO_RETIRE_ENABLED` (default off): optional strict auto-retirement path using
+  AN.17 scoring. Tuned by `AUTO_RETIRE_LIMIT` (default 3),
+  `AUTO_RETIRE_MIN_SCORE` (default 0.9), `AUTO_RETIRE_MIN_SHOWN` (default 20),
+  and `AUTO_RETIRE_WINDOW_DAYS` (default 30).
+
+Each run writes a summary report to KV (`admin:automation:last-run`, 7-day TTL)
+and logs a `cron.automation` event for `wrangler tail` observability.
 
 ### Data Quality Gate (DQ.1)
 

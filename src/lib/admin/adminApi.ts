@@ -7,6 +7,35 @@ import { httpClient, JSON_CONTENT_TYPE } from '@/lib/http'
 import { ADMIN_API_ENDPOINTS, adminCharacterPath } from '@/lib/constants'
 import type { Character, CharacterCategory } from '@/lib/types'
 
+export interface AdminAutomationReport {
+  ranAt: number
+  cron: string
+  durationMs: number
+  errorCount: number
+  snapshot: 'inserted' | 'skipped' | 'error'
+  duplicatesEmbedded: number
+  enrichmentKick: 'started' | 'skipped' | 'error'
+  retiredQuestions: number
+  stepDurationsMs: {
+    snapshot: number
+    duplicates: number
+    enrichment: number
+    retirement: number
+  }
+  stepErrors: {
+    snapshot: string | null
+    duplicates: string | null
+    enrichment: string | null
+    retirement: string | null
+  }
+  notes: string[]
+}
+
+export interface AdminAutomationStatus {
+  report: AdminAutomationReport | null
+  fetchedAt: number
+}
+
 type AttributeApiValue = 0 | 1 | null
 type AttributeValue = boolean | null
 
@@ -132,4 +161,12 @@ export async function saveAdminCharacterAttributeDiff(
   }
 
   return changed.length
+}
+
+export async function fetchAdminAutomationStatus(): Promise<AdminAutomationStatus | null> {
+  try {
+    return await httpClient.getJson<AdminAutomationStatus>(ADMIN_API_ENDPOINTS.automationStatus)
+  } catch {
+    return null
+  }
 }

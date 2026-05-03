@@ -9,8 +9,8 @@
  * window in planned migration 0036, the `info_gain_avg` EMA update, and the
  * future `feature_flags` D1→KV sync.
  *
- * Until those consumers ship, this handler is a no-op that logs the trigger
- * for `wrangler tail` visibility (the H.3 acceptance criterion).
+ * The handler logs the trigger for `wrangler tail` visibility and runs
+ * isolated nightly maintenance workloads.
  *
  * Wave 2 consumers (DQ.6 nightly attribute reconciliation, DQ.22 sparse-attribute
  * auto-fill) will land their workloads as cases inside `runScheduled` keyed off
@@ -18,11 +18,9 @@
  */
 
 import { runAnomalyCheck, type AnomalyEnv } from './_anomaly_check'
+import { runAdminAutomation, type AutomationEnv } from './_automation'
 
-export interface CronEnv extends AnomalyEnv {
-  GUESS_KV?: KVNamespace
-  GUESS_DB?: D1Database
-}
+export interface CronEnv extends AnomalyEnv, AutomationEnv {}
 
 export interface ScheduledTrigger {
   cron: string
@@ -51,6 +49,12 @@ export async function runScheduled(
     log({ event: 'cron.anomaly_check', ...summary })
   } catch (err) {
     log({ event: 'cron.anomaly_check_failed', error: (err as Error).message })
+  }
+
+  try {
+    await runAdminAutomation(trigger, env, log)
+  } catch (err) {
+    log({ event: 'cron.automation_failed', error: (err as Error).message })
   }
 }
 

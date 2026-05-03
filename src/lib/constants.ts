@@ -47,6 +47,7 @@ export const ADMIN_API_ENDPOINTS = {
 	questionDuplicatesBackfill: "/api/admin/questions/duplicates/backfill",
 	questionDuplicatesDismiss: "/api/admin/questions/duplicates/dismiss",
 	questionDuplicatesMerge: "/api/admin/questions/duplicates/merge",
+	automationStatus: "/api/admin/automation-status",
 	proposedAttributes: "/api/admin/proposed-attributes",
 	attributeDisputes: "/api/admin/attribute-disputes",
 	attributeDisputesAi: "/api/admin/attribute-disputes-ai",

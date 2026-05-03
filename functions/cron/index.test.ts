@@ -17,6 +17,14 @@ describe('cron/runScheduled', () => {
     expect(log).toHaveBeenCalledWith(
       expect.objectContaining({ event: 'cron.anomaly_check', alerts: 0 }),
     )
+    expect(log).toHaveBeenCalledWith(
+      expect.objectContaining({
+        event: 'cron.automation',
+        cron: '5 0 * * *',
+        snapshot: 'skipped',
+        enrichmentKick: 'skipped',
+      }),
+    )
   })
 
   it('resolves without throwing when env is empty (no consumers wired yet)', async () => {
