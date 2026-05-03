@@ -255,7 +255,7 @@ The active execution plan, sequenced by **priority × ease**. Pull items top-dow
 > **Maintain this block first.** It's the single answer to "what should I work on?" — agents and humans check it before scanning tables. Update in the same commit as the work it describes.
 
 - 🟡 **In progress:** [I.1](#i-1) preview AI Gateway 24h verification window · [I.9](#i-9) AI Gateway semantic caching 7d cache-hit window
-- 🟡 **In progress:** [DQ.33](#dq-33) deterministic null-closure queue
+- 🟡 **In progress:** [DQ.33](#dq-33) deterministic null-closure queue · [DQ.36](#dq-36) manual curator closure queue
 - 🟡 **In progress:** [DX.23](#dx-23) `pnpm doctor` · [DX.25](#dx-25) `pnpm tail` · [DX.27](#dx-27) `.vscode/` settings + extensions · [DX.31](#dx-31) OpenAPI spec auto-derived from handlers · [DX.38](#dx-38) commitlint — terminal & IDE DX sweep
 - ▶ **Up next:** (none)
 - ✅ **Recently completed:** [DQ.35](#dq-35) image health completeness guardrail (2026-05-03) · [DQ.32](#dq-32) attribute completeness SLA matrix (2026-05-03) · [DQ.34](#dq-34) source-ID completeness guardrail (2026-05-03) · [P.7](#p-7) `/about` + `/credits` pages (2026-05-03) · [P.8](#p-8) light theme + 3-state toggle (system/dark/light) (2026-05-03) · [P.9](#p-9) daily challenge leaderboard foundation (2026-05-03) · [DX.4](#dx-4) MSW for API-dependent component tests (2026-05-02) · admin recommender + Data Hygiene + cost dashboard migrated to server endpoints with request-id/rate-limit/logging hardening (2026-05-02) · post-game reflection feedback capture + coverage tests (2026-05-02) · [EN.29](#en-29) trivia card on reveal (2026-05-02)
@@ -345,7 +345,7 @@ Pull from these once the foundation is solid. Ordered by ease within each cluste
 | 🟡 | 3 | [DQ.33](#dq-33) | Deterministic null-closure queue | M | Ensures high-impact NULLs are closed first, not random backlog slices. | Daily queue exists, is consumed by automation/manual workflows, and backlog burn rate improves week-over-week. |
 | ✅ 2026-05-03 | 4 | [DQ.34](#dq-34) | Source-ID completeness guardrail | S | Broken source IDs silently degrade enrichment and evidence quality. | Daily source-health check runs; invalid IDs are queued and visible in admin with aging/count metrics. |
 | ✅ 2026-05-03 | 5 | [DQ.35](#dq-35) | Image health completeness guardrail | S | Portrait quality gaps degrade both playability and visual-attribute quality. | Image-health queue is generated daily; unusable portrait rate trends down and is visible in admin. |
-| ⬜ | 6 | [DQ.36](#dq-36) | Manual curator closure queue | M | Captures irreducible ambiguity and prevents retry loops. | Curator queue supports assign/resolve/lock and unresolved aging is tracked in completeness dashboards. |
+| 🟡 | 6 | [DQ.36](#dq-36) | Manual curator closure queue | M | Captures irreducible ambiguity and prevents retry loops. | Curator queue supports assign/resolve/lock and unresolved aging is tracked in completeness dashboards. |
 | ⬜ | 7 | [DQ.37](#dq-37) | Risk-tiered revalidation cadence | S | Keeps quality freshest where players feel it most. | Tiered schedules run automatically and coverage targets are met for daily/weekly/monthly tiers. |
 | ⬜ | 8 | [DQ.38](#dq-38) | Completeness burndown + weekly report | S | Makes closure velocity and blockers explicit for weekly planning. | Weekly report artifact is generated and the burndown view shows NULL/SLA/aging trends with no manual steps. |
 

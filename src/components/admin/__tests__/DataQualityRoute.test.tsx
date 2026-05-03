@@ -142,6 +142,30 @@ describe('DataQualityRoute', () => {
           }),
         }
       }
+      if (url.includes('/api/admin/curator-queue')) {
+        return {
+          ok: true,
+          json: async () => ({
+            report: {
+              totals: {
+                totalItems: 10,
+                unresolved: 8,
+                assigned: 3,
+                locked: 1,
+                avgAgedDays: 2,
+              },
+              perIssueType: {
+                cannot_infer: { count: 5, percentOfTotal: 50.0 },
+                canon_conflict: { count: 3, percentOfTotal: 30.0 },
+                subjective: { count: 2, percentOfTotal: 20.0 },
+              },
+              items: [],
+            },
+            fetchedAt: Date.now(),
+            limit: 200,
+          }),
+        }
+      }
 
       return {
         ok: true,
