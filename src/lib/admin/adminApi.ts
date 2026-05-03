@@ -3,10 +3,24 @@
  * These require Basic Auth credentials and are only used by admin components.
  * Separated from sync.ts (user-facing) to keep concerns distinct.
  */
-import { httpClient } from '@/lib/http'
+import { httpClient, JSON_CONTENT_TYPE } from '@/lib/http'
 import { ADMIN_API_ENDPOINTS, adminCharacterPath } from '@/lib/constants'
-import { JSON_CONTENT_TYPE } from '@/lib/http'
 import type { Character, CharacterCategory } from '@/lib/types'
+
+type AttributeApiValue = 0 | 1 | null
+type AttributeValue = boolean | null
+
+function apiValueToAttribute(value: AttributeApiValue): AttributeValue {
+  if (value === 1) return true
+  if (value === 0) return false
+  return null
+}
+
+function attributeToApiValue(value: AttributeValue): AttributeApiValue {
+  if (value === true) return 1
+  if (value === false) return 0
+  return null
+}
 
 interface AdminCharacterRow {
   id: string
@@ -19,12 +33,12 @@ interface AdminCharacterRow {
 
 interface AdminCharacterDetail {
   character: { id: string; name: string; category: string }
-  attributes: Record<string, 0 | 1 | null>
+  attributes: Record<string, AttributeApiValue>
 }
 
 interface PatchCharacterAttributeBody {
   attributeKey: string
-  value: 0 | 1 | null
+  value: AttributeApiValue
 }
 
 /**
@@ -67,7 +81,7 @@ export async function fetchAdminCharacterById(id: string): Promise<Character | n
       adminCharacterPath(id),
     )
     const attributes: Record<string, boolean | null> = Object.fromEntries(
-      Object.entries(data.attributes).map(([k, v]) => [k, v === 1 ? true : v === 0 ? false : null])
+      Object.entries(data.attributes).map(([k, v]) => [k, apiValueToAttribute(v)])
     )
     return {
       id: data.character.id,
@@ -83,11 +97,11 @@ export async function fetchAdminCharacterById(id: string): Promise<Character | n
 export async function patchAdminCharacterAttribute(
   characterId: string,
   attributeKey: string,
-  value: boolean | null,
+  value: AttributeValue,
 ): Promise<void> {
   const body: PatchCharacterAttributeBody = {
     attributeKey,
-    value: value === true ? 1 : value === false ? 0 : null,
+    value: attributeToApiValue(value),
   }
 
   await httpClient.requestOrThrow(adminCharacterPath(characterId), {
@@ -99,8 +113,8 @@ export async function patchAdminCharacterAttribute(
 
 export async function saveAdminCharacterAttributeDiff(
   characterId: string,
-  previousAttributes: Record<string, boolean | null>,
-  nextAttributes: Record<string, boolean | null>,
+  previousAttributes: Record<string, AttributeValue>,
+  nextAttributes: Record<string, AttributeValue>,
 ): Promise<number> {
   const keys = new Set<string>([
     ...Object.keys(previousAttributes),

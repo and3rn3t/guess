@@ -1,6 +1,20 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
-import { ArrowLeft, TreeStructure, Sparkle, Check, X, Lightning, Users, Brain, Planet, User, Backpack, Heart, ChartLineUp } from '@phosphor-icons/react'
+import {
+  ArrowLeftIcon,
+  TreeStructureIcon,
+  SparkleIcon,
+  CheckIcon,
+  XIcon,
+  LightningIcon,
+  UsersIcon,
+  BrainIcon,
+  PlanetIcon,
+  UserIcon,
+  BackpackIcon,
+  HeartIcon,
+  ChartLineUpIcon,
+} from '@phosphor-icons/react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -30,14 +44,14 @@ interface CharacterEnhancement {
   acceptedCount: number
 }
 
-const CATEGORY_ICONS: Record<AttributeCategory, typeof TreeStructure> = {
-  environment: TreeStructure,
-  abilities: Lightning,
-  equipment: Backpack,
-  physical: User,
-  personality: Brain,
-  origins: Planet,
-  relationships: Heart,
+const CATEGORY_ICONS: Record<AttributeCategory, typeof TreeStructureIcon> = {
+  environment: TreeStructureIcon,
+  abilities: LightningIcon,
+  equipment: BackpackIcon,
+  physical: UserIcon,
+  personality: BrainIcon,
+  origins: PlanetIcon,
+  relationships: HeartIcon,
 }
 
 const CATEGORY_COLORS: Record<AttributeCategory, { bg: string; border: string; text: string }> = {
@@ -54,7 +68,7 @@ export function MultiCategoryEnhancer({
   characters,
   onUpdateCharacters,
   onBack,
-}: MultiCategoryEnhancerProps) {
+}: Readonly<MultiCategoryEnhancerProps>) {
   const [enhancements, setEnhancements] = useState<Map<string, CharacterEnhancement>>(new Map())
   const [currentCharacterIndex, setCurrentCharacterIndex] = useState(0)
   const [isGeneratingAll, setIsGeneratingAll] = useState(false)
@@ -314,11 +328,11 @@ export function MultiCategoryEnhancer({
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             <Button onClick={onBack} variant="outline" size="sm">
-              <ArrowLeft size={20} />
+              <ArrowLeftIcon size={20} />
             </Button>
             <div>
               <div className="flex items-center gap-3">
-                <ChartLineUp size={32} weight="duotone" className="text-accent" />
+                <ChartLineUpIcon size={32} weight="duotone" className="text-accent" />
                 <h1 className="text-3xl font-bold text-foreground">Character Enrichment Hub</h1>
               </div>
               <p className="text-muted-foreground mt-1">
@@ -366,7 +380,7 @@ export function MultiCategoryEnhancer({
                     className={`w-full ${colors.bg} ${colors.border} ${colors.text} hover:opacity-80`}
                     variant="outline"
                   >
-                    <Lightning size={16} className="mr-2" />
+                    <LightningIcon size={16} className="mr-2" />
                     Enhance Category
                   </Button>
                 </div>
@@ -403,7 +417,7 @@ export function MultiCategoryEnhancer({
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <Button onClick={() => setShowDashboard(true)} variant="outline" size="sm">
-            <ArrowLeft size={20} />
+            <ArrowLeftIcon size={20} />
           </Button>
           <div>
             <div className="flex items-center gap-3">
@@ -422,14 +436,14 @@ export function MultiCategoryEnhancer({
             variant="outline"
             className="flex items-center gap-2 bg-accent/10 hover:bg-accent/20 border-accent/30"
           >
-            <Lightning size={20} />
+            <LightningIcon size={20} />
             Generate All
           </Button>
           <Button
             onClick={() => setShowDashboard(true)}
             className="flex items-center gap-2 bg-accent hover:bg-accent/90"
           >
-            <Check size={20} weight="bold" />
+            <CheckIcon size={20} weight="bold" />
             Done ({totalEnhancements} added)
           </Button>
         </div>
@@ -452,13 +466,13 @@ export function MultiCategoryEnhancer({
       <div className="grid lg:grid-cols-[300px,1fr] gap-6">
         <div className="space-y-3">
           <div className="flex items-center gap-2 mb-3">
-            <Users size={20} className="text-accent" />
+            <UsersIcon size={20} className="text-accent" />
             <h3 className="font-semibold text-foreground">Characters</h3>
             <Badge variant="outline" className="ml-auto">
               {enhancements.size}/{characters.length}
             </Badge>
           </div>
-          <div className="space-y-2 max-h-[600px] overflow-y-auto pr-2">
+          <div className="space-y-2 max-h-150 overflow-y-auto pr-2">
             {characters.map((char, index) => {
               const status = getCharacterStatus(char.id)
               const enhancement = enhancements.get(char.id)
@@ -493,8 +507,8 @@ export function MultiCategoryEnhancer({
                       <Badge className={`text-xs ${getStatusColor(status)}`}>
                         {status === 'loading' && 'Loading'}
                         {status === 'ready' && `${enhancement?.recommendations.length || 0}`}
-                        {status === 'enhanced' && <Check size={14} weight="bold" />}
-                        {status === 'complete' && <Check size={14} weight="bold" />}
+                        {status === 'enhanced' && <CheckIcon size={14} weight="bold" />}
+                        {status === 'complete' && <CheckIcon size={14} weight="bold" />}
                         {status === 'pending' && '...'}
                       </Badge>
                     </div>
@@ -555,7 +569,7 @@ export function MultiCategoryEnhancer({
                 <Card className="p-6">
                   <div className="space-y-4">
                     <div className="flex items-center gap-3">
-                      <Sparkle size={24} className="text-accent animate-pulse" />
+                      <SparkleIcon size={24} className="text-accent animate-pulse" />
                       <span className="text-sm font-medium text-foreground">
                         Analyzing {currentCharacter.name}'s {categoryInfo.description}...
                       </span>
@@ -581,7 +595,7 @@ export function MultiCategoryEnhancer({
                         variant="outline"
                         className="bg-accent/10 hover:bg-accent/20 border-accent/30"
                       >
-                        <Check size={16} className="mr-2" />
+                        <CheckIcon size={16} className="mr-2" />
                         Accept All
                       </Button>
                     </div>
@@ -614,7 +628,7 @@ export function MultiCategoryEnhancer({
                                       size="sm"
                                       className="bg-accent/20 hover:bg-accent/30 text-accent border border-accent/40"
                                     >
-                                      <Check size={16} className="mr-1" />
+                                      <CheckIcon size={16} className="mr-1" />
                                       Yes
                                     </Button>
                                     <Button
@@ -623,7 +637,7 @@ export function MultiCategoryEnhancer({
                                       onClick={() => handleAccept(rec, false)}
                                       className="border-border/50"
                                     >
-                                      <X size={16} className="mr-1" />
+                                      <XIcon size={16} className="mr-1" />
                                       No
                                     </Button>
                                     <Button
@@ -642,7 +656,7 @@ export function MultiCategoryEnhancer({
                                     size="sm"
                                     className="bg-accent hover:bg-accent/90"
                                   >
-                                    <Check size={16} weight="bold" />
+                                    <CheckIcon size={16} weight="bold" />
                                   </Button>
                                   <Button
                                     onClick={() => handleReject(rec)}
@@ -650,7 +664,7 @@ export function MultiCategoryEnhancer({
                                     variant="outline"
                                     className="hover:bg-destructive/10 hover:border-destructive/30 hover:text-destructive"
                                   >
-                                    <X size={16} weight="bold" />
+                                    <XIcon size={16} weight="bold" />
                                   </Button>
                                 </div>
                               </div>
@@ -666,7 +680,7 @@ export function MultiCategoryEnhancer({
                 !currentEnhancement.isLoading &&
                 currentEnhancement.recommendations.length === 0 && (
                   <Card className="p-12 text-center bg-card/30 border-dashed border-2">
-                    <Check size={48} className="mx-auto mb-4 text-accent" weight="bold" />
+                    <CheckIcon size={48} className="mx-auto mb-4 text-accent" weight="bold" />
                     <h3 className="text-xl font-semibold text-foreground mb-2">
                       All Done with {currentCharacter.name}!
                     </h3>

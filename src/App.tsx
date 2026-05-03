@@ -52,6 +52,7 @@ import {
   sanitizeCategories,
 } from "@/lib/types";
 import { startViewTransition } from "@/lib/view-transitions";
+import { motion } from "motion/react";
 import { useTheme } from "next-themes";
 import { useCallback, useMemo, useState } from "react";
 import { Toaster } from "sonner";
@@ -260,6 +261,136 @@ function App() {
     startGame: startStandardGame,
   });
 
+  let gameOverAnnouncement = "";
+  if (gamePhase === "gameOver") {
+    if (gameWon) {
+      gameOverAnnouncement = "Correct! I got it right!";
+    } else if (surrendered) {
+      gameOverAnnouncement = "Game ended early.";
+    } else {
+      gameOverAnnouncement = "Wrong guess. You stumped me!";
+    }
+  }
+
+  const gameContextValue = useMemo(
+    () => ({
+      game,
+      dispatch,
+      navigate,
+      difficulty,
+      setDifficulty,
+      categories,
+      setCategories,
+      persona,
+      maxQuestions,
+      characters,
+      questions,
+      activeCharacters,
+      serverTotal,
+      serverReadiness,
+      effectiveRemaining,
+      confidence,
+      globalStats,
+      gameHistory,
+      gamesPlayed,
+      statsLoading,
+      hasSavedSession,
+      resumeSession,
+      clearSession,
+      online,
+      eliminatedCount,
+      remainingHistoryRef,
+      isNewPersonalBest,
+      personalBest,
+      dailyStreak,
+      achievements,
+      weeklyRecap,
+      dailyChallenge,
+      dailyLeaderboard,
+      dailyLoading,
+      dailyError,
+      refreshDailyChallenge,
+      showOnboarding,
+      setShowOnboarding,
+      startGame: startStandardGame,
+      startDailyChallenge,
+      handleAnswer,
+      handleSkip,
+      handleGiveUp: handleSurrender,
+      handleCorrectGuess,
+      handleIncorrectGuess,
+      handleRejectGuess,
+      retryAfterReject,
+      serverLastError,
+      clearServerError,
+      retryServerAction,
+      handleShare,
+      handleCopyLink,
+      handleReveal,
+      handleSubmitFeedback: submitPostGameFeedback,
+      handleAddCharacter,
+      handleAddQuestions,
+    }),
+    [
+      game,
+      dispatch,
+      navigate,
+      difficulty,
+      setDifficulty,
+      categories,
+      setCategories,
+      persona,
+      maxQuestions,
+      characters,
+      questions,
+      activeCharacters,
+      serverTotal,
+      serverReadiness,
+      effectiveRemaining,
+      confidence,
+      globalStats,
+      gameHistory,
+      gamesPlayed,
+      statsLoading,
+      hasSavedSession,
+      resumeSession,
+      clearSession,
+      online,
+      eliminatedCount,
+      remainingHistoryRef,
+      isNewPersonalBest,
+      personalBest,
+      dailyStreak,
+      achievements,
+      weeklyRecap,
+      dailyChallenge,
+      dailyLeaderboard,
+      dailyLoading,
+      dailyError,
+      refreshDailyChallenge,
+      showOnboarding,
+      setShowOnboarding,
+      startStandardGame,
+      startDailyChallenge,
+      handleAnswer,
+      handleSkip,
+      handleSurrender,
+      handleCorrectGuess,
+      handleIncorrectGuess,
+      handleRejectGuess,
+      retryAfterReject,
+      serverLastError,
+      clearServerError,
+      retryServerAction,
+      handleShare,
+      handleCopyLink,
+      handleReveal,
+      submitPostGameFeedback,
+      handleAddCharacter,
+      handleAddQuestions,
+    ],
+  );
+
   // Challenge view is a standalone screen — render before the main layout
   if (gamePhase === "challenge" && challenge) {
     return (
@@ -279,12 +410,12 @@ function App() {
       <div className="min-h-screen bg-background relative overflow-hidden">
         <div className="absolute inset-0 opacity-20 bg-cosmic-glow" />
         {/* Ambient confidence reactor — brightens as the AI homes in */}
-        <div
+        <motion.div
           className="absolute inset-0 bg-cosmic-hot-glow transition-opacity duration-1000 ease-out"
-          style={{
-            opacity:
-              gamePhase === "playing" ? (confidence / 100) * 0.18 : 0,
+          animate={{
+            opacity: gamePhase === "playing" ? (confidence / 100) * 0.18 : 0,
           }}
+          transition={{ duration: 1, ease: "easeOut" }}
           aria-hidden="true"
         />
 
@@ -315,7 +446,7 @@ function App() {
                 className="inline-block w-2 h-2 rounded-full bg-yellow-400 animate-pulse"
                 aria-hidden="true"
               />
-              You&rsquo;re offline — new games are unavailable until you reconnect.
+              <span>You&rsquo;re offline — new games are unavailable until you reconnect.</span>
             </div>
           )}
 
@@ -331,74 +462,10 @@ function App() {
               {gamePhase === "guessing" &&
                 finalGuess &&
                 `I think it's ${finalGuess.name}. Was I correct?`}
-              {gamePhase === "gameOver" &&
-                (gameWon
-                  ? "Correct! I got it right!"
-                  : surrendered
-                    ? "Game ended early."
-                    : "Wrong guess. You stumped me!")}
+              {gameOverAnnouncement}
             </div>
 
-            <GameContext.Provider
-              value={{
-                game,
-                dispatch,
-                navigate,
-                difficulty,
-                setDifficulty,
-                categories,
-                setCategories,
-                persona,
-                maxQuestions,
-                characters,
-                questions,
-                activeCharacters,
-                serverTotal,
-                serverReadiness,
-                effectiveRemaining,
-                confidence,
-                globalStats,
-                gameHistory,
-                gamesPlayed,
-                statsLoading,
-                hasSavedSession,
-                resumeSession,
-                clearSession,
-                online,
-                eliminatedCount,
-                remainingHistoryRef,
-                isNewPersonalBest,
-                personalBest,
-                dailyStreak,
-                achievements,
-                weeklyRecap,
-                dailyChallenge,
-                dailyLeaderboard,
-                dailyLoading,
-                dailyError,
-                refreshDailyChallenge,
-                showOnboarding,
-                setShowOnboarding,
-                startGame: startStandardGame,
-                startDailyChallenge,
-                handleAnswer,
-                handleSkip,
-                handleGiveUp: handleSurrender,
-                handleCorrectGuess,
-                handleIncorrectGuess,
-                handleRejectGuess,
-                retryAfterReject,
-                serverLastError,
-                clearServerError,
-                retryServerAction,
-                handleShare,
-                handleCopyLink,
-                handleReveal,
-                handleSubmitFeedback: submitPostGameFeedback,
-                handleAddCharacter,
-                handleAddQuestions,
-              }}
-            >
+            <GameContext.Provider value={gameContextValue}>
               <GamePhaseRouter />
             </GameContext.Provider>
             <BottomNav

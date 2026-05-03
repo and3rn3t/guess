@@ -1,8 +1,8 @@
 import { motion } from "motion/react";
 import {
-  CheckCircle,
-  Question as QuestionIcon,
-  XCircle,
+  CheckCircleIcon,
+  QuestionIcon,
+  XCircleIcon,
 } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import type { AnswerValue } from "@/lib/types";
@@ -21,20 +21,20 @@ interface AnswerStripProps {
 const BUTTONS: Array<{
   value: AnswerValue;
   label: string;
-  icon: typeof CheckCircle;
+  icon: typeof CheckCircleIcon;
   className: string;
 }> = [
   {
     value: "yes",
     label: "Yes",
-    icon: CheckCircle,
+    icon: CheckCircleIcon,
     className:
       "bg-emerald-500 hover:bg-emerald-400 text-white shadow-lg shadow-emerald-500/30",
   },
   {
     value: "no",
     label: "No",
-    icon: XCircle,
+    icon: XCircleIcon,
     className:
       "bg-rose-500 hover:bg-rose-400 text-white shadow-lg shadow-rose-500/30",
   },
@@ -65,10 +65,7 @@ export function AnswerStrip({
   const hasLinks = (showSkip && onSkip) || (showGiveUp && onGiveUp);
 
   return (
-    <div
-      className="fixed bottom-0 inset-x-0 z-30 border-t border-border bg-background/95 backdrop-blur-sm lg:hidden"
-      style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
-    >
+    <div className="fixed bottom-0 inset-x-0 z-30 border-t border-border bg-background/95 backdrop-blur-sm lg:hidden pb-[env(safe-area-inset-bottom)]">
       {/* Skip / Give up links */}
       {hasLinks && (
         <div className="flex items-center justify-between px-4 pt-2 pb-0 text-xs text-muted-foreground">
@@ -77,7 +74,7 @@ export function AnswerStrip({
               <button
                 onClick={onSkip}
                 data-testid="skip-btn-strip"
-                className="min-h-[32px] inline-flex items-center hover:text-foreground transition-colors underline-offset-2 hover:underline"
+                className="min-h-8 inline-flex items-center hover:text-foreground transition-colors underline-offset-2 hover:underline"
               >
                 Skip question
               </button>
@@ -87,7 +84,7 @@ export function AnswerStrip({
             {showGiveUp && onGiveUp && (
               <button
                 onClick={onGiveUp}
-                className="min-h-[32px] inline-flex items-center text-muted-foreground/60 hover:text-destructive transition-colors underline-offset-2 hover:underline"
+                className="min-h-8 inline-flex items-center text-muted-foreground/60 hover:text-destructive transition-colors underline-offset-2 hover:underline"
               >
                 Give up
               </button>

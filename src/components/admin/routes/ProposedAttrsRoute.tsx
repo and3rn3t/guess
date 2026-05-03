@@ -51,6 +51,12 @@ const STATUS_STYLES: Record<string, string> = {
   rejected: "bg-red-500/20 text-red-400 border-red-500/30",
 };
 
+function scoreToneClass(score: number): string {
+  if (score >= 70) return "bg-green-500/20 text-green-400 border-green-500/30";
+  if (score >= 40) return "bg-yellow-500/20 text-yellow-400 border-yellow-500/30";
+  return "bg-red-500/20 text-red-400 border-red-500/30";
+}
+
 export default function ProposedAttrsRoute(): React.JSX.Element {
   const [data, setData] = useState<PageData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -207,7 +213,51 @@ export default function ProposedAttrsRoute(): React.JSX.Element {
 
       {(data?.total ?? 0) > 0 && (
         <div className="space-y-3">
-          {(data?.proposals ?? []).map((p) => (
+          {(data?.proposals ?? []).map((p) => {
+            const score = scores[p.id];
+            const isScoring = scoringIds.has(p.id);
+            let scoreBadge: React.JSX.Element | null = null;
+            if (score) {
+              scoreBadge = (
+                <span
+                  className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border font-medium ${scoreToneClass(score.score)}`}
+                >
+                  <SparkleIcon size={10} />
+                  {score.score}/100
+                </span>
+              );
+            } else if (isScoring) {
+              scoreBadge = (
+                <span className="text-xs text-muted-foreground animate-pulse">
+                  Scoring…
+                </span>
+              );
+            }
+
+            let exampleCharBadges: React.JSX.Element | null = null;
+            if (p.example_chars) {
+              try {
+                const chars = JSON.parse(p.example_chars) as { name: string }[];
+                exampleCharBadges = (
+                  <div className="flex gap-1.5 flex-wrap mt-2">
+                    <span className="text-xs text-muted-foreground">Examples:</span>
+                    {chars.map((c) => (
+                      <Badge
+                        key={`${p.id}-${c.name}`}
+                        variant="outline"
+                        className="text-xs"
+                      >
+                        {c.name}
+                      </Badge>
+                    ))}
+                  </div>
+                );
+              } catch {
+                exampleCharBadges = null;
+              }
+            }
+
+            return (
             <div key={p.id} className="rounded-xl border bg-card p-5 space-y-3">
               <div className="flex items-start justify-between gap-4">
                 <div className="space-y-1 min-w-0">
@@ -221,24 +271,7 @@ export default function ProposedAttrsRoute(): React.JSX.Element {
                       {p.status}
                     </Badge>{" "}
                     {/* AI score pill */}
-                    {scores[p.id] !== undefined ? (
-                      <span
-                        className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border font-medium ${
-                          scores[p.id].score >= 70
-                            ? "bg-green-500/20 text-green-400 border-green-500/30"
-                            : scores[p.id].score >= 40
-                              ? "bg-yellow-500/20 text-yellow-400 border-yellow-500/30"
-                              : "bg-red-500/20 text-red-400 border-red-500/30"
-                        }`}
-                      >
-                        <SparkleIcon size={10} />
-                        {scores[p.id].score}/100
-                      </span>
-                    ) : scoringIds.has(p.id) ? (
-                      <span className="text-xs text-muted-foreground animate-pulse">
-                        Scoring…
-                      </span>
-                    ) : null}{" "}
+                    {scoreBadge}{" "}
                     <span className="text-xs text-muted-foreground">
                       by {p.proposed_by} · {formatDate(p.created_at)}
                     </span>
@@ -252,42 +285,17 @@ export default function ProposedAttrsRoute(): React.JSX.Element {
                       {p.rationale}
                     </p>
                   )}
-                  {p.example_chars &&
-                    (() => {
-                      try {
-                        const chars = JSON.parse(p.example_chars) as {
-                          name: string;
-                        }[];
-                        return (
-                          <div className="flex gap-1.5 flex-wrap mt-2">
-                            <span className="text-xs text-muted-foreground">
-                              Examples:
-                            </span>
-                            {chars.map((c, i) => (
-                              <Badge
-                                key={i}
-                                variant="outline"
-                                className="text-xs"
-                              >
-                                {c.name}
-                              </Badge>
-                            ))}
-                          </div>
-                        );
-                      } catch {
-                        return null;
-                      }
-                    })()}
+                  {exampleCharBadges}
                   {/* AI score concerns/strengths */}
-                  {scores[p.id] !== undefined && (
+                  {score && (
                     <div className="mt-2 space-y-1">
-                      {scores[p.id].concerns.map((c, i) => (
-                        <p key={i} className="text-xs text-yellow-400">
+                      {score.concerns.map((c) => (
+                        <p key={`${p.id}-concern-${c}`} className="text-xs text-yellow-400">
                           ⚠️ {c}
                         </p>
                       ))}
-                      {scores[p.id].strengths.map((s, i) => (
-                        <p key={i} className="text-xs text-green-400">
+                      {score.strengths.map((s) => (
+                        <p key={`${p.id}-strength-${s}`} className="text-xs text-green-400">
                           ✓ {s}
                         </p>
                       ))}
@@ -320,7 +328,7 @@ export default function ProposedAttrsRoute(): React.JSX.Element {
                 )}
               </div>
             </div>
-          ))}
+          )})}
         </div>
       )}
 

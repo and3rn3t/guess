@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
 import { motion, useReducedMotion } from 'motion/react'
-import { CheckCircle, XCircle, Question as QuestionIcon, Keyboard } from '@phosphor-icons/react'
+import { CheckCircleIcon, XCircleIcon, QuestionIcon, KeyboardIcon } from '@phosphor-icons/react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -18,6 +18,8 @@ interface QuestionCardProps {
   isProcessing?: boolean
 }
 
+const THINKING_DOT_KEYS = Array.from({ length: 32 }, (_, idx) => `thinking-dot-${idx}`)
+
 const answerButtonStyles: Record<AnswerValue, string> = {
   yes: 'bg-emerald-500 hover:bg-emerald-400 text-white shadow-lg shadow-emerald-500/30',
   no: 'bg-rose-500 hover:bg-rose-400 text-white shadow-lg shadow-rose-500/30',
@@ -34,9 +36,9 @@ export function QuestionCard({
 }: Readonly<QuestionCardProps>) {
   const [freeText, setFreeText] = useState('')
   const [isInterpreting, setIsInterpreting] = useState(false)
+  const [showShortcuts, setShowShortcuts] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
   const firstAnswerRef = useRef<HTMLButtonElement>(null)
-  const shortcutPopoverRef = useRef<HTMLElement>(null)
 
   const handleInputFocus = useCallback(() => {
     // Wait for the iOS keyboard to animate into place before scrolling
@@ -66,15 +68,14 @@ export function QuestionCard({
       const tag = (e.target as HTMLElement).tagName.toLowerCase()
       if (tag === 'input' || tag === 'textarea') return
       if (e.key === '?') {
-        const el = shortcutPopoverRef.current as HTMLElement & { togglePopover?: () => void }
-        el?.togglePopover?.()
+        setShowShortcuts((prev) => !prev)
         return
       }
       const answer = KEY_MAP[e.key.toLowerCase()]
       if (answer) onAnswer(answer)
     }
-    window.addEventListener('keydown', handleKey)
-    return () => window.removeEventListener('keydown', handleKey)
+    globalThis.addEventListener('keydown', handleKey)
+    return () => globalThis.removeEventListener('keydown', handleKey)
   }, [isProcessing, onAnswer])
 
   const handleFreeText = async () => {
@@ -110,9 +111,9 @@ export function QuestionCard({
     isDragEnabled,
   } = useSwipeAnswer({ onAnswer, enabled: !isProcessing })
 
-  const answerButtons: Array<{ value: AnswerValue; label: string; icon: typeof CheckCircle }> = [
-    { value: 'yes', label: 'Yes', icon: CheckCircle },
-    { value: 'no', label: 'No', icon: XCircle },
+  const answerButtons: Array<{ value: AnswerValue; label: string; icon: typeof CheckCircleIcon }> = [
+    { value: 'yes', label: 'Yes', icon: CheckCircleIcon },
+    { value: 'no', label: 'No', icon: XCircleIcon },
     { value: 'maybe', label: 'Maybe', icon: QuestionIcon },
     { value: 'unknown', label: "Don't Know", icon: QuestionIcon },
   ]
@@ -127,7 +128,7 @@ export function QuestionCard({
     >
       {/* Draggable layer — handles swipe-to-answer on mobile */}
       <motion.div
-        drag={isDragEnabled ? true : false}
+        drag={isDragEnabled}
         dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
         dragElastic={0.15}
         style={{ x: dragX, y: dragY, rotate: cardRotate }}
@@ -137,27 +138,27 @@ export function QuestionCard({
         {/* YES swipe overlay (emerald gradient, right drag) */}
         <motion.div
           aria-hidden
-          className="absolute inset-0 rounded-xl pointer-events-none z-10 bg-gradient-to-br from-emerald-400/80 to-green-600/60 flex items-center justify-center"
+          className="absolute inset-0 rounded-xl pointer-events-none z-10 bg-linear-to-br from-emerald-400/80 to-green-600/60 flex items-center justify-center"
           style={{ opacity: yesOverlayOpacity }}
         >
           <motion.div style={{ scale: yesOverlayOpacity }}>
-            <CheckCircle size={72} weight="fill" className="text-white drop-shadow-lg" />
+            <CheckCircleIcon size={72} weight="fill" className="text-white drop-shadow-lg" />
           </motion.div>
         </motion.div>
         {/* NO swipe overlay (rose gradient, left drag) */}
         <motion.div
           aria-hidden
-          className="absolute inset-0 rounded-xl pointer-events-none z-10 bg-gradient-to-br from-rose-400/80 to-red-600/60 flex items-center justify-center"
+          className="absolute inset-0 rounded-xl pointer-events-none z-10 bg-linear-to-br from-rose-400/80 to-red-600/60 flex items-center justify-center"
           style={{ opacity: noOverlayOpacity }}
         >
           <motion.div style={{ scale: noOverlayOpacity }}>
-            <XCircle size={72} weight="fill" className="text-white drop-shadow-lg" />
+            <XCircleIcon size={72} weight="fill" className="text-white drop-shadow-lg" />
           </motion.div>
         </motion.div>
         {/* MAYBE swipe overlay (amber gradient, up drag) */}
         <motion.div
           aria-hidden
-          className="absolute inset-0 rounded-xl pointer-events-none z-10 bg-gradient-to-br from-amber-400/80 to-yellow-600/60 flex items-center justify-center"
+          className="absolute inset-0 rounded-xl pointer-events-none z-10 bg-linear-to-br from-amber-400/80 to-yellow-600/60 flex items-center justify-center"
           style={{ opacity: maybeOverlayOpacity }}
         >
           <motion.div style={{ scale: maybeOverlayOpacity }}>
@@ -200,7 +201,7 @@ export function QuestionCard({
               </div>
             </div>
 
-            <div className="min-h-[80px] md:min-h-[120px] flex items-center" aria-live="polite">
+            <div className="min-h-20 md:min-h-30 flex items-center" aria-live="polite">
               <h2 className="text-2xl md:text-3xl lg:text-4xl font-semibold leading-tight text-foreground select-none">
                 {question.displayText || question.text}
               </h2>
@@ -226,39 +227,36 @@ export function QuestionCard({
 
             {/* Keyboard shortcut hint — hidden on touch devices */}
             <p className="hidden md:flex items-center justify-center gap-1 text-xs text-muted-foreground/50 select-none">
-              <kbd className="font-mono">Y</kbd> Yes &middot; <kbd className="font-mono">N</kbd> No &middot; <kbd className="font-mono">M</kbd> Maybe &middot; <kbd className="font-mono">U</kbd> Don't know
+              <span>
+                <kbd className="font-mono">Y</kbd> Yes &middot; <kbd className="font-mono">N</kbd> No &middot; <kbd className="font-mono">M</kbd> Maybe &middot; <kbd className="font-mono">U</kbd> Don't know
+              </span>
               <button
                 aria-label="Show keyboard shortcuts"
                 className="ml-2 opacity-50 hover:opacity-100 transition-opacity"
-                onClick={() => {
-                  const el = shortcutPopoverRef.current as HTMLElement & { togglePopover?: () => void }
-                  el?.togglePopover?.()
-                }}
+                onClick={() => setShowShortcuts((prev) => !prev)}
               >
-                <Keyboard size={14} />
+                <KeyboardIcon size={14} />
               </button>
             </p>
 
-            {/* Keyboard shortcut popover — native Popover API, no JS state (1.6) */}
-            <div
-              ref={shortcutPopoverRef as React.Ref<HTMLDivElement>}
-              popover="auto"
-              className="m-auto p-5 rounded-xl bg-card border border-border shadow-2xl text-sm space-y-2 max-w-xs"
-            >
-              <p className="font-semibold text-foreground mb-3 flex items-center gap-2"><Keyboard size={16} /> Keyboard Shortcuts</p>
-              {[
-                { key: 'Y', label: 'Yes' },
-                { key: 'N', label: 'No' },
-                { key: 'M', label: 'Maybe' },
-                { key: 'U', label: "Don't know" },
-                { key: '?', label: 'Toggle this overlay' },
-              ].map(({ key, label }) => (
-                <div key={key} className="flex items-center justify-between gap-4">
-                  <kbd className="font-mono bg-secondary px-2 py-0.5 rounded text-xs">{key}</kbd>
-                  <span className="text-muted-foreground">{label}</span>
-                </div>
-              ))}
-            </div>
+            {/* Keyboard shortcuts panel */}
+            {showShortcuts && (
+              <div className="m-auto p-5 rounded-xl bg-card border border-border shadow-2xl text-sm space-y-2 max-w-xs">
+                <p className="font-semibold text-foreground mb-3 flex items-center gap-2"><KeyboardIcon size={16} /> Keyboard Shortcuts</p>
+                {[
+                  { key: 'Y', label: 'Yes' },
+                  { key: 'N', label: 'No' },
+                  { key: 'M', label: 'Maybe' },
+                  { key: 'U', label: "Don't know" },
+                  { key: '?', label: 'Toggle this overlay' },
+                ].map(({ key, label }) => (
+                  <div key={key} className="flex items-center justify-between gap-4">
+                    <kbd className="font-mono bg-secondary px-2 py-0.5 rounded text-xs">{key}</kbd>
+                    <span className="text-muted-foreground">{label}</span>
+                  </div>
+                ))}
+              </div>
+            )}
 
             {/* Free-text answer input */}
             <div className="flex gap-2">
@@ -302,16 +300,16 @@ export function ThinkingCard() {
           <div className="h-5 w-32 rounded-md bg-accent/10 animate-shimmer" />
           <div className="h-6 w-24 rounded-full bg-accent/10 animate-shimmer" />
         </div>
-        <div className="min-h-[80px] md:min-h-[120px] flex items-center">
+        <div className="min-h-20 md:min-h-30 flex items-center">
           <div className="space-y-3 w-full">
             <div className="h-8 w-3/4 rounded-md bg-accent/10 animate-shimmer" />
             <div className="h-8 w-1/2 rounded-md bg-accent/8 animate-shimmer [animation-delay:0.15s]" />
           </div>
         </div>
         <div className="grid grid-cols-8 gap-1.5 py-2">
-          {Array.from({ length: 32 }).map((_, i) => (
+          {THINKING_DOT_KEYS.map((dotKey, i) => (
             <motion.div
-              key={i}
+              key={dotKey}
               className="aspect-square rounded-full bg-accent/25"
               animate={shouldReduceMotion ? { opacity: 0.4, scale: 1 } : { opacity: [0.15, 0.9, 0.15], scale: [0.75, 1.1, 0.75] }}
               transition={shouldReduceMotion ? {} : {

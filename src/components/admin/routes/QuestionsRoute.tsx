@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { AdminPageHeader } from "../AdminPageHeader";
 import { Button } from "@/components/ui/button";
@@ -25,9 +25,9 @@ import {
 
 function DifficultyBadge({
   difficulty,
-}: {
+}: Readonly<{
   difficulty: string | null;
-}): React.JSX.Element {
+}>): React.JSX.Element {
   if (!difficulty)
     return <span className="text-xs text-muted-foreground/50">—</span>;
   const styles: Record<string, string> = {
@@ -50,21 +50,32 @@ function DifficultyBadge({
 function ScoreBar({
   label,
   value,
-}: {
+}: Readonly<{
   label: string;
   value: number;
-}): React.JSX.Element {
-  const pct = (value / 5) * 100;
-  const color =
-    value >= 4 ? "bg-green-500" : value >= 3 ? "bg-yellow-500" : "bg-red-500";
+}>): React.JSX.Element {
+  const widthClass: Record<number, string> = {
+    0: "w-0",
+    1: "w-1/5",
+    2: "w-2/5",
+    3: "w-3/5",
+    4: "w-4/5",
+    5: "w-full",
+  };
+  const clampedValue = Math.max(0, Math.min(5, value));
+
+  let color = "bg-red-500";
+  if (value >= 4) {
+    color = "bg-green-500";
+  } else if (value >= 3) {
+    color = "bg-yellow-500";
+  }
+
   return (
     <div className="flex items-center gap-2 text-xs">
       <span className="w-16 text-muted-foreground shrink-0">{label}</span>
       <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
-        <div
-          className={`h-full rounded-full ${color}`}
-          style={{ width: `${pct}%` }}
-        />
+        <div className={`h-full rounded-full ${color} ${widthClass[clampedValue]}`} />
       </div>
       <span className="w-6 text-right font-medium">{value}</span>
     </div>
@@ -112,6 +123,17 @@ interface PageData {
   page: number;
   pageSize: number;
 }
+
+const SKELETON_ROW_KEYS = [
+  "skeleton-row-1",
+  "skeleton-row-2",
+  "skeleton-row-3",
+  "skeleton-row-4",
+  "skeleton-row-5",
+  "skeleton-row-6",
+  "skeleton-row-7",
+  "skeleton-row-8",
+];
 
 export default function QuestionsRoute(): React.JSX.Element {
   const [data, setData] = useState<PageData | null>(null);
@@ -508,18 +530,27 @@ export default function QuestionsRoute(): React.JSX.Element {
           </thead>
           <tbody className="divide-y divide-border">
             {loading && !data
-              ? Array.from({ length: 8 }).map((_, i) => (
-                  <tr key={i}>
+              ? SKELETON_ROW_KEYS.map((rowKey) => (
+                  <tr key={rowKey}>
                     <td colSpan={6} className="px-4 py-3">
                       <div className="h-4 bg-muted animate-pulse rounded" />
                     </td>
                   </tr>
                 ))
-              : (data?.questions ?? []).map((q) => (
-                  <>
+              : (data?.questions ?? []).map((q) => {
+                  const rowVisibilityClass = q.isActive ? "" : "opacity-50";
+                  let scoreButtonClass = "text-muted-foreground";
+                  if (scoringKey === q.key) {
+                    scoreButtonClass = "animate-pulse";
+                  } else if (scores[q.key]) {
+                    scoreButtonClass = "text-violet-400";
+                  }
+
+                  return (
+                  <Fragment key={`${q.key}-row-wrapper`}>
                     <tr
                       key={q.key}
-                      className={`hover:bg-muted/30 transition-colors ${!q.isActive ? "opacity-50" : ""}`}
+                      className={`hover:bg-muted/30 transition-colors ${rowVisibilityClass}`}
                     >
                       <td className="px-4 py-3 font-mono text-xs text-muted-foreground">
                         {q.key}
@@ -603,7 +634,7 @@ export default function QuestionsRoute(): React.JSX.Element {
                           <Button
                             size="icon"
                             variant="ghost"
-                            className={`h-7 w-7 ${scoringKey === q.key ? "animate-pulse" : scores[q.key] ? "text-violet-400" : "text-muted-foreground"}`}
+                            className={`h-7 w-7 ${scoreButtonClass}`}
                             onClick={() => void scoreQuestion(q)}
                             disabled={scoringKey === q.key}
                             title="AI quality score"
@@ -638,8 +669,8 @@ export default function QuestionsRoute(): React.JSX.Element {
                         </td>
                       </tr>
                     )}
-                  </>
-                ))}
+                  </Fragment>
+                )})}
           </tbody>
         </table>
       </div>

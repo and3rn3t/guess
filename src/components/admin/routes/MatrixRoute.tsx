@@ -31,7 +31,7 @@ const VALUE_COLORS = {
   null: '#374151',   // gray-700 — unknown
 }
 
-function MatrixCanvas({ data }: { data: MatrixData }): React.JSX.Element {
+function MatrixCanvas({ data }: Readonly<{ data: MatrixData }>): React.JSX.Element {
   const canvasRef = useRef<HTMLCanvasElement>(null)
 
   useEffect(() => {
@@ -103,7 +103,7 @@ function MatrixCanvas({ data }: { data: MatrixData }): React.JSX.Element {
 
   return (
     <div className="overflow-auto rounded-xl border">
-      <canvas ref={canvasRef} width={W} height={H} style={{ display: 'block' }} />
+      <canvas ref={canvasRef} width={W} height={H} className="block" />
     </div>
   )
 }
@@ -175,7 +175,7 @@ export default function MatrixRoute(): React.JSX.Element {
               <span className="inline-block w-3 h-3 rounded bg-red-500" /> false
             </span>
             <span className="flex items-center gap-1.5">
-              <span className="inline-block w-3 h-3 rounded" style={{ background: '#374151' }} /> unknown
+              <span className="inline-block w-3 h-3 rounded bg-slate-700" /> unknown
             </span>
           </div>
           <MatrixCanvas data={data} />

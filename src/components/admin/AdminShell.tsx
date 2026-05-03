@@ -130,14 +130,14 @@ function SidebarSection({
   color = 'default',
   defaultOpen = true,
   badgeMap,
-}: {
+}: Readonly<{
   title: string
   items: NavItem[]
   storageKey: string
   color?: SectionColor
   defaultOpen?: boolean
   badgeMap?: Record<string, number>
-}): React.JSX.Element {
+}>): React.JSX.Element {
   const location = useLocation()
 
   const hasActiveChild = useMemo(
@@ -152,7 +152,8 @@ function SidebarSection({
   const [open, setOpen] = useState<boolean>(() => {
     if (hasActiveChild) return true
     const stored = localStorage.getItem(`admin-nav-${storageKey}`)
-    return stored !== null ? stored === 'true' : defaultOpen
+    if (stored === null) return defaultOpen
+    return stored === 'true'
   })
 
   // Force-open when user navigates into a child while the section is collapsed
@@ -205,7 +206,7 @@ function SidebarSection({
                   {item.icon}
                   <span className="flex-1">{item.label}</span>
                   {badge ? (
-                    <span className="text-[10px] font-semibold tabular-nums bg-amber-500/20 text-amber-400 rounded-full px-1.5 min-w-[18px] text-center leading-4 py-px">
+                    <span className="text-[10px] font-semibold tabular-nums bg-amber-500/20 text-amber-400 rounded-full px-1.5 min-w-4.5 text-center leading-4 py-px">
                       {badge > 99 ? '99+' : badge}
                     </span>
                   ) : null}
@@ -252,7 +253,7 @@ export function AdminShell(): React.JSX.Element {
       />
       <div className="min-h-screen bg-background flex">
         {/* Sidebar */}
-        <aside className="w-60 shrink-0 border-r border-border/60 flex flex-col py-4 px-2 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+        <aside className="w-60 shrink-0 border-r border-border/60 flex flex-col py-4 px-2 backdrop-blur supports-backdrop-filter:bg-background/80">
           <div className="flex items-center gap-2 px-3 mb-5">
             <HouseIcon size={18} weight="duotone" className="text-accent" />
             <NavLink

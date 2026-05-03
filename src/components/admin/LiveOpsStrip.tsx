@@ -1,6 +1,6 @@
 import { ActivityIcon, AlertTriangleIcon, GaugeIcon, RefreshCwIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { useLiveOps, type HealthStatus, type LiveOpsSummary } from './liveOps'
+import { useLiveOps, type HealthStatus } from './liveOps'
 
 /**
  * AN.30 — Live ops strip. Compact rolling-1h health snapshot rendered above
@@ -12,7 +12,7 @@ export function LiveOpsStrip(): React.JSX.Element {
   const { data, status, error, refreshing } = useLiveOps()
 
   return (
-    <div className="border-b border-border/60 bg-muted/30 backdrop-blur supports-[backdrop-filter]:bg-muted/20 px-4 py-2 flex items-center gap-4 text-xs">
+    <div className="border-b border-border/60 bg-muted/30 backdrop-blur supports-backdrop-filter:bg-muted/20 px-4 py-2 flex items-center gap-4 text-xs">
       <span
         className={cn('inline-flex h-2 w-2 rounded-full', dotColor(status))}
         title={`Status: ${status}`}
@@ -58,11 +58,11 @@ function Metric({
   icon,
   label,
   children,
-}: {
+}: Readonly<{
   icon: React.ReactNode
   label: string
   children: React.ReactNode
-}): React.JSX.Element {
+}>): React.JSX.Element {
   return (
     <span className="inline-flex items-center gap-1.5">
       <span className="text-muted-foreground/70" aria-hidden>
@@ -103,4 +103,4 @@ function secondsAgo(unixSeconds: number): number {
 }
 
 // Re-export so existing imports of `LiveOpsSummary` from this module keep working.
-export type { LiveOpsSummary }
+export type { LiveOpsSummary } from './liveOps'

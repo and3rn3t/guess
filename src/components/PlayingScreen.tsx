@@ -242,13 +242,24 @@ In 1-2 sentences, react in character to this answer and what it reveals. Be conc
     return { label: 'Calibrating', tone: 'neutral' as const };
   }, [readiness?.trigger]);
 
-  const readinessSummary = readiness?.blockedByRejectCooldown
-    ? `Holding the next guess until I collect ${readiness.rejectCooldownRemaining} more answer${readiness.rejectCooldownRemaining === 1 ? "" : "s"}.`
-    : readiness?.trigger === "high_certainty"
-      ? "I’m closing in on a very strong suspect."
-      : readiness?.trigger === "strict_readiness"
-        ? "I’m nearly ready to guess, but I’m still validating the top suspects."
-        : "I’m still narrowing down the strongest candidates before guessing.";
+  let readinessSummary = "I’m still narrowing down the strongest candidates before guessing.";
+  if (readiness?.blockedByRejectCooldown) {
+    const suffix = readiness.rejectCooldownRemaining === 1 ? "" : "s";
+    readinessSummary = `Holding the next guess until I collect ${readiness.rejectCooldownRemaining} more answer${suffix}.`;
+  } else if (readiness?.trigger === "high_certainty") {
+    readinessSummary = "I’m closing in on a very strong suspect.";
+  } else if (readiness?.trigger === "strict_readiness") {
+    readinessSummary = "I’m nearly ready to guess, but I’m still validating the top suspects.";
+  }
+
+  let qualityBadgeClass = 'bg-secondary/50 text-muted-foreground border border-border/60';
+  if (qualityBadge.tone === 'strong') {
+    qualityBadgeClass = 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30';
+  } else if (qualityBadge.tone === 'good') {
+    qualityBadgeClass = 'bg-cyan-500/15 text-cyan-400 border border-cyan-500/30';
+  } else if (qualityBadge.tone === 'warn') {
+    qualityBadgeClass = 'bg-amber-500/15 text-amber-400 border border-amber-500/30';
+  }
 
   return (
     <>
@@ -260,35 +271,17 @@ In 1-2 sentences, react in character to this answer and what it reveals. Be conc
         </AnimatePresence>
         <div className="sticky top-0 z-20 bg-background/80 backdrop-blur-sm py-2 -mx-4 px-4 lg:static lg:bg-transparent lg:backdrop-blur-none lg:py-0 lg:mx-0 lg:px-0 lg:mb-6 space-y-2">
           <div className="flex items-center gap-3">
-            <div
-              className="flex-1 relative h-2 overflow-hidden rounded-full bg-secondary"
-              role="progressbar"
-              aria-valuenow={answers.length}
-              aria-valuemin={0}
-              aria-valuemax={maxQuestions}
-            >
-              <div
-                className="h-full rounded-full transition-all duration-500 ease-out"
-                style={{
-                  width: `${(answers.length / maxQuestions) * 100}%`,
-                  background: 'linear-gradient(90deg, oklch(0.72 0.18 155), oklch(0.70 0.15 220), oklch(0.35 0.15 300))',
-                  boxShadow: '0 0 8px oklch(0.70 0.15 220 / 0.5)',
-                }}
-              />
-            </div>
+            <progress
+              className="flex-1 h-2 overflow-hidden rounded-full [&::-webkit-progress-bar]:bg-secondary [&::-webkit-progress-value]:bg-primary [&::-moz-progress-bar]:bg-primary"
+              value={answers.length}
+              max={maxQuestions}
+              aria-label="Questions answered"
+            />
             <span className="text-sm font-semibold text-accent whitespace-nowrap tabular-nums">
               {confidence}% confident
             </span>
             <span
-              className={`rounded-full px-2 py-0.5 text-[11px] font-semibold whitespace-nowrap ${
-                qualityBadge.tone === 'strong'
-                  ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
-                  : qualityBadge.tone === 'good'
-                    ? 'bg-cyan-500/15 text-cyan-400 border border-cyan-500/30'
-                    : qualityBadge.tone === 'warn'
-                      ? 'bg-amber-500/15 text-amber-400 border border-amber-500/30'
-                      : 'bg-secondary/50 text-muted-foreground border border-border/60'
-              }`}
+              className={`rounded-full px-2 py-0.5 text-[11px] font-semibold whitespace-nowrap ${qualityBadgeClass}`}
               title={readinessSummary}
             >
               {qualityBadge.label}
@@ -327,20 +320,25 @@ In 1-2 sentences, react in character to this answer and what it reveals. Be conc
                 </motion.span>
               )}
               {tempIndicator !== null && (
+                (() => {
+                  const tempToneClass =
+                    tempIndicator === 'warm'
+                      ? 'bg-amber-500/20 text-amber-300'
+                      : 'bg-cyan-500/20 text-cyan-300';
+
+                  return (
                 <motion.span
                   key={`indicator-${tempIndicator}`}
                   initial={{ opacity: 0, y: 8, scale: 0.9 }}
                   animate={{ opacity: 1, y: 0, scale: [1, 1.1, 1] }}
                   exit={{ opacity: 0, y: -8 }}
                   transition={{ duration: 0.35 }}
-                  className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium shadow-md"
-                  style={{
-                    backgroundColor: tempIndicator === 'warm' ? 'oklch(0.72 0.18 55 / 0.2)' : 'oklch(0.65 0.14 220 / 0.2)',
-                    color: tempIndicator === 'warm' ? 'oklch(0.72 0.18 55)' : 'oklch(0.65 0.14 220)',
-                  }}
+                  className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium shadow-md ${tempToneClass}`}
                 >
                   {tempIndicator === 'warm' ? '🔥 Getting warmer' : '򌠵 Going cold'}
                 </motion.span>
+                  );
+                })()
               )}
             </AnimatePresence>
           </div>
@@ -349,7 +347,7 @@ In 1-2 sentences, react in character to this answer and what it reveals. Be conc
               <button
                 onClick={handleUndo}
                 disabled={isUndoing}
-                className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors min-h-[44px] px-2 disabled:opacity-50"
+                className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors min-h-11 px-2 disabled:opacity-50"
                 aria-label="Undo last answer"
               >
                 <ClockCounterClockwiseIcon size={14} />
@@ -391,6 +389,8 @@ In 1-2 sentences, react in character to this answer and what it reveals. Be conc
               const isLast = i === gameSteps.length - 1;
               const eliminated = stepEliminations[i] ?? 0;
               const isHighImpact = avgElimination > 0 && eliminated >= avgElimination * 1.5;
+              const eliminationSuffix = eliminated > 0 ? ` (−${eliminated} eliminated)` : '';
+              const historyTitle = `Q${i + 1}: ${step.questionText} → ${step.answer}${eliminationSuffix}`;
               return (
                 <motion.span
                   key={step.questionId ?? `step-${i}`}
@@ -405,7 +405,7 @@ In 1-2 sentences, react in character to this answer and what it reveals. Be conc
                       ? { duration: 0.15 }
                       : { type: 'spring', stiffness: 380, damping: 20, delay: i * 0.025 }
                   }
-                  title={`Q${i + 1}: ${step.questionText} → ${step.answer}${eliminated > 0 ? ` (−${eliminated} eliminated)` : ''}`}
+                  title={historyTitle}
                   className={`inline-flex items-center justify-center w-8 h-8 sm:w-7 sm:h-7 rounded-full text-xs font-bold cursor-default transition-colors hover:scale-110 ring-1 ring-offset-1 ring-offset-background hover:ring-2 ${
                     bgClass[step.answer] ?? 'bg-muted text-muted-foreground ring-muted-foreground/30'
                   }${isHighImpact ? ' scale-[1.05]' : ''}`}
@@ -482,7 +482,7 @@ In 1-2 sentences, react in character to this answer and what it reveals. Be conc
                 <button
                   onClick={onSkip}
                   data-testid="skip-btn"
-                  className="min-h-[44px] px-3 inline-flex items-center text-xs text-muted-foreground hover:text-foreground transition-colors underline-offset-2 hover:underline"
+                  className="min-h-11 px-3 inline-flex items-center text-xs text-muted-foreground hover:text-foreground transition-colors underline-offset-2 hover:underline"
                 >
                   Skip this question
                 </button>
@@ -492,7 +492,7 @@ In 1-2 sentences, react in character to this answer and what it reveals. Be conc
               <div className="text-center pt-2 hidden lg:flex justify-center">
                 <button
                   onClick={onGiveUp}
-                  className="min-h-[44px] px-3 inline-flex items-center text-xs text-muted-foreground/60 hover:text-destructive transition-colors underline-offset-2 hover:underline"
+                  className="min-h-11 px-3 inline-flex items-center text-xs text-muted-foreground/60 hover:text-destructive transition-colors underline-offset-2 hover:underline"
                 >
                   Give up
                 </button>

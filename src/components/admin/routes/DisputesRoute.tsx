@@ -62,6 +62,20 @@ interface ResolveTarget {
   attributeKey: string;
 }
 
+type TriStateValue = 1 | 0 | null;
+
+function numberToNullableBoolean(value: number | null): boolean | null {
+  if (value === 1) return true;
+  if (value === 0) return false;
+  return null;
+}
+
+function valueLabel(value: TriStateValue): string {
+  if (value === 1) return "true";
+  if (value === 0) return "false";
+  return "unknown (remove)";
+}
+
 export default function DisputesRoute(): React.JSX.Element {
   const [data, setData] = useState<PageData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -74,7 +88,7 @@ export default function DisputesRoute(): React.JSX.Element {
   const [resolveTarget, setResolveTarget] = useState<ResolveTarget | null>(
     null,
   );
-  const [correctedValue, setCorrectedValue] = useState<1 | 0 | null>(1);
+  const [correctedValue, setCorrectedValue] = useState<TriStateValue>(1);
   const [resolving, setResolving] = useState(false);
   const pageSize = 25;
 
@@ -173,8 +187,7 @@ export default function DisputesRoute(): React.JSX.Element {
         body: JSON.stringify({
           characterName: d.character_name ?? d.character_id,
           attributeKey: d.attribute_key,
-          currentValue:
-            d.current_value === 1 ? true : d.current_value === 0 ? false : null,
+          currentValue: numberToNullableBoolean(d.current_value),
           disputeReason: d.dispute_reason,
         }),
       });
@@ -365,7 +378,7 @@ export default function DisputesRoute(): React.JSX.Element {
                       </code>
                     </p>
                     <div className="flex gap-2">
-                      {([1, 0, null] as (1 | 0 | null)[]).map((v) => (
+                      {([1, 0, null] as TriStateValue[]).map((v) => (
                         <button
                           key={String(v)}
                           onClick={() => setCorrectedValue(v)}
@@ -375,11 +388,7 @@ export default function DisputesRoute(): React.JSX.Element {
                               : "bg-background text-muted-foreground border-border hover:text-foreground"
                           }`}
                         >
-                          {v === 1
-                            ? "true"
-                            : v === 0
-                              ? "false"
-                              : "unknown (remove)"}
+                          {valueLabel(v)}
                         </button>
                       ))}
                     </div>

@@ -55,10 +55,10 @@ const LEVEL_STYLES: Record<string, string> = {
 function ResolvedStack({
   frames,
   sha,
-}: {
+}: Readonly<{
   frames: ResolvedFrame[];
   sha: string;
-}) {
+}>) {
   return (
     <div className="space-y-1">
       <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
@@ -78,7 +78,7 @@ function ResolvedStack({
   );
 }
 
-function DetailRow({ detail }: { detail: string }) {
+function DetailRow({ detail }: Readonly<{ detail: string }>) {
   let parsed: ErrorDetail | null = null;
   try {
     parsed = JSON.parse(detail) as ErrorDetail;
@@ -122,6 +122,13 @@ function DetailRow({ detail }: { detail: string }) {
     }
   };
 
+  let resolveButtonLabel = "Resolve stack";
+  if (resolving) {
+    resolveButtonLabel = "Resolving…";
+  } else if (resolved) {
+    resolveButtonLabel = "Re-resolve";
+  }
+
   return (
     <div className="font-mono text-xs text-muted-foreground bg-muted/40 rounded p-3 space-y-2 max-h-72 overflow-auto">
       {parsed ? (
@@ -143,11 +150,7 @@ function DetailRow({ detail }: { detail: string }) {
                 onClick={() => void onResolve()}
                 disabled={resolving}
               >
-                {resolving
-                  ? "Resolving…"
-                  : resolved
-                    ? "Re-resolve"
-                    : "Resolve stack"}
+                {resolveButtonLabel}
               </Button>
               {resolveError && (
                 <span className="text-[11px] text-red-400">{resolveError}</span>
@@ -165,7 +168,7 @@ function DetailRow({ detail }: { detail: string }) {
   );
 }
 
-function LogRow({ log }: { log: ErrorLog }) {
+function LogRow({ log }: Readonly<{ log: ErrorLog }>) {
   const [expanded, setExpanded] = useState(false);
 
   const formattedDate = new Date(log.created_at).toLocaleString(undefined, {
@@ -299,16 +302,27 @@ export default function ErrorLogsRoute(): React.JSX.Element {
   };
 
   const totalPages = data ? Math.ceil(data.total / pageSize) : 1;
+  const skeletonRows = [
+    "error-log-skeleton-1",
+    "error-log-skeleton-2",
+    "error-log-skeleton-3",
+    "error-log-skeleton-4",
+    "error-log-skeleton-5",
+    "error-log-skeleton-6",
+    "error-log-skeleton-7",
+    "error-log-skeleton-8",
+  ];
+  let subtitle: string | undefined;
+  if (data) {
+    const entryLabel = data.total === 1 ? "entry" : "entries";
+    subtitle = `${data.total} ${entryLabel} — capped at 1000 rows`;
+  }
 
   return (
     <div className="container mx-auto px-4 pb-8 max-w-5xl space-y-6">
       <AdminPageHeader
         title="Error Logs"
-        subtitle={
-          data
-            ? `${data.total} entr${data.total === 1 ? "y" : "ies"} \u2014 capped at 1000 rows`
-            : undefined
-        }
+        subtitle={subtitle}
         sectionColor="emerald"
         actions={
           <FreshnessPill
@@ -403,8 +417,8 @@ export default function ErrorLogsRoute(): React.JSX.Element {
             </thead>
             <tbody className="divide-y divide-border">
               {loading && !data
-                ? Array.from({ length: 8 }).map((_, i) => (
-                    <tr key={i}>
+                ? skeletonRows.map((rowKey) => (
+                    <tr key={rowKey}>
                       <td colSpan={4} className="px-4 py-3">
                         <div className="h-4 bg-muted animate-pulse rounded" />
                       </td>

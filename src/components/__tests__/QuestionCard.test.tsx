@@ -22,10 +22,10 @@ vi.mock('motion/react', () => ({
 }))
 
 vi.mock('@phosphor-icons/react', () => ({
-  CheckCircle: () => <span data-testid="icon-check" />,
-  XCircle: () => <span data-testid="icon-x" />,
-  Question: () => <span data-testid="icon-question" />,
-  Keyboard: () => <span data-testid="icon-keyboard" />,
+  CheckCircleIcon: () => <span data-testid="icon-check" />,
+  XCircleIcon: () => <span data-testid="icon-x" />,
+  QuestionIcon: () => <span data-testid="icon-question" />,
+  KeyboardIcon: () => <span data-testid="icon-keyboard" />,
 }))
 
 vi.mock('@/lib/llm', () => ({

@@ -36,17 +36,31 @@ const SOURCE_COPY: Record<ConfusionSource, { subtitle: string; tableLabel: strin
   },
 }
 
-function HeatCell({ value, max }: { value: number; max: number }): React.JSX.Element {
+function HeatCell({ value, max }: Readonly<{ value: number; max: number }>): React.JSX.Element {
   const intensity = max > 0 ? value / max : 0
-  const bg = `rgba(124, 58, 237, ${0.1 + intensity * 0.7})`
+  let toneClass = 'bg-violet-900/20'
+  if (intensity >= 0.8) toneClass = 'bg-violet-500/80'
+  else if (intensity >= 0.6) toneClass = 'bg-violet-500/70'
+  else if (intensity >= 0.4) toneClass = 'bg-violet-500/60'
+  else if (intensity >= 0.2) toneClass = 'bg-violet-500/45'
+  else if (intensity > 0) toneClass = 'bg-violet-500/30'
+
   return (
     <span
-      className="inline-flex items-center justify-center w-full h-full text-xs font-bold text-white rounded"
-      style={{ background: bg }}
+      className={`inline-flex items-center justify-center w-full h-full text-xs font-bold text-white rounded ${toneClass}`}
     >
       {value}
     </span>
   )
+}
+
+function confusionPillClass(confusionCount: number, maxConfusions: number): string {
+  const intensity = maxConfusions > 0 ? confusionCount / maxConfusions : 0
+  if (intensity >= 0.8) return 'bg-violet-500/90'
+  if (intensity >= 0.6) return 'bg-violet-500/80'
+  if (intensity >= 0.4) return 'bg-violet-500/70'
+  if (intensity >= 0.2) return 'bg-violet-500/55'
+  return 'bg-violet-500/40'
 }
 
 function relativeTime(ms: number, now: number): string {
@@ -190,10 +204,7 @@ export default function ConfusionRoute(): React.JSX.Element {
                       <td className="px-4 py-3 text-muted-foreground">{p.confusedWithName}</td>
                       <td className="px-4 py-3 text-center">
                         <span
-                          className="inline-block px-2 py-0.5 rounded text-xs font-bold text-white"
-                          style={{
-                            background: `rgba(124, 58, 237, ${0.2 + (p.confusionCount / maxConfusions) * 0.7})`,
-                          }}
+                          className={`inline-block px-2 py-0.5 rounded text-xs font-bold text-white ${confusionPillClass(p.confusionCount, maxConfusions)}`}
                         >
                           {p.confusionCount}
                         </span>
@@ -215,20 +226,14 @@ export default function ConfusionRoute(): React.JSX.Element {
                 {source === 'real' ? 'character B' : 'confused with'})
               </p>
               <div className="rounded-xl border bg-card p-4 overflow-auto">
-                <table className="text-xs border-collapse" style={{ minWidth: `${confusors.length * 40 + 120}px` }}>
+                <table className="text-xs border-collapse min-w-max">
                   <thead>
                     <tr>
                       <th className="w-28" />
                       {confusors.map((c) => (
                         <th
                           key={c}
-                          className="w-10 pb-2 text-muted-foreground font-normal"
-                          style={{
-                            writingMode: 'vertical-rl',
-                            textOrientation: 'mixed',
-                            transform: 'rotate(180deg)',
-                            maxHeight: 80,
-                          }}
+                          className="w-10 pb-2 text-muted-foreground font-normal [writing-mode:vertical-rl] [text-orientation:mixed] rotate-180 max-h-20"
                         >
                           {c.length > 12 ? `${c.slice(0, 11)}\u2026` : c}
                         </th>
@@ -238,7 +243,7 @@ export default function ConfusionRoute(): React.JSX.Element {
                   <tbody>
                     {targets.map((t) => (
                       <tr key={t}>
-                        <td className="pr-2 text-right text-muted-foreground whitespace-nowrap max-w-[100px] overflow-hidden text-ellipsis">
+                        <td className="pr-2 text-right text-muted-foreground whitespace-nowrap max-w-25 overflow-hidden text-ellipsis">
                           {t.length > 14 ? `${t.slice(0, 13)}\u2026` : t}
                         </td>
                         {confusors.map((c) => {

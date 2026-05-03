@@ -10,9 +10,9 @@ vi.mock('@phosphor-icons/react', () => {
   const Icon = () => <span />
   return {
     ClockCounterClockwiseIcon: Icon,
-    CheckCircle: Icon,
-    XCircle: Icon,
-    Question: Icon,
+    CheckCircleIcon: Icon,
+    XCircleIcon: Icon,
+    QuestionIcon: Icon,
   }
 })
 
@@ -68,7 +68,7 @@ describe('PlayingScreen', () => {
     const props = baseProps()
     props.answers = [{ questionId: 'q1', value: 'yes' }]
     render(<PlayingScreen {...props} />)
-    const progress = document.querySelector('[role="progressbar"]')
+    const progress = screen.getByRole('progressbar', { name: /questions answered/i })
     expect(progress).toBeTruthy()
   })
 
