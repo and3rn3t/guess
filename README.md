@@ -49,8 +49,8 @@ Think of a character. The AI asks strategic yes/no questions, uses Bayesian prob
 
 | Layer | Technology |
 |---|---|
-| Framework | React 19 · TypeScript (strict) · Vite 7 |
-| Styling | Tailwind CSS v4 · shadcn/ui · Framer Motion |
+| Framework | React 19 · TypeScript (strict) · Vite 8 |
+| Styling | Tailwind CSS v4 · shadcn/ui · motion/react |
 | Data | Cloudflare D1 (SQLite) · KV · R2 |
 | AI | OpenAI GPT-4o via Cloudflare AI Gateway |
 | Platform | Cloudflare Pages + Workers |

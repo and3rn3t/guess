@@ -230,9 +230,9 @@ The active execution plan, sequenced by **priority × ease**. Pull items top-dow
 
 > **Maintain this block first.** It's the single answer to "what should I work on?" — agents and humans check it before scanning tables. Update in the same commit as the work it describes.
 
-- 🟡 **In progress:** [I.1](#i-1) preview AI Gateway 24h verification window · [I.9](#i-9) AI Gateway semantic caching 7d cache-hit window · [P.7](#p-7) `/about` + `/credits` pages · [P.8](#p-8) light theme + 3-state toggle (system/dark/light) · [P.9](#p-9) daily challenge global leaderboard
+- 🟡 **In progress:** [I.1](#i-1) preview AI Gateway 24h verification window · [I.9](#i-9) AI Gateway semantic caching 7d cache-hit window
 - ▶ **Up next:** [AP.10](#ap-10) `⌘K` command palette
-- ✅ **Recently completed:** [DX.4](#dx-4) MSW for API-dependent component tests (2026-05-02) · admin recommender + Data Hygiene + cost dashboard migrated to server endpoints with request-id/rate-limit/logging hardening (2026-05-02) · post-game reflection feedback capture + coverage tests (2026-05-02) · [EN.29](#en-29) trivia card on reveal (2026-05-02)
+- ✅ **Recently completed:** [P.7](#p-7) `/about` + `/credits` pages (2026-05-03) · [P.8](#p-8) light theme + 3-state toggle (system/dark/light) (2026-05-03) · [P.9](#p-9) daily challenge leaderboard foundation (2026-05-03) · [DX.4](#dx-4) MSW for API-dependent component tests (2026-05-02) · admin recommender + Data Hygiene + cost dashboard migrated to server endpoints with request-id/rate-limit/logging hardening (2026-05-02) · post-game reflection feedback capture + coverage tests (2026-05-02) · [EN.29](#en-29) trivia card on reveal (2026-05-02)
 - 🧫 **Blocked / waiting on:** _none_
 - 🎯 **Current wave focus:** Wave 4 complete. Next: Wave 5 — Polish & Depth (admin polish, DX leverage, player-facing gloss).
 - ✅ **Recently shipped (last 5):** [EN.29](#en-29) trivia card on reveal (2026-05-02) · [AN.11](#an-11) aha moment detector (2026-05-01) · [AN.21](#an-21) catastrophic-failure replay queue (2026-05-01) · [B.4](#b-4) question dedup via embeddings (2026-05-01) · [C.6](#c-6) question quality feedback loop (2026-05-01) · …see [CHANGELOG.md](CHANGELOG.md) for the full list.
@@ -347,7 +347,7 @@ The Cloudflare platform has capabilities we're not fully leveraging. Larger expl
 
 ## Database
 
-Schema evolution and new migrations. Latest applied is `0033_game_stats_variant.sql` (adds `variant` and `selector` columns to `game_stats` for IX.4 A/B experiments).
+Schema evolution and new migrations. Latest applied is `0044_daily_results.sql` (adds `daily_results` for daily challenge completion + leaderboard ranking).
 
 ### Planned Migrations
 
@@ -457,9 +457,9 @@ Schema evolution and new migrations. Latest applied is `0033_game_stats_variant.
 | P.4 | **Character suggestion page** | `/suggest` route — visitors nominate characters via a simple D1-backed form. Review and merge from admin. Passive contributor, no auth required. |
 | P.5 | **Offline-first full game** | Bundle a representative 100-character subset into the service worker cache. Full game playable on a plane. PWA already registered but not fully offline-capable. |
 | P.6 | **AI-generated character portraits** | For characters missing an R2 image, call `@cf/stabilityai/stable-diffusion-xl-base-1.0` via Workers AI. Generate, resize via `sharp`, cache to R2. Zero manual asset work per character. |
-| P.7 | **`/about` + `/credits` pages** | Static routes: a one-screen project story (stack, design choices, links to repo + ARCHITECTURE.md) and an attribution page crediting character image sources, the five ingestion APIs (TMDb, AniList, IGDB, ComicVine, Wikidata), and the open-source dependencies. Required for ethical reuse of source-API images and a strong portfolio touch. |
-| P.8 | **Light theme + theme toggle** | `next-themes` is already in `dependencies` but unwired. Add a 3-state toggle (system / dark / light) in `AppHeader`; mirror cosmic palette to a light variant via Tailwind CSS variables; persist in `localStorage`. Required for accessibility (some users find dark UIs unreadable) and demonstrates the design system holds up under inversion. |
-| P.9 | **Daily challenge global leaderboard** | `useDailyChallenge` exists but results aren't shared. New `daily_results(date, user_id, won, questions_asked, completed_at)` table; `GET /api/v2/daily/leaderboard?date=YYYY-MM-DD` returns the top 20 fastest wins. Anonymous user_id, no auth — same cookie that already powers stats. Today-only, resets daily; collisions on user_id (incognito visitors) are a non-issue at portfolio scale. |
+| ✅ 2026-05-03 P.7 | **`/about` + `/credits` pages** | Shipped static routes with stronger portfolio narrative, explicit source/library attributions, and clearer ownership disclaimers. Covers ethical reuse and improves portfolio context. |
+| ✅ 2026-05-03 P.8 | **Light theme + theme toggle** | Shipped 3-state theme behavior with system-default hardening across app/about/credits/admin entry points so first-load theme follows OS preference while preserving manual toggle behavior. |
+| ✅ 2026-05-03 P.9 (foundation) | **Daily challenge global leaderboard** | Shipped foundation: `daily_results` schema + `GET/POST /api/v2/daily` + `GET /api/v2/daily/leaderboard`, wired into client daily flow and welcome-card leaderboard preview. |
 
 ---
 
