@@ -121,6 +121,27 @@ describe('DataQualityRoute', () => {
           }),
         }
       }
+      if (url.includes('/api/admin/image-health')) {
+        return {
+          ok: true,
+          json: async () => ({
+            totals: {
+              totalCharacters: 100,
+              withImage: 95,
+              validR2Url: 90,
+              missingUrl: 5,
+              invalidUrl: 3,
+              externalUrl: 2,
+              usablePct: 0.9,
+            },
+            perCategory: [
+              { category: 'movies', total: 40, withImage: 38, validR2Url: 37, imageCoveragePct: 0.925 },
+              { category: 'anime', total: 30, withImage: 28, validR2Url: 27, imageCoveragePct: 0.9 },
+            ],
+            issues: [],
+          }),
+        }
+      }
 
       return {
         ok: true,

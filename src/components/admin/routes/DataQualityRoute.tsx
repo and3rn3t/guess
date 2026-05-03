@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { AdminPageHeader } from '../AdminPageHeader'
 import { SlaTargetsPanel } from '../SlaTargetsPanel'
+import { ImageHealthPanel } from '../ImageHealthPanel'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
   ResponsiveContainer,
@@ -609,6 +610,8 @@ export default function DataQualityRoute(): React.JSX.Element {
           </SectionCard>
 
           <SlaTargetsPanel />
+
+          <ImageHealthPanel />
 
           <SectionCard
             title="Source-ID Health"
