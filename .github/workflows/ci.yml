@@ -136,6 +136,7 @@ jobs:
     timeout-minutes: 10
     permissions:
       contents: read
+      pull-requests: write
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
       - uses: ./.github/actions/setup
@@ -145,6 +146,9 @@ jobs:
         run: |
           set -o pipefail
           pnpm test:coverage 2>&1 | tee .ci-artifacts/checks-tests/test-coverage.log
+      - name: Coverage diff PR comment
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        uses: davelosert/vitest-coverage-report-action@3c50566c523e04813df28de8f7c48dd97d663f1c # v2
       - name: Upload checks-tests logs
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7

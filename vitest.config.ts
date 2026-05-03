@@ -21,7 +21,7 @@ export default defineConfig({
     ],
     coverage: {
       provider: 'v8',
-      reporter: ['text', 'lcov'],
+      reporter: ['text', 'lcov', 'json-summary', 'json'],
       // Focus coverage on business logic; React components are covered by Playwright e2e
       include: ['src/lib/**', 'src/hooks/**', 'functions/api/v2/_*.ts', 'packages/game-engine/src/**'],
       exclude: [
