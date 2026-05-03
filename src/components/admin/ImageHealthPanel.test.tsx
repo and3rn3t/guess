@@ -7,7 +7,7 @@ describe('ImageHealthPanel', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     // Mock fetch globally
-    global.fetch = vi.fn()
+    globalThis.fetch = vi.fn()
   })
 
   afterEach(() => {
@@ -42,7 +42,7 @@ describe('ImageHealthPanel', () => {
       ],
     }
 
-    ;(global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
+    ;(globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
       ok: true,
       json: async () => mockData,
     })
@@ -67,7 +67,7 @@ describe('ImageHealthPanel', () => {
   })
 
   it('displays loading skeleton initially', () => {
-    ;(global.fetch as ReturnType<typeof vi.fn>).mockImplementation(
+    ;(globalThis.fetch as ReturnType<typeof vi.fn>).mockImplementation(
       () => new Promise(() => {}) // Never resolves
     )
 
@@ -78,7 +78,7 @@ describe('ImageHealthPanel', () => {
   })
 
   it('displays error message on fetch failure', async () => {
-    ;(global.fetch as ReturnType<typeof vi.fn>).mockRejectedValue(new Error('Network error'))
+    ;(globalThis.fetch as ReturnType<typeof vi.fn>).mockRejectedValue(new Error('Network error'))
 
     render(<ImageHealthPanel />)
 
@@ -88,7 +88,7 @@ describe('ImageHealthPanel', () => {
   })
 
   it('displays no data message when response is empty', async () => {
-    ;(global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
+    ;(globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
       ok: true,
       json: async () => null,
     })

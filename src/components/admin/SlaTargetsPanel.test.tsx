@@ -36,7 +36,7 @@ describe('SlaTargetsPanel', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     // Mock fetch globally
-    global.fetch = vi.fn()
+    globalThis.fetch = vi.fn()
   })
 
   afterEach(() => {
@@ -44,7 +44,7 @@ describe('SlaTargetsPanel', () => {
   })
 
   it('renders loading state initially', async () => {
-    ;(global.fetch as ReturnType<typeof vi.fn>).mockImplementation(
+    ;(globalThis.fetch as ReturnType<typeof vi.fn>).mockImplementation(
       () =>
         new Promise((resolve) => {
           setTimeout(
@@ -62,7 +62,7 @@ describe('SlaTargetsPanel', () => {
   })
 
   it('renders SLA targets after loading', async () => {
-    ;(global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
+    ;(globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
       ok: true,
       json: async () => mockSlaResponse,
     })
@@ -81,7 +81,7 @@ describe('SlaTargetsPanel', () => {
 
   it('renders error state on fetch failure', async () => {
     const errorMsg = 'Network error'
-    ;(global.fetch as ReturnType<typeof vi.fn>).mockRejectedValue(
+    ;(globalThis.fetch as ReturnType<typeof vi.fn>).mockRejectedValue(
       new Error(errorMsg)
     )
 
@@ -93,7 +93,7 @@ describe('SlaTargetsPanel', () => {
   })
 
   it('groups targets by attribute', async () => {
-    ;(global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
+    ;(globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
       ok: true,
       json: async () => mockSlaResponse,
     })
@@ -108,7 +108,7 @@ describe('SlaTargetsPanel', () => {
   })
 
   it('displays categories correctly', async () => {
-    ;(global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
+    ;(globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
       ok: true,
       json: async () => mockSlaResponse,
     })

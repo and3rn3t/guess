@@ -7,7 +7,7 @@ import { CuratorQueuePanel } from './CuratorQueuePanel'
 describe('CuratorQueuePanel', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    global.fetch = vi.fn()
+    globalThis.fetch = vi.fn()
   })
 
   afterEach(() => {
@@ -52,7 +52,7 @@ describe('CuratorQueuePanel', () => {
       limit: 200,
     }
 
-    ;(global.fetch as any).mockResolvedValue({
+    ;(globalThis.fetch as any).mockResolvedValue({
       ok: true,
       json: async () => mockData,
     })
@@ -76,7 +76,7 @@ describe('CuratorQueuePanel', () => {
   })
 
   it('displays loading skeleton initially', () => {
-    ;(global.fetch as any).mockImplementation(() => new Promise(() => {})) // Never resolves
+    ;(globalThis.fetch as any).mockImplementation(() => new Promise(() => {})) // Never resolves
 
     render(<CuratorQueuePanel />)
 
@@ -85,7 +85,7 @@ describe('CuratorQueuePanel', () => {
   })
 
   it('displays error message on fetch failure', async () => {
-    ;(global.fetch as any).mockRejectedValue(new Error('Network error'))
+    ;(globalThis.fetch as any).mockRejectedValue(new Error('Network error'))
 
     render(<CuratorQueuePanel />)
 
@@ -95,7 +95,7 @@ describe('CuratorQueuePanel', () => {
   })
 
   it('displays no data message when response is empty', async () => {
-    ;(global.fetch as any).mockResolvedValue({
+    ;(globalThis.fetch as any).mockResolvedValue({
       ok: true,
       json: async () => null,
     })
@@ -177,7 +177,7 @@ describe('CuratorQueuePanel', () => {
       limit: 200,
     }
 
-    ;(global.fetch as any).mockResolvedValue({
+    ;(globalThis.fetch as any).mockResolvedValue({
       ok: true,
       json: async () => mockData,
     })
