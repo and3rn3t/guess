@@ -23,6 +23,12 @@ interface AdminCommandPaletteProps {
   characters?: Array<{ id: string; name: string }>
 }
 
+const COMMON_COMMANDS: Array<{ label: string; to: string }> = [
+  { label: 'Export game_stats as CSV', to: 'analytics' },
+  { label: 'View recent errors', to: 'error-logs' },
+  { label: 'Check data quality', to: 'data-quality' },
+]
+
 export function AdminCommandPalette({
   open,
   onClose,
@@ -31,31 +37,6 @@ export function AdminCommandPalette({
 }: AdminCommandPaletteProps): React.JSX.Element {
   const navigate = useNavigate()
   const [search, setSearch] = useState('')
-
-  // Common commands (action items like "export", "rotate basic-auth", etc.)
-  const commonCommands = [
-    {
-      label: 'Export game_stats as CSV',
-      action: () => {
-        navigate('analytics')
-        onClose()
-      },
-    },
-    {
-      label: 'View recent errors',
-      action: () => {
-        navigate('error-logs')
-        onClose()
-      },
-    },
-    {
-      label: 'Check data quality',
-      action: () => {
-        navigate('data-quality')
-        onClose()
-      },
-    },
-  ]
 
   // Filter characters by search
   const filteredCharacters = useMemo(() => {
@@ -86,7 +67,7 @@ export function AdminCommandPalette({
   const filteredCommands = useMemo(() => {
     if (!search.trim()) return []
     const lower = search.toLowerCase()
-    return commonCommands.filter((cmd) => cmd.label.toLowerCase().includes(lower))
+    return COMMON_COMMANDS.filter((cmd) => cmd.label.toLowerCase().includes(lower))
   }, [search])
 
   const handleSelect = (to: string) => {
@@ -94,8 +75,9 @@ export function AdminCommandPalette({
     onClose()
   }
 
-  const handleCommandSelect = (action: () => void) => {
-    action()
+  const handleCommandSelect = (to: string) => {
+    navigate(to)
+    onClose()
   }
 
   const handleCharacterSelect = (id: string) => {
@@ -159,7 +141,7 @@ export function AdminCommandPalette({
               {filteredCommands.map((cmd) => (
                 <CommandItem
                   key={cmd.label}
-                  onSelect={() => handleCommandSelect(cmd.action)}
+                  onSelect={() => handleCommandSelect(cmd.to)}
                   className="gap-2"
                 >
                   {cmd.label}
