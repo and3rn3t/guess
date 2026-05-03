@@ -49,6 +49,9 @@ jobs:
               - 'src/**'
               - 'functions/**'
               - 'packages/**'
+              - 'scripts/**'
+              - 'docs/openapi*'
+              - 'public/openapi.yaml'
               - 'public/**'
               - 'e2e/**'
               - 'playwright.config.ts'
@@ -107,6 +110,12 @@ jobs:
         run: |
           set -o pipefail
           pnpm dq:sla:check 2>&1 | tee .ci-artifacts/checks/dq-sla-check.log
+      - name: OpenAPI generate + validate + drift check
+        run: |
+          set -o pipefail
+          pnpm openapi:generate 2>&1 | tee .ci-artifacts/checks/openapi-generate.log
+          pnpm openapi:validate 2>&1 | tee .ci-artifacts/checks/openapi-validate.log
+          pnpm openapi:check 2>&1 | tee .ci-artifacts/checks/openapi-check.log
       - name: Test coverage
         run: |
           set -o pipefail
@@ -125,7 +134,7 @@ jobs:
             echo "### Checks Artifacts"
             echo ""
             echo "- Artifact: ci-checks-logs"
-            echo "- Files: lint.log, typecheck.log, dq-sla-check.log, test-coverage.log"
+            echo "- Files: lint.log, typecheck.log, dq-sla-check.log, openapi-generate.log, openapi-validate.log, openapi-check.log, test-coverage.log"
           } >> "$GITHUB_STEP_SUMMARY"
 
   test-e2e:

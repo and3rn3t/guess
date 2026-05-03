@@ -101,6 +101,9 @@
     "release": "tsx scripts/cut-release.ts",
     "doctor": "tsx scripts/doctor.ts",
     "tail": "tsx scripts/tail.ts",
+    "openapi:generate": "tsx scripts/openapi/generate.ts",
+    "openapi:validate": "tsx scripts/openapi/validate.ts",
+    "openapi:check": "tsx scripts/openapi/check-drift.ts",
     "prepare": "husky"
   },
   "dependencies": {

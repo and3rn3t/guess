@@ -1,0 +1,927 @@
+{
+  "endpointCount": 76,
+  "endpoints": [
+    {
+      "filePath": "functions/api/admin/analytics.ts",
+      "routePath": "/api/admin/analytics",
+      "methods": [
+        "get"
+      ],
+      "domain": "admin",
+      "tags": [
+        "admin",
+        "analytics"
+      ]
+    },
+    {
+      "filePath": "functions/api/admin/analytics/aha-moments.ts",
+      "routePath": "/api/admin/analytics/aha-moments",
+      "methods": [
+        "get"
+      ],
+      "domain": "admin",
+      "tags": [
+        "admin",
+        "analytics"
+      ]
+    },
+    {
+      "filePath": "functions/api/admin/analytics/insights.ts",
+      "routePath": "/api/admin/analytics/insights",
+      "methods": [
+        "post"
+      ],
+      "domain": "admin",
+      "tags": [
+        "admin",
+        "analytics"
+      ]
+    },
+    {
+      "filePath": "functions/api/admin/attribute-disputes.ts",
+      "routePath": "/api/admin/attribute-disputes",
+      "methods": [
+        "get",
+        "patch"
+      ],
+      "domain": "admin",
+      "tags": [
+        "admin",
+        "attribute-disputes"
+      ]
+    },
+    {
+      "filePath": "functions/api/admin/attribute-disputes-ai.ts",
+      "routePath": "/api/admin/attribute-disputes-ai",
+      "methods": [
+        "post"
+      ],
+      "domain": "admin",
+      "tags": [
+        "admin",
+        "attribute-disputes-ai"
+      ]
+    },
+    {
+      "filePath": "functions/api/admin/automation-status.ts",
+      "routePath": "/api/admin/automation-status",
+      "methods": [
+        "get"
+      ],
+      "domain": "admin",
+      "tags": [
+        "admin",
+        "automation-status"
+      ]
+    },
+    {
+      "filePath": "functions/api/admin/characters.ts",
+      "routePath": "/api/admin/characters",
+      "methods": [
+        "get"
+      ],
+      "domain": "admin",
+      "tags": [
+        "admin",
+        "characters"
+      ]
+    },
+    {
+      "filePath": "functions/api/admin/characters/[id]/index.ts",
+      "routePath": "/api/admin/characters/{id}",
+      "methods": [
+        "get",
+        "patch",
+        "delete"
+      ],
+      "domain": "admin",
+      "tags": [
+        "admin",
+        "characters"
+      ]
+    },
+    {
+      "filePath": "functions/api/admin/characters/[id]/validate.ts",
+      "routePath": "/api/admin/characters/{id}/validate",
+      "methods": [
+        "post"
+      ],
+      "domain": "admin",
+      "tags": [
+        "admin",
+        "characters"
+      ]
+    },
+    {
+      "filePath": "functions/api/admin/community.ts",
+      "routePath": "/api/admin/community",
+      "methods": [
+        "get",
+        "post"
+      ],
+      "domain": "admin",
+      "tags": [
+        "admin",
+        "community"
+      ]
+    },
+    {
+      "filePath": "functions/api/admin/confusion.ts",
+      "routePath": "/api/admin/confusion",
+      "methods": [
+        "get"
+      ],
+      "domain": "admin",
+      "tags": [
+        "admin",
+        "confusion"
+      ]
+    },
+    {
+      "filePath": "functions/api/admin/costs.ts",
+      "routePath": "/api/admin/costs",
+      "methods": [
+        "get"
+      ],
+      "domain": "admin",
+      "tags": [
+        "admin",
+        "costs"
+      ]
+    },
+    {
+      "filePath": "functions/api/admin/coverage.ts",
+      "routePath": "/api/admin/coverage",
+      "methods": [
+        "get"
+      ],
+      "domain": "admin",
+      "tags": [
+        "admin",
+        "coverage"
+      ]
+    },
+    {
+      "filePath": "functions/api/admin/coverage-priority.ts",
+      "routePath": "/api/admin/coverage-priority",
+      "methods": [
+        "post"
+      ],
+      "domain": "admin",
+      "tags": [
+        "admin",
+        "coverage-priority"
+      ]
+    },
+    {
+      "filePath": "functions/api/admin/dashboard.ts",
+      "routePath": "/api/admin/dashboard",
+      "methods": [
+        "get"
+      ],
+      "domain": "admin",
+      "tags": [
+        "admin",
+        "dashboard"
+      ]
+    },
+    {
+      "filePath": "functions/api/admin/data-quality.ts",
+      "routePath": "/api/admin/data-quality",
+      "methods": [
+        "get"
+      ],
+      "domain": "admin",
+      "tags": [
+        "admin",
+        "data-quality"
+      ]
+    },
+    {
+      "filePath": "functions/api/admin/data-quality/closure-queue.ts",
+      "routePath": "/api/admin/data-quality/closure-queue",
+      "methods": [
+        "get"
+      ],
+      "domain": "admin",
+      "tags": [
+        "admin",
+        "data-quality"
+      ]
+    },
+    {
+      "filePath": "functions/api/admin/data-quality/closure-queue-status.ts",
+      "routePath": "/api/admin/data-quality/closure-queue-status",
+      "methods": [
+        "get"
+      ],
+      "domain": "admin",
+      "tags": [
+        "admin",
+        "data-quality"
+      ]
+    },
+    {
+      "filePath": "functions/api/admin/enrich/start.ts",
+      "routePath": "/api/admin/enrich/start",
+      "methods": [
+        "post"
+      ],
+      "domain": "admin",
+      "tags": [
+        "admin",
+        "enrich"
+      ]
+    },
+    {
+      "filePath": "functions/api/admin/enrich/stream.ts",
+      "routePath": "/api/admin/enrich/stream",
+      "methods": [
+        "get"
+      ],
+      "domain": "admin",
+      "tags": [
+        "admin",
+        "enrich"
+      ]
+    },
+    {
+      "filePath": "functions/api/admin/enrichment.ts",
+      "routePath": "/api/admin/enrichment",
+      "methods": [
+        "get",
+        "post"
+      ],
+      "domain": "admin",
+      "tags": [
+        "admin",
+        "enrichment"
+      ]
+    },
+    {
+      "filePath": "functions/api/admin/error-logs.ts",
+      "routePath": "/api/admin/error-logs",
+      "methods": [
+        "get",
+        "delete"
+      ],
+      "domain": "admin",
+      "tags": [
+        "admin",
+        "error-logs"
+      ]
+    },
+    {
+      "filePath": "functions/api/admin/experiments.ts",
+      "routePath": "/api/admin/experiments",
+      "methods": [
+        "get",
+        "post"
+      ],
+      "domain": "admin",
+      "tags": [
+        "admin",
+        "experiments"
+      ]
+    },
+    {
+      "filePath": "functions/api/admin/funnel.ts",
+      "routePath": "/api/admin/funnel",
+      "methods": [
+        "get"
+      ],
+      "domain": "admin",
+      "tags": [
+        "admin",
+        "funnel"
+      ]
+    },
+    {
+      "filePath": "functions/api/admin/hygiene-attributes.ts",
+      "routePath": "/api/admin/hygiene-attributes",
+      "methods": [
+        "post"
+      ],
+      "domain": "admin",
+      "tags": [
+        "admin",
+        "hygiene-attributes"
+      ]
+    },
+    {
+      "filePath": "functions/api/admin/hygiene-categories.ts",
+      "routePath": "/api/admin/hygiene-categories",
+      "methods": [
+        "post"
+      ],
+      "domain": "admin",
+      "tags": [
+        "admin",
+        "hygiene-categories"
+      ]
+    },
+    {
+      "filePath": "functions/api/admin/hygiene-duplicates.ts",
+      "routePath": "/api/admin/hygiene-duplicates",
+      "methods": [
+        "post"
+      ],
+      "domain": "admin",
+      "tags": [
+        "admin",
+        "hygiene-duplicates"
+      ]
+    },
+    {
+      "filePath": "functions/api/admin/hygiene-question-scores.ts",
+      "routePath": "/api/admin/hygiene-question-scores",
+      "methods": [
+        "post"
+      ],
+      "domain": "admin",
+      "tags": [
+        "admin",
+        "hygiene-question-scores"
+      ]
+    },
+    {
+      "filePath": "functions/api/admin/live-ops.ts",
+      "routePath": "/api/admin/live-ops",
+      "methods": [
+        "get"
+      ],
+      "domain": "admin",
+      "tags": [
+        "admin",
+        "live-ops"
+      ]
+    },
+    {
+      "filePath": "functions/api/admin/matrix.ts",
+      "routePath": "/api/admin/matrix",
+      "methods": [
+        "get"
+      ],
+      "domain": "admin",
+      "tags": [
+        "admin",
+        "matrix"
+      ]
+    },
+    {
+      "filePath": "functions/api/admin/pipeline.ts",
+      "routePath": "/api/admin/pipeline",
+      "methods": [
+        "get",
+        "post"
+      ],
+      "domain": "admin",
+      "tags": [
+        "admin",
+        "pipeline"
+      ]
+    },
+    {
+      "filePath": "functions/api/admin/proposed-attributes.ts",
+      "routePath": "/api/admin/proposed-attributes",
+      "methods": [
+        "get",
+        "post",
+        "patch"
+      ],
+      "domain": "admin",
+      "tags": [
+        "admin",
+        "proposed-attributes"
+      ]
+    },
+    {
+      "filePath": "functions/api/admin/proposed-attributes/[id]/index.ts",
+      "routePath": "/api/admin/proposed-attributes/{id}",
+      "methods": [
+        "post"
+      ],
+      "domain": "admin",
+      "tags": [
+        "admin",
+        "proposed-attributes"
+      ]
+    },
+    {
+      "filePath": "functions/api/admin/proposed-attributes/[id]/score.ts",
+      "routePath": "/api/admin/proposed-attributes/{id}/score",
+      "methods": [
+        "post"
+      ],
+      "domain": "admin",
+      "tags": [
+        "admin",
+        "proposed-attributes"
+      ]
+    },
+    {
+      "filePath": "functions/api/admin/questions.ts",
+      "routePath": "/api/admin/questions",
+      "methods": [
+        "get"
+      ],
+      "domain": "admin",
+      "tags": [
+        "admin",
+        "questions"
+      ]
+    },
+    {
+      "filePath": "functions/api/admin/questions/[key]/index.ts",
+      "routePath": "/api/admin/questions/{key}",
+      "methods": [
+        "patch"
+      ],
+      "domain": "admin",
+      "tags": [
+        "admin",
+        "questions"
+      ]
+    },
+    {
+      "filePath": "functions/api/admin/questions/[key]/retire.ts",
+      "routePath": "/api/admin/questions/{key}/retire",
+      "methods": [
+        "post"
+      ],
+      "domain": "admin",
+      "tags": [
+        "admin",
+        "questions"
+      ]
+    },
+    {
+      "filePath": "functions/api/admin/questions/[key]/score.ts",
+      "routePath": "/api/admin/questions/{key}/score",
+      "methods": [
+        "post"
+      ],
+      "domain": "admin",
+      "tags": [
+        "admin",
+        "questions"
+      ]
+    },
+    {
+      "filePath": "functions/api/admin/questions/[key]/unretire.ts",
+      "routePath": "/api/admin/questions/{key}/unretire",
+      "methods": [
+        "post"
+      ],
+      "domain": "admin",
+      "tags": [
+        "admin",
+        "questions"
+      ]
+    },
+    {
+      "filePath": "functions/api/admin/questions/bulk.ts",
+      "routePath": "/api/admin/questions/bulk",
+      "methods": [
+        "post"
+      ],
+      "domain": "admin",
+      "tags": [
+        "admin",
+        "questions"
+      ]
+    },
+    {
+      "filePath": "functions/api/admin/questions/duplicates/backfill.ts",
+      "routePath": "/api/admin/questions/duplicates/backfill",
+      "methods": [
+        "post"
+      ],
+      "domain": "admin",
+      "tags": [
+        "admin",
+        "questions"
+      ]
+    },
+    {
+      "filePath": "functions/api/admin/questions/duplicates/dismiss.ts",
+      "routePath": "/api/admin/questions/duplicates/dismiss",
+      "methods": [
+        "post"
+      ],
+      "domain": "admin",
+      "tags": [
+        "admin",
+        "questions"
+      ]
+    },
+    {
+      "filePath": "functions/api/admin/questions/duplicates/merge.ts",
+      "routePath": "/api/admin/questions/duplicates/merge",
+      "methods": [
+        "post"
+      ],
+      "domain": "admin",
+      "tags": [
+        "admin",
+        "questions"
+      ]
+    },
+    {
+      "filePath": "functions/api/admin/questions/expand.ts",
+      "routePath": "/api/admin/questions/expand",
+      "methods": [
+        "get",
+        "post"
+      ],
+      "domain": "admin",
+      "tags": [
+        "admin",
+        "questions"
+      ]
+    },
+    {
+      "filePath": "functions/api/admin/questions/retirement-queue.ts",
+      "routePath": "/api/admin/questions/retirement-queue",
+      "methods": [
+        "get"
+      ],
+      "domain": "admin",
+      "tags": [
+        "admin",
+        "questions"
+      ]
+    },
+    {
+      "filePath": "functions/api/admin/recommender.ts",
+      "routePath": "/api/admin/recommender",
+      "methods": [
+        "post"
+      ],
+      "domain": "admin",
+      "tags": [
+        "admin",
+        "recommender"
+      ]
+    },
+    {
+      "filePath": "functions/api/admin/resolve-stack.ts",
+      "routePath": "/api/admin/resolve-stack",
+      "methods": [
+        "post"
+      ],
+      "domain": "admin",
+      "tags": [
+        "admin",
+        "resolve-stack"
+      ]
+    },
+    {
+      "filePath": "functions/api/admin/stress-test.ts",
+      "routePath": "/api/admin/stress-test",
+      "methods": [
+        "get"
+      ],
+      "domain": "admin",
+      "tags": [
+        "admin",
+        "stress-test"
+      ]
+    },
+    {
+      "filePath": "functions/api/admin/triage.ts",
+      "routePath": "/api/admin/triage",
+      "methods": [
+        "get"
+      ],
+      "domain": "admin",
+      "tags": [
+        "admin",
+        "triage"
+      ]
+    },
+    {
+      "filePath": "functions/api/admin/upload-attrs.ts",
+      "routePath": "/api/admin/upload-attrs",
+      "methods": [
+        "post"
+      ],
+      "domain": "admin",
+      "tags": [
+        "admin",
+        "upload-attrs"
+      ]
+    },
+    {
+      "filePath": "functions/api/admin/workflow-progress.ts",
+      "routePath": "/api/admin/workflow-progress",
+      "methods": [
+        "get",
+        "post"
+      ],
+      "domain": "admin",
+      "tags": [
+        "admin",
+        "workflow-progress"
+      ]
+    },
+    {
+      "filePath": "functions/api/characters.ts",
+      "routePath": "/api/characters",
+      "methods": [
+        "get",
+        "post"
+      ],
+      "domain": "public",
+      "tags": [
+        "characters"
+      ]
+    },
+    {
+      "filePath": "functions/api/corrections.ts",
+      "routePath": "/api/corrections",
+      "methods": [
+        "get",
+        "post"
+      ],
+      "domain": "public",
+      "tags": [
+        "corrections"
+      ]
+    },
+    {
+      "filePath": "functions/api/csp-report.ts",
+      "routePath": "/api/csp-report",
+      "methods": [
+        "post"
+      ],
+      "domain": "public",
+      "tags": [
+        "csp-report"
+      ]
+    },
+    {
+      "filePath": "functions/api/images/[[path]].ts",
+      "routePath": "/api/images/{path}",
+      "methods": [
+        "get"
+      ],
+      "domain": "public",
+      "tags": [
+        "images"
+      ]
+    },
+    {
+      "filePath": "functions/api/llm.ts",
+      "routePath": "/api/llm",
+      "methods": [
+        "post"
+      ],
+      "domain": "public",
+      "tags": [
+        "llm"
+      ]
+    },
+    {
+      "filePath": "functions/api/llm-stream.ts",
+      "routePath": "/api/llm-stream",
+      "methods": [
+        "post"
+      ],
+      "domain": "public",
+      "tags": [
+        "llm-stream"
+      ]
+    },
+    {
+      "filePath": "functions/api/questions.ts",
+      "routePath": "/api/questions",
+      "methods": [
+        "get",
+        "post"
+      ],
+      "domain": "public",
+      "tags": [
+        "questions"
+      ]
+    },
+    {
+      "filePath": "functions/api/stats.ts",
+      "routePath": "/api/stats",
+      "methods": [
+        "get",
+        "post"
+      ],
+      "domain": "public",
+      "tags": [
+        "stats"
+      ]
+    },
+    {
+      "filePath": "functions/api/sync.ts",
+      "routePath": "/api/sync",
+      "methods": [
+        "get",
+        "post"
+      ],
+      "domain": "public",
+      "tags": [
+        "sync"
+      ]
+    },
+    {
+      "filePath": "functions/api/v2/attributes.ts",
+      "routePath": "/api/v2/attributes",
+      "methods": [
+        "get"
+      ],
+      "domain": "public",
+      "tags": [
+        "v2",
+        "attributes"
+      ]
+    },
+    {
+      "filePath": "functions/api/v2/characters.ts",
+      "routePath": "/api/v2/characters",
+      "methods": [
+        "get",
+        "post"
+      ],
+      "domain": "public",
+      "tags": [
+        "v2",
+        "characters"
+      ]
+    },
+    {
+      "filePath": "functions/api/v2/daily/index.ts",
+      "routePath": "/api/v2/daily",
+      "methods": [
+        "get",
+        "post"
+      ],
+      "domain": "public",
+      "tags": [
+        "v2",
+        "daily"
+      ]
+    },
+    {
+      "filePath": "functions/api/v2/daily/leaderboard.ts",
+      "routePath": "/api/v2/daily/leaderboard",
+      "methods": [
+        "get"
+      ],
+      "domain": "public",
+      "tags": [
+        "v2",
+        "daily"
+      ]
+    },
+    {
+      "filePath": "functions/api/v2/events.ts",
+      "routePath": "/api/v2/events",
+      "methods": [
+        "post"
+      ],
+      "domain": "public",
+      "tags": [
+        "v2",
+        "events"
+      ]
+    },
+    {
+      "filePath": "functions/api/v2/game/answer.ts",
+      "routePath": "/api/v2/game/answer",
+      "methods": [
+        "post"
+      ],
+      "domain": "public",
+      "tags": [
+        "v2",
+        "game"
+      ]
+    },
+    {
+      "filePath": "functions/api/v2/game/feedback.ts",
+      "routePath": "/api/v2/game/feedback",
+      "methods": [
+        "post"
+      ],
+      "domain": "public",
+      "tags": [
+        "v2",
+        "game"
+      ]
+    },
+    {
+      "filePath": "functions/api/v2/game/reject-guess.ts",
+      "routePath": "/api/v2/game/reject-guess",
+      "methods": [
+        "post"
+      ],
+      "domain": "public",
+      "tags": [
+        "v2",
+        "game"
+      ]
+    },
+    {
+      "filePath": "functions/api/v2/game/result.ts",
+      "routePath": "/api/v2/game/result",
+      "methods": [
+        "post"
+      ],
+      "domain": "public",
+      "tags": [
+        "v2",
+        "game"
+      ]
+    },
+    {
+      "filePath": "functions/api/v2/game/resume.ts",
+      "routePath": "/api/v2/game/resume",
+      "methods": [
+        "post"
+      ],
+      "domain": "public",
+      "tags": [
+        "v2",
+        "game"
+      ]
+    },
+    {
+      "filePath": "functions/api/v2/game/reveal.ts",
+      "routePath": "/api/v2/game/reveal",
+      "methods": [
+        "post"
+      ],
+      "domain": "public",
+      "tags": [
+        "v2",
+        "game"
+      ]
+    },
+    {
+      "filePath": "functions/api/v2/game/skip.ts",
+      "routePath": "/api/v2/game/skip",
+      "methods": [
+        "post"
+      ],
+      "domain": "public",
+      "tags": [
+        "v2",
+        "game"
+      ]
+    },
+    {
+      "filePath": "functions/api/v2/game/start.ts",
+      "routePath": "/api/v2/game/start",
+      "methods": [
+        "post"
+      ],
+      "domain": "public",
+      "tags": [
+        "v2",
+        "game"
+      ]
+    },
+    {
+      "filePath": "functions/api/v2/history.ts",
+      "routePath": "/api/v2/history",
+      "methods": [
+        "get"
+      ],
+      "domain": "public",
+      "tags": [
+        "v2",
+        "history"
+      ]
+    },
+    {
+      "filePath": "functions/api/v2/questions.ts",
+      "routePath": "/api/v2/questions",
+      "methods": [
+        "get"
+      ],
+      "domain": "public",
+      "tags": [
+        "v2",
+        "questions"
+      ]
+    },
+    {
+      "filePath": "functions/api/v2/stats.ts",
+      "routePath": "/api/v2/stats",
+      "methods": [
+        "get"
+      ],
+      "domain": "public",
+      "tags": [
+        "v2",
+        "stats"
+      ]
+    }
+  ]
+}

@@ -137,6 +137,11 @@ functions/api/                 # Cloudflare Workers
         └── reveal.ts          # User reveals answer on loss → backfill DB attributes
 
 scripts/                       # Build & data tools
+├── openapi/
+│   ├── generate.ts            # Build deterministic OpenAPI artifacts from functions/api handler exports
+│   ├── validate.ts            # Contract checks: refs, operation IDs, security, and endpoint coverage
+│   ├── check-drift.ts         # CI drift gate against committed artifacts
+│   └── lib.ts                 # Endpoint inventory + OpenAPI document assembly helpers
 ├── generate-seed-sql.ts       # database.ts → SQL INSERT statements
 ├── generate-attributes.ts     # LLM → expanded attribute taxonomy
 ├── backfill-attributes.ts     # LLM → classify existing characters

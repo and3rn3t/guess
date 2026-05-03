@@ -23,8 +23,11 @@ Source: .github/workflows/ci.yml
   - lint.log
   - typecheck.log
   - dq-sla-check.log
+  - openapi-generate.log
+  - openapi-validate.log
+  - openapi-check.log
   - test-coverage.log
-- Use when: lint, type-check, or unit test coverage fails.
+- Use when: lint, type-check, OpenAPI contract checks, or unit test coverage fails.
 
 ### build job
 

@@ -256,7 +256,7 @@ The active execution plan, sequenced by **priority × ease**. Pull items top-dow
 
 - 🟡 **In progress:** [I.1](#i-1) preview AI Gateway 24h verification window · [I.9](#i-9) AI Gateway semantic caching 7d cache-hit window
 - 🟡 **In progress:** [DQ.31](#dq-31) definition-of-complete + release gate · [DQ.33](#dq-33) deterministic null-closure queue
-- 🟡 **In progress:** [DX.23](#dx-23) `pnpm doctor` · [DX.25](#dx-25) `pnpm tail` · [DX.27](#dx-27) `.vscode/` settings + extensions · [DX.38](#dx-38) commitlint — terminal & IDE DX sweep
+- 🟡 **In progress:** [DX.23](#dx-23) `pnpm doctor` · [DX.25](#dx-25) `pnpm tail` · [DX.27](#dx-27) `.vscode/` settings + extensions · [DX.31](#dx-31) OpenAPI spec auto-derived from handlers · [DX.38](#dx-38) commitlint — terminal & IDE DX sweep
 - ▶ **Up next:** [DQ.32](#dq-32) attribute completeness SLA matrix → then [DQ.34](#dq-34) source-ID completeness guardrail
 - ✅ **Recently completed:** [P.7](#p-7) `/about` + `/credits` pages (2026-05-03) · [P.8](#p-8) light theme + 3-state toggle (system/dark/light) (2026-05-03) · [P.9](#p-9) daily challenge leaderboard foundation (2026-05-03) · [DX.4](#dx-4) MSW for API-dependent component tests (2026-05-02) · admin recommender + Data Hygiene + cost dashboard migrated to server endpoints with request-id/rate-limit/logging hardening (2026-05-02) · post-game reflection feedback capture + coverage tests (2026-05-02) · [EN.29](#en-29) trivia card on reveal (2026-05-02)
 - 🧫 **Blocked / waiting on:** _none_
@@ -652,7 +652,7 @@ Larger DX explorations (Storybook catalog, Zod contracts, Pact, Stryker, dev con
 |---|------|--------|-------|
 | DX.29 | **End-to-end type safety: handler → client** | Medium | Today the client hand-writes types for every API response; drift is silent. Use [hono](https://hono.dev) + RPC mode (or a thin `as const` typed-fetch wrapper) so `useGameSession` infers types directly from the handler's return. Eliminates a whole class of "renamed a field, forgot a call site" bugs. Migration is per-route — start with `functions/api/v2/game/*`. |
 | DX.30 | **Generated D1 types from schema** | Low | `kysely-codegen` or `drizzle-kit introspect` against `migrations/init-squashed.sql` emits `src/lib/db-types.ts`. Every handler that reads from D1 gets autocomplete + compile-time column checks. Re-run on each migration via a `postmigration` script. |
-| DX.31 | **OpenAPI spec auto-derived from handlers** | Medium | If DX.29 lands, derive OpenAPI from the same Zod schemas. Publish to `/admin/api-docs` (Swagger UI) and `docs/openapi.yaml`. Pays off the moment you write the first integration. Stretch: ship a typed JS SDK (`@guess/sdk`) generated from the spec. |
+| <a id="dx-31"></a>DX.31 | **OpenAPI spec auto-derived from handlers** | Medium | 🟡 2026-05-03 — Implementation started with deterministic artifact generation (`docs/openapi.{json,yaml}`, `docs/openapi-inventory.json`, `public/openapi.yaml`), validation/drift scripts, and `/admin/api-docs` route scaffold. Added Zod-derived request schemas for core v2 game/events + daily POST routes and explicit 200-response schemas for core v2 game endpoints. Next: extend response/metadata coverage across remaining public and admin routes. |
 | DX.32 | **`game-engine` API contract snapshot tests** | Low | One test that snapshots the public exports of `@guess/game-engine` (function signatures, type names). Any unintentional API surface change fails CI with a diff. Free guardrail since the engine is shared between client + worker. |
 
 ### Visualization & Insight

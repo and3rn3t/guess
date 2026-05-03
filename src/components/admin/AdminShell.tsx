@@ -103,6 +103,7 @@ const WORKFLOW_MONITOR_ITEMS: NavItem[] = [
 ]
 
 const OVERFLOW_ITEMS: NavItem[] = [
+  { to: 'api-docs', label: 'API Docs', icon: <ListChecksIcon size={16} weight="duotone" /> },
   { to: 'stress-test', label: 'Stress Test', icon: <TargetIcon size={16} weight="duotone" /> },
   { to: 'env', label: 'Environment Test', icon: <FlaskIcon size={16} weight="duotone" /> },
   { to: 'bulk-habitat', label: 'Bulk Habitat', icon: <ArrowsClockwiseIcon size={16} weight="duotone" /> },
