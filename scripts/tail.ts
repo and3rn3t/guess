@@ -99,6 +99,10 @@ interface WranglerTailEvent {
 
 // ── Filtering ─────────────────────────────────────────────────────────────────
 
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
 function shouldShow(ev: WranglerTailEvent): boolean {
   if (!filter) return true
   const status = ev.event?.response?.status ?? 0
@@ -119,7 +123,7 @@ function shouldShow(ev: WranglerTailEvent): boolean {
   }
   if (filter.kind === 'path') {
     try {
-      return new RegExp(filter.value as string).test(path)
+      return new RegExp(escapeRegExp(filter.value as string)).test(path)
     } catch {
       return path.includes(filter.value as string)
     }
