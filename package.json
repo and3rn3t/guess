@@ -99,6 +99,8 @@
     "simulate:confusion-pairs": "tsx scripts/simulate/confusion-pairs.ts",
     "build:og-image": "tsx scripts/build-og-image.ts",
     "release": "tsx scripts/cut-release.ts",
+    "doctor": "tsx scripts/doctor.ts",
+    "tail": "tsx scripts/tail.ts",
     "prepare": "husky"
   },
   "dependencies": {
@@ -135,6 +137,8 @@
   "devDependencies": {
     "@aws-sdk/client-s3": "^3.1038.0",
     "@cloudflare/workers-types": "^4.20260501.1",
+    "@commitlint/cli": "^20.5.3",
+    "@commitlint/config-conventional": "^20.5.3",
     "@eslint/js": "^10.0.0",
     "@playwright/test": "^1.59.1",
     "@size-limit/preset-app": "^12.0.0",

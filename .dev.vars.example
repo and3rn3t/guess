@@ -1,0 +1,29 @@
+# .dev.vars.example — copy to .dev.vars and fill in real values
+#
+# These are injected as environment variables into Cloudflare Pages Functions
+# when running `pnpm cf:dev` (wrangler pages dev) locally.
+# Never commit .dev.vars — it is gitignored.
+#
+# See also: .env.example for script-only credentials (R2, etc.)
+
+# ── Required ──────────────────────────────────────────────────────────────────
+
+# OpenAI API key — used by enrichment, golden regression, vision validate,
+# and all LLM-backed API endpoints during local dev.
+OPENAI_API_KEY=sk-...
+
+# Admin panel HTTP Basic Auth password.
+# The KV key `admin:basic-auth` stores the live value (rotatable without deploy);
+# this var is used as the fallback when KV is unavailable locally.
+ADMIN_PASSWORD=changeme
+
+# ── Optional ──────────────────────────────────────────────────────────────────
+
+# Override the AI Gateway URL for local dev (uses prod gateway by default
+# via wrangler.toml [env.production.vars]).
+# CLOUDFLARE_AI_GATEWAY=https://gateway.ai.cloudflare.com/v1/.../openai/...
+
+# Disable cron automation in local dev (default: unset = enabled per wrangler.toml)
+# AUTO_ENRICH_ONE=false
+# AUTO_CAPTURE_DQ_SNAPSHOT=false
+# AUTO_DUPLICATES_BACKFILL=false

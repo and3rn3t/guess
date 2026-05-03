@@ -63,5 +63,32 @@
 
   // Copilot
   "github.copilot.chat.codeGeneration.useReferencedFiles": true,
-  "chat.agent.maxRequests": 30
+  "chat.agent.maxRequests": 50,
+
+  // TypeScript — additional preferences
+  "typescript.preferences.preferTypeOnlyAutoImports": true,
+  "editor.inlayHints.enabled": "on",
+  "editor.linkedEditing": true,
+
+  // File nesting — keep test files visually grouped under their source files
+  "explorer.fileNesting.enabled": true,
+  "explorer.fileNesting.patterns": {
+    "*.tsx": "${capture}.test.tsx, ${capture}.stories.tsx",
+    "*.ts": "${capture}.test.ts, ${capture}.spec.ts"
+  },
+
+  // Extended search excludes
+  "search.exclude": {
+    "**/node_modules": true,
+    "**/dist": true,
+    "**/packages": true,
+    "**/.git": true,
+    "**/coverage": true,
+    "**/playwright-report": true,
+    "**/test-results": true
+  },
+
+  // Vitest extension
+  "vitest.enable": true,
+  "vitest.configPath": "vitest.config.ts"
 }

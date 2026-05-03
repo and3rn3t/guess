@@ -690,6 +690,41 @@ push/PR  ──►├── test ──────┼──► build ──► 
 
 ---
 
+## Local Dev Shell Setup
+
+### One-time setup (zsh)
+
+```zsh
+# Shell completions
+pnpm completion >> ~/.zshrc
+wrangler completion >> ~/.zshrc
+
+# Project aliases (gdev, gval, gtest, gtail, gdoctor, …)
+echo "source $(pwd)/scripts/aliases.sh" >> ~/.zshrc
+source ~/.zshrc
+```
+
+### Environment files
+
+| File | Purpose |
+|---|---|
+| `.dev.vars` | Cloudflare Pages Functions secrets for local dev (`pnpm cf:dev`). Copy from `.dev.vars.example`. |
+| `.env` | Script-only credentials (`R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`) used by ingest + image upload scripts. |
+
+Required keys are documented in `.dev.vars.example`. Run `pnpm doctor` to verify the environment.
+
+### Useful commands
+
+| Command | What it does |
+|---|---|
+| `pnpm doctor` | Green/red checklist: Node, pnpm, wrangler auth, `.dev.vars` keys, gitleaks |
+| `pnpm tail` | Pretty-print live Pages Function logs (preview env, colored, header-redacted) |
+| `pnpm tail --env=production` | Same for production |
+| `pnpm tail --filter=status>=400` | Only show error responses |
+| `pnpm tail --filter=path~/api/v2` | Only show matching paths (regex) |
+
+---
+
 ## Key Conventions
 
 | Topic | Convention |

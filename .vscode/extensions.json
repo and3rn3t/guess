@@ -12,6 +12,16 @@
     "eamodio.gitlens",
     "formulahendry.auto-rename-tag",
     "csstools.postcss",
-    "alexcvzz.vscode-sqlite"
+    "alexcvzz.vscode-sqlite",
+    // Test runners
+    "vitest.explorer",
+    "ms-playwright.playwright",
+    // Workflow authoring
+    "github.vscode-github-actions",
+    // Config file syntax
+    "mikestead.dotenv",
+    "tamasfe.even-better-toml",
+    // Code quality / readability
+    "aaron-bond.better-comments"
   ]
 }

@@ -1,0 +1,15 @@
+#!/usr/bin/env sh
+# .husky/commit-msg — enforce conventional commit format
+#
+# Skips auto-generated messages (Merge, Revert, fixup!, squash!)
+# so rebases and merges are never blocked.
+
+COMMIT_MSG=$(head -1 "$1")
+
+case "$COMMIT_MSG" in
+  Merge\ *|Revert\ *|"fixup! "*|"squash! "*)
+    exit 0
+    ;;
+esac
+
+npx --no -- commitlint --edit "$1"
