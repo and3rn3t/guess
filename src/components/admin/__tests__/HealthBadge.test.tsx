@@ -1,6 +1,8 @@
 // @vitest-environment jsdom
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
+import { describe, it, expect } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
+import { http, HttpResponse } from 'msw'
+import { server } from '@/test/mocks/server'
 import { HealthBadge } from '../HealthBadge'
 import { LiveOpsProvider } from '../LiveOpsContext'
 import { computeStatus } from '../liveOps'
@@ -71,16 +73,6 @@ describe('computeStatus', () => {
 })
 
 describe('HealthBadge', () => {
-  let originalFetch: typeof fetch
-
-  beforeEach(() => {
-    originalFetch = globalThis.fetch
-  })
-
-  afterEach(() => {
-    globalThis.fetch = originalFetch
-  })
-
   it('renders the unknown placeholder when no provider is mounted', () => {
     render(<HealthBadge />)
     const badge = screen.getByTestId('health-badge')
@@ -89,12 +81,9 @@ describe('HealthBadge', () => {
   })
 
   it('reflects healthy state from the live-ops endpoint', async () => {
-    globalThis.fetch = vi.fn().mockResolvedValue(
-      new Response(JSON.stringify(buildSummary({ errorRate: 0 })), {
-        status: 200,
-        headers: { 'content-type': 'application/json' },
-      }),
-    ) as unknown as typeof fetch
+    server.use(
+      http.get('/api/admin/live-ops', () => HttpResponse.json(buildSummary({ errorRate: 0 }))),
+    )
 
     render(
       <LiveOpsProvider>
@@ -109,12 +98,10 @@ describe('HealthBadge', () => {
   })
 
   it('reflects critical state when errorRate is high', async () => {
-    globalThis.fetch = vi.fn().mockResolvedValue(
-      new Response(JSON.stringify(buildSummary({ errorRate: 0.5, errors1h: 5 })), {
-        status: 200,
-        headers: { 'content-type': 'application/json' },
-      }),
-    ) as unknown as typeof fetch
+    server.use(
+      http.get('/api/admin/live-ops', () =>
+        HttpResponse.json(buildSummary({ errorRate: 0.5, errors1h: 5 }))),
+    )
 
     render(
       <LiveOpsProvider>
@@ -129,9 +116,9 @@ describe('HealthBadge', () => {
   })
 
   it('shows error detail in title when fetch fails', async () => {
-    globalThis.fetch = vi
-      .fn()
-      .mockResolvedValue(new Response('boom', { status: 500 })) as unknown as typeof fetch
+    server.use(
+      http.get('/api/admin/live-ops', () => new HttpResponse('boom', { status: 500 })),
+    )
 
     render(
       <LiveOpsProvider>

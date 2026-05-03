@@ -5,6 +5,44 @@ import { createHttpClient, HttpError, httpClient } from "./http";
 const mockFetch = vi.fn();
 vi.stubGlobal("fetch", mockFetch);
 
+function getFirstFetchCall(): {
+  input: RequestInfo | URL;
+  init?: RequestInit;
+} {
+  const firstCall = mockFetch.mock.calls[0] as [RequestInfo | URL, RequestInit | undefined] | undefined;
+  if (!firstCall) {
+    throw new Error("Expected fetch to be called at least once");
+  }
+  const [input, init] = firstCall;
+  return { input, init };
+}
+
+async function getFirstRequestSnapshot(): Promise<{
+  url: string;
+  method: string;
+  headers: Headers;
+  body: string | null;
+}> {
+  const { input, init } = getFirstFetchCall();
+
+  if (input instanceof Request) {
+    return {
+      url: input.url,
+      method: input.method,
+      headers: input.headers,
+      body: await input.clone().text(),
+    };
+  }
+
+  const method = init?.method ?? "GET";
+  return {
+    url: String(input),
+    method,
+    headers: new Headers(init?.headers),
+    body: typeof init?.body === "string" ? init.body : null,
+  };
+}
+
 beforeEach(() => {
   mockFetch.mockReset();
 });
@@ -31,15 +69,11 @@ describe("httpClient (default)", () => {
     );
 
     expect(data).toEqual({ ok: true, n: 7 });
-    expect(mockFetch).toHaveBeenCalledWith(
-      "/api/test",
-      expect.objectContaining({
-        method: "POST",
-        body: JSON.stringify({ hello: "world" }),
-      }),
-    );
-    const init = mockFetch.mock.calls[0][1] as RequestInit;
-    const headers = new Headers(init.headers);
+    const request = await getFirstRequestSnapshot();
+    expect(request.url).toContain("/api/test");
+    expect(request.method).toBe("POST");
+    expect(request.body).toBe(JSON.stringify({ hello: "world" }));
+    const headers = request.headers;
     expect(headers.get("Content-Type")).toBe("application/json");
   });
 
@@ -62,7 +96,9 @@ describe("httpClient (default)", () => {
   it("getJson sends GET", async () => {
     mockFetch.mockResolvedValueOnce(jsonResponse({ x: 1 }));
     await httpClient.getJson("/api/x");
-    expect(mockFetch.mock.calls[0][1]).toMatchObject({ method: "GET" });
+    const request = await getFirstRequestSnapshot();
+    expect(request.url).toContain("/api/x");
+    expect(request.method).toBe("GET");
   });
 
   it("request() does NOT throw on non-OK — returns raw Response", async () => {
@@ -81,8 +117,8 @@ describe("createHttpClient", () => {
 
     await client.postJson("/api/test", {});
 
-    const init = mockFetch.mock.calls[0][1] as RequestInit;
-    const headers = new Headers(init.headers);
+    const request = await getFirstRequestSnapshot();
+    const headers = request.headers;
     expect(headers.get("X-User-Id")).toBe("abc-123");
     expect(headers.get("Content-Type")).toBe("application/json");
   });
@@ -99,8 +135,8 @@ describe("createHttpClient", () => {
       { headers: { "X-Trace": "override" } },
     );
 
-    const init = mockFetch.mock.calls[0][1] as RequestInit;
-    const headers = new Headers(init.headers);
+    const request = await getFirstRequestSnapshot();
+    const headers = request.headers;
     expect(headers.get("X-Trace")).toBe("override");
   });
 

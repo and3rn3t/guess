@@ -36,6 +36,25 @@ const ANSWERS: Answer[] = [
 const mockFetch = vi.fn()
 vi.stubGlobal('fetch', mockFetch)
 
+async function getRequestBodyFromFirstCall<T>(): Promise<T> {
+  const firstCall = mockFetch.mock.calls[0]
+  if (!firstCall) {
+    throw new Error('Expected fetch to be called at least once')
+  }
+
+  const [input, init] = firstCall as [RequestInfo | URL, RequestInit | undefined]
+  const bodyFromInit = init?.body
+  if (typeof bodyFromInit === 'string') {
+    return JSON.parse(bodyFromInit) as T
+  }
+
+  if (input instanceof Request) {
+    return JSON.parse(await input.text()) as T
+  }
+
+  throw new Error('Unable to read request body from fetch call')
+}
+
 function mockLlmResponse(text: string, status = 200) {
   mockFetch.mockResolvedValueOnce(
     new Response(
@@ -119,9 +138,9 @@ describe('rephraseQuestion', () => {
   it('does NOT include candidateHint in the first half of the game', async () => {
     mockLlmResponse('Is this a living being?')
     await rephraseQuestion(ENV, QUESTION, [], REASONING, 3, 15) // progress = 3/15 = 0.2 < 0.5
-    const body = JSON.parse(mockFetch.mock.calls[0][1].body as string) as {
+    const body = await getRequestBodyFromFirstCall<{
       messages: Array<{ role: string; content: string }>
-    }
+    }>()
     const userMessage = body.messages.find((m) => m.role === 'user')!
     expect(userMessage.content).not.toContain('Top suspects')
   })
@@ -129,9 +148,9 @@ describe('rephraseQuestion', () => {
   it('DOES include candidateHint in the second half of the game', async () => {
     mockLlmResponse('Is this a living being?')
     await rephraseQuestion(ENV, QUESTION, [], REASONING, 9, 15) // progress = 9/15 = 0.6 >= 0.5
-    const body = JSON.parse(mockFetch.mock.calls[0][1].body as string) as {
+    const body = await getRequestBodyFromFirstCall<{
       messages: Array<{ role: string; content: string }>
-    }
+    }>()
     const userMessage = body.messages.find((m) => m.role === 'user')!
     expect(userMessage.content).toContain('Top suspects')
     expect(userMessage.content).toContain('Mario')
@@ -140,23 +159,23 @@ describe('rephraseQuestion', () => {
   it('uses temperature 0.6', async () => {
     mockLlmResponse('A rephrased question')
     await rephraseQuestion(ENV, QUESTION, [], REASONING, 1, 15)
-    const body = JSON.parse(mockFetch.mock.calls[0][1].body as string) as { temperature: number }
+    const body = await getRequestBodyFromFirstCall<{ temperature: number }>()
     expect(body.temperature).toBe(0.6)
   })
 
   it('uses gpt-4o-mini model', async () => {
     mockLlmResponse('A rephrased question')
     await rephraseQuestion(ENV, QUESTION, [], REASONING, 1, 15)
-    const body = JSON.parse(mockFetch.mock.calls[0][1].body as string) as { model: string }
+    const body = await getRequestBodyFromFirstCall<{ model: string }>()
     expect(body.model).toBe('gpt-4o-mini')
   })
 
   it('includes recent answers in the user prompt', async () => {
     mockLlmResponse('A rephrased question')
     await rephraseQuestion(ENV, QUESTION, ANSWERS, REASONING, 5, 15)
-    const body = JSON.parse(mockFetch.mock.calls[0][1].body as string) as {
+    const body = await getRequestBodyFromFirstCall<{
       messages: Array<{ role: string; content: string }>
-    }
+    }>()
     const userMessage = body.messages.find((m) => m.role === 'user')!
     expect(userMessage.content).toContain('canFly')
   })

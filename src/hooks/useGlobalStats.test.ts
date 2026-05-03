@@ -1,6 +1,8 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { renderHook, act } from '@testing-library/react'
+import { renderHook, waitFor } from '@testing-library/react'
+import { http, HttpResponse } from 'msw'
+import { server } from '@/test/mocks/server'
 
 // Mock schemas so Zod validation doesn't require exact data shape
 vi.mock('@/lib/schemas', () => ({
@@ -8,8 +10,7 @@ vi.mock('@/lib/schemas', () => ({
   HistoryApiResponseSchema: { parse: (v: unknown) => v },
 }))
 
-// Import after mock so the module picks up the stubbed schema
-const { useGlobalStats } = await import('./useGlobalStats')
+let useGlobalStats: typeof import('./useGlobalStats').useGlobalStats
 
 afterEach(() => {
   vi.restoreAllMocks()
@@ -19,41 +20,39 @@ const fakeStats = { characters: 200, gameStats: { winRate: 0.6 } }
 const fakeHistory = { games: [], total: 5 }
 
 describe('useGlobalStats', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks()
+    vi.resetModules()
+    ;({ useGlobalStats } = await import('./useGlobalStats'))
   })
 
   it('starts loading, fetches both endpoints, resolves loading', async () => {
-    globalThis.fetch = vi.fn().mockImplementation((url: string) => {
-      if ((url as string).includes('/api/v2/stats')) {
-        return Promise.resolve({ ok: true, json: () => Promise.resolve(fakeStats) })
-      }
-      return Promise.resolve({ ok: true, json: () => Promise.resolve(fakeHistory) })
-    })
+    server.use(
+      http.get('/api/v2/stats', () => HttpResponse.json(fakeStats)),
+      http.get('/api/v2/history', () => HttpResponse.json(fakeHistory)),
+    )
+    const fetchSpy = vi.spyOn(globalThis, 'fetch')
 
     const { result } = renderHook(() => useGlobalStats())
 
-    await act(async () => {
-      await new Promise((r) => setTimeout(r, 50))
-    })
-
+    await waitFor(() => expect(result.current.loading).toBe(false))
     expect(result.current.loading).toBe(false)
     expect(result.current.error).toBeNull()
-    expect(globalThis.fetch).toHaveBeenCalledWith(
+    expect(fetchSpy).toHaveBeenCalledWith(
       expect.stringContaining('/api/v2/stats'),
       expect.any(Object),
     )
   })
 
   it('sets error state when stats fetch fails', async () => {
-    globalThis.fetch = vi.fn().mockResolvedValue({ ok: false, status: 500 })
+    server.use(
+      http.get('/api/v2/stats', () => new HttpResponse(null, { status: 500 })),
+      http.get('/api/v2/history', () => HttpResponse.json(fakeHistory)),
+    )
 
     const { result } = renderHook(() => useGlobalStats())
 
-    await act(async () => {
-      await new Promise((r) => setTimeout(r, 50))
-    })
-
+    await waitFor(() => expect(result.current.loading).toBe(false))
     expect(result.current.error).toBeTruthy()
     expect(result.current.loading).toBe(false)
   })

@@ -1,359 +1,383 @@
 // @vitest-environment jsdom
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { renderHook, act, waitFor } from '@testing-library/react'
-import type { GameAction } from '@/hooks/useGameState'
-import { useServerGame } from './useServerGame'
+import type { GameAction } from "@/hooks/useGameState";
+import { buildStartResponse } from "@/test/mocks/gameResponses";
+import { server } from "@/test/mocks/server";
+import { act, renderHook, waitFor } from "@testing-library/react";
+import { http, HttpResponse } from "msw";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { useServerGame } from "./useServerGame";
 
-vi.mock('sonner', () => ({
+vi.mock("sonner", () => ({
   toast: { warning: vi.fn(), info: vi.fn(), error: vi.fn(), success: vi.fn() },
-}))
+}));
 
-vi.mock('@/lib/sounds', () => ({
+vi.mock("@/lib/sounds", () => ({
   playThinking: vi.fn(),
   playSuspense: vi.fn(),
-}))
+}));
 
-vi.mock('@/lib/analytics', () => ({
+vi.mock("@/lib/analytics", () => ({
   trackGameStart: vi.fn(),
   trackGameEnd: vi.fn(),
   trackServerError: vi.fn(),
-}))
+}));
 
-const mockFetch = vi.fn()
-vi.stubGlobal('fetch', mockFetch)
-
-const sessionStore: Record<string, string> = {}
-vi.stubGlobal('sessionStorage', {
+const sessionStore: Record<string, string> = {};
+vi.stubGlobal("sessionStorage", {
   getItem: vi.fn((key: string) => sessionStore[key] ?? null),
-  setItem: vi.fn((key: string, value: string) => { sessionStore[key] = value }),
-  removeItem: vi.fn((key: string) => { delete sessionStore[key] }),
-})
+  setItem: vi.fn((key: string, value: string) => {
+    sessionStore[key] = value;
+  }),
+  removeItem: vi.fn((key: string) => {
+    delete sessionStore[key];
+  }),
+});
 
-const dispatch = vi.fn<(action: GameAction) => void>()
+const dispatch = vi.fn<(action: GameAction) => void>();
 
 beforeEach(() => {
-  mockFetch.mockReset()
-  dispatch.mockReset()
-  vi.clearAllMocks()
-  for (const key of Object.keys(sessionStore)) delete sessionStore[key]
-})
+  dispatch.mockReset();
+  vi.clearAllMocks();
+  for (const key of Object.keys(sessionStore)) delete sessionStore[key];
+});
 
-describe('useServerGame', () => {
-  it('initializes with null session ID and zero counts', () => {
-    const { result } = renderHook(() => useServerGame(dispatch))
-    expect(result.current.serverSessionId).toBeNull()
-    expect(result.current.serverRemaining).toBe(0)
-    expect(result.current.serverTotal).toBe(0)
-  })
+describe("useServerGame", () => {
+  it("initializes with null session ID and zero counts", () => {
+    const { result } = renderHook(() => useServerGame(dispatch));
+    expect(result.current.serverSessionId).toBeNull();
+    expect(result.current.serverRemaining).toBe(0);
+    expect(result.current.serverTotal).toBe(0);
+  });
 
-  describe('startServerGame', () => {
-    it('starts a game and dispatches actions', async () => {
-      mockFetch.mockResolvedValueOnce(new Response(
-        JSON.stringify({
-          sessionId: 'sess-123',
-          question: { id: 'q1', text: 'Is human?', attribute: 'isHuman' },
-          reasoning: { why: 'test', impact: '50%', remaining: 10, confidence: 50, topCandidates: [] },
-          totalCharacters: 100,
-        }),
-        { status: 200 },
-      ))
+  describe("startServerGame", () => {
+    it("starts a game and dispatches actions", async () => {
+      server.use(
+        http.post("/api/v2/game/start", () =>
+          HttpResponse.json(buildStartResponse({
+            sessionId: "sess-123",
+            question: { id: "q1", text: "Is human?", attribute: "isHuman" },
+            reasoning: {
+              why: "test",
+              impact: "50%",
+              remaining: 10,
+              confidence: 50,
+              topCandidates: [],
+            },
+            totalCharacters: 100,
+          })),
+        ),
+      );
 
-      const { result } = renderHook(() => useServerGame(dispatch))
-
-      await act(async () => {
-        await result.current.startServerGame([], 'medium')
-      })
-
-      expect(dispatch).toHaveBeenCalledWith({ type: 'SET_THINKING', isThinking: true })
-      expect(dispatch).toHaveBeenCalledWith({ type: 'START_GAME', characters: [] })
-      expect(dispatch).toHaveBeenCalledWith(
-        expect.objectContaining({ type: 'SET_QUESTION' }),
-      )
-      expect(result.current.serverSessionId).toBe('sess-123')
-      expect(result.current.serverTotal).toBe(100)
-    })
-
-    it('handles start failure gracefully', async () => {
-      const { toast } = await import('sonner')
-      mockFetch.mockResolvedValueOnce(new Response('', { status: 500 }))
-
-      const { result } = renderHook(() => useServerGame(dispatch))
+      const { result } = renderHook(() => useServerGame(dispatch));
 
       await act(async () => {
-        await result.current.startServerGame([], 'medium')
-      })
+        await result.current.startServerGame([], "medium");
+      });
 
-      expect(toast.error).toHaveBeenCalled()
+      expect(dispatch).toHaveBeenCalledWith({
+        type: "SET_THINKING",
+        isThinking: true,
+      });
+      expect(dispatch).toHaveBeenCalledWith({
+        type: "START_GAME",
+        characters: [],
+      });
       expect(dispatch).toHaveBeenCalledWith(
-        expect.objectContaining({ type: 'NAVIGATE', phase: 'welcome' }),
-      )
-    })
-  })
+        expect.objectContaining({ type: "SET_QUESTION" }),
+      );
+      expect(result.current.serverSessionId).toBe("sess-123");
+      expect(result.current.serverTotal).toBe(100);
+    });
 
-  describe('handleServerAnswer', () => {
-    it('dispatches next question on question response', async () => {
+    it("handles start failure gracefully", async () => {
+      const { toast } = await import("sonner");
+      server.use(
+        http.post(
+          "/api/v2/game/start",
+          () => new HttpResponse(null, { status: 500 }),
+        ),
+      );
+
+      const { result } = renderHook(() => useServerGame(dispatch));
+
+      await act(async () => {
+        await result.current.startServerGame([], "medium");
+      });
+
+      expect(toast.error).toHaveBeenCalled();
+      expect(dispatch).toHaveBeenCalledWith(
+        expect.objectContaining({ type: "NAVIGATE", phase: "welcome" }),
+      );
+    });
+  });
+
+  describe("handleServerAnswer", () => {
+    it("dispatches next question on question response", async () => {
       // First start a game to get a session ID
-      mockFetch.mockResolvedValueOnce(new Response(
-        JSON.stringify({
-          sessionId: 'sess-abc',
-          question: { id: 'q1', text: 'Q1', attribute: 'isHuman' },
-          reasoning: { why: '', impact: '', remaining: 10, confidence: 0, topCandidates: [] },
-          totalCharacters: 10,
-        }),
-        { status: 200 },
-      ))
+      server.use(
+        http.post("/api/v2/game/start", () => HttpResponse.json(buildStartResponse())),
+      );
 
-      const { result } = renderHook(() => useServerGame(dispatch))
+      const { result } = renderHook(() => useServerGame(dispatch));
       await act(async () => {
-        await result.current.startServerGame([], 'medium')
-      })
+        await result.current.startServerGame([], "medium");
+      });
 
-      dispatch.mockClear()
-      mockFetch.mockResolvedValueOnce(new Response(
-        JSON.stringify({
-          type: 'question',
-          question: { id: 'q2', text: 'Q2', attribute: 'canFly' },
-          reasoning: { why: 'next', impact: '30%', remaining: 7, confidence: 30, topCandidates: [] },
-          remaining: 7,
-          readiness: {
-            trigger: 'insufficient_data',
-            blockedByRejectCooldown: false,
-            rejectCooldownRemaining: 0,
-            aliveCount: 7,
-            questionsRemaining: 10,
-          },
-        }),
-        { status: 200 },
-      ))
+      dispatch.mockClear();
+      server.use(
+        http.post("/api/v2/game/answer", () =>
+          HttpResponse.json({
+            type: "question",
+            question: { id: "q2", text: "Q2", attribute: "canFly" },
+            reasoning: {
+              why: "next",
+              impact: "30%",
+              remaining: 7,
+              confidence: 30,
+              topCandidates: [],
+            },
+            remaining: 7,
+            readiness: {
+              trigger: "insufficient_data",
+              blockedByRejectCooldown: false,
+              rejectCooldownRemaining: 0,
+              aliveCount: 7,
+              questionsRemaining: 10,
+            },
+          }),
+        ),
+      );
 
       await act(async () => {
-        await result.current.handleServerAnswer('yes')
-      })
+        await result.current.handleServerAnswer("yes");
+      });
 
       expect(dispatch).toHaveBeenCalledWith(
-        expect.objectContaining({ type: 'SET_QUESTION' }),
-      )
+        expect.objectContaining({ type: "SET_QUESTION" }),
+      );
       expect(result.current.serverReadiness).toEqual(
         expect.objectContaining({
-          trigger: 'insufficient_data',
+          trigger: "insufficient_data",
           blockedByRejectCooldown: false,
           aliveCount: 7,
           questionsRemaining: 10,
         }),
-      )
-    })
+      );
+    });
 
-    it('dispatches MAKE_GUESS on guess response', async () => {
-      mockFetch.mockResolvedValueOnce(new Response(
-        JSON.stringify({
-          sessionId: 'sess-abc',
-          question: { id: 'q1', text: 'Q1', attribute: 'isHuman' },
-          reasoning: { why: '', impact: '', remaining: 10, confidence: 0, topCandidates: [] },
-          totalCharacters: 10,
-        }),
-        { status: 200 },
-      ))
+    it("dispatches MAKE_GUESS on guess response", async () => {
+      server.use(
+        http.post("/api/v2/game/start", () => HttpResponse.json(buildStartResponse())),
+      );
 
-      const { result } = renderHook(() => useServerGame(dispatch))
+      const { result } = renderHook(() => useServerGame(dispatch));
       await act(async () => {
-        await result.current.startServerGame([], 'medium')
-      })
+        await result.current.startServerGame([], "medium");
+      });
 
-      dispatch.mockClear()
-      mockFetch.mockResolvedValueOnce(new Response(
-        JSON.stringify({
-          type: 'guess',
-          character: { id: 'mario', name: 'Mario', category: 'video-games', imageUrl: null },
-          confidence: 95,
-          remaining: 1,
-        }),
-        { status: 200 },
-      ))
+      dispatch.mockClear();
+      server.use(
+        http.post("/api/v2/game/answer", () =>
+          HttpResponse.json({
+            type: "guess",
+            character: {
+              id: "mario",
+              name: "Mario",
+              category: "video-games",
+              imageUrl: null,
+            },
+            confidence: 95,
+            remaining: 1,
+          }),
+        ),
+      );
 
       await act(async () => {
-        await result.current.handleServerAnswer('yes')
-      })
+        await result.current.handleServerAnswer("yes");
+      });
 
       expect(dispatch).toHaveBeenCalledWith(
-        expect.objectContaining({ type: 'MAKE_GUESS' }),
-      )
-    })
+        expect.objectContaining({ type: "MAKE_GUESS" }),
+      );
+    });
 
-    it('handles contradiction response', async () => {
-      mockFetch.mockResolvedValueOnce(new Response(
-        JSON.stringify({
-          sessionId: 'sess-abc',
-          question: { id: 'q1', text: 'Q1', attribute: 'isHuman' },
-          reasoning: { why: '', impact: '', remaining: 10, confidence: 0, topCandidates: [] },
-          totalCharacters: 10,
-        }),
-        { status: 200 },
-      ))
+    it("handles contradiction response", async () => {
+      server.use(
+        http.post("/api/v2/game/start", () => HttpResponse.json(buildStartResponse())),
+      );
 
-      const { result } = renderHook(() => useServerGame(dispatch))
+      const { result } = renderHook(() => useServerGame(dispatch));
       await act(async () => {
-        await result.current.startServerGame([], 'medium')
-      })
+        await result.current.startServerGame([], "medium");
+      });
 
-      dispatch.mockClear()
-      mockFetch.mockResolvedValueOnce(new Response(
-        JSON.stringify({
-          type: 'contradiction',
-          message: 'Contradictory answers',
-          question: { id: 'q1', text: 'Q1', attribute: 'isHuman' },
-          reasoning: { why: '', impact: '', remaining: 10, confidence: 0, topCandidates: [] },
-        }),
-        { status: 200 },
-      ))
-
-      await act(async () => {
-        await result.current.handleServerAnswer('yes')
-      })
-
-      expect(dispatch).toHaveBeenCalledWith({ type: 'UNDO_LAST_ANSWER' })
-    })
-
-    it('handles answer failure', async () => {
-      const { toast } = await import('sonner')
-      mockFetch.mockResolvedValueOnce(new Response(
-        JSON.stringify({
-          sessionId: 'sess-abc',
-          question: { id: 'q1', text: 'Q1', attribute: 'isHuman' },
-          reasoning: { why: '', impact: '', remaining: 10, confidence: 0, topCandidates: [] },
-          totalCharacters: 10,
-        }),
-        { status: 200 },
-      ))
-
-      const { result } = renderHook(() => useServerGame(dispatch))
-      await act(async () => {
-        await result.current.startServerGame([], 'medium')
-      })
-
-      dispatch.mockClear()
-      vi.mocked(toast.error).mockClear()
-      mockFetch.mockRejectedValueOnce(new TypeError('fetch failed'))
+      dispatch.mockClear();
+      server.use(
+        http.post("/api/v2/game/answer", () =>
+          HttpResponse.json({
+            type: "contradiction",
+            message: "Contradictory answers",
+            question: { id: "q1", text: "Q1", attribute: "isHuman" },
+            reasoning: {
+              why: "",
+              impact: "",
+              remaining: 10,
+              confidence: 0,
+              topCandidates: [],
+            },
+          }),
+        ),
+      );
 
       await act(async () => {
-        await result.current.handleServerAnswer('yes')
-      })
+        await result.current.handleServerAnswer("yes");
+      });
 
-      expect(toast.error).toHaveBeenCalled()
-      expect(dispatch).toHaveBeenCalledWith({ type: 'UNDO_LAST_ANSWER' })
-    })
-  })
+      expect(dispatch).toHaveBeenCalledWith({ type: "UNDO_LAST_ANSWER" });
+    });
 
-  describe('postServerResult', () => {
-    it('posts result and clears session', async () => {
-      mockFetch.mockResolvedValueOnce(new Response(
-        JSON.stringify({
-          sessionId: 'sess-abc',
-          question: { id: 'q1', text: 'Q1', attribute: 'isHuman' },
-          reasoning: { why: '', impact: '', remaining: 10, confidence: 0, topCandidates: [] },
-          totalCharacters: 10,
-        }),
-        { status: 200 },
-      ))
+    it("handles answer failure", async () => {
+      const { toast } = await import("sonner");
+      server.use(
+        http.post("/api/v2/game/start", () => HttpResponse.json(buildStartResponse())),
+      );
 
-      const { result } = renderHook(() => useServerGame(dispatch))
+      const { result } = renderHook(() => useServerGame(dispatch));
       await act(async () => {
-        await result.current.startServerGame([], 'medium')
-      })
+        await result.current.startServerGame([], "medium");
+      });
 
-      mockFetch.mockResolvedValueOnce(new Response('{}', { status: 200 }))
+      dispatch.mockClear();
+      vi.mocked(toast.error).mockClear();
+      server.use(http.post("/api/v2/game/answer", () => HttpResponse.error()));
+
       await act(async () => {
-        result.current.postServerResult(true)
+        await result.current.handleServerAnswer("yes");
+      });
+
+      expect(toast.error).toHaveBeenCalled();
+      expect(dispatch).toHaveBeenCalledWith({ type: "UNDO_LAST_ANSWER" });
+    });
+  });
+
+  describe("postServerResult", () => {
+    it("posts result and clears session", async () => {
+      server.use(
+        http.post("/api/v2/game/start", () => HttpResponse.json(buildStartResponse())),
+      );
+      const fetchSpy = vi.spyOn(globalThis, "fetch");
+
+      const { result } = renderHook(() => useServerGame(dispatch));
+      await act(async () => {
+        await result.current.startServerGame([], "medium");
+      });
+
+      await act(async () => {
+        result.current.postServerResult(true);
         // postServerResult defers the fetch via runWhenIdle (setTimeout fallback in jsdom)
-        await new Promise((r) => setTimeout(r, 0))
-      })
+        await new Promise((r) => setTimeout(r, 0));
+      });
 
-      expect(mockFetch).toHaveBeenLastCalledWith('/api/v2/game/result', expect.objectContaining({
-        method: 'POST',
-      }))
-    })
-  })
+      expect(fetchSpy).toHaveBeenLastCalledWith(
+        "/api/v2/game/result",
+        expect.objectContaining({ method: "POST" }),
+      );
+    });
+  });
 
-  describe('submitPostGameFeedback', () => {
-    it('throws when no completed session exists', async () => {
-      const { result } = renderHook(() => useServerGame(dispatch))
+  describe("submitPostGameFeedback", () => {
+    it("throws when no completed session exists", async () => {
+      const { result } = renderHook(() => useServerGame(dispatch));
 
       await expect(
-        result.current.submitPostGameFeedback(5, 'Great game'),
-      ).rejects.toThrow('No completed session available for feedback')
-    })
+        result.current.submitPostGameFeedback(5, "Great game"),
+      ).rejects.toThrow("No completed session available for feedback");
+    });
 
-    it('posts feedback for the last completed session', async () => {
-      mockFetch.mockResolvedValueOnce(new Response(
-        JSON.stringify({
-          sessionId: 'sess-feedback',
-          question: { id: 'q1', text: 'Q1', attribute: 'isHuman' },
-          reasoning: { why: '', impact: '', remaining: 10, confidence: 0, topCandidates: [] },
-          totalCharacters: 10,
-        }),
-        { status: 200 },
-      ))
+    it("posts feedback for the last completed session", async () => {
+      server.use(
+        http.post("/api/v2/game/start", () =>
+          HttpResponse.json(buildStartResponse({
+            sessionId: "sess-feedback",
+          })),
+        ),
+      );
+      const fetchSpy = vi.spyOn(globalThis, "fetch");
 
-      const { result } = renderHook(() => useServerGame(dispatch))
+      const { result } = renderHook(() => useServerGame(dispatch));
       await act(async () => {
-        await result.current.startServerGame([], 'medium')
-      })
+        await result.current.startServerGame([], "medium");
+      });
 
-      mockFetch.mockResolvedValueOnce(new Response('{}', { status: 200 }))
       await act(async () => {
-        result.current.postServerResult(true)
-        await new Promise((r) => setTimeout(r, 0))
-      })
+        result.current.postServerResult(true);
+        await new Promise((r) => setTimeout(r, 0));
+      });
 
-      mockFetch.mockResolvedValueOnce(new Response('{"success":true}', { status: 200 }))
       await act(async () => {
-        await result.current.submitPostGameFeedback(4, '  Nice pacing  ')
-      })
+        await result.current.submitPostGameFeedback(4, "  Nice pacing  ");
+      });
 
-      const lastCall = mockFetch.mock.calls[mockFetch.mock.calls.length - 1] as [string, RequestInit]
-      const [url, options] = lastCall
-      expect(url).toBe('/api/v2/game/feedback')
-      expect(options.method).toBe('POST')
-      expect(options.body).toContain('"sessionId":"sess-feedback"')
-      expect(options.body).toContain('"rating":4')
-      expect(options.body).toContain('"feedbackText":"Nice pacing"')
-    })
-  })
+      const lastCall = fetchSpy.mock.calls[fetchSpy.mock.calls.length - 1] as [
+        string,
+        RequestInit,
+      ];
+      const [url, options] = lastCall;
+      expect(url).toBe("/api/v2/game/feedback");
+      expect(options.method).toBe("POST");
+      expect(options.body).toContain('"sessionId":"sess-feedback"');
+      expect(options.body).toContain('"rating":4');
+      expect(options.body).toContain('"feedbackText":"Nice pacing"');
+    });
+  });
 
-  describe('auto-resume', () => {
-    it('resumes from saved session on mount', async () => {
-      sessionStore['server-session-id'] = 'saved-sess'
-      mockFetch.mockResolvedValueOnce(new Response(
-        JSON.stringify({
-          expired: false,
-          question: { id: 'q1', text: 'Q1', attribute: 'isHuman' },
-          reasoning: { why: 'test', impact: '50%', remaining: 5, confidence: 50, topCandidates: [] },
-          remaining: 5,
-          totalCharacters: 10,
-          questionCount: 3,
-          answers: [],
-        }),
-        { status: 200 },
-      ))
+  describe("auto-resume", () => {
+    it("resumes from saved session on mount", async () => {
+      sessionStore["server-session-id"] = "saved-sess";
+      server.use(
+        http.post("/api/v2/game/resume", () =>
+          HttpResponse.json({
+            expired: false,
+            question: { id: "q1", text: "Q1", attribute: "isHuman" },
+            reasoning: {
+              why: "test",
+              impact: "50%",
+              remaining: 5,
+              confidence: 50,
+              topCandidates: [],
+            },
+            remaining: 5,
+            totalCharacters: 10,
+            questionCount: 3,
+            answers: [],
+          }),
+        ),
+      );
 
-      renderHook(() => useServerGame(dispatch))
+      renderHook(() => useServerGame(dispatch));
 
       await waitFor(() => {
-        expect(dispatch).toHaveBeenCalledWith({ type: 'START_GAME', characters: [], guessCount: 0 })
-      })
-    })
+        expect(dispatch).toHaveBeenCalledWith({
+          type: "START_GAME",
+          characters: [],
+          guessCount: 0,
+        });
+      });
+    });
 
-    it('clears session on expired resume', async () => {
-      sessionStore['server-session-id'] = 'expired-sess'
-      mockFetch.mockResolvedValueOnce(new Response(
-        JSON.stringify({ expired: true }),
-        { status: 200 },
-      ))
+    it("clears session on expired resume", async () => {
+      sessionStore["server-session-id"] = "expired-sess";
+      server.use(
+        http.post("/api/v2/game/resume", () =>
+          HttpResponse.json({ expired: true }),
+        ),
+      );
 
-      renderHook(() => useServerGame(dispatch))
+      renderHook(() => useServerGame(dispatch));
 
       await waitFor(() => {
-        expect(sessionStore['server-session-id']).toBeUndefined()
-      })
-    })
-  })
-})
+        expect(sessionStore["server-session-id"]).toBeUndefined();
+      });
+    });
+  });
+});

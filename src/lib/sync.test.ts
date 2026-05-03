@@ -1,9 +1,10 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+// @vitest-environment jsdom
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { http, HttpResponse } from 'msw'
+import { server } from '@/test/mocks/server'
 
 const store: Record<string, string> = {}
-const mockFetch = vi.fn()
 
-vi.stubGlobal('fetch', mockFetch)
 vi.stubGlobal('localStorage', {
   getItem: (key: string) => store[key] ?? null,
   setItem: (key: string, value: string) => { store[key] = value },
@@ -14,8 +15,11 @@ vi.stubGlobal('navigator', { onLine: true })
 
 beforeEach(() => {
   vi.resetModules()
-  mockFetch.mockReset()
   for (const key of Object.keys(store)) delete store[key]
+})
+
+afterEach(() => {
+  vi.restoreAllMocks()
 })
 
 describe('getUserId', () => {
@@ -36,10 +40,19 @@ describe('getUserId', () => {
 
 describe('fetchGlobalCharacters', () => {
   it('fetches characters from API', async () => {
-    mockFetch.mockResolvedValueOnce(new Response(
-      JSON.stringify({ characters: [{ id: 'mario', name: 'Mario', category: 'video-games', attributes: { isHuman: true } }] }),
-      { status: 200, headers: { 'Content-Type': 'application/json' } },
-    ))
+    server.use(
+      http.get('/api/v2/characters', () =>
+        HttpResponse.json({
+          characters: [
+            {
+              id: 'mario',
+              name: 'Mario',
+              category: 'video-games',
+              attributes_json: '{"isHuman":1}',
+            },
+          ],
+        })),
+    )
 
     const { fetchGlobalCharacters } = await import('./sync')
     const chars = await fetchGlobalCharacters()
@@ -50,21 +63,31 @@ describe('fetchGlobalCharacters', () => {
   it('returns cached characters within TTL', async () => {
     store['kv:characters-cache'] = JSON.stringify([{ id: 'cached', name: 'Cached' }])
     store['kv:characters-cache:ts'] = String(Date.now())
+    const fetchSpy = vi.spyOn(globalThis, 'fetch')
 
     const { fetchGlobalCharacters } = await import('./sync')
     const chars = await fetchGlobalCharacters()
     expect(chars[0].id).toBe('cached')
-    expect(mockFetch).not.toHaveBeenCalled()
+    expect(fetchSpy).not.toHaveBeenCalled()
   })
 
   it('ignores stale cache and fetches fresh data', async () => {
     store['kv:characters-cache'] = JSON.stringify([{ id: 'stale', name: 'Stale' }])
     store['kv:characters-cache:ts'] = String(Date.now() - 11 * 60 * 1000) // 11 min old
 
-    mockFetch.mockResolvedValueOnce(new Response(
-      JSON.stringify({ characters: [{ id: 'mario', name: 'Mario', category: 'video-games' }] }),
-      { status: 200, headers: { 'Content-Type': 'application/json' } },
-    ))
+    server.use(
+      http.get('/api/v2/characters', () =>
+        HttpResponse.json({
+          characters: [
+            {
+              id: 'mario',
+              name: 'Mario',
+              category: 'video-games',
+              attributes_json: '{}',
+            },
+          ],
+        })),
+    )
 
     const { fetchGlobalCharacters } = await import('./sync')
     const chars = await fetchGlobalCharacters()
@@ -75,7 +98,9 @@ describe('fetchGlobalCharacters', () => {
     store['kv:characters-cache'] = JSON.stringify([{ id: 'stale', name: 'Stale' }])
     store['kv:characters-cache:ts'] = String(Date.now() - 20 * 60 * 1000)
 
-    mockFetch.mockRejectedValueOnce(new TypeError('fetch failed'))
+    server.use(
+      http.get('/api/v2/characters', () => HttpResponse.error()),
+    )
 
     const { fetchGlobalCharacters } = await import('./sync')
     const chars = await fetchGlobalCharacters()
@@ -83,7 +108,9 @@ describe('fetchGlobalCharacters', () => {
   })
 
   it('returns empty array when no cache and network error', async () => {
-    mockFetch.mockRejectedValueOnce(new TypeError('fetch failed'))
+    server.use(
+      http.get('/api/v2/characters', () => HttpResponse.error()),
+    )
 
     const { fetchGlobalCharacters } = await import('./sync')
     const chars = await fetchGlobalCharacters()
@@ -93,10 +120,10 @@ describe('fetchGlobalCharacters', () => {
 
 describe('fetchGlobalQuestions', () => {
   it('fetches questions from API', async () => {
-    mockFetch.mockResolvedValueOnce(new Response(
-      JSON.stringify([{ id: 'q1', text: 'Is this character human?', attribute: 'isHuman' }]),
-      { status: 200, headers: { 'Content-Type': 'application/json' } },
-    ))
+    server.use(
+      http.get('/api/v2/questions', () =>
+        HttpResponse.json([{ id: 'q1', text: 'Is this character human?', attribute: 'isHuman' }])),
+    )
 
     const { fetchGlobalQuestions } = await import('./sync')
     const qs = await fetchGlobalQuestions()
@@ -109,10 +136,9 @@ describe('submitCharacter', () => {
   it('submits character and invalidates cache', async () => {
     store['kv:characters-cache:ts'] = String(Date.now())
 
-    mockFetch.mockResolvedValueOnce(new Response(
-      JSON.stringify({ success: true }),
-      { status: 200, headers: { 'Content-Type': 'application/json' } },
-    ))
+    server.use(
+      http.post('/api/v2/characters', () => HttpResponse.json({ success: true })),
+    )
 
     const { submitCharacter } = await import('./sync')
     const result = await submitCharacter({
@@ -126,10 +152,10 @@ describe('submitCharacter', () => {
   })
 
   it('returns error on failed submission', async () => {
-    mockFetch.mockResolvedValueOnce(new Response(
-      JSON.stringify({ error: 'Duplicate' }),
-      { status: 409, headers: { 'Content-Type': 'application/json' } },
-    ))
+    server.use(
+      http.post('/api/v2/characters', () =>
+        HttpResponse.json({ error: 'Duplicate' }, { status: 409 })),
+    )
 
     const { submitCharacter } = await import('./sync')
     const result = await submitCharacter({
@@ -143,7 +169,9 @@ describe('submitCharacter', () => {
   })
 
   it('handles network errors gracefully', async () => {
-    mockFetch.mockRejectedValueOnce(new TypeError('fetch failed'))
+    server.use(
+      http.post('/api/v2/characters', () => HttpResponse.error()),
+    )
 
     const { submitCharacter } = await import('./sync')
     const result = await submitCharacter({
@@ -157,9 +185,11 @@ describe('submitCharacter', () => {
   })
 
   it('also submits associated questions', async () => {
-    mockFetch
-      .mockResolvedValueOnce(new Response(JSON.stringify({ success: true }), { status: 200 })) // character
-      .mockResolvedValueOnce(new Response(JSON.stringify({ success: true }), { status: 200 })) // question
+    const fetchSpy = vi.spyOn(globalThis, 'fetch')
+    server.use(
+      http.post('/api/v2/characters', () => HttpResponse.json({ success: true })),
+      http.post('/api/questions', () => HttpResponse.json({ success: true })),
+    )
 
     const { submitCharacter } = await import('./sync')
     await submitCharacter(
@@ -167,20 +197,24 @@ describe('submitCharacter', () => {
       [{ text: 'Is human?', attribute: 'isHuman' }],
     )
 
-    expect(mockFetch).toHaveBeenCalledTimes(2)
+    expect(fetchSpy).toHaveBeenCalledTimes(2)
   })
 })
 
 describe('recordGameResult', () => {
   it('sends stats without throwing', async () => {
-    mockFetch.mockResolvedValueOnce(new Response(JSON.stringify({ success: true }), { status: 200 }))
+    server.use(
+      http.post('/api/stats', () => HttpResponse.json({ success: true })),
+    )
 
     const { recordGameResult } = await import('./sync')
     await expect(recordGameResult('mario', true, 5, 'medium')).resolves.not.toThrow()
   })
 
   it('silently handles network errors', async () => {
-    mockFetch.mockRejectedValueOnce(new TypeError('fetch failed'))
+    server.use(
+      http.post('/api/stats', () => HttpResponse.error()),
+    )
 
     const { recordGameResult } = await import('./sync')
     await expect(recordGameResult('mario', true, 5, 'medium')).resolves.not.toThrow()
@@ -189,10 +223,10 @@ describe('recordGameResult', () => {
 
 describe('submitCorrection', () => {
   it('submits correction and returns result', async () => {
-    mockFetch.mockResolvedValueOnce(new Response(
-      JSON.stringify({ success: true, autoApplied: false }),
-      { status: 200, headers: { 'Content-Type': 'application/json' } },
-    ))
+    server.use(
+      http.post('/api/corrections', () =>
+        HttpResponse.json({ success: true, autoApplied: false })),
+    )
 
     const { submitCorrection } = await import('./sync')
     const result = await submitCorrection('mario', 'isHuman', true, false)
@@ -200,10 +234,10 @@ describe('submitCorrection', () => {
   })
 
   it('returns error object when server responds with non-ok status', async () => {
-    mockFetch.mockResolvedValueOnce(new Response(
-      JSON.stringify({ error: 'Attribute not found' }),
-      { status: 422, headers: { 'Content-Type': 'application/json' } },
-    ))
+    server.use(
+      http.post('/api/corrections', () =>
+        HttpResponse.json({ error: 'Attribute not found' }, { status: 422 })),
+    )
 
     const { submitCorrection } = await import('./sync')
     const result = await submitCorrection('mario', 'isHuman', true, false)
@@ -212,7 +246,9 @@ describe('submitCorrection', () => {
   })
 
   it('returns network error when fetch throws', async () => {
-    mockFetch.mockRejectedValueOnce(new TypeError('Failed to fetch'))
+    server.use(
+      http.post('/api/corrections', () => HttpResponse.error()),
+    )
 
     const { submitCorrection } = await import('./sync')
     const result = await submitCorrection('mario', 'isHuman', true, false)
@@ -228,10 +264,10 @@ describe('syncStatus', () => {
   })
 
   it('notifies listeners on status change', async () => {
-    // Mock fetch for initialSync (characters + questions)
-    mockFetch
-      .mockResolvedValueOnce(new Response(JSON.stringify([]), { status: 200 }))
-      .mockResolvedValueOnce(new Response(JSON.stringify([]), { status: 200 }))
+    server.use(
+      http.get('/api/v2/characters', () => HttpResponse.json({ characters: [] })),
+      http.get('/api/v2/questions', () => HttpResponse.json([])),
+    )
 
     const { onSyncStatusChange, initialSync } = await import('./sync')
     const statuses: string[] = []
@@ -245,9 +281,10 @@ describe('syncStatus', () => {
   })
 
   it('unsubscribe removes listener so it is no longer called', async () => {
-    mockFetch
-      .mockResolvedValueOnce(new Response(JSON.stringify([]), { status: 200 }))
-      .mockResolvedValueOnce(new Response(JSON.stringify([]), { status: 200 }))
+    server.use(
+      http.get('/api/v2/characters', () => HttpResponse.json({ characters: [] })),
+      http.get('/api/v2/questions', () => HttpResponse.json([])),
+    )
 
     const { onSyncStatusChange, initialSync } = await import('./sync')
     const statuses: string[] = []
@@ -263,7 +300,10 @@ describe('syncStatus', () => {
   it('goes pending then synced even when fetch fails (internal fallback)', async () => {
     // fetchGlobalCharacters / fetchGlobalQuestions swallow their own errors and
     // return [] — so initialSync never throws and always emits 'synced'.
-    mockFetch.mockRejectedValue(new TypeError('fetch failed'))
+    server.use(
+      http.get('/api/v2/characters', () => HttpResponse.error()),
+      http.get('/api/v2/questions', () => HttpResponse.error()),
+    )
 
     const { onSyncStatusChange, initialSync } = await import('./sync')
     const statuses: string[] = []
