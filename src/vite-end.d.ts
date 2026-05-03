@@ -7,18 +7,3 @@ declare module "lucide-react/dist/esm/icons/*" {
   >;
   export default icon;
 }
-
-declare module "swagger-ui-dist" {
-  export interface SwaggerUiOptions {
-    spec?: Record<string, unknown>;
-    domNode?: Element | null;
-    deepLinking?: boolean;
-    displayRequestDuration?: boolean;
-  }
-
-  export interface SwaggerUiInstance {
-    destroy?: () => void;
-  }
-
-  export function SwaggerUIBundle(options: SwaggerUiOptions): SwaggerUiInstance;
-}
