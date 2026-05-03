@@ -47,7 +47,6 @@ jobs:
             --timeout 20
             --retry-wait-time 2
             --max-retries 2
-            --exclude-mail
             --accept 200,206,429
             "**/*.md"
 
@@ -65,7 +64,6 @@ jobs:
             --timeout 20
             --retry-wait-time 2
             --max-retries 2
-            --exclude-mail
             --accept 200,206,429
             "**/*.md"
 
