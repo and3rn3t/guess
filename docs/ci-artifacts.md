@@ -2,6 +2,16 @@
 
 This document describes the artifacts produced by GitHub Actions workflows and what to inspect when a step fails.
 
+## Observability convention
+
+- Workflow command steps that need diagnostics use `set -o pipefail` and `tee` logs into `.ci-artifacts/<workflow>/`.
+- Log and metadata files are uploaded with `actions/upload-artifact` for post-run debugging.
+- Jobs add a short `$GITHUB_STEP_SUMMARY` section listing artifact names.
+- Shared actions used across workflows:
+  - `.github/actions/setup`
+  - `.github/actions/verify-secrets`
+  - `.github/actions/smoke-test-url`
+
 ## Main CI workflow
 
 Source: .github/workflows/ci.yml
@@ -166,5 +176,5 @@ Source: .github/workflows/enrich-bulk-nightly.yml
 
 ## Retention defaults
 
-- Most diagnostic log artifacts are retained for 7 days.
-- Large build outputs or generated reports may use workflow-specific retention windows.
+- Diagnostic logs generally use workflow-specific retention windows (commonly 14 or 30 days).
+- Build outputs and generated reports use workflow-specific retention windows.

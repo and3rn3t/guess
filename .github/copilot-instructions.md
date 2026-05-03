@@ -52,6 +52,18 @@ pnpm cf:login       # Authenticate with Cloudflare
 pnpm cf:dev         # Dev server with Cloudflare bindings
 ```
 
+## CI Workflow Conventions
+- Reuse shared setup: `.github/actions/setup` for Node + pnpm install.
+- Reuse shared guards/actions where applicable:
+	- `.github/actions/verify-secrets` for required env/secret checks.
+	- `.github/actions/smoke-test-url` for deploy URL smoke tests.
+- For diagnostic command steps in workflows:
+	- Use `set -o pipefail`.
+	- Write logs under `.ci-artifacts/<workflow-name>/...` with `tee`.
+	- Upload logs/metadata via `actions/upload-artifact`.
+	- Add a short `$GITHUB_STEP_SUMMARY` artifact list for run visibility.
+- Keep CI artifact documentation in sync in `docs/ci-artifacts.md` whenever artifact names or contents change.
+
 ## Important Warnings
 - Do NOT manually edit files in `src/components/ui/` — use `npx shadcn@latest add <component>`
 - Character IDs must be unique lowercase strings

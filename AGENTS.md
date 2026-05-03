@@ -43,6 +43,8 @@ An item is `✅` only when **all** of these are true:
 - Never edit files in `src/components/ui/` directly — use `npx shadcn@latest add <component>`.
 - Character IDs must be unique lowercase strings; attribute keys must be camelCase booleans.
 - Path alias: `@/` → `src/`.
+- For workflow changes, keep CI observability patterns consistent: `set -o pipefail`, `tee` logs into `.ci-artifacts/<workflow>/`, upload artifacts, and write a short `$GITHUB_STEP_SUMMARY` artifact list.
+- If workflow artifact names/contents change, update `docs/ci-artifacts.md` in the same commit.
 - Don't generate or guess URLs unless they're for programming help.
 
 ## When you're unsure
