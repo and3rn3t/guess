@@ -117,7 +117,8 @@ export function CategoryRecommender({
       const recs = await generateCategoryRecommendations(
         character.name,
         localAttributes,
-        categoryKey
+        categoryKey,
+        character.category
       )
       setRecommendations(recs)
       toast.success(`Generated ${recs.length} ${categoryKey} recommendations`)

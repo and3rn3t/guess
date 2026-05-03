@@ -34,7 +34,7 @@ const ExperimentsRoute = lazy(() => import('./routes/ExperimentsRoute'))
 const DataQualityRoute = lazy(() => import('./routes/DataQualityRoute'))
 const TriageRoute = lazy(() => import('./routes/TriageRoute'))
 
-function RouteWrapper({ children }: { children: React.ReactNode }): React.JSX.Element {
+function RouteWrapper({ children }: Readonly<{ children: React.ReactNode }>): React.JSX.Element {
   return (
     <Suspense
       fallback={

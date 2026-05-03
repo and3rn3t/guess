@@ -1,7 +1,6 @@
 import { httpClient } from '@/lib/http'
 import {
   ALL_KNOWN_ATTRIBUTES,
-  getAttributeRecommendations,
   type AttributeRecommendation,
 } from './attributeRecommender'
 import {
@@ -76,6 +75,7 @@ function filterByFocus(
 
 async function requestRecommendations(args: {
   characterName: string
+  category?: string
   existingAttributes: Record<string, boolean | null>
   availableAttributes: Array<{ key: string; label: string }>
   maxRecommendations: number
@@ -90,25 +90,24 @@ async function requestRecommendations(args: {
 export async function generateAttributeRecommendationsWithAI(
   characterName: string,
   existingAttributes: Record<string, boolean | null>,
+  category?: string,
 ): Promise<AttributeRecommendation[]> {
-  try {
-    const recommendations = await requestRecommendations({
-      characterName,
-      existingAttributes,
-      availableAttributes: buildAllAvailableAttributes(existingAttributes),
-      maxRecommendations: 15,
-      focusDescription: 'General character traits with high strategic value and strong factual confidence',
-    })
-    return recommendations
-  } catch {
-    return getAttributeRecommendations(characterName, existingAttributes)
-  }
+  const recommendations = await requestRecommendations({
+    characterName,
+    category,
+    existingAttributes,
+    availableAttributes: buildAllAvailableAttributes(existingAttributes),
+    maxRecommendations: 15,
+    focusDescription: 'General character traits with high strategic value and strong factual confidence',
+  })
+  return recommendations
 }
 
 export async function generateSmartAttributeSuggestions(
   characterName: string,
   existingAttributes: Record<string, boolean | null>,
   focusArea?: FocusArea,
+  category?: string,
 ): Promise<AttributeRecommendation[]> {
   const all = buildAllAvailableAttributes(existingAttributes)
   const available = filterByFocus(all, focusArea)
@@ -118,37 +117,32 @@ export async function generateSmartAttributeSuggestions(
     ? `Focus on ${focusArea} traits only`
     : 'General character traits'
 
-  try {
-    return await requestRecommendations({
-      characterName,
-      existingAttributes,
-      availableAttributes: available,
-      maxRecommendations: 8,
-      focusDescription,
-    })
-  } catch {
-    return []
-  }
+  return requestRecommendations({
+    characterName,
+    category,
+    existingAttributes,
+    availableAttributes: available,
+    maxRecommendations: 8,
+    focusDescription,
+  })
 }
 
 export async function generateCategoryRecommendations(
   characterName: string,
   existingAttributes: Record<string, boolean | null>,
   category: AttributeCategory,
+  characterCategory?: string,
 ): Promise<AttributeRecommendation[]> {
   const available = getAvailableAttributesForCategory(category, existingAttributes)
   if (available.length === 0) return []
 
   const info = getCategoryInfo(category)
-  try {
-    return await requestRecommendations({
-      characterName,
-      existingAttributes,
-      availableAttributes: available,
-      maxRecommendations: 10,
-      focusDescription: `Focus on ${info.description}`,
-    })
-  } catch {
-    return []
-  }
+  return requestRecommendations({
+    characterName,
+    category: characterCategory,
+    existingAttributes,
+    availableAttributes: available,
+    maxRecommendations: 10,
+    focusDescription: `Focus on ${info.description}`,
+  })
 }

@@ -64,7 +64,8 @@ export function AttributeRecommender({
     try {
       const recs = await generateAttributeRecommendationsWithAI(
         character.name,
-        localAttributes
+        localAttributes,
+        character.category
       )
       setAiRecs(recs)
       setActiveTab('ai')
@@ -77,21 +78,22 @@ export function AttributeRecommender({
     }
   }
 
-  const handleFocusedRecommendation = async (category: 'physical' | 'abilities' | 'personality' | 'origins' | 'relationships') => {
+  const handleFocusedRecommendation = async (focusArea: 'physical' | 'abilities' | 'personality' | 'origins' | 'relationships') => {
     setLoadingCategory(true)
-    setFocusedCategory(category)
+    setFocusedCategory(focusArea)
     try {
       const recs = await generateSmartAttributeSuggestions(
         character.name,
         localAttributes,
-        category
+        focusArea,
+        character.category
       )
       setAiRecs(recs)
       setActiveTab('ai')
-      toast.success(`Generated ${recs.length} ${category} recommendations`)
+      toast.success(`Generated ${recs.length} ${focusArea} recommendations`)
     } catch (error) {
       console.error('Failed to generate focused recommendations:', error)
-      toast.error(`Failed to generate ${category} recommendations`)
+      toast.error(`Failed to generate ${focusArea} recommendations`)
     } finally {
       setLoadingCategory(false)
     }
