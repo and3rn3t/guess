@@ -80,6 +80,7 @@ interface AttributePatch {
   attributeKey: string;
   value: 0 | 1 | null;
   confidence?: number;
+  category?: string;
 }
 
 export const onRequestPatch: PagesFunction<Env> = async (context) => {
@@ -91,7 +92,27 @@ export const onRequestPatch: PagesFunction<Env> = async (context) => {
     return errorResponse("Missing character id", 400);
 
   const body = await parseJsonBody<AttributePatch>(context.request);
-  if (!body?.attributeKey) return errorResponse("Missing attributeKey", 400);
+  if (!body) return errorResponse("Invalid request body", 400);
+
+  if (typeof body.category === "string") {
+    const nextCategory = body.category.trim();
+    if (!nextCategory) return errorResponse("category must not be empty", 400);
+
+    const char = await db
+      .prepare("SELECT id FROM characters WHERE id = ?")
+      .bind(id)
+      .first();
+    if (!char) return errorResponse("Character not found", 404);
+
+    await db
+      .prepare("UPDATE characters SET category = ? WHERE id = ?")
+      .bind(nextCategory, id)
+      .run();
+
+    return jsonResponse({ ok: true });
+  }
+
+  if (!body.attributeKey) return errorResponse("Missing attributeKey", 400);
 
   if (body.value !== 0 && body.value !== 1 && body.value !== null) {
     return errorResponse("value must be 0, 1, or null", 400);

@@ -6,6 +6,11 @@ import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import {
+  QuickFilterBar,
+  RecentSearchesWidget,
+  BatchCategoryModal,
+} from '../CharacterManagerEnhancements'
+import {
   MagnifyingGlassIcon,
   TrashIcon,
   ArrowLeftIcon,
@@ -20,6 +25,13 @@ import {
 } from '@phosphor-icons/react'
 import type { CharacterCategory } from '@/lib/types'
 import { CATEGORY_LABELS } from '@/lib/types'
+import {
+  addRecentSearch,
+  exportAsCSV,
+  getNeedsWorkScore,
+  timeSinceCreated,
+  type QuickFilterPreset,
+} from '@/lib/admin/characterFilters'
 
 interface AdminCharacter {
   id: string
@@ -59,7 +71,7 @@ interface PageData {
   pageSize: number
 }
 
-type SortKey = 'popularity' | 'name' | 'coverage' | 'createdAt'
+type SortKey = 'popularity' | 'name' | 'coverage' | 'createdAt' | 'needsWork' | 'recentlyAdded'
 
 const CATEGORIES = Object.keys(CATEGORY_LABELS) as CharacterCategory[]
 const SKELETON_ROW_KEYS = [
@@ -117,6 +129,10 @@ export default function CharactersRoute(): React.JSX.Element {
   const [expandLoading, setExpandLoading] = useState(false)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [reenriching, setReenriching] = useState(false)
+  const [batchDeleteConfirm, setBatchDeleteConfirm] = useState(false)
+  const [batchCategoryOpen, setBatchCategoryOpen] = useState(false)
+  const [isBatchDeleting, setIsBatchDeleting] = useState(false)
+  const [isBatchUpdating, setIsBatchUpdating] = useState(false)
   const [validating, setValidating] = useState<string | null>(null)
   const [validationResults, setValidationResults] = useState<Record<string, ValidationIssue[]>>({})
   const pageSize = 50
@@ -152,14 +168,117 @@ export default function CharactersRoute(): React.JSX.Element {
 
   useEffect(() => { void fetchData() }, [fetchData])
 
+  useEffect(() => {
+    setBatchDeleteConfirm(false)
+  }, [selectedIds])
+
   const toggleSort = (col: SortKey) => {
     if (sort === col) {
       setOrder((o) => (o === 'desc' ? 'asc' : 'desc'))
     } else {
       setSort(col)
-      setOrder('desc')
+      setOrder(col === 'needsWork' ? 'asc' : 'desc')
     }
     setPage(1)
+  }
+
+  const applyQuickFilter = (preset: QuickFilterPreset) => {
+    if (preset.search !== undefined) {
+      setSearch(preset.search)
+    }
+    if (preset.category !== undefined) {
+      setCategory(preset.category)
+    }
+    if (preset.maxCoverage !== undefined) {
+      setMaxCoverage(preset.maxCoverage)
+    }
+    if (preset.sort) {
+      setSort(preset.sort)
+      setOrder(preset.order ?? 'desc')
+    }
+    setPage(1)
+  }
+
+  const applyRecentSearch = (query: string) => {
+    setSearch(query)
+    addRecentSearch(query)
+    setPage(1)
+  }
+
+  const batchDeleteSelected = async () => {
+    if (selectedIds.size === 0) return
+
+    setIsBatchDeleting(true)
+    try {
+      const results = await Promise.allSettled(
+        Array.from(selectedIds).map(async (id) => {
+          const res = await fetch(`/api/admin/characters/${encodeURIComponent(id)}`, { method: 'DELETE' })
+          if (!res.ok) throw new Error(res.statusText)
+        })
+      )
+      const succeeded = results.filter((r) => r.status === 'fulfilled').length
+      const failed = results.length - succeeded
+
+      if (succeeded > 0) {
+        const suffix = succeeded === 1 ? '' : 's'
+        toast.success(`Deleted ${succeeded} character${suffix}`)
+      }
+      if (failed > 0) {
+        const suffix = failed === 1 ? '' : 's'
+        toast.error(`${failed} delete${suffix} failed`)
+      }
+
+      setSelectedIds(new Set())
+      setBatchDeleteConfirm(false)
+      await fetchData()
+    } catch (e) {
+      toast.error(`Batch delete failed: ${e instanceof Error ? e.message : 'Unknown error'}`)
+    } finally {
+      setIsBatchDeleting(false)
+    }
+  }
+
+  const batchChangeCategory = async (nextCategory: string) => {
+    if (selectedIds.size === 0) return
+
+    setIsBatchUpdating(true)
+    try {
+      const results = await Promise.allSettled(
+        Array.from(selectedIds).map(async (id) => {
+          const res = await fetch(`/api/admin/characters/${encodeURIComponent(id)}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ category: nextCategory }),
+          })
+          if (!res.ok) throw new Error(res.statusText)
+        })
+      )
+      const succeeded = results.filter((r) => r.status === 'fulfilled').length
+      const failed = results.length - succeeded
+
+      if (succeeded > 0) {
+        const suffix = succeeded === 1 ? '' : 's'
+        toast.success(`Updated category for ${succeeded} character${suffix}`)
+      }
+      if (failed > 0) {
+        const suffix = failed === 1 ? '' : 's'
+        toast.error(`${failed} category update${suffix} failed`)
+      }
+
+      setSelectedIds(new Set())
+      setBatchCategoryOpen(false)
+      await fetchData()
+    } catch (e) {
+      toast.error(`Batch category update failed: ${e instanceof Error ? e.message : 'Unknown error'}`)
+    } finally {
+      setIsBatchUpdating(false)
+    }
+  }
+
+  const batchExport = () => {
+    if (selectedIds.size === 0) return
+    const selectedCharacters = (data?.characters ?? []).filter((c) => selectedIds.has(c.id))
+    exportAsCSV(selectedCharacters, `characters-export-${Date.now()}.csv`)
   }
 
   const deleteCharacter = async (id: string, name: string) => {
@@ -423,7 +542,17 @@ export default function CharactersRoute(): React.JSX.Element {
           )}
           <div className="relative">
             <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
-            <Input placeholder="Search characters…" value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9 w-56" />
+            <Input
+              placeholder="Search characters..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              onBlur={() => {
+                if (search.trim().length > 0) {
+                  addRecentSearch(search.trim())
+                }
+              }}
+              className="pl-9 w-56"
+            />
           </div>
           <Input
             type="number"
@@ -454,6 +583,29 @@ export default function CharactersRoute(): React.JSX.Element {
         <div className="rounded-lg bg-destructive/10 border border-destructive/30 px-4 py-3 text-sm text-destructive">{error}</div>
       )}
 
+      <QuickFilterBar
+        onApplyFilter={applyQuickFilter}
+        selectedCount={selectedIds.size}
+        onBatchDelete={() => {
+          if (batchDeleteConfirm) {
+            void batchDeleteSelected()
+            return
+          }
+          setBatchDeleteConfirm(true)
+        }}
+        onBatchChangeCategory={() => setBatchCategoryOpen(true)}
+        onBatchExport={batchExport}
+        isDeletingBatch={isBatchDeleting}
+      />
+
+      {batchDeleteConfirm && selectedIds.size > 0 && (
+        <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">
+          Click Delete again to confirm removing {selectedIds.size} selected character{selectedIds.size === 1 ? '' : 's'}.
+        </div>
+      )}
+
+      <RecentSearchesWidget onApplySearch={applyRecentSearch} />
+
       <div className="rounded-xl border bg-card overflow-hidden">
         <table className="w-full text-sm">
           <thead className="bg-muted/50">
@@ -472,6 +624,11 @@ export default function CharactersRoute(): React.JSX.Element {
                   Name <SortIndicator col="name" activeSort={sort} order={order} />
                 </button>
               </th>
+              <th className="text-center px-4 py-3 font-medium text-muted-foreground w-28">
+                <button onClick={() => toggleSort('recentlyAdded')} className="hover:text-foreground">
+                  Added <SortIndicator col="recentlyAdded" activeSort={sort} order={order} />
+                </button>
+              </th>
               <th className="text-left px-4 py-3 font-medium text-muted-foreground w-32">Category</th>
               <th className="text-left px-4 py-3 font-medium text-muted-foreground w-24">Source</th>
               <th className="text-center px-4 py-3 font-medium text-muted-foreground w-32">
@@ -484,13 +641,18 @@ export default function CharactersRoute(): React.JSX.Element {
                   Pop. <SortIndicator col="popularity" activeSort={sort} order={order} />
                 </button>
               </th>
+              <th className="text-center px-4 py-3 font-medium text-muted-foreground w-28">
+                <button onClick={() => toggleSort('needsWork')} className="hover:text-foreground">
+                  Needs Work <SortIndicator col="needsWork" activeSort={sort} order={order} />
+                </button>
+              </th>
               <th className="text-center px-4 py-3 font-medium text-muted-foreground w-24">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
             {loading && !data
               ? SKELETON_ROW_KEYS.map((rowKey) => (
-                  <tr key={rowKey}><td colSpan={7} className="px-4 py-3"><div className="h-4 bg-muted animate-pulse rounded" /></td></tr>
+                  <tr key={rowKey}><td colSpan={9} className="px-4 py-3"><div className="h-4 bg-muted animate-pulse rounded" /></td></tr>
                 ))
               : (data?.characters ?? []).map((c) => (
                   <Fragment key={c.id}>
@@ -513,6 +675,9 @@ export default function CharactersRoute(): React.JSX.Element {
                           {c.isCustom && <Badge variant="outline" className="text-xs">custom</Badge>}
                         </div>
                       </td>
+                      <td className="px-4 py-3 text-center text-xs text-muted-foreground">
+                        {timeSinceCreated(c.createdAt)}
+                      </td>
                       <td className="px-4 py-3 text-muted-foreground text-xs">{CATEGORY_LABELS[c.category as CharacterCategory] ?? c.category}</td>
                       <td className="px-4 py-3 text-muted-foreground text-xs">{c.source}</td>
                       <td className="px-4 py-3 text-center">
@@ -522,6 +687,9 @@ export default function CharactersRoute(): React.JSX.Element {
                         </div>
                       </td>
                       <td className="px-4 py-3 text-center text-xs text-muted-foreground">{c.popularity.toFixed(2)}</td>
+                      <td className="px-4 py-3 text-center text-xs text-muted-foreground">
+                        {getNeedsWorkScore(c).toFixed(1)}
+                      </td>
                       <td className="px-4 py-3 text-center">
                         <div className="flex items-center justify-center gap-1">
                           <Button
@@ -548,7 +716,7 @@ export default function CharactersRoute(): React.JSX.Element {
                     </tr>
                     {expandedCharId === c.id && (
                       <tr>
-                        <td colSpan={7} className="px-4 py-4 bg-muted/20 border-b border-border">
+                        <td colSpan={9} className="px-4 py-4 bg-muted/20 border-b border-border">
                           {renderExpandedPanel(c)}
                         </td>
                       </tr>
@@ -573,6 +741,14 @@ export default function CharactersRoute(): React.JSX.Element {
           </div>
         </div>
       )}
+
+      <BatchCategoryModal
+        selectedCount={selectedIds.size}
+        open={batchCategoryOpen}
+        onClose={() => setBatchCategoryOpen(false)}
+        onApply={(nextCategory) => void batchChangeCategory(nextCategory)}
+        isLoading={isBatchUpdating}
+      />
     </div>
   )
 }
