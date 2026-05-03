@@ -9,6 +9,12 @@ import {
   CLOSURE_QUEUE_REPORT_KEY,
   type ClosureQueueReport,
 } from '../api/admin/data-quality/_closure_queue'
+import {
+  computeSourceHealthReport,
+  SOURCE_HEALTH_REPORT_KEY,
+  type SourceHealthCharacterRow,
+  type SourceHealthReport,
+} from '../api/_source_health'
 
 export interface AutomationEnv {
   GUESS_DB?: D1Database
@@ -22,6 +28,8 @@ export interface AutomationEnv {
   AUTO_ENRICH_ONE?: string
   AUTO_CLOSURE_QUEUE?: string
   AUTO_CLOSURE_QUEUE_LIMIT?: string
+  AUTO_SOURCE_HEALTH?: string
+  AUTO_SOURCE_HEALTH_LIMIT?: string
   AUTO_RETIRE_ENABLED?: string
   AUTO_RETIRE_LIMIT?: string
   AUTO_RETIRE_MIN_SCORE?: string
@@ -44,12 +52,20 @@ export interface AutomationSummary {
     automationPairs: number
     manualPairs: number
   }
+  sourceHealth: {
+    status: 'generated' | 'skipped' | 'error'
+    totalCharacters: number
+    validCharacters: number
+    issueCount: number
+    coveragePct: number
+  }
   retiredQuestions: number
   stepDurationsMs: {
     snapshot: number
     duplicates: number
     enrichment: number
     closureQueue: number
+    sourceHealth: number
     retirement: number
   }
   stepErrors: {
@@ -57,6 +73,7 @@ export interface AutomationSummary {
     duplicates: string | null
     enrichment: string | null
     closureQueue: string | null
+    sourceHealth: string | null
     retirement: string | null
   }
   notes: string[]
@@ -227,6 +244,38 @@ async function maybeMaterializeClosureQueue(
   }
 }
 
+async function maybeMaterializeSourceHealth(
+  env: AutomationEnv,
+): Promise<{ status: 'generated' | 'skipped' | 'error'; report: SourceHealthReport | null }> {
+  if (!env.GUESS_DB) return { status: 'skipped', report: null }
+  if (!flagEnabled(env.AUTO_SOURCE_HEALTH, true)) return { status: 'skipped', report: null }
+
+  const issueLimit = parseIntClamped(env.AUTO_SOURCE_HEALTH_LIMIT, 200, 1, 1000)
+
+  try {
+    const rowsResult = await env.GUESS_DB
+      .prepare(
+        `SELECT id, name, category, source, source_id, popularity, created_at
+           FROM characters`,
+      )
+      .all<SourceHealthCharacterRow>()
+
+    const rows = rowsResult.results ?? []
+    const report = computeSourceHealthReport(rows, { issueLimit })
+
+    const kv = env.GUESS_ASSETS ?? env.GUESS_KV
+    if (kv) {
+      await kv.put(SOURCE_HEALTH_REPORT_KEY, JSON.stringify(report), {
+        expirationTtl: 8 * 24 * 60 * 60,
+      })
+    }
+
+    return { status: 'generated', report }
+  } catch {
+    return { status: 'error', report: null }
+  }
+}
+
 async function maybeAutoRetireQuestions(env: AutomationEnv): Promise<number> {
   if (!env.GUESS_DB) return 0
   if (!flagEnabled(env.AUTO_RETIRE_ENABLED, false)) return 0
@@ -328,12 +377,20 @@ export async function runAdminAutomation(
       automationPairs: 0,
       manualPairs: 0,
     },
+    sourceHealth: {
+      status: 'skipped',
+      totalCharacters: 0,
+      validCharacters: 0,
+      issueCount: 0,
+      coveragePct: 0,
+    },
     retiredQuestions: 0,
     stepDurationsMs: {
       snapshot: 0,
       duplicates: 0,
       enrichment: 0,
       closureQueue: 0,
+      sourceHealth: 0,
       retirement: 0,
     },
     stepErrors: {
@@ -341,6 +398,7 @@ export async function runAdminAutomation(
       duplicates: null,
       enrichment: null,
       closureQueue: null,
+      sourceHealth: null,
       retirement: null,
     },
     notes: [],
@@ -412,6 +470,37 @@ export async function runAdminAutomation(
         summary.notes.push('closure queue materialization failed')
       } finally {
         summary.stepDurationsMs.closureQueue = Date.now() - t0
+      }
+    }
+
+    {
+      const t0 = Date.now()
+      try {
+        const sourceHealth = await maybeMaterializeSourceHealth(env)
+        const report = sourceHealth.report
+        summary.sourceHealth = {
+          status: sourceHealth.status,
+          totalCharacters: report?.totals.totalCharacters ?? 0,
+          validCharacters: report?.totals.validCharacters ?? 0,
+          issueCount: report?.totals.issueCount ?? 0,
+          coveragePct: report?.totals.coveragePct ?? 0,
+        }
+        if (sourceHealth.status === 'error') {
+          summary.errorCount += 1
+          summary.stepErrors.sourceHealth = 'source health run returned error status'
+          summary.notes.push('source health materialization failed')
+        } else if (sourceHealth.status === 'generated') {
+          summary.notes.push(
+            `source health materialized: ${summary.sourceHealth.validCharacters}/${summary.sourceHealth.totalCharacters}`,
+          )
+        }
+      } catch (err) {
+        summary.errorCount += 1
+        summary.sourceHealth.status = 'error'
+        summary.stepErrors.sourceHealth = (err as Error).message
+        summary.notes.push('source health materialization failed')
+      } finally {
+        summary.stepDurationsMs.sourceHealth = Date.now() - t0
       }
     }
 

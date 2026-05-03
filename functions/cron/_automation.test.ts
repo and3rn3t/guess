@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { createTestDb, createTestKv, seedAttributeDefinition, type TestDb, type TestKv } from '../api/admin/__tests__/harness'
 import { runAdminAutomation } from './_automation'
 import { CLOSURE_QUEUE_REPORT_KEY } from '../api/admin/data-quality/_closure_queue'
+import { SOURCE_HEALTH_REPORT_KEY } from '../api/_source_health'
 
 let db: TestDb
 let kv: TestKv
@@ -117,6 +118,40 @@ describe('runAdminAutomation', () => {
     const summary = await runAdminAutomation(trigger, {}, () => {})
     expect(summary.snapshot).toBe('skipped')
     expect(summary.notes).toContain('automation skipped: DB unavailable')
+  })
+
+  it('materializes the source-health report to KV when enabled', async () => {
+    db.raw
+      .prepare(`INSERT INTO characters (id, name, category, source, source_id, popularity, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)`)
+      .run('src-1', 'Source Good', 'movies', 'tmdb', '101', 0.9, Math.floor(Date.now() / 1000) - 5 * 24 * 60 * 60)
+    db.raw
+      .prepare(`INSERT INTO characters (id, name, category, source, source_id, popularity, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)`)
+      .run('src-2', 'Source Missing', 'anime', 'tmdb', '', 0.8, Math.floor(Date.now() / 1000) - 4 * 24 * 60 * 60)
+
+    const trigger = { cron: '5 0 * * *', scheduledTime: Date.now() }
+    const env = {
+      GUESS_DB: db.d1 as unknown as D1Database,
+      GUESS_KV: kv as unknown as KVNamespace,
+      AUTO_CAPTURE_DQ_SNAPSHOT: '0',
+      AUTO_DUPLICATES_BACKFILL: '0',
+      AUTO_ENRICH_ONE: '0',
+      AUTO_RETIRE_ENABLED: '0',
+      AUTO_CLOSURE_QUEUE: '0',
+      AUTO_SOURCE_HEALTH: '1',
+      AUTO_SOURCE_HEALTH_LIMIT: '50',
+    }
+
+    const summary = await runAdminAutomation(trigger, env, () => {})
+    expect(summary.sourceHealth.status).toBe('generated')
+    expect(summary.sourceHealth.totalCharacters).toBeGreaterThanOrEqual(2)
+    expect(summary.sourceHealth.issueCount).toBeGreaterThan(0)
+
+    const report = await kv.get(SOURCE_HEALTH_REPORT_KEY, 'json') as {
+      totals?: { issueCount?: number; totalCharacters?: number; validCharacters?: number }
+    } | null
+    expect(report).not.toBeNull()
+    expect(report?.totals?.totalCharacters).toBeGreaterThanOrEqual(2)
+    expect(report?.totals?.issueCount).toBeGreaterThan(0)
   })
 
   it('materializes the closure queue report to KV when enabled', async () => {

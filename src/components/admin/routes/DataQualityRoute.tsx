@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { AdminPageHeader } from '../AdminPageHeader'
+import { SlaTargetsPanel } from '../SlaTargetsPanel'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
   ResponsiveContainer,
@@ -124,6 +125,49 @@ interface ClosureQueueStatusResponse {
       totalPairs: number
       automationPairs: number
       manualPairs: number
+    }
+  } | null
+  fetchedAt: number
+}
+
+interface SourceHealthResponse {
+  generatedAt: string
+  totals: {
+    totalCharacters: number
+    validCharacters: number
+    issueCount: number
+    coveragePct: number
+  }
+  perSource: Array<{
+    source: string
+    total: number
+    valid: number
+    missing: number
+    malformed: number
+    coveragePct: number
+  }>
+  issues: Array<{
+    characterId: string
+    characterName: string
+    category: string
+    source: string
+    sourceId: string | null
+    issueType: string
+    reason: string
+    popularity: number
+    agedDays: number
+    createdAt: number
+  }>
+}
+
+interface SourceHealthStatusResponse {
+  report: {
+    generatedAt: string
+    totals: {
+      totalCharacters: number
+      validCharacters: number
+      issueCount: number
+      coveragePct: number
     }
   } | null
   fetchedAt: number
@@ -296,6 +340,8 @@ export default function DataQualityRoute(): React.JSX.Element {
   const [data, setData] = useState<DataQualityResponse | null>(null)
   const [closureQueue, setClosureQueue] = useState<ClosureQueueResponse | null>(null)
   const [closureQueueStatus, setClosureQueueStatus] = useState<ClosureQueueStatusResponse | null>(null)
+  const [sourceHealth, setSourceHealth] = useState<SourceHealthResponse | null>(null)
+  const [sourceHealthStatus, setSourceHealthStatus] = useState<SourceHealthStatusResponse | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -326,12 +372,20 @@ export default function DataQualityRoute(): React.JSX.Element {
       fetch('/api/admin/data-quality/closure-queue-status')
         .then(async (res) => (res.ok ? ((await res.json()) as ClosureQueueStatusResponse) : null))
         .catch(() => null),
+      fetch('/api/admin/source-health?limit=20')
+        .then(async (res) => (res.ok ? ((await res.json()) as SourceHealthResponse) : null))
+        .catch(() => null),
+      fetch('/api/admin/source-health-status')
+        .then(async (res) => (res.ok ? ((await res.json()) as SourceHealthStatusResponse) : null))
+        .catch(() => null),
     ])
-      .then(([snapshot, closure, closureStatus]) => {
+      .then(([snapshot, closure, closureStatus, sourceHealthResponse, sourceHealthStatusResponse]) => {
         if (!cancelled) {
           setData(snapshot)
           setClosureQueue(closure)
           setClosureQueueStatus(closureStatus)
+          setSourceHealth(sourceHealthResponse)
+          setSourceHealthStatus(sourceHealthStatusResponse)
         }
       })
       .catch((e: unknown) => {
@@ -552,6 +606,112 @@ export default function DataQualityRoute(): React.JSX.Element {
                 </div>
               </div>
             </div>
+          </SectionCard>
+
+          <SlaTargetsPanel />
+
+          <SectionCard
+            title="Source-ID Health"
+            subtitle="DQ.34 coverage of valid upstream source IDs across TMDb, AniList, IGDB, ComicVine, and Wikidata."
+          >
+            {sourceHealthStatus ? (
+              <div className="mb-4 rounded-md border border-border/60 bg-muted/20 px-3 py-2 text-xs text-muted-foreground">
+                {sourceHealthStatus.report ? (
+                  <>
+                    Latest materialized report: {relativeFromIso(sourceHealthStatus.report.generatedAt)}
+                    {' · '}
+                    {sourceHealthStatus.report.totals.validCharacters.toLocaleString()} / {sourceHealthStatus.report.totals.totalCharacters.toLocaleString()} valid
+                    {' · '}
+                    {sourceHealthStatus.report.totals.issueCount.toLocaleString()} issues
+                  </>
+                ) : (
+                  'No persisted source-health report found in KV yet.'
+                )}
+              </div>
+            ) : null}
+
+            {sourceHealth ? (
+              <>
+                <div className="grid gap-4 md:grid-cols-4">
+                  <Kpi
+                    label="Coverage"
+                    value={fmtPctPrecise(sourceHealth.totals.coveragePct)}
+                    hint={`${sourceHealth.totals.validCharacters.toLocaleString()} / ${sourceHealth.totals.totalCharacters.toLocaleString()} valid source IDs`}
+                  />
+                  <Kpi
+                    label="Issues"
+                    value={sourceHealth.totals.issueCount.toLocaleString()}
+                    hint="Missing, malformed, or unknown source references"
+                  />
+                  <Kpi
+                    label="Tracked sources"
+                    value={sourceHealth.perSource.length.toLocaleString()}
+                    hint="Sources with individual coverage breakdowns"
+                  />
+                  <Kpi
+                    label="Top issue source"
+                    value={sourceHealth.perSource.slice().sort((a, b) => (b.missing + b.malformed) - (a.missing + a.malformed))[0]?.source ?? 'n/a'}
+                    hint="Highest combined missing + malformed count"
+                  />
+                </div>
+
+                <div className="mt-5 overflow-hidden rounded-lg border border-border/60">
+                  <table className="w-full text-sm">
+                    <thead className="bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
+                      <tr>
+                        <th className="px-4 py-3 font-medium">Source</th>
+                        <th className="px-4 py-3 font-medium">Coverage</th>
+                        <th className="px-4 py-3 font-medium">Valid / Total</th>
+                        <th className="px-4 py-3 font-medium">Missing</th>
+                        <th className="px-4 py-3 font-medium">Malformed</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {sourceHealth.perSource.map((item) => (
+                        <tr key={item.source} className="border-t border-border/50">
+                          <td className="px-4 py-3 font-medium text-foreground">{item.source}</td>
+                          <td className="px-4 py-3 tabular-nums text-muted-foreground">{fmtPctPrecise(item.coveragePct)}</td>
+                          <td className="px-4 py-3 tabular-nums text-muted-foreground">
+                            {item.valid.toLocaleString()} / {item.total.toLocaleString()}
+                          </td>
+                          <td className="px-4 py-3 tabular-nums text-muted-foreground">{item.missing.toLocaleString()}</td>
+                          <td className="px-4 py-3 tabular-nums text-muted-foreground">{item.malformed.toLocaleString()}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                <div className="mt-5 overflow-hidden rounded-lg border border-border/60">
+                  <table className="w-full text-sm">
+                    <thead className="bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
+                      <tr>
+                        <th className="px-4 py-3 font-medium">Character</th>
+                        <th className="px-4 py-3 font-medium">Source</th>
+                        <th className="px-4 py-3 font-medium">Issue</th>
+                        <th className="px-4 py-3 font-medium">Age (days)</th>
+                        <th className="px-4 py-3 font-medium">Reason</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {sourceHealth.issues.slice(0, 10).map((item) => (
+                        <tr key={`${item.characterId}:${item.issueType}`} className="border-t border-border/50">
+                          <td className="px-4 py-3 font-medium text-foreground">{item.characterName}</td>
+                          <td className="px-4 py-3 text-muted-foreground">{item.source}</td>
+                          <td className="px-4 py-3 text-muted-foreground">{item.issueType}</td>
+                          <td className="px-4 py-3 tabular-nums text-muted-foreground">{item.agedDays}</td>
+                          <td className="px-4 py-3 text-muted-foreground">{item.reason}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </>
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                Source health unavailable in this environment.
+              </p>
+            )}
           </SectionCard>
 
           <SectionCard

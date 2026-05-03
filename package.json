@@ -72,6 +72,8 @@
     "dq:completeness:ci:fail": "tsx scripts/data-quality/compute-completeness.ts --env production --gate-mode fail --ci",
     "dq:null-closure:preview": "tsx scripts/data-quality/build-null-closure-queue.ts --env preview",
     "dq:null-closure:prod": "tsx scripts/data-quality/build-null-closure-queue.ts --env production",
+    "dq:source-health:preview": "tsx scripts/data-quality/check-source-ids.ts --env preview",
+    "dq:source-health:prod": "tsx scripts/data-quality/check-source-ids.ts --env production",
     "agreement:dry-run": "tsx scripts/compute-agreement.ts --dry-run --env preview",
     "agreement:preview": "tsx scripts/compute-agreement.ts --env preview",
     "agreement:prod": "tsx scripts/compute-agreement.ts --env production",

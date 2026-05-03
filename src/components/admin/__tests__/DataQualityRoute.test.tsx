@@ -29,6 +29,61 @@ describe('DataQualityRoute', () => {
           }),
         }
       }
+      if (url.includes('/api/admin/source-health-status')) {
+        return {
+          ok: true,
+          json: async () => ({
+            report: {
+              generatedAt: '2026-05-03T19:04:17.940Z',
+              totals: {
+                totalCharacters: 100,
+                validCharacters: 95,
+                issueCount: 5,
+                coveragePct: 0.95,
+              },
+            },
+            fetchedAt: 1714760000000,
+          }),
+        }
+      }
+      if (url.includes('/api/admin/source-health')) {
+        return {
+          ok: true,
+          json: async () => ({
+            generatedAt: '2026-05-03T19:04:17.940Z',
+            totals: {
+              totalCharacters: 100,
+              validCharacters: 95,
+              issueCount: 5,
+              coveragePct: 0.95,
+            },
+            perSource: [
+              {
+                source: 'tmdb',
+                total: 30,
+                valid: 29,
+                missing: 1,
+                malformed: 0,
+                coveragePct: 0.9667,
+              },
+            ],
+            issues: [
+              {
+                characterId: 'c1',
+                characterName: 'Spike Spiegel',
+                category: 'anime',
+                source: 'tmdb',
+                sourceId: null,
+                issueType: 'missing-source-id',
+                reason: 'tmdb source is missing source_id.',
+                popularity: 0.9,
+                agedDays: 5,
+                createdAt: Math.floor(Date.now() / 1000) - 5 * 86400,
+              },
+            ],
+          }),
+        }
+      }
       if (url.includes('/api/admin/data-quality/closure-queue')) {
         return {
           ok: true,
@@ -179,6 +234,10 @@ describe('DataQualityRoute', () => {
     expect(screen.getAllByText('anime').length).toBeGreaterThan(0)
     expect(screen.getByText('High-priority disputes: 4 / 25')).toBeInTheDocument()
     expect(screen.getByText('None')).toBeInTheDocument()
+    expect(screen.getByText('Source-ID Health')).toBeInTheDocument()
+    expect(screen.getAllByText('95.00%').length).toBeGreaterThan(0)
+    expect(screen.getByText('Spike Spiegel')).toBeInTheDocument()
+    expect(screen.getAllByText('5').length).toBeGreaterThanOrEqual(2)
     expect(screen.getByText('Null-Closure Queue')).toBeInTheDocument()
     expect(screen.getByText('1,234')).toBeInTheDocument()
     expect(screen.getByText('Levi')).toBeInTheDocument()

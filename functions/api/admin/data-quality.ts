@@ -10,24 +10,7 @@
 import { type Env, jsonResponse, errorResponse } from '../_helpers'
 import { computeDataCompletenessScore } from '../_data_completeness'
 import { computeDataHealthScore } from '../_data_health'
-
-const DQ_CATEGORIES = [
-  'video-games',
-  'movies',
-  'anime',
-  'comics',
-  'books',
-  'cartoons',
-  'tv-shows',
-  'pop-culture',
-] as const
-
-const DQ31_DEFAULTS = {
-  warnScore: 0.92,
-  failScore: 0.95,
-  defaultCategoryFloor: 0.9,
-  disputeBudget: 25,
-} as const
+import { DQ31_DEFAULTS, DQ_CATEGORIES } from './data-quality/_sla_matrix'
 
 interface SnapshotRow {
   captured_at: number

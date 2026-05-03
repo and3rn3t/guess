@@ -1,57 +1,5 @@
 import { buildNullClosureQueue, type NullClosurePairInput } from '../../_null_closure'
-
-const DQ_CATEGORIES = [
-  'video-games',
-  'movies',
-  'anime',
-  'comics',
-  'books',
-  'cartoons',
-  'tv-shows',
-  'pop-culture',
-] as const
-
-const DQ33_RULES = [
-  {
-    attributeKey: 'isHuman',
-    targets: {
-      'video-games': 1,
-      movies: 1,
-      anime: 1,
-      comics: 1,
-      books: 1,
-      cartoons: 1,
-      'tv-shows': 1,
-      'pop-culture': 1,
-    },
-  },
-  {
-    attributeKey: 'firstAppearedYear',
-    targets: {
-      'video-games': 0.95,
-      movies: 0.95,
-      anime: 0.95,
-      comics: 0.95,
-      books: 0.95,
-      cartoons: 0.95,
-      'tv-shows': 0.95,
-      'pop-culture': 0.9,
-    },
-  },
-  {
-    attributeKey: 'personality',
-    targets: {
-      'video-games': 0.7,
-      movies: 0.7,
-      anime: 0.75,
-      comics: 0.7,
-      books: 0.7,
-      cartoons: 0.65,
-      'tv-shows': 0.7,
-      'pop-culture': 0.6,
-    },
-  },
-] as const
+import { DQ_CATEGORIES, DQ33_RULES } from './_sla_matrix'
 
 export const DQ33_LANE_POLICY = {
   automationScoreThreshold: 0.00002,
