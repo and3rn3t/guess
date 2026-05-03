@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { AdminPageHeader } from "../AdminPageHeader";
 import { Button } from "@/components/ui/button";
@@ -89,6 +89,17 @@ interface QuestionScoreResult {
   rewrite?: string;
 }
 
+interface RewriteCandidate {
+  key: string;
+  originalText: string;
+  rewriteText: string;
+  clarity: number;
+  power: number;
+  grammar: number;
+  averageScore: number;
+  usageCount: number;
+}
+
 interface QuestionExpansionResult {
   ok: boolean;
   dryRun: boolean;
@@ -115,6 +126,7 @@ interface AdminQuestion {
   isActive: boolean;
   usageCount: number;
   difficulty: string | null;
+  createdAt?: number;
 }
 
 interface PageData {
@@ -123,6 +135,13 @@ interface PageData {
   page: number;
   pageSize: number;
 }
+
+type ActiveFilter = "all" | "active" | "inactive";
+type DifficultyFilter = "all" | "easy" | "medium" | "hard" | "unset";
+type TextStatusFilter = "all" | "missing" | "present";
+type QuestionSort = "usage" | "key" | "difficulty" | "createdAt" | "active";
+type SortOrder = "asc" | "desc";
+type DifficultyValue = "easy" | "medium" | "hard" | null;
 
 const SKELETON_ROW_KEYS = [
   "skeleton-row-1",
@@ -140,8 +159,23 @@ export default function QuestionsRoute(): React.JSX.Element {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
+  const [activeFilter, setActiveFilter] = useState<ActiveFilter>("all");
+  const [difficultyFilter, setDifficultyFilter] =
+    useState<DifficultyFilter>("all");
+  const [textStatusFilter, setTextStatusFilter] =
+    useState<TextStatusFilter>("all");
+  const [sort, setSort] = useState<QuestionSort>("usage");
+  const [order, setOrder] = useState<SortOrder>("desc");
+  const [minUsage, setMinUsage] = useState("");
   const [page, setPage] = useState(1);
   const pageSize = 50;
+  const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set());
+  const [bulkUpdating, setBulkUpdating] = useState(false);
+  const [bulkDifficulty, setBulkDifficulty] = useState<DifficultyFilter>("all");
+  const [bulkScoring, setBulkScoring] = useState(false);
+  const [bulkScoreProgress, setBulkScoreProgress] = useState<{ done: number; total: number }>({ done: 0, total: 0 });
+  const [difficultySavingKeys, setDifficultySavingKeys] = useState<Set<string>>(new Set());
+  const [rewriteQueue, setRewriteQueue] = useState<RewriteCandidate[]>([]);
 
   const [editingKey, setEditingKey] = useState<string | null>(null);
   const [editValue, setEditValue] = useState("");
@@ -159,6 +193,8 @@ export default function QuestionsRoute(): React.JSX.Element {
   const [runModeFilter, setRunModeFilter] = useState<
     "all" | "dry-run" | "apply"
   >("all");
+  const latestSearchRef = useRef(search);
+  const previousPageRef = useRef(page);
 
   const fetchExpansionHistory = async () => {
     try {
@@ -171,36 +207,69 @@ export default function QuestionsRoute(): React.JSX.Element {
     }
   };
 
-  const fetchData = async (searchVal: string, pageVal: number) => {
+  const fetchData = useCallback(async (searchVal: string, pageVal: number) => {
     setLoading(true);
     setError(null);
     try {
       const params = new URLSearchParams({
         search: searchVal,
+        active: activeFilter,
+        difficulty: difficultyFilter,
+        textStatus: textStatusFilter,
+        sort,
+        order,
+        minUsage,
         page: String(pageVal),
         pageSize: String(pageSize),
       });
       const res = await fetch(`${ADMIN_API_ENDPOINTS.questions}?${params}`);
       if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
       setData(await res.json());
+      setSelectedKeys(new Set());
     } catch (e) {
       setError(e instanceof Error ? e.message : "Unknown error");
     } finally {
       setLoading(false);
     }
-  };
+  }, [
+    activeFilter,
+    difficultyFilter,
+    minUsage,
+    order,
+    pageSize,
+    sort,
+    textStatusFilter,
+  ]);
+
+  useEffect(() => {
+    latestSearchRef.current = search;
+  }, [search]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
+      previousPageRef.current = 1;
       setPage(1);
       void fetchData(search, 1);
     }, 300);
     return () => clearTimeout(timer);
-  }, [search]);
+  }, [
+    search,
+    activeFilter,
+    difficultyFilter,
+    textStatusFilter,
+    sort,
+    order,
+    minUsage,
+    fetchData,
+  ]);
 
   useEffect(() => {
-    void fetchData(search, page);
-  }, [page]); // eslint-disable-line react-hooks/exhaustive-deps -- `search` is passed as an arg so stale-closure risk is nil; omitting `fetchData` avoids double-fetch with the debounce effect above
+    if (previousPageRef.current === page) {
+      return;
+    }
+    previousPageRef.current = page;
+    void fetchData(latestSearchRef.current, page);
+  }, [fetchData, page]);
   useEffect(() => {
     void fetchExpansionHistory();
   }, []);
@@ -282,27 +351,201 @@ export default function QuestionsRoute(): React.JSX.Element {
   const scoreQuestion = async (q: AdminQuestion) => {
     setScoringKey(q.key);
     try {
-      const res = await fetch(adminQuestionScorePath(q.key), {
-        method: "POST",
-        headers: JSON_CONTENT_TYPE,
-        body: JSON.stringify({
-          displayText: q.displayText,
-          questionText: q.questionText,
-        }),
-      });
-      if (!res.ok) throw new Error(res.statusText);
-      const result = (await res.json()) as QuestionScoreResult;
+      const result = await requestQuestionScore(q);
       setScores((prev) => ({ ...prev, [q.key]: result }));
-      // If the AI suggests a rewrite, pre-fill the edit box
-      if (result.rewrite) {
-        setEditingKey(q.key);
-        setEditValue(result.rewrite);
-        setTimeout(() => editRef.current?.focus(), 50);
-      }
+      upsertRewriteCandidate(q, result);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Scoring failed");
     } finally {
       setScoringKey(null);
+    }
+  };
+
+  const requestQuestionScore = async (
+    question: AdminQuestion,
+  ): Promise<QuestionScoreResult> => {
+    const res = await fetch(adminQuestionScorePath(question.key), {
+      method: "POST",
+      headers: JSON_CONTENT_TYPE,
+      body: JSON.stringify({
+        displayText: question.displayText,
+        questionText: question.questionText,
+      }),
+    });
+    if (!res.ok) throw new Error(res.statusText);
+    return (await res.json()) as QuestionScoreResult;
+  };
+
+  const upsertRewriteCandidate = (
+    question: AdminQuestion,
+    score: QuestionScoreResult,
+  ) => {
+    if (!score.rewrite) return;
+    const trimmedOriginal = (question.questionText ?? "").trim();
+    const trimmedRewrite = score.rewrite.trim();
+    if (!trimmedRewrite || trimmedRewrite === trimmedOriginal) return;
+
+    const candidate: RewriteCandidate = {
+      key: question.key,
+      originalText: trimmedOriginal,
+      rewriteText: trimmedRewrite,
+      clarity: score.clarity,
+      power: score.power,
+      grammar: score.grammar,
+      averageScore: (score.clarity + score.power + score.grammar) / 3,
+      usageCount: question.usageCount,
+    };
+
+    setRewriteQueue((prev) => {
+      const next = prev.filter((item) => item.key !== question.key);
+      next.push(candidate);
+      next.sort((a, b) => {
+        if (a.averageScore !== b.averageScore) return a.averageScore - b.averageScore;
+        if (a.usageCount !== b.usageCount) return b.usageCount - a.usageCount;
+        return a.key.localeCompare(b.key);
+      });
+      return next;
+    });
+  };
+
+  const scoreSelectedQuestions = async () => {
+    if (selectedKeys.size === 0 || !data) return;
+
+    const selectedQuestions = data.questions.filter((question) =>
+      selectedKeys.has(question.key),
+    );
+    if (selectedQuestions.length === 0) return;
+
+    setBulkScoring(true);
+    setBulkScoreProgress({ done: 0, total: selectedQuestions.length });
+
+    let failed = 0;
+    for (const [index, question] of selectedQuestions.entries()) {
+      try {
+        const result = await requestQuestionScore(question);
+        setScores((prev) => ({ ...prev, [question.key]: result }));
+        upsertRewriteCandidate(question, result);
+      } catch {
+        failed += 1;
+      } finally {
+        setBulkScoreProgress({ done: index + 1, total: selectedQuestions.length });
+      }
+    }
+
+    if (failed > 0) {
+      toast.error(`Bulk AI scoring completed with ${failed} failure${failed === 1 ? "" : "s"}`);
+    } else {
+      toast.success(`Scored ${selectedQuestions.length} question${selectedQuestions.length === 1 ? "" : "s"}`);
+    }
+
+    setBulkScoring(false);
+  };
+
+  const applyRewriteCandidate = async (
+    candidate: RewriteCandidate,
+  ): Promise<boolean> => {
+    try {
+      const res = await fetch(adminQuestionPath(candidate.key), {
+        method: "PATCH",
+        headers: JSON_CONTENT_TYPE,
+        body: JSON.stringify({ questionText: candidate.rewriteText }),
+      });
+      if (!res.ok) {
+        const body = (await res.json()) as { error?: string };
+        throw new Error(body.error ?? res.statusText);
+      }
+
+      setData((prev) =>
+        prev
+          ? {
+              ...prev,
+              questions: prev.questions.map((question) =>
+                question.key === candidate.key
+                  ? { ...question, questionText: candidate.rewriteText }
+                  : question,
+              ),
+            }
+          : prev,
+      );
+      setRewriteQueue((prev) => prev.filter((item) => item.key !== candidate.key));
+      return true;
+    } catch (e) {
+      toast.error(
+        e instanceof Error
+          ? `Failed to apply rewrite for ${candidate.key}: ${e.message}`
+          : `Failed to apply rewrite for ${candidate.key}`,
+      );
+      return false;
+    }
+  };
+
+  const applyAllRewrites = async () => {
+    if (rewriteQueue.length === 0) return;
+    const queueSnapshot = [...rewriteQueue];
+    let applied = 0;
+    for (const candidate of queueSnapshot) {
+      if (await applyRewriteCandidate(candidate)) {
+        applied += 1;
+      }
+    }
+    toast.success(`Applied ${applied} rewrite${applied === 1 ? "" : "s"}`);
+  };
+
+  const updateDifficultyInline = async (
+    question: AdminQuestion,
+    nextDifficulty: DifficultyValue,
+  ) => {
+    const previousDifficulty = question.difficulty;
+    if (previousDifficulty === nextDifficulty) return;
+
+    setDifficultySavingKeys((prev) => new Set(prev).add(question.key));
+    setData((prev) =>
+      prev
+        ? {
+            ...prev,
+            questions: prev.questions.map((item) =>
+              item.key === question.key
+                ? { ...item, difficulty: nextDifficulty }
+                : item,
+            ),
+          }
+        : prev,
+    );
+
+    try {
+      const res = await fetch(adminQuestionPath(question.key), {
+        method: "PATCH",
+        headers: JSON_CONTENT_TYPE,
+        body: JSON.stringify({ difficulty: nextDifficulty }),
+      });
+      if (!res.ok) {
+        const body = (await res.json()) as { error?: string };
+        throw new Error(body.error ?? res.statusText);
+      }
+    } catch (e) {
+      setData((prev) =>
+        prev
+          ? {
+              ...prev,
+              questions: prev.questions.map((item) =>
+                item.key === question.key
+                  ? { ...item, difficulty: previousDifficulty }
+                  : item,
+              ),
+            }
+          : prev,
+      );
+      toast.error(
+        e instanceof Error
+          ? `Failed to update difficulty for ${question.key}: ${e.message}`
+          : `Failed to update difficulty for ${question.key}`,
+      );
+    } finally {
+      setDifficultySavingKeys((prev) => {
+        const next = new Set(prev);
+        next.delete(question.key);
+        return next;
+      });
     }
   };
 
@@ -343,6 +586,117 @@ export default function QuestionsRoute(): React.JSX.Element {
     } finally {
       setExpanding(false);
     }
+  };
+
+  const toggleSelect = (key: string) => {
+    setSelectedKeys((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) {
+        next.delete(key);
+      } else {
+        next.add(key);
+      }
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    const all = (data?.questions ?? []).map((question) => question.key);
+    setSelectedKeys((prev) =>
+      prev.size === all.length ? new Set() : new Set(all),
+    );
+  };
+
+  const clearFilters = () => {
+    setSearch("");
+    setActiveFilter("all");
+    setDifficultyFilter("all");
+    setTextStatusFilter("all");
+    setSort("usage");
+    setOrder("desc");
+    setMinUsage("");
+    setPage(1);
+  };
+
+  const applyQuickPreset = (
+    preset: "needs-copy" | "high-impact" | "inactive" | "hard",
+  ) => {
+    if (preset === "needs-copy") {
+      setTextStatusFilter("missing");
+      setActiveFilter("active");
+      setSort("usage");
+      setOrder("desc");
+      setMinUsage("");
+    } else if (preset === "high-impact") {
+      setActiveFilter("active");
+      setTextStatusFilter("all");
+      setSort("usage");
+      setOrder("desc");
+      setMinUsage("50");
+    } else if (preset === "inactive") {
+      setActiveFilter("inactive");
+      setDifficultyFilter("all");
+      setTextStatusFilter("all");
+      setSort("key");
+      setOrder("asc");
+      setMinUsage("");
+    } else {
+      setDifficultyFilter("hard");
+      setActiveFilter("active");
+      setSort("usage");
+      setOrder("desc");
+      setMinUsage("20");
+    }
+    setPage(1);
+  };
+
+  const runBulkUpdate = async (payload: {
+    isActive?: boolean;
+    difficulty?: "easy" | "medium" | "hard" | null;
+  }) => {
+    if (selectedKeys.size === 0) return;
+    setBulkUpdating(true);
+    try {
+      const res = await fetch(ADMIN_API_ENDPOINTS.questionsBulk, {
+        method: "POST",
+        headers: JSON_CONTENT_TYPE,
+        body: JSON.stringify({ keys: Array.from(selectedKeys), ...payload }),
+      });
+      if (!res.ok) {
+        const body = (await res.json()) as { error?: string };
+        throw new Error(body.error ?? res.statusText);
+      }
+
+      const updates: string[] = [];
+      if (payload.isActive !== undefined) {
+        updates.push(payload.isActive ? "activated" : "deactivated");
+      }
+      if (payload.difficulty !== undefined) {
+        updates.push(
+          payload.difficulty === null
+            ? "difficulty cleared"
+            : `difficulty set to ${payload.difficulty}`,
+        );
+      }
+
+      toast.success(
+        `Updated ${selectedKeys.size} question${selectedKeys.size === 1 ? "" : "s"}: ${updates.join(", ")}`,
+      );
+      await fetchData(search, page);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Bulk update failed");
+    } finally {
+      setBulkUpdating(false);
+    }
+  };
+
+  const applyBulkDifficulty = async () => {
+    if (bulkDifficulty === "all") return;
+    const difficultyValue =
+      bulkDifficulty === "unset"
+        ? null
+        : (bulkDifficulty as "easy" | "medium" | "hard");
+    await runBulkUpdate({ difficulty: difficultyValue });
   };
 
   const totalPages = data ? Math.ceil(data.total / pageSize) : 1;
@@ -405,6 +759,221 @@ export default function QuestionsRoute(): React.JSX.Element {
       {expansionMessage && (
         <div className="rounded-lg bg-emerald-500/10 border border-emerald-500/30 px-4 py-3 text-sm text-emerald-600">
           {expansionMessage}
+        </div>
+      )}
+
+      <div className="rounded-xl border bg-card p-4 space-y-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <Button variant="outline" size="sm" onClick={() => applyQuickPreset("needs-copy")}>
+            Needs Copy
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => applyQuickPreset("high-impact")}>
+            High Impact
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => applyQuickPreset("inactive")}>
+            Inactive
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => applyQuickPreset("hard")}>
+            Hard + High Use
+          </Button>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <select
+            value={activeFilter}
+            onChange={(event) => setActiveFilter(event.target.value as ActiveFilter)}
+            className="h-9 rounded-md border border-border bg-background px-3 text-sm"
+            aria-label="Filter by active state"
+          >
+            <option value="all">All status</option>
+            <option value="active">Active only</option>
+            <option value="inactive">Inactive only</option>
+          </select>
+          <select
+            value={difficultyFilter}
+            onChange={(event) =>
+              setDifficultyFilter(event.target.value as DifficultyFilter)
+            }
+            className="h-9 rounded-md border border-border bg-background px-3 text-sm"
+            aria-label="Filter by difficulty"
+          >
+            <option value="all">All difficulty</option>
+            <option value="easy">Easy</option>
+            <option value="medium">Medium</option>
+            <option value="hard">Hard</option>
+            <option value="unset">Unset</option>
+          </select>
+          <select
+            value={textStatusFilter}
+            onChange={(event) =>
+              setTextStatusFilter(event.target.value as TextStatusFilter)
+            }
+            className="h-9 rounded-md border border-border bg-background px-3 text-sm"
+            aria-label="Filter by question text status"
+          >
+            <option value="all">All text</option>
+            <option value="missing">Missing text</option>
+            <option value="present">Has text</option>
+          </select>
+          <Input
+            value={minUsage}
+            onChange={(event) => {
+              const next = event.target.value;
+              if (next === "" || /^\d+$/.test(next)) {
+                setMinUsage(next);
+              }
+            }}
+            placeholder="Min uses"
+            className="h-9 w-24"
+            inputMode="numeric"
+          />
+          <select
+            value={sort}
+            onChange={(event) => setSort(event.target.value as QuestionSort)}
+            className="h-9 rounded-md border border-border bg-background px-3 text-sm"
+            aria-label="Sort questions"
+          >
+            <option value="usage">Sort: Uses</option>
+            <option value="key">Sort: Key</option>
+            <option value="difficulty">Sort: Difficulty</option>
+            <option value="createdAt">Sort: Created</option>
+            <option value="active">Sort: Active</option>
+          </select>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setOrder((prev) => (prev === "desc" ? "asc" : "desc"))}
+          >
+            {order === "desc" ? "Desc" : "Asc"}
+          </Button>
+          <Button variant="ghost" size="sm" onClick={clearFilters}>
+            Clear Filters
+          </Button>
+        </div>
+      </div>
+
+      {selectedKeys.size > 0 && (
+        <div className="rounded-xl border border-violet-500/30 bg-violet-500/10 p-4">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-sm font-medium text-violet-400">
+              {selectedKeys.size} selected
+            </span>
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={bulkScoring}
+              onClick={() => void scoreSelectedQuestions()}
+              className="border-violet-500/40 text-violet-400 hover:bg-violet-500/10"
+            >
+              <SparkleIcon size={12} className="mr-1.5" />
+              {bulkScoring
+                ? `Scoring ${bulkScoreProgress.done}/${bulkScoreProgress.total}`
+                : "AI Score Selected"}
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={bulkUpdating}
+              onClick={() => void runBulkUpdate({ isActive: true })}
+              className="border-violet-500/40 text-violet-400 hover:bg-violet-500/10"
+            >
+              Activate
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={bulkUpdating}
+              onClick={() => void runBulkUpdate({ isActive: false })}
+              className="border-violet-500/40 text-violet-400 hover:bg-violet-500/10"
+            >
+              Deactivate
+            </Button>
+            <select
+              value={bulkDifficulty}
+              onChange={(event) =>
+                setBulkDifficulty(event.target.value as DifficultyFilter)
+              }
+              className="h-8 rounded-md border border-border bg-background px-2 text-xs"
+              aria-label="Bulk difficulty"
+            >
+              <option value="all">Bulk difficulty...</option>
+              <option value="easy">Easy</option>
+              <option value="medium">Medium</option>
+              <option value="hard">Hard</option>
+              <option value="unset">Clear difficulty</option>
+            </select>
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={bulkUpdating || bulkDifficulty === "all"}
+              onClick={() => void applyBulkDifficulty()}
+              className="border-violet-500/40 text-violet-400 hover:bg-violet-500/10"
+            >
+              Apply Difficulty
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {rewriteQueue.length > 0 && (
+        <div className="rounded-xl border border-blue-500/30 bg-blue-500/10 p-4 space-y-3">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <h3 className="text-sm font-semibold text-blue-500">
+                Ranked Rewrite Queue
+              </h3>
+              <p className="text-xs text-muted-foreground">
+                Sorted by lowest average quality score first, then highest usage.
+              </p>
+            </div>
+            <Button size="sm" onClick={() => void applyAllRewrites()}>
+              Apply All Rewrites
+            </Button>
+          </div>
+          <div className="space-y-2">
+            {rewriteQueue.map((candidate) => (
+              <div
+                key={candidate.key}
+                className="rounded-lg border border-border/70 bg-card p-3"
+              >
+                <div className="flex items-center justify-between gap-2 mb-2">
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline" className="font-mono text-xs">
+                      {candidate.key}
+                    </Badge>
+                    <span className="text-xs text-muted-foreground">
+                      uses: {candidate.usageCount}
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      avg score: {candidate.averageScore.toFixed(2)}
+                    </span>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => void applyRewriteCandidate(candidate)}
+                  >
+                    Apply Rewrite
+                  </Button>
+                </div>
+                <div className="grid gap-2 md:grid-cols-2">
+                  <div className="rounded border border-border bg-background p-2">
+                    <p className="mb-1 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                      Current
+                    </p>
+                    <p className="text-xs text-foreground">
+                      {candidate.originalText || "(empty)"}
+                    </p>
+                  </div>
+                  <div className="rounded border border-blue-500/30 bg-blue-500/5 p-2">
+                    <p className="mb-1 text-[11px] font-medium uppercase tracking-wide text-blue-500">
+                      Suggested
+                    </p>
+                    <p className="text-xs text-foreground">{candidate.rewriteText}</p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
@@ -508,6 +1077,18 @@ export default function QuestionsRoute(): React.JSX.Element {
         <table className="w-full text-sm">
           <thead className="bg-muted/50">
             <tr>
+              <th className="px-4 py-3 w-8">
+                <input
+                  type="checkbox"
+                  checked={
+                    (data?.questions ?? []).length > 0 &&
+                    selectedKeys.size === (data?.questions ?? []).length
+                  }
+                  onChange={toggleSelectAll}
+                  className="cursor-pointer"
+                  aria-label="Select all questions"
+                />
+              </th>
               <th className="text-left px-4 py-3 font-medium text-muted-foreground w-40">
                 Key
               </th>
@@ -532,7 +1113,7 @@ export default function QuestionsRoute(): React.JSX.Element {
             {loading && !data
               ? SKELETON_ROW_KEYS.map((rowKey) => (
                   <tr key={rowKey}>
-                    <td colSpan={6} className="px-4 py-3">
+                    <td colSpan={7} className="px-4 py-3">
                       <div className="h-4 bg-muted animate-pulse rounded" />
                     </td>
                   </tr>
@@ -552,6 +1133,15 @@ export default function QuestionsRoute(): React.JSX.Element {
                       key={q.key}
                       className={`hover:bg-muted/30 transition-colors ${rowVisibilityClass}`}
                     >
+                      <td className="px-4 py-3">
+                        <input
+                          type="checkbox"
+                          checked={selectedKeys.has(q.key)}
+                          onChange={() => toggleSelect(q.key)}
+                          className="cursor-pointer"
+                          aria-label={`Select ${q.key}`}
+                        />
+                      </td>
                       <td className="px-4 py-3 font-mono text-xs text-muted-foreground">
                         {q.key}
                       </td>
@@ -597,7 +1187,28 @@ export default function QuestionsRoute(): React.JSX.Element {
                         )}
                       </td>
                       <td className="px-4 py-3 text-center">
-                        <DifficultyBadge difficulty={q.difficulty} />
+                        <div className="flex items-center justify-center gap-2">
+                          <select
+                            value={q.difficulty ?? "unset"}
+                            onChange={(event) => {
+                              const value = event.target.value;
+                              const difficultyValue: DifficultyValue =
+                                value === "unset"
+                                  ? null
+                                  : (value as "easy" | "medium" | "hard");
+                              void updateDifficultyInline(q, difficultyValue);
+                            }}
+                            disabled={difficultySavingKeys.has(q.key)}
+                            className="h-7 rounded-md border border-border bg-background px-2 text-xs"
+                            aria-label={`Difficulty for ${q.key}`}
+                          >
+                            <option value="unset">Unset</option>
+                            <option value="easy">Easy</option>
+                            <option value="medium">Medium</option>
+                            <option value="hard">Hard</option>
+                          </select>
+                          <DifficultyBadge difficulty={q.difficulty} />
+                        </div>
                       </td>
                       <td className="px-4 py-3 text-center">
                         <Badge variant="secondary" className="text-xs">
@@ -646,7 +1257,7 @@ export default function QuestionsRoute(): React.JSX.Element {
                     </tr>
                     {scores[q.key] && (
                       <tr key={`${q.key}-score`} className="bg-violet-500/5">
-                        <td colSpan={6} className="px-4 py-2">
+                        <td colSpan={7} className="px-4 py-2">
                           <div className="flex flex-col gap-1 max-w-xs">
                             <ScoreBar
                               label="Clarity"
@@ -662,7 +1273,7 @@ export default function QuestionsRoute(): React.JSX.Element {
                             />
                             {scores[q.key].rewrite && (
                               <p className="text-xs text-violet-400 mt-1 italic">
-                                Rewrite suggestion pre-filled in edit box
+                                Rewrite suggestion added to ranked queue
                               </p>
                             )}
                           </div>

@@ -41,6 +41,7 @@ export const ADMIN_API_ENDPOINTS = {
 	community: "/api/admin/community",
 	experiments: "/api/admin/experiments",
 	questions: "/api/admin/questions",
+	questionsBulk: "/api/admin/questions/bulk",
 	questionsExpand: "/api/admin/questions/expand",
 	questionRetirementQueue: "/api/admin/questions/retirement-queue",
 	questionDuplicatesBackfill: "/api/admin/questions/duplicates/backfill",
