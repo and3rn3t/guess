@@ -232,7 +232,7 @@ The active execution plan, sequenced by **priority × ease**. Pull items top-dow
 
 - 🟡 **In progress:** [I.1](#i-1) preview AI Gateway 24h verification window · [I.9](#i-9) AI Gateway semantic caching 7d cache-hit window · [P.7](#p-7) `/about` + `/credits` pages · [P.8](#p-8) light theme + 3-state toggle (system/dark/light)
 - ▶ **Up next:** [P.9](#p-9) daily challenge global leaderboard
-- ✅ **Recently completed:** admin recommender + Data Hygiene + cost dashboard migrated to server endpoints with request-id/rate-limit/logging hardening (2026-05-02) · post-game reflection feedback capture + coverage tests (2026-05-02) · [EN.29](#en-29) trivia card on reveal (2026-05-02)
+- ✅ **Recently completed:** [DX.4](#dx-4) MSW for API-dependent component tests (2026-05-02) · admin recommender + Data Hygiene + cost dashboard migrated to server endpoints with request-id/rate-limit/logging hardening (2026-05-02) · post-game reflection feedback capture + coverage tests (2026-05-02) · [EN.29](#en-29) trivia card on reveal (2026-05-02)
 - 🧫 **Blocked / waiting on:** _none_
 - 🎯 **Current wave focus:** Wave 4 complete. Next: Wave 5 — Polish & Depth (admin polish, DX leverage, player-facing gloss).
 - ✅ **Recently shipped (last 5):** [EN.29](#en-29) trivia card on reveal (2026-05-02) · [AN.11](#an-11) aha moment detector (2026-05-01) · [AN.21](#an-21) catastrophic-failure replay queue (2026-05-01) · [B.4](#b-4) question dedup via embeddings (2026-05-01) · [C.6](#c-6) question quality feedback loop (2026-05-01) · …see [CHANGELOG.md](CHANGELOG.md) for the full list.
@@ -574,7 +574,7 @@ Larger DX explorations (Storybook catalog, Zod contracts, Pact, Stryker, dev con
 | # | Item | Effort | Notes |
 |---|------|--------|-------|
 | DX.3 | **`@cloudflare/vitest-pool-workers` for handler tests** | Medium | Vitest inside Miniflare — real Workers runtime, local KV + D1 bindings, no mocking. Closes the coverage dark zone in `functions/api/v2/game/**`, `questions.ts`, `characters.ts`. |
-| DX.4 | **MSW for API-dependent component tests** | Medium | `msw/node` intercepts `fetch` at the network layer. Component tests for `ReasoningPanel`, `QuestionCard`, and game hooks become self-contained and fast. |
+| DX.4 | **MSW for API-dependent component tests** | Medium | ✅ 2026-05-02 — global MSW test lifecycle wired in `src/test/setup.ts` for browser-like suites, shared handlers expanded for game/admin endpoints, API-dependent hook/component tests migrated from ad-hoc `fetch` mocks to network-layer handlers, and dedicated test lanes added (`pnpm test:hooks`, `pnpm test:lib`, `pnpm test:api`, `pnpm test:workers`). |
 | <a id="dx-11"></a>DX.11 | **`pnpm validate` pre-push git hook** | Low | `lint-staged` + `simple-git-hooks` (`lint-staged.config.mjs` already exists). Catches type/lint failures before they hit the remote. |
 | <a id="dx-12"></a>DX.12 | **D1 migration dry-run in CI** | Low | `wrangler d1 migrations apply --dry-run` step on every PR. Catches migrations that reference non-existent columns or violate CHECK constraints. |
 | DX.13 | **Strict Playwright test isolation** | Medium | `beforeEach` in `fixtures.ts` seeds a fresh test session cookie and resets the rate-limiter DO for the test's IP. Parallel runs become safe. |
