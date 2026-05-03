@@ -26,7 +26,7 @@ concurrency:
 permissions: {}
 
 env:
-  WRANGLER_VERSION: "4.83.0"
+  WRANGLER_VERSION: "4.86.0"
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
 
 jobs:

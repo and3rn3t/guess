@@ -6,8 +6,9 @@
   "packageManager": "pnpm@10.33.2",
   "scripts": {
     "dev": "vite",
-    "kill": "fuser -k 5000/tcp",
+    "kill": "pids=$(lsof -ti tcp:5000); [ -n \"$pids\" ] && kill $pids || true",
     "build": "tsc -b --noCheck && vite build",
+    "typecheck:all": "tsc -p tsconfig.full.json --noEmit",
     "lint": "eslint .",
     "optimize": "vite optimize",
     "preview": "vite preview",
@@ -117,11 +118,6 @@
     "tw-animate-css": "^1.2.4",
     "zod": "^4.3.6"
   },
-  "lint-staged": {
-    "*.{ts,tsx}": [
-      "eslint --fix"
-    ]
-  },
   "devDependencies": {
     "@aws-sdk/client-s3": "^3.1038.0",
     "@cloudflare/workers-types": "^4.20260501.1",
@@ -135,7 +131,6 @@
     "@types/node": "^25.6.0",
     "@types/react": "^19.0.10",
     "@types/react-dom": "^19.0.4",
-    "@types/sharp": "^0.32.0",
     "@vitejs/plugin-react-swc": "^4.2.2",
     "@vitest/coverage-v8": "^4.1.5",
     "better-sqlite3": "^12.9.0",
@@ -160,6 +155,12 @@
     "wrangler": "^4.86.0"
   },
   "size-limit": [
+    {
+      "name": "vendor-react",
+      "path": "dist/assets/vendor-react-*.js",
+      "limit": "80 kB",
+      "gzip": true
+    },
     {
       "name": "vendor-ui",
       "path": "dist/assets/vendor-ui-*.js",
