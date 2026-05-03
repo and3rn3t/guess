@@ -1,157 +1,176 @@
-import { useCallback, useEffect, useState } from 'react'
-import { useSearchParams } from 'react-router-dom'
-import { AdminPageHeader } from '../AdminPageHeader'
-import { Button } from '@/components/ui/button'
-import { FreshnessPill } from '../FreshnessPill'
-import { Skeleton } from '@/components/ui/skeleton'
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { useCallback, useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
+import { toast } from "sonner";
+import { AdminPageHeader } from "../AdminPageHeader";
+import { Button } from "@/components/ui/button";
+import { FreshnessPill } from "../FreshnessPill";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface Candidate {
-  questionId: string
-  text: string | null
-  attributeKey: string | null
-  shown: number
-  skipped: number
-  yes: number
-  no: number
-  maybe: number
-  unknown: number
-  skipRate: number
-  maybeRate: number
-  imbalance: number
-  retirementScore: number
+  questionId: string;
+  text: string | null;
+  attributeKey: string | null;
+  shown: number;
+  skipped: number;
+  yes: number;
+  no: number;
+  maybe: number;
+  unknown: number;
+  skipRate: number;
+  maybeRate: number;
+  imbalance: number;
+  retirementScore: number;
 }
 
 interface RetiredEntry {
-  questionId: string
-  text: string
-  attributeKey: string
-  retiredAt: number
-  retiredReason: string | null
+  questionId: string;
+  text: string;
+  attributeKey: string;
+  retiredAt: number;
+  retiredReason: string | null;
 }
 
 interface QueueResponse {
-  source: 'live' | 'retired'
-  windowDays: number
-  minShown: number
-  generatedAt: number
-  candidates?: Candidate[]
-  retired?: RetiredEntry[]
+  source: "live" | "retired";
+  windowDays: number;
+  minShown: number;
+  generatedAt: number;
+  candidates?: Candidate[];
+  retired?: RetiredEntry[];
 }
 
-type Source = 'live' | 'retired'
+type Source = "live" | "retired";
 
 function isSource(value: string | null): value is Source {
-  return value === 'live' || value === 'retired'
+  return value === "live" || value === "retired";
 }
 
 function relativeTime(ms: number, now: number): string {
-  const diff = Math.max(0, now - ms)
-  const sec = Math.round(diff / 1000)
-  if (sec < 60) return `${sec}s ago`
-  const min = Math.round(sec / 60)
-  if (min < 60) return `${min}m ago`
-  const hr = Math.round(min / 60)
-  if (hr < 24) return `${hr}h ago`
-  const day = Math.round(hr / 24)
-  return `${day}d ago`
+  const diff = Math.max(0, now - ms);
+  const sec = Math.round(diff / 1000);
+  if (sec < 60) return `${sec}s ago`;
+  const min = Math.round(sec / 60);
+  if (min < 60) return `${min}m ago`;
+  const hr = Math.round(min / 60);
+  if (hr < 24) return `${hr}h ago`;
+  const day = Math.round(hr / 24);
+  return `${day}d ago`;
 }
 
 function pct(n: number): string {
-  return `${(n * 100).toFixed(1)}%`
+  return `${(n * 100).toFixed(1)}%`;
 }
 
 function ScoreBadge({ score }: Readonly<{ score: number }>): React.JSX.Element {
-  let tone = 'bg-muted/40 text-muted-foreground'
-  if (score >= 0.4) tone = 'bg-red-500/15 text-red-400'
-  else if (score >= 0.2) tone = 'bg-amber-500/15 text-amber-400'
+  let tone = "bg-muted/40 text-muted-foreground";
+  if (score >= 0.4) tone = "bg-red-500/15 text-red-400";
+  else if (score >= 0.2) tone = "bg-amber-500/15 text-amber-400";
   return (
     <span
       className={`inline-flex items-center justify-center min-w-12 px-2 py-0.5 rounded text-xs font-semibold tabular-nums ${tone}`}
     >
       {pct(score)}
     </span>
-  )
+  );
 }
 
 export default function RetirementQueueRoute(): React.JSX.Element {
-  const [searchParams, setSearchParams] = useSearchParams()
-  const sourceParam = searchParams.get('source')
-  const source: Source = isSource(sourceParam) ? sourceParam : 'live'
+  const [searchParams, setSearchParams] = useSearchParams();
+  const sourceParam = searchParams.get("source");
+  const source: Source = isSource(sourceParam) ? sourceParam : "live";
 
-  const [data, setData] = useState<QueueResponse | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [busyKey, setBusyKey] = useState<string | null>(null)
+  const [data, setData] = useState<QueueResponse | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [busyKey, setBusyKey] = useState<string | null>(null);
 
   const fetchData = useCallback(async (s: Source): Promise<void> => {
-    setLoading(true)
-    setError(null)
+    setLoading(true);
+    setError(null);
     try {
-      const res = await fetch(`/api/admin/questions/retirement-queue?source=${s}&minShown=10&limit=100`)
-      if (!res.ok) throw new Error(`${res.status}`)
-      const json = (await res.json()) as QueueResponse
-      setData(json)
+      const res = await fetch(
+        `/api/admin/questions/retirement-queue?source=${s}&minShown=10&limit=100`,
+      );
+      if (!res.ok) throw new Error(`${res.status}`);
+      const json = (await res.json()) as QueueResponse;
+      setData(json);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Unknown error')
+      setError(e instanceof Error ? e.message : "Unknown error");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }, [])
+  }, []);
 
   useEffect(() => {
-    void fetchData(source)
-  }, [source, fetchData])
+    void fetchData(source);
+  }, [source, fetchData]);
 
   function handleSourceChange(next: string): void {
-    if (!isSource(next)) return
-    if (next === 'live') {
-      searchParams.delete('source')
+    if (!isSource(next)) return;
+    if (next === "live") {
+      searchParams.delete("source");
     } else {
-      searchParams.set('source', next)
+      searchParams.set("source", next);
     }
-    setSearchParams(searchParams, { replace: true })
+    setSearchParams(searchParams, { replace: true });
   }
 
-  async function retire(attributeKey: string, questionText: string): Promise<void> {
+  async function retire(
+    attributeKey: string,
+    questionText: string,
+  ): Promise<void> {
     const reason = globalThis.prompt(
       `Retire "${questionText}"?\n\nOptional reason (max 500 chars):`,
-      '',
-    )
-    if (reason === null) return // cancelled
-    setBusyKey(attributeKey)
+      "",
+    );
+    if (reason === null) return; // cancelled
+    setBusyKey(attributeKey);
     try {
-      const res = await fetch(`/api/admin/questions/${encodeURIComponent(attributeKey)}/retire`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ reason }),
-      })
-      if (!res.ok) throw new Error(`${res.status}`)
-      await fetchData(source)
+      const res = await fetch(
+        `/api/admin/questions/${encodeURIComponent(attributeKey)}/retire`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ reason }),
+        },
+      );
+      if (!res.ok) throw new Error(`${res.status}`);
+      toast.success(
+        `"${questionText.slice(0, 40)}${questionText.length > 40 ? "…" : ""}" retired`,
+        {
+          action: { label: "Undo", onClick: () => void unretire(attributeKey) },
+        },
+      );
+      await fetchData(source);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Retire failed')
+      toast.error(e instanceof Error ? e.message : "Retire failed");
     } finally {
-      setBusyKey(null)
+      setBusyKey(null);
     }
   }
 
   async function unretire(attributeKey: string): Promise<void> {
-    setBusyKey(attributeKey)
+    setBusyKey(attributeKey);
     try {
-      const res = await fetch(`/api/admin/questions/${encodeURIComponent(attributeKey)}/unretire`, {
-        method: 'POST',
-      })
-      if (!res.ok) throw new Error(`${res.status}`)
-      await fetchData(source)
+      const res = await fetch(
+        `/api/admin/questions/${encodeURIComponent(attributeKey)}/unretire`,
+        {
+          method: "POST",
+        },
+      );
+      if (!res.ok) throw new Error(`${res.status}`);
+      toast.success("Question restored to live queue");
+      await fetchData(source);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Unretire failed')
+      toast.error(e instanceof Error ? e.message : "Unretire failed");
     } finally {
-      setBusyKey(null)
+      setBusyKey(null);
     }
   }
 
-  const candidates = data?.candidates ?? []
-  const retired = data?.retired ?? []
+  const candidates = data?.candidates ?? [];
+  const retired = data?.retired ?? [];
 
   return (
     <div className="container mx-auto px-4 pb-8 max-w-5xl space-y-6">
@@ -159,7 +178,10 @@ export default function RetirementQueueRoute(): React.JSX.Element {
         title="Question Retirement Queue"
         subtitle={`Last ${data?.windowDays ?? 30} days · min ${data?.minShown ?? 10} impressions`}
         sectionColor="blue"
-        breadcrumbs={[{ label: 'Questions', to: '/questions' }, { label: 'Retirement Queue' }]}
+        breadcrumbs={[
+          { label: "Questions", to: "/questions" },
+          { label: "Retirement Queue" },
+        ]}
         actions={
           <FreshnessPill
             fetchedAt={data?.generatedAt ?? null}
@@ -177,18 +199,22 @@ export default function RetirementQueueRoute(): React.JSX.Element {
       </Tabs>
 
       {error && (
-        <div role="alert" className="rounded-md border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive">
+        <div
+          role="alert"
+          className="rounded-md border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive"
+        >
           Failed to load: {error}
         </div>
       )}
 
       {loading && !data && <Skeleton className="h-96 w-full" />}
 
-      {data && source === 'live' && (
+      {data && source === "live" && (
         <div className="rounded-lg border border-border/60 bg-card overflow-hidden">
           {candidates.length === 0 ? (
             <p className="p-6 text-sm text-muted-foreground">
-              No live questions meet the threshold yet — keep collecting attempts.
+              No live questions meet the threshold yet — keep collecting
+              attempts.
             </p>
           ) : (
             <table className="w-full text-sm">
@@ -205,19 +231,32 @@ export default function RetirementQueueRoute(): React.JSX.Element {
               </thead>
               <tbody>
                 {candidates.map((c) => (
-                  <tr key={c.questionId} className="border-t border-border/40 hover:bg-muted/20">
+                  <tr
+                    key={c.questionId}
+                    className="border-t border-border/40 hover:bg-muted/20"
+                  >
                     <td className="px-3 py-2">
-                      <div className="font-medium">{c.text ?? c.questionId}</div>
+                      <div className="font-medium">
+                        {c.text ?? c.questionId}
+                      </div>
                       {c.attributeKey && (
                         <div className="text-xs text-muted-foreground">
                           <code>{c.attributeKey}</code>
                         </div>
                       )}
                     </td>
-                    <td className="px-3 py-2 text-right tabular-nums">{c.shown}</td>
-                    <td className="px-3 py-2 text-right tabular-nums">{pct(c.skipRate)}</td>
-                    <td className="px-3 py-2 text-right tabular-nums">{pct(c.maybeRate)}</td>
-                    <td className="px-3 py-2 text-right tabular-nums">{pct(c.imbalance)}</td>
+                    <td className="px-3 py-2 text-right tabular-nums">
+                      {c.shown}
+                    </td>
+                    <td className="px-3 py-2 text-right tabular-nums">
+                      {pct(c.skipRate)}
+                    </td>
+                    <td className="px-3 py-2 text-right tabular-nums">
+                      {pct(c.maybeRate)}
+                    </td>
+                    <td className="px-3 py-2 text-right tabular-nums">
+                      {pct(c.imbalance)}
+                    </td>
                     <td className="px-3 py-2 text-right">
                       <ScoreBadge score={c.retirementScore} />
                     </td>
@@ -227,10 +266,11 @@ export default function RetirementQueueRoute(): React.JSX.Element {
                         variant="destructive"
                         disabled={busyKey === c.attributeKey || !c.attributeKey}
                         onClick={() => {
-                          if (c.attributeKey) void retire(c.attributeKey, c.text ?? c.questionId)
+                          if (c.attributeKey)
+                            void retire(c.attributeKey, c.text ?? c.questionId);
                         }}
                       >
-                        {busyKey === c.attributeKey ? '…' : 'Retire'}
+                        {busyKey === c.attributeKey ? "…" : "Retire"}
                       </Button>
                     </td>
                   </tr>
@@ -241,10 +281,12 @@ export default function RetirementQueueRoute(): React.JSX.Element {
         </div>
       )}
 
-      {data && source === 'retired' && (
+      {data && source === "retired" && (
         <div className="rounded-lg border border-border/60 bg-card overflow-hidden">
           {retired.length === 0 ? (
-            <p className="p-6 text-sm text-muted-foreground">No questions are currently retired.</p>
+            <p className="p-6 text-sm text-muted-foreground">
+              No questions are currently retired.
+            </p>
           ) : (
             <table className="w-full text-sm">
               <thead className="bg-muted/30 text-xs uppercase tracking-wide text-muted-foreground">
@@ -257,7 +299,10 @@ export default function RetirementQueueRoute(): React.JSX.Element {
               </thead>
               <tbody>
                 {retired.map((r) => (
-                  <tr key={r.questionId} className="border-t border-border/40 hover:bg-muted/20">
+                  <tr
+                    key={r.questionId}
+                    className="border-t border-border/40 hover:bg-muted/20"
+                  >
                     <td className="px-3 py-2">
                       <div className="font-medium">{r.text}</div>
                       <div className="text-xs text-muted-foreground">
@@ -265,7 +310,9 @@ export default function RetirementQueueRoute(): React.JSX.Element {
                       </div>
                     </td>
                     <td className="px-3 py-2 text-muted-foreground">
-                      {r.retiredReason ?? <span className="italic">no reason</span>}
+                      {r.retiredReason ?? (
+                        <span className="italic">no reason</span>
+                      )}
                     </td>
                     <td className="px-3 py-2 text-right tabular-nums">
                       {relativeTime(r.retiredAt, data.generatedAt)}
@@ -277,7 +324,7 @@ export default function RetirementQueueRoute(): React.JSX.Element {
                         disabled={busyKey === r.attributeKey}
                         onClick={() => void unretire(r.attributeKey)}
                       >
-                        {busyKey === r.attributeKey ? '…' : 'Unretire'}
+                        {busyKey === r.attributeKey ? "…" : "Unretire"}
                       </Button>
                     </td>
                   </tr>
@@ -288,5 +335,5 @@ export default function RetirementQueueRoute(): React.JSX.Element {
         </div>
       )}
     </div>
-  )
+  );
 }

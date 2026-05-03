@@ -1,4 +1,5 @@
 import { Fragment, useCallback, useEffect, useState } from 'react'
+import { toast } from 'sonner'
 import { AdminPageHeader } from '../AdminPageHeader'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -125,9 +126,10 @@ export default function CharactersRoute(): React.JSX.Element {
     try {
       const res = await fetch(`/api/admin/characters/${encodeURIComponent(id)}`, { method: 'DELETE' })
       if (!res.ok) throw new Error(res.statusText)
+      toast.success(`${name} deleted`)
       setData((prev) => prev ? { ...prev, characters: prev.characters.filter((c) => c.id !== id), total: prev.total - 1 } : prev)
     } catch (e) {
-      setError(`Failed to delete ${name}: ${e instanceof Error ? e.message : 'Unknown error'}`)
+      toast.error(`Failed to delete ${name}: ${e instanceof Error ? e.message : 'Unknown error'}`)
     } finally {
       setDeleting(false)
       setDeleteConfirm(null)
@@ -198,9 +200,10 @@ export default function CharactersRoute(): React.JSX.Element {
         body: JSON.stringify({ characterIds: Array.from(selectedIds) }),
       })
       if (!res.ok) throw new Error(res.statusText)
+      toast.success('Queued for re-enrichment')
       setSelectedIds(new Set())
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Re-enrich failed')
+      toast.error(e instanceof Error ? e.message : 'Re-enrich failed')
     } finally {
       setReenriching(false)
     }
@@ -231,8 +234,9 @@ export default function CharactersRoute(): React.JSX.Element {
       if (!res.ok) throw new Error(res.statusText)
       const json = await res.json() as { issues: ValidationIssue[] }
       setValidationResults((prev) => ({ ...prev, [id]: json.issues }))
+      toast.success(json.issues.length === 0 ? 'No issues found' : `${json.issues.length} issue${json.issues.length !== 1 ? 's' : ''} found`)
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Validation failed')
+      toast.error(e instanceof Error ? e.message : 'Validation failed')
     } finally {
       setValidating(null)
     }

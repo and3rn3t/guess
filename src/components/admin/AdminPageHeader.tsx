@@ -34,33 +34,34 @@ export function AdminPageHeader({
   sectionColor,
 }: AdminPageHeaderProps): React.JSX.Element {
   const iconColorClass = sectionColor ? ICON_COLOR_MAP[sectionColor] : 'text-muted-foreground'
+  const resolvedBreadcrumbs: Breadcrumb[] = breadcrumbs && breadcrumbs.length > 0
+    ? breadcrumbs
+    : [{ label: 'Admin' }, { label: title }]
 
   useEffect(() => {
     const prev = document.title
-    document.title = `${title} \u2014 Admin`
+    document.title = `Admin \u00b7 ${title} \u00b7 Andernator`
     return () => { document.title = prev }
   }, [title])
 
   return (
     <div className="border-b border-border/40 py-5 mb-6">
-      {breadcrumbs && breadcrumbs.length > 0 && (
-        <nav aria-label="breadcrumb" className="mb-2">
-          <ol className="flex items-center gap-1.5 text-xs text-muted-foreground/60">
-            {breadcrumbs.map((crumb, i) => (
-              <li key={crumb.label} className="flex items-center gap-1.5">
-                {i > 0 && <span>/</span>}
-                {crumb.to ? (
-                  <Link to={crumb.to} className="hover:text-foreground transition-colors">
-                    {crumb.label}
-                  </Link>
-                ) : (
-                  <span className="text-muted-foreground">{crumb.label}</span>
-                )}
-              </li>
-            ))}
-          </ol>
-        </nav>
-      )}
+      <nav aria-label="breadcrumb" className="mb-2">
+        <ol className="flex items-center gap-1.5 text-xs text-muted-foreground/60">
+          {resolvedBreadcrumbs.map((crumb, i) => (
+            <li key={crumb.label} className="flex items-center gap-1.5">
+              {i > 0 && <span>/</span>}
+              {crumb.to ? (
+                <Link to={crumb.to} className="hover:text-foreground transition-colors">
+                  {crumb.label}
+                </Link>
+              ) : (
+                <span className="text-muted-foreground">{crumb.label}</span>
+              )}
+            </li>
+          ))}
+        </ol>
+      </nav>
       <div className="flex items-start justify-between gap-4">
         <div className="flex items-center gap-2.5">
           {icon && (

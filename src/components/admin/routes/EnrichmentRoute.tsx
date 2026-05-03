@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { toast } from 'sonner'
 import { AdminPageHeader } from '../AdminPageHeader'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -43,7 +44,6 @@ export default function EnrichmentRoute(): React.JSX.Element {
   const [filter, setFilter] = useState<Filter>('pending')
   const [page, setPage] = useState(1)
   const [retrying, setRetrying] = useState(false)
-  const [retryMsg, setRetryMsg] = useState<string | null>(null)
   const [retryingId, setRetryingId] = useState<string | null>(null)
   const pageSize = 50
 
@@ -66,13 +66,12 @@ export default function EnrichmentRoute(): React.JSX.Element {
 
   const handleRetry = async () => {
     setRetrying(true)
-    setRetryMsg(null)
     try {
       const res = await fetch('/api/admin/enrichment', { method: 'POST' })
       const body = await res.json() as { queued?: number; message?: string }
-      setRetryMsg(body.message ?? `Queued ${body.queued} characters for enrichment`)
+      toast.success(body.message ?? `Queued ${body.queued ?? 0} characters for enrichment`)
     } catch {
-      setRetryMsg('Retry request failed')
+      toast.error('Retry request failed')
     } finally {
       setRetrying(false)
     }
@@ -87,8 +86,9 @@ export default function EnrichmentRoute(): React.JSX.Element {
         body: JSON.stringify({ characterIds: [id] }),
       })
       if (!res.ok) throw new Error(res.statusText)
+      toast.success('Re-enrich queued')
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Retry failed')
+      toast.error(e instanceof Error ? e.message : 'Retry failed')
     } finally {
       setRetryingId(null)
     }
@@ -110,10 +110,6 @@ export default function EnrichmentRoute(): React.JSX.Element {
           </Button>
         }
       />
-
-      {retryMsg && (
-        <div className="rounded-lg bg-blue-500/10 border border-blue-500/30 px-4 py-3 text-sm text-blue-400">{retryMsg}</div>
-      )}
 
       {/* Summary cards */}
       <div className="grid grid-cols-3 gap-4">

@@ -10,6 +10,7 @@ import {
   SparkleIcon,
 } from "@phosphor-icons/react";
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 
 interface Dispute {
   id: number;
@@ -48,9 +49,9 @@ const VALUE_LABEL: Record<string, string> = {
 };
 
 interface AiVerdict {
-  correct: 'current' | 'flagged'
-  confidence: number
-  reason: string
+  correct: "current" | "flagged";
+  confidence: number;
+  reason: string;
 }
 
 interface ResolveTarget {
@@ -66,9 +67,11 @@ export default function DisputesRoute(): React.JSX.Element {
   const [filter, setFilter] = useState<Filter>("open");
   const [page, setPage] = useState(1);
   const [acting, setActing] = useState<number | null>(null);
-  const [aiVerdict, setAiVerdict] = useState<Record<number, AiVerdict>>({})
-  const [aiLoading, setAiLoading] = useState<number | null>(null)
-  const [resolveTarget, setResolveTarget] = useState<ResolveTarget | null>(null);
+  const [aiVerdict, setAiVerdict] = useState<Record<number, AiVerdict>>({});
+  const [aiLoading, setAiLoading] = useState<number | null>(null);
+  const [resolveTarget, setResolveTarget] = useState<ResolveTarget | null>(
+    null,
+  );
   const [correctedValue, setCorrectedValue] = useState<1 | 0 | null>(1);
   const [resolving, setResolving] = useState(false);
   const pageSize = 25;
@@ -105,9 +108,10 @@ export default function DisputesRoute(): React.JSX.Element {
         body: JSON.stringify({ id, status }),
       });
       if (!res.ok) throw new Error(`${res.status}`);
+      toast.success("Dispute dismissed");
       await fetchData(filter, page);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Action failed");
+      toast.error(e instanceof Error ? e.message : "Action failed");
     } finally {
       setActing(null);
     }
@@ -127,11 +131,13 @@ export default function DisputesRoute(): React.JSX.Element {
             attributeKey: resolveTarget.attributeKey,
             value: correctedValue,
           }),
-        }
+        },
       );
       if (!patchRes.ok) {
         const body = (await patchRes.json()) as { error?: string };
-        throw new Error(body.error ?? `Character patch failed: ${patchRes.status}`);
+        throw new Error(
+          body.error ?? `Character patch failed: ${patchRes.status}`,
+        );
       }
       // 2. Mark dispute resolved
       const disputeRes = await fetch("/api/admin/attribute-disputes", {
@@ -139,11 +145,13 @@ export default function DisputesRoute(): React.JSX.Element {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id: resolveTarget.id, status: "resolved" }),
       });
-      if (!disputeRes.ok) throw new Error(`Dispute update failed: ${disputeRes.status}`);
+      if (!disputeRes.ok)
+        throw new Error(`Dispute update failed: ${disputeRes.status}`);
       setResolveTarget(null);
+      toast.success("Dispute resolved");
       await fetchData(filter, page);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Resolve failed");
+      toast.error(e instanceof Error ? e.message : "Resolve failed");
     } finally {
       setResolving(false);
     }
@@ -153,27 +161,29 @@ export default function DisputesRoute(): React.JSX.Element {
   const formatDate = (ts: number) => new Date(ts * 1000).toLocaleDateString();
 
   const askAi = async (d: Dispute) => {
-    setAiLoading(d.id)
+    setAiLoading(d.id);
     try {
-      const res = await fetch('/api/admin/attribute-disputes-ai', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const res = await fetch("/api/admin/attribute-disputes-ai", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           characterName: d.character_name ?? d.character_id,
           attributeKey: d.attribute_key,
-          currentValue: d.current_value === 1 ? true : d.current_value === 0 ? false : null,
+          currentValue:
+            d.current_value === 1 ? true : d.current_value === 0 ? false : null,
           disputeReason: d.dispute_reason,
         }),
-      })
-      if (!res.ok) throw new Error(`${res.status}`)
-      const verdict = await res.json() as AiVerdict
-      setAiVerdict((prev) => ({ ...prev, [d.id]: verdict }))
+      });
+      if (!res.ok) throw new Error(`${res.status}`);
+      const verdict = (await res.json()) as AiVerdict;
+      setAiVerdict((prev) => ({ ...prev, [d.id]: verdict }));
+      toast.success("AI verdict received");
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'AI review failed')
+      toast.error(e instanceof Error ? e.message : "AI review failed");
     } finally {
-      setAiLoading(null)
+      setAiLoading(null);
     }
-  }
+  };
 
   return (
     <div className="container mx-auto px-4 pb-8 max-w-5xl space-y-6">
@@ -233,163 +243,187 @@ export default function DisputesRoute(): React.JSX.Element {
       {!loading && (data?.total ?? 0) > 0 && (
         <>
           <div className="space-y-3">
-          {(data?.disputes ?? []).map((d) => (
-            <div key={d.id} className="rounded-xl border bg-card p-5 space-y-3">
-              <div className="flex items-start justify-between gap-4">
-                <div className="space-y-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-medium">
-                      {d.character_name ?? d.character_id}
-                    </span>
-                    <code className="text-xs bg-muted px-2 py-0.5 rounded font-mono">
-                      {d.attribute_key}
-                    </code>
-                    <Badge
-                      className={`text-xs ${STATUS_STYLES[d.status] ?? ""}`}
-                    >
-                      {d.status}
-                    </Badge>
-                    <span className="text-xs text-muted-foreground">
-                      current:{" "}
-                      <span className="font-mono">
-                        {VALUE_LABEL[String(d.current_value)] ?? "?"}
+            {(data?.disputes ?? []).map((d) => (
+              <div
+                key={d.id}
+                className="rounded-xl border bg-card p-5 space-y-3"
+              >
+                <div className="flex items-start justify-between gap-4">
+                  <div className="space-y-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-medium">
+                        {d.character_name ?? d.character_id}
                       </span>
-                    </span>
+                      <code className="text-xs bg-muted px-2 py-0.5 rounded font-mono">
+                        {d.attribute_key}
+                      </code>
+                      <Badge
+                        className={`text-xs ${STATUS_STYLES[d.status] ?? ""}`}
+                      >
+                        {d.status}
+                      </Badge>
+                      <span className="text-xs text-muted-foreground">
+                        current:{" "}
+                        <span className="font-mono">
+                          {VALUE_LABEL[String(d.current_value)] ?? "?"}
+                        </span>
+                      </span>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      {d.dispute_reason}
+                    </p>
+                    <div className="flex gap-3 text-xs text-muted-foreground">
+                      <span>
+                        confidence: {(d.confidence * 100).toFixed(0)}%
+                      </span>
+                      <span>by {d.disputed_by}</span>
+                      <span>{formatDate(d.created_at)}</span>
+                      {d.resolved_by && (
+                        <span>resolved by {d.resolved_by}</span>
+                      )}
+                    </div>
                   </div>
-                  <p className="text-sm text-muted-foreground">
-                    {d.dispute_reason}
-                  </p>
-                  <div className="flex gap-3 text-xs text-muted-foreground">
-                    <span>confidence: {(d.confidence * 100).toFixed(0)}%</span>
-                    <span>by {d.disputed_by}</span>
-                    <span>{formatDate(d.created_at)}</span>
-                    {d.resolved_by && <span>resolved by {d.resolved_by}</span>}
-                  </div>
+                  {d.status === "open" && (
+                    <div className="flex gap-2 shrink-0">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="text-violet-400 border-violet-500/40 hover:bg-violet-500/10"
+                        disabled={aiLoading === d.id}
+                        onClick={() => void askAi(d)}
+                      >
+                        <SparkleIcon
+                          size={14}
+                          className={`mr-1.5 ${aiLoading === d.id ? "animate-pulse" : ""}`}
+                        />
+                        {aiLoading === d.id ? "Asking AI…" : "Ask AI"}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="text-green-400 border-green-500/40 hover:bg-green-500/10"
+                        disabled={acting === d.id || resolving}
+                        onClick={() => {
+                          setCorrectedValue(d.current_value === 1 ? 0 : 1);
+                          setResolveTarget({
+                            id: d.id,
+                            characterId: d.character_id,
+                            attributeKey: d.attribute_key,
+                          });
+                        }}
+                      >
+                        <CheckCircleIcon size={14} className="mr-1.5" />
+                        Resolve
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="text-muted-foreground"
+                        disabled={acting === d.id || resolving}
+                        onClick={() => void action(d.id, "dismissed")}
+                      >
+                        <XCircleIcon size={14} className="mr-1.5" />
+                        Dismiss
+                      </Button>
+                    </div>
+                  )}
                 </div>
-                {d.status === "open" && (
-                  <div className="flex gap-2 shrink-0">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="text-violet-400 border-violet-500/40 hover:bg-violet-500/10"
-                      disabled={aiLoading === d.id}
-                      onClick={() => void askAi(d)}
-                    >
-                      <SparkleIcon size={14} className={`mr-1.5 ${aiLoading === d.id ? 'animate-pulse' : ''}`} />
-                      {aiLoading === d.id ? 'Asking AI…' : 'Ask AI'}
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="text-green-400 border-green-500/40 hover:bg-green-500/10"
-                      disabled={acting === d.id || resolving}
-                      onClick={() => {
-                        setCorrectedValue(d.current_value === 1 ? 0 : 1);
-                        setResolveTarget({
-                          id: d.id,
-                          characterId: d.character_id,
-                          attributeKey: d.attribute_key,
-                        });
-                      }}
-                    >
-                      <CheckCircleIcon size={14} className="mr-1.5" />
-                      Resolve
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="text-muted-foreground"
-                      disabled={acting === d.id || resolving}
-                      onClick={() => void action(d.id, "dismissed")}
-                    >
-                      <XCircleIcon size={14} className="mr-1.5" />
-                      Dismiss
-                    </Button>
+                {/* AI Verdict */}
+                {aiVerdict[d.id] && (
+                  <div
+                    className={`px-3 py-2 rounded-lg border text-xs ${
+                      aiVerdict[d.id].correct === "current"
+                        ? "bg-green-500/10 border-green-500/30 text-green-400"
+                        : "bg-yellow-500/10 border-yellow-500/30 text-yellow-400"
+                    }`}
+                  >
+                    <span className="font-medium">
+                      AI verdict: keep{" "}
+                      <strong>{aiVerdict[d.id].correct}</strong> value
+                    </span>
+                    <span className="mx-1.5 text-muted-foreground">·</span>
+                    <span className="text-muted-foreground">
+                      {(aiVerdict[d.id].confidence * 100).toFixed(0)}%
+                      confidence
+                    </span>
+                    <p className="mt-1 text-muted-foreground">
+                      {aiVerdict[d.id].reason}
+                    </p>
+                  </div>
+                )}
+                {/* Inline resolution panel */}
+                {resolveTarget?.id === d.id && (
+                  <div className="mt-2 p-3 rounded-lg bg-muted/50 border border-border space-y-3">
+                    <p className="text-sm font-medium">
+                      Set corrected value for{" "}
+                      <code className="bg-muted px-1 py-0.5 rounded text-xs font-mono">
+                        {d.attribute_key}
+                      </code>
+                    </p>
+                    <div className="flex gap-2">
+                      {([1, 0, null] as (1 | 0 | null)[]).map((v) => (
+                        <button
+                          key={String(v)}
+                          onClick={() => setCorrectedValue(v)}
+                          className={`px-3 py-1.5 rounded-md text-sm font-medium border transition-colors ${
+                            correctedValue === v
+                              ? "bg-violet-600 text-white border-violet-600"
+                              : "bg-background text-muted-foreground border-border hover:text-foreground"
+                          }`}
+                        >
+                          {v === 1
+                            ? "true"
+                            : v === 0
+                              ? "false"
+                              : "unknown (remove)"}
+                        </button>
+                      ))}
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        disabled={resolving}
+                        onClick={() => void resolveAction()}
+                      >
+                        {resolving ? "Applying\u2026" : "Confirm resolve"}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={resolving}
+                        onClick={() => setResolveTarget(null)}
+                      >
+                        Cancel
+                      </Button>
+                    </div>
                   </div>
                 )}
               </div>
-              {/* AI Verdict */}
-              {aiVerdict[d.id] && (
-                <div className={`px-3 py-2 rounded-lg border text-xs ${
-                  aiVerdict[d.id].correct === 'current'
-                    ? 'bg-green-500/10 border-green-500/30 text-green-400'
-                    : 'bg-yellow-500/10 border-yellow-500/30 text-yellow-400'
-                }`}>
-                  <span className="font-medium">
-                    AI verdict: keep <strong>{aiVerdict[d.id].correct}</strong> value
-                  </span>
-                  <span className="mx-1.5 text-muted-foreground">·</span>
-                  <span className="text-muted-foreground">
-                    {(aiVerdict[d.id].confidence * 100).toFixed(0)}% confidence
-                  </span>
-                  <p className="mt-1 text-muted-foreground">{aiVerdict[d.id].reason}</p>
-                </div>
-              )}
-              {/* Inline resolution panel */}
-              {resolveTarget?.id === d.id && (
-                <div className="mt-2 p-3 rounded-lg bg-muted/50 border border-border space-y-3">
-                  <p className="text-sm font-medium">
-                    Set corrected value for{" "}
-                    <code className="bg-muted px-1 py-0.5 rounded text-xs font-mono">
-                      {d.attribute_key}
-                    </code>
-                  </p>
-                  <div className="flex gap-2">
-                    {([1, 0, null] as (1 | 0 | null)[]).map((v) => (
-                      <button
-                        key={String(v)}
-                        onClick={() => setCorrectedValue(v)}
-                        className={`px-3 py-1.5 rounded-md text-sm font-medium border transition-colors ${
-                          correctedValue === v
-                            ? "bg-violet-600 text-white border-violet-600"
-                            : "bg-background text-muted-foreground border-border hover:text-foreground"
-                        }`}
-                      >
-                        {v === 1 ? "true" : v === 0 ? "false" : "unknown (remove)"}
-                      </button>
-                    ))}
-                  </div>
-                  <div className="flex gap-2">
-                    <Button size="sm" disabled={resolving} onClick={() => void resolveAction()}>
-                      {resolving ? "Applying\u2026" : "Confirm resolve"}
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      disabled={resolving}
-                      onClick={() => setResolveTarget(null)}
-                    >
-                      Cancel
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-        <div className="flex items-center justify-between">
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={page <= 1}
-            onClick={() => setPage((p) => p - 1)}
-          >
-            <ArrowLeftIcon size={14} className="mr-1.5" />
-            Prev
-          </Button>
-          <span className="text-sm text-muted-foreground">
-            Page {page} of {totalPages}
-          </span>
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={page >= totalPages}
-            onClick={() => setPage((p) => p + 1)}
-          >
-            Next
-            <ArrowRightIcon size={14} className="ml-1.5" />
-          </Button>
-        </div>
+            ))}
+          </div>
+          <div className="flex items-center justify-between">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={page <= 1}
+              onClick={() => setPage((p) => p - 1)}
+            >
+              <ArrowLeftIcon size={14} className="mr-1.5" />
+              Prev
+            </Button>
+            <span className="text-sm text-muted-foreground">
+              Page {page} of {totalPages}
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={page >= totalPages}
+              onClick={() => setPage((p) => p + 1)}
+            >
+              Next
+              <ArrowRightIcon size={14} className="ml-1.5" />
+            </Button>
+          </div>
         </>
       )}
     </div>

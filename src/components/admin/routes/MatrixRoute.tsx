@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { AdminPageHeader } from '../AdminPageHeader'
-import { Button } from '@/components/ui/button'
-import { ArrowsClockwiseIcon, DnaIcon } from '@phosphor-icons/react'
+import { FreshnessPill } from '../FreshnessPill'
+import { DnaIcon } from '@phosphor-icons/react'
 
 interface MatrixCharacter {
   id: string
@@ -112,6 +112,7 @@ export default function MatrixRoute(): React.JSX.Element {
   const [data, setData] = useState<MatrixData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [lastFetchedAt, setLastFetchedAt] = useState<number | null>(null)
 
   const fetchData = async () => {
     setLoading(true)
@@ -120,6 +121,7 @@ export default function MatrixRoute(): React.JSX.Element {
       const res = await fetch('/api/admin/matrix?chars=40&attrs=50')
       if (!res.ok) throw new Error(`${res.status}`)
       setData(await res.json())
+      setLastFetchedAt(Date.now())
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load')
     } finally {
@@ -138,10 +140,11 @@ export default function MatrixRoute(): React.JSX.Element {
         subtitle="Character × attribute heatmap — green=true, red=false, dark=unknown"
         sectionColor="violet"
         actions={
-          <Button variant="outline" size="sm" onClick={() => void fetchData()} disabled={loading}>
-            <ArrowsClockwiseIcon size={14} className={`mr-2 ${loading ? 'animate-spin' : ''}`} />
-            Refresh
-          </Button>
+          <FreshnessPill
+            fetchedAt={lastFetchedAt}
+            onRefresh={() => void fetchData()}
+            refreshing={loading}
+          />
         }
       />
 

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { AdminPageHeader } from '../AdminPageHeader'
+import { FreshnessPill } from '../FreshnessPill'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { ArrowLeftIcon, ArrowRightIcon, ChartBarIcon, LightningIcon, SparkleIcon, XIcon } from '@phosphor-icons/react'
@@ -54,6 +55,7 @@ export default function AnalyticsRoute(): React.JSX.Element {
   const [insightsLoading, setInsightsLoading] = useState(false)
   const [showInsights, setShowInsights] = useState(false)
   const [ahaMoments, setAhaMoments] = useState<AhaMomentSummary[]>([])
+  const [lastFetchedAt, setLastFetchedAt] = useState<number | null>(null)
   const pageSize = 25
 
   const fetchData = async (type: string, p: number) => {
@@ -65,6 +67,7 @@ export default function AnalyticsRoute(): React.JSX.Element {
       const res = await fetch(`/api/admin/analytics?${params}`)
       if (!res.ok) throw new Error(`${res.status}`)
       setData(await res.json())
+      setLastFetchedAt(Date.now())
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Unknown error')
     } finally {
@@ -115,16 +118,23 @@ export default function AnalyticsRoute(): React.JSX.Element {
         subtitle={data ? `${data.total.toLocaleString()} events` : undefined}
         sectionColor="violet"
         actions={
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => void fetchInsights()}
-            disabled={insightsLoading || !data}
-            className="text-violet-400 border-violet-500/40 hover:bg-violet-500/10"
-          >
-            <SparkleIcon size={14} className={`mr-1.5 ${insightsLoading ? 'animate-pulse' : ''}`} />
-            {insightsLoading ? 'Thinking…' : 'AI Insights'}
-          </Button>
+          <>
+            <FreshnessPill
+              fetchedAt={lastFetchedAt}
+              onRefresh={() => void fetchData(filterType, page)}
+              refreshing={loading}
+            />
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => void fetchInsights()}
+              disabled={insightsLoading || !data}
+              className="text-violet-400 border-violet-500/40 hover:bg-violet-500/10"
+            >
+              <SparkleIcon size={14} className={`mr-1.5 ${insightsLoading ? 'animate-pulse' : ''}`} />
+              {insightsLoading ? 'Thinking…' : 'AI Insights'}
+            </Button>
+          </>
         }
       />
 

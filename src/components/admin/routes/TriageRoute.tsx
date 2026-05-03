@@ -7,9 +7,10 @@
  */
 import { useCallback, useEffect, useState } from 'react'
 import { AdminPageHeader } from '../AdminPageHeader'
+import { FreshnessPill } from '../FreshnessPill'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { ArrowsClockwiseIcon, CaretDownIcon, CaretRightIcon } from '@phosphor-icons/react'
+import { CaretDownIcon, CaretRightIcon } from '@phosphor-icons/react'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -172,6 +173,7 @@ export default function TriageRoute(): React.JSX.Element {
   const [offset, setOffset] = useState(0)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [lastFetchedAt, setLastFetchedAt] = useState<number | null>(null)
 
   const load = useCallback(async (off: number) => {
     setLoading(true)
@@ -182,6 +184,7 @@ export default function TriageRoute(): React.JSX.Element {
       const json = await res.json() as ListResponse
       setData(json)
       setOffset(off)
+      setLastFetchedAt(Date.now())
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Load failed')
     } finally {
@@ -202,16 +205,11 @@ export default function TriageRoute(): React.JSX.Element {
         subtitle="Games where the engine never ranked the actual character in its top-10"
         sectionColor="emerald"
         actions={
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => void load(offset)}
-            disabled={loading}
-            className="gap-1.5"
-          >
-            <ArrowsClockwiseIcon size={14} className={loading ? 'animate-spin' : ''} />
-            Refresh
-          </Button>
+          <FreshnessPill
+            fetchedAt={lastFetchedAt}
+            onRefresh={() => void load(offset)}
+            refreshing={loading}
+          />
         }
       />
 
