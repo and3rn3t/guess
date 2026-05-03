@@ -105,7 +105,7 @@ jobs:
       - name: Type check
         run: |
           set -o pipefail
-          tsc -b 2>&1 | tee .ci-artifacts/checks/typecheck.log
+          pnpm typecheck:all 2>&1 | tee .ci-artifacts/checks/typecheck.log
       - name: Data quality SLA contract
         run: |
           set -o pipefail
