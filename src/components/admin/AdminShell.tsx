@@ -257,6 +257,7 @@ export function AdminShell(): React.JSX.Element {
         open={paletteOpen}
         onClose={() => setPaletteOpen(false)}
         sections={commandSections}
+        characters={characters}
       />
       <div className="min-h-screen bg-background flex">
         {/* Sidebar */}

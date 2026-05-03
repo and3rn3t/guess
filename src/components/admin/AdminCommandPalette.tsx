@@ -1,4 +1,4 @@
-import { Fragment } from 'react'
+import { Fragment, useState, useMemo } from 'react'
 import {
   CommandDialog,
   CommandEmpty,
@@ -9,6 +9,7 @@ import {
   CommandSeparator,
 } from '@/components/ui/command'
 import { useNavigate } from 'react-router-dom'
+import { UsersIcon } from '@phosphor-icons/react'
 
 export interface CommandSection {
   title: string
@@ -19,26 +20,101 @@ interface AdminCommandPaletteProps {
   open: boolean
   onClose: () => void
   sections: CommandSection[]
+  characters?: Array<{ id: string; name: string }>
 }
 
 export function AdminCommandPalette({
   open,
   onClose,
   sections,
+  characters = [],
 }: AdminCommandPaletteProps): React.JSX.Element {
   const navigate = useNavigate()
+  const [search, setSearch] = useState('')
+
+  // Common commands (action items like "export", "rotate basic-auth", etc.)
+  const commonCommands = [
+    {
+      label: 'Export game_stats as CSV',
+      action: () => {
+        navigate('analytics')
+        onClose()
+      },
+    },
+    {
+      label: 'View recent errors',
+      action: () => {
+        navigate('error-logs')
+        onClose()
+      },
+    },
+    {
+      label: 'Check data quality',
+      action: () => {
+        navigate('data-quality')
+        onClose()
+      },
+    },
+  ]
+
+  // Filter characters by search
+  const filteredCharacters = useMemo(() => {
+    if (!search.trim() || search.length < 2) return []
+    const lower = search.toLowerCase()
+    return characters
+      .filter((c) => c.name.toLowerCase().includes(lower))
+      .slice(0, 5) // Limit to 5 results
+  }, [search, characters])
+
+  // Filter route sections by search
+  const filteredSections = useMemo(() => {
+    if (!search.trim()) return sections
+    const lower = search.toLowerCase()
+    return sections
+      .map((section) => ({
+        ...section,
+        items: section.items.filter(
+          (item) =>
+            item.label.toLowerCase().includes(lower) ||
+            item.to.toLowerCase().includes(lower)
+        ),
+      }))
+      .filter((section) => section.items.length > 0)
+  }, [search, sections])
+
+  // Filter common commands by search
+  const filteredCommands = useMemo(() => {
+    if (!search.trim()) return []
+    const lower = search.toLowerCase()
+    return commonCommands.filter((cmd) => cmd.label.toLowerCase().includes(lower))
+  }, [search])
 
   const handleSelect = (to: string) => {
     navigate(to)
     onClose()
   }
 
+  const handleCommandSelect = (action: () => void) => {
+    action()
+  }
+
+  const handleCharacterSelect = (id: string) => {
+    navigate(`/admin/characters?id=${id}`)
+    onClose()
+  }
+
   return (
     <CommandDialog open={open} onOpenChange={(v) => { if (!v) onClose() }}>
-      <CommandInput placeholder="Go to…" />
+      <CommandInput
+        placeholder="Go to route, character, or command…"
+        value={search}
+        onValueChange={setSearch}
+      />
       <CommandList>
         <CommandEmpty>No results found.</CommandEmpty>
-        {sections.map((section, i) => (
+
+        {/* Route sections */}
+        {filteredSections.map((section, i) => (
           <Fragment key={section.title}>
             {i > 0 && <CommandSeparator />}
             <CommandGroup heading={section.title}>
@@ -55,6 +131,43 @@ export function AdminCommandPalette({
             </CommandGroup>
           </Fragment>
         ))}
+
+        {/* Characters */}
+        {filteredCharacters.length > 0 && (
+          <>
+            {filteredSections.length > 0 && <CommandSeparator />}
+            <CommandGroup heading="Characters">
+              {filteredCharacters.map((char) => (
+                <CommandItem
+                  key={char.id}
+                  onSelect={() => handleCharacterSelect(char.id)}
+                  className="gap-2"
+                >
+                  <UsersIcon size={16} className="text-muted-foreground" />
+                  {char.name}
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </>
+        )}
+
+        {/* Common commands */}
+        {filteredCommands.length > 0 && (
+          <>
+            {(filteredSections.length > 0 || filteredCharacters.length > 0) && <CommandSeparator />}
+            <CommandGroup heading="Commands">
+              {filteredCommands.map((cmd) => (
+                <CommandItem
+                  key={cmd.label}
+                  onSelect={() => handleCommandSelect(cmd.action)}
+                  className="gap-2"
+                >
+                  {cmd.label}
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </>
+        )}
       </CommandList>
     </CommandDialog>
   )
