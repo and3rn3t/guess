@@ -6,7 +6,7 @@ const OPENAPI_IFRAME_DOC = String.raw`<!doctype html>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Guess API Docs</title>
-    <link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist@5/swagger-ui.css" />
+    <link rel="stylesheet" href="/vendor/swagger-ui/swagger-ui.css" />
     <style>
       html, body, #swagger-ui {
         margin: 0;
@@ -21,7 +21,7 @@ const OPENAPI_IFRAME_DOC = String.raw`<!doctype html>
   </head>
   <body>
     <div id="swagger-ui"></div>
-    <script src="https://unpkg.com/swagger-ui-dist@5/swagger-ui-bundle.js"></script>
+    <script src="/vendor/swagger-ui/swagger-ui-bundle.js"></script>
     <script>
       window.ui = SwaggerUIBundle({
         url: '/openapi.yaml',

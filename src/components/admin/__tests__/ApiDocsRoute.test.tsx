@@ -13,6 +13,9 @@ describe('ApiDocsRoute', () => {
       </MemoryRouter>,
     )
 
-    expect(screen.getByTitle('Guess OpenAPI Docs')).toHaveAttribute('srcdoc', expect.stringContaining("SwaggerUIBundle"))
+    expect(screen.getByTitle('Guess OpenAPI Docs')).toHaveAttribute(
+      'srcdoc',
+      expect.stringContaining('/vendor/swagger-ui/swagger-ui-bundle.js'),
+    )
   })
 })
