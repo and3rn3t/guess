@@ -6,13 +6,13 @@ import { MemoryRouter } from 'react-router-dom'
 import ApiDocsRoute from '../routes/ApiDocsRoute'
 
 describe('ApiDocsRoute', () => {
-  it('renders the embedded OpenAPI docs page', () => {
+  it('renders the embedded OpenAPI docs page via inline iframe document', () => {
     render(
       <MemoryRouter>
         <ApiDocsRoute />
       </MemoryRouter>,
     )
 
-    expect(screen.getByTitle('Guess OpenAPI Docs')).toHaveAttribute('src', '/openapi.html')
+    expect(screen.getByTitle('Guess OpenAPI Docs')).toHaveAttribute('srcdoc', expect.stringContaining("SwaggerUIBundle"))
   })
 })
