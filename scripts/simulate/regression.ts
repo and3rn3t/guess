@@ -42,6 +42,7 @@ const DIFFICULTY: keyof typeof DIFFICULTY_MAP = 'medium'
  * 2000 covers the realistic game-time population and matches pnpm simulate --pool-size 2000.
  */
 const POOL_CAP = 2000
+const DEFAULT_RNG_SEED = 42
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -86,10 +87,35 @@ function seededSample<T>(arr: T[], n: number, seed = 42): T[] {
   return copy.slice(0, n)
 }
 
+function createSeededRandom(seed: number): () => number {
+  // Mulberry32 PRNG
+  let s = seed
+  return () => {
+    s |= 0
+    s = (s + 0x6d2b79f5) | 0
+    let t = Math.imul(s ^ (s >>> 15), 1 | s)
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296
+  }
+}
+
+function withSeededMathRandom<T>(seed: number, fn: () => T): T {
+  const original = Math.random
+  Math.random = createSeededRandom(seed)
+  try {
+    return fn()
+  } finally {
+    Math.random = original
+  }
+}
+
 // ── Main ──────────────────────────────────────────────────────────────────────
 
 async function main(): Promise<void> {
   const updateBaseline = process.argv.includes('--update-baseline')
+  const envSeed = process.env.SIM_REGRESSION_SEED
+  const parsedSeed = envSeed ? Number.parseInt(envSeed, 10) : Number.NaN
+  const regressionSeed = Number.isFinite(parsedSeed) ? parsedSeed : DEFAULT_RNG_SEED
 
   // Prefer live-exported data (data/) over committed snapshot (ci-data/).
   // Falls back to ci-data/ automatically in CI when the D1 export is unavailable.
@@ -122,15 +148,17 @@ async function main(): Promise<void> {
     process.exit(1)
   }
 
-  const sample = seededSample(pool, SAMPLE_SIZE)
+  const sample = seededSample(pool, SAMPLE_SIZE, regressionSeed)
   const runId = `regression-${Date.now()}`
   const precomputedScoring = buildScoringMaps(pool, questions)
   const options = { difficulty: DIFFICULTY as keyof typeof DIFFICULTY_MAP, precomputedScoring }
 
-  console.log(`Running ${SAMPLE_SIZE} simulations (difficulty: ${DIFFICULTY}, pool: ${pool.length}) …`)
+  console.log(`Running ${SAMPLE_SIZE} simulations (difficulty: ${DIFFICULTY}, pool: ${pool.length}, seed: ${regressionSeed}) …`)
 
-  const results: SimGameResult[] = sample.map((target) =>
-    simulateGame(target, pool, questions, runId, options)
+  const results: SimGameResult[] = withSeededMathRandom(regressionSeed, () =>
+    sample.map((target) =>
+      simulateGame(target, pool, questions, runId, options)
+    )
   )
 
   const current = extractMetrics(results)
