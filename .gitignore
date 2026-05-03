@@ -44,6 +44,9 @@ data/*
 # enforce the rules without external configuration.
 !data/attribute-constraints.json
 
+# DQ.32 completeness SLA matrix — committed and validated in CI.
+!data/attribute-completeness-sla.json
+
 # Attribute schema cache is the source of truth for valid attribute keys —
 # committed so CI (DQ.1 schema check) can validate without DB access.
 !data/enrich-cache/
