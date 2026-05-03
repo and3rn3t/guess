@@ -16,9 +16,9 @@ This document describes the artifacts produced by GitHub Actions workflows and w
 
 Source: .github/workflows/ci.yml
 
-### checks job
+### checks-static job
 
-- Artifact: ci-checks-logs
+- Artifact: ci-checks-static-logs
 - Contents:
   - lint.log
   - typecheck.log
@@ -26,8 +26,14 @@ Source: .github/workflows/ci.yml
   - openapi-generate.log
   - openapi-validate.log
   - openapi-check.log
+- Use when: lint, type-check, OpenAPI contract checks fail.
+
+### checks-tests job
+
+- Artifact: ci-checks-tests-logs
+- Contents:
   - test-coverage.log
-- Use when: lint, type-check, OpenAPI contract checks, or unit test coverage fails.
+- Use when: unit test coverage fails.
 
 ### build job
 
@@ -40,6 +46,7 @@ Source: .github/workflows/ci.yml
   - bundle-size.log
   - named-chunk-budgets.log
   - js-asset-sizes-kb.txt
+  - css-asset-sizes-kb.txt
 - Use when: production build or bundle-size budget checks fail.
 
 ## Docs link workflow

@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
   push:
     branches: [main]
-    paths-ignore:
+    paths-ignore: &paths-ignore
       - "**/*.md"
       - "docs/**"
       - "LICENSE"
@@ -12,12 +12,7 @@ on:
       - ".husky/**"
   pull_request:
     branches: [main]
-    paths-ignore:
-      - "**/*.md"
-      - "docs/**"
-      - "LICENSE"
-      - ".gitignore"
-      - ".husky/**"
+    paths-ignore: *paths-ignore
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -34,13 +29,13 @@ jobs:
   changes:
     runs-on: ubuntu-latest
     outputs:
-      app: ${{ steps.filter.outputs.app }}
-      frontend: ${{ steps.filter.outputs.frontend }}
-      db: ${{ steps.filter.outputs.db }}
+      app: ${{ steps.filter.outputs.app == 'true' || github.event_name == 'workflow_dispatch' }}
+      frontend: ${{ steps.filter.outputs.frontend == 'true' || github.event_name == 'workflow_dispatch' }}
+      db: ${{ steps.filter.outputs.db == 'true' || github.event_name == 'workflow_dispatch' }}
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
-          fetch-depth: 0
+          fetch-depth: 2
       - uses: dorny/paths-filter@fbd0ab8f3e69293af611ebaee6363fc25e6d187d # v4
         id: filter
         with:
@@ -85,56 +80,86 @@ jobs:
               - 'functions/api/_db-types.ts'
               - 'scripts/generate-db-types.ts'
 
-  # ── Lint + type-check + tests (merged to share install) ──────
-  checks:
+  # ── Static checks: lint + type-check + OpenAPI (parallel to checks-tests) ──
+  checks-static:
     needs: [changes]
     if: needs.changes.outputs.app == 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 10
     permissions:
       contents: read
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
       - uses: ./.github/actions/setup
-      - name: Prepare checks artifacts
-        run: mkdir -p .ci-artifacts/checks
+      - name: Prepare checks-static artifacts
+        run: mkdir -p .ci-artifacts/checks-static
       - name: Lint
         run: |
           set -o pipefail
-          pnpm lint 2>&1 | tee .ci-artifacts/checks/lint.log
+          pnpm lint 2>&1 | tee .ci-artifacts/checks-static/lint.log
       - name: Type check
         run: |
           set -o pipefail
-          pnpm typecheck:all 2>&1 | tee .ci-artifacts/checks/typecheck.log
+          pnpm typecheck:all 2>&1 | tee .ci-artifacts/checks-static/typecheck.log
       - name: Data quality SLA contract
         run: |
           set -o pipefail
-          pnpm dq:sla:check 2>&1 | tee .ci-artifacts/checks/dq-sla-check.log
+          pnpm dq:sla:check 2>&1 | tee .ci-artifacts/checks-static/dq-sla-check.log
       - name: OpenAPI generate + validate + drift check
         run: |
           set -o pipefail
-          pnpm openapi:generate 2>&1 | tee .ci-artifacts/checks/openapi-generate.log
-          pnpm openapi:validate 2>&1 | tee .ci-artifacts/checks/openapi-validate.log
-          pnpm openapi:check 2>&1 | tee .ci-artifacts/checks/openapi-check.log
-      - name: Test coverage
-        run: |
-          set -o pipefail
-          pnpm test:coverage 2>&1 | tee .ci-artifacts/checks/test-coverage.log
-      - name: Upload checks logs
+          pnpm openapi:generate 2>&1 | tee .ci-artifacts/checks-static/openapi-generate.log
+          pnpm openapi:validate 2>&1 | tee .ci-artifacts/checks-static/openapi-validate.log
+          pnpm openapi:check 2>&1 | tee .ci-artifacts/checks-static/openapi-check.log
+      - name: Upload checks-static logs
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
-          name: ci-checks-logs
-          path: .ci-artifacts/checks/
+          name: ci-checks-static-logs
+          path: .ci-artifacts/checks-static/
           retention-days: 7
-      - name: Checks summary
+      - name: Checks-static summary
         if: always()
         run: |
           {
-            echo "### Checks Artifacts"
+            echo "### Checks-Static Artifacts"
             echo ""
-            echo "- Artifact: ci-checks-logs"
-            echo "- Files: lint.log, typecheck.log, dq-sla-check.log, openapi-generate.log, openapi-validate.log, openapi-check.log, test-coverage.log"
+            echo "- Artifact: ci-checks-static-logs"
+            echo "- Files: lint.log, typecheck.log, dq-sla-check.log, openapi-generate.log, openapi-validate.log, openapi-check.log"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  # ── Test coverage (parallel to checks-static) ───────────────
+  checks-tests:
+    needs: [changes]
+    if: needs.changes.outputs.app == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+      - uses: ./.github/actions/setup
+      - name: Prepare checks-tests artifacts
+        run: mkdir -p .ci-artifacts/checks-tests
+      - name: Test coverage
+        run: |
+          set -o pipefail
+          pnpm test:coverage 2>&1 | tee .ci-artifacts/checks-tests/test-coverage.log
+      - name: Upload checks-tests logs
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: ci-checks-tests-logs
+          path: .ci-artifacts/checks-tests/
+          retention-days: 7
+      - name: Checks-tests summary
+        if: always()
+        run: |
+          {
+            echo "### Checks-Tests Artifacts"
+            echo ""
+            echo "- Artifact: ci-checks-tests-logs"
+            echo "- Files: test-coverage.log"
           } >> "$GITHUB_STEP_SUMMARY"
 
   test-e2e:
@@ -161,7 +186,6 @@ jobs:
         if: steps.playwright-cache.outputs.cache-hit != 'true'
         run: npx playwright install chromium firefox
       - name: Install Playwright system dependencies
-        if: steps.playwright-cache.outputs.cache-hit != 'true'
         run: npx playwright install-deps chromium firefox
       - run: npx playwright test
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
@@ -181,6 +205,13 @@ jobs:
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
       - uses: ./.github/actions/setup
+      - name: Cache Vite build
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
+        with:
+          path: node_modules/.vite
+          key: vite-build-${{ hashFiles('src/**', 'packages/**', 'vite.config.ts', 'pnpm-lock.yaml') }}
+          restore-keys: |
+            vite-build-
       - name: Prepare build artifacts
         run: mkdir -p .ci-artifacts/build
       - name: Build app
@@ -213,6 +244,7 @@ jobs:
       - name: Record built asset sizes
         run: |
           find dist/assets -type f -name '*.js' -exec du -k {} + | sort -rn > .ci-artifacts/build/js-asset-sizes-kb.txt
+          find dist/assets -type f -name '*.css' -exec du -k {} + | sort -rn > .ci-artifacts/build/css-asset-sizes-kb.txt
 
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
@@ -234,7 +266,7 @@ jobs:
             echo ""
             echo "- Artifact: dist"
             echo "- Artifact: ci-build-logs"
-            echo "- Files: build.log, worker-build.log, bundle-size.log, named-chunk-budgets.log, js-asset-sizes-kb.txt"
+            echo "- Files: build.log, worker-build.log, bundle-size.log, named-chunk-budgets.log, js-asset-sizes-kb.txt, css-asset-sizes-kb.txt"
           } >> "$GITHUB_STEP_SUMMARY"
 
   # ── DB checks: type drift + migration idempotency ──────────
@@ -304,11 +336,12 @@ jobs:
 
   # ── Deploy preview (PRs) ────────────────────────────────────
   deploy-preview:
-    needs: [checks, build, test-e2e]
+    needs: [checks-static, checks-tests, build, test-e2e]
     if: |
       !cancelled() &&
       github.event_name == 'pull_request' &&
-      needs.checks.result == 'success' &&
+      needs.checks-static.result == 'success' &&
+      needs.checks-tests.result == 'success' &&
       needs.build.result == 'success' &&
       (needs.test-e2e.result == 'success' || needs.test-e2e.result == 'skipped')
     runs-on: ubuntu-latest
@@ -316,7 +349,6 @@ jobs:
     permissions:
       contents: read
       deployments: write
-      pull-requests: write
     environment:
       name: preview
       url: ${{ steps.deploy.outputs.deployment-url }}
@@ -379,12 +411,13 @@ jobs:
 
   # ── Deploy production (push to main) ────────────────────────
   deploy-production:
-    needs: [checks, build, test-e2e]
+    needs: [checks-static, checks-tests, build, test-e2e]
     if: |
       !cancelled() &&
       github.event_name == 'push' &&
       github.ref == 'refs/heads/main' &&
-      needs.checks.result == 'success' &&
+      needs.checks-static.result == 'success' &&
+      needs.checks-tests.result == 'success' &&
       needs.build.result == 'success' &&
       (needs.test-e2e.result == 'success' || needs.test-e2e.result == 'skipped')
     runs-on: ubuntu-latest
@@ -453,6 +486,15 @@ jobs:
           name: ci-deploy-production-metadata
           path: .ci-artifacts/deploy-production/
           retention-days: 7
+      - name: Deploy-production summary
+        if: always()
+        run: |
+          {
+            echo "### Deploy Production Artifacts"
+            echo ""
+            echo "- Artifact: ci-deploy-production-metadata"
+            echo "- Files: metadata.txt"
+          } >> "$GITHUB_STEP_SUMMARY"
 
   # ── PR report (bundle stats + preview link) ─────────────────
   pr-report:
@@ -465,8 +507,8 @@ jobs:
     steps:
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
-          name: dist
-          path: dist
+          name: ci-build-logs
+          path: ci-build-logs
 
       - name: Post PR comment
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9
@@ -474,23 +516,26 @@ jobs:
           PREVIEW_URL: ${{ needs.deploy-preview.outputs.url }}
         with:
           script: |
-            const { execSync } = require('child_process');
+            const fs = require('fs');
             const url = process.env.PREVIEW_URL;
 
-            const jsRaw = execSync("find dist/assets -name '*.js' -exec du -k {} +")
-              .toString().trim();
-            const jsFiles = jsRaw.split('\n').map(l => {
-              const [size, file] = l.split('\t');
-              return { size: +size, name: file.split('/').pop() };
-            }).sort((a, b) => b.size - a.size);
+            const parseAssetTxt = (file) => {
+              try {
+                return fs.readFileSync(file, 'utf8').trim().split('\n')
+                  .filter(Boolean)
+                  .map(l => {
+                    const [size, filePath] = l.split('\t');
+                    return { size: +size, name: filePath.split('/').pop() };
+                  });
+              } catch { return []; }
+            };
+
+            const jsFiles = parseAssetTxt('ci-build-logs/js-asset-sizes-kb.txt')
+              .sort((a, b) => b.size - a.size);
+            const cssFiles = parseAssetTxt('ci-build-logs/css-asset-sizes-kb.txt');
 
             const totalJs = jsFiles.reduce((s, f) => s + f.size, 0);
-            let totalCss = 0;
-            try {
-              totalCss = execSync("find dist/assets -name '*.css' -exec du -k {} +")
-                .toString().trim().split('\n')
-                .reduce((s, l) => s + parseInt(l.split('\t')[0]), 0);
-            } catch {}
+            const totalCss = cssFiles.reduce((s, f) => s + f.size, 0);
 
             const breakdown = jsFiles
               .map(f => `| \`${f.name}\` | ${f.size}KB |`).join('\n');
@@ -539,11 +584,20 @@ jobs:
                 body,
               });
             }
+      - name: PR report summary
+        if: always()
+        run: |
+          {
+            echo "### PR Report"
+            echo ""
+            echo "- Preview URL: ${{ needs.deploy-preview.outputs.url }}"
+            echo "- Bundle stats posted as PR comment."
+          } >> "$GITHUB_STEP_SUMMARY"
 
   # ── Lighthouse CI (non-blocking) ────────────────────────────
   lighthouse:
     needs: deploy-preview
-    if: github.event_name == 'pull_request'
+    if: github.event_name == 'pull_request' && !github.event.pull_request.draft
     runs-on: ubuntu-latest
     timeout-minutes: 10
     continue-on-error: true
