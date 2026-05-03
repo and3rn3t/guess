@@ -37,7 +37,7 @@ jobs:
 
       - name: Check links (enforce)
         if: env.DOCS_LINKS_ENFORCE == 'true'
-        uses: lycheeverse/lychee-action@v2
+        uses: lycheeverse/lychee-action@8646ba30535128ac92d33dfc9133794bfdd9b411 # v2
         with:
           fail: true
           args: >-
@@ -55,7 +55,7 @@ jobs:
       - name: Check links (warn-only)
         if: env.DOCS_LINKS_ENFORCE != 'true'
         continue-on-error: true
-        uses: lycheeverse/lychee-action@v2
+        uses: lycheeverse/lychee-action@8646ba30535128ac92d33dfc9133794bfdd9b411 # v2
         with:
           fail: true
           args: >-
