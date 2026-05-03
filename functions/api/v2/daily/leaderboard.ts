@@ -18,6 +18,11 @@ interface LeaderboardRow {
   completed_at: number
 }
 
+function isMissingDailyResultsTableError(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error)
+  return message.includes('no such table: daily_results')
+}
+
 function isValidDateKey(value: string): boolean {
   return /^\d{4}-\d{2}-\d{2}$/.test(value)
 }
@@ -36,15 +41,28 @@ export const onRequestGet: PagesFunction = async (context) => {
 
     const { userId, setCookieHeader } = await getOrCreateUserId(context.request, context.env)
 
-    const rows = await d1Query<LeaderboardRow>(
-      db,
-      `SELECT user_id, won, questions_asked, completed_at
-         FROM daily_results
-        WHERE date = ?
-        ORDER BY won DESC, questions_asked ASC, completed_at ASC
-        LIMIT 20`,
-      [date],
-    )
+    let rows: LeaderboardRow[] = []
+    try {
+      rows = await d1Query<LeaderboardRow>(
+        db,
+        `SELECT user_id, won, questions_asked, completed_at
+           FROM daily_results
+          WHERE date = ?
+          ORDER BY won DESC, questions_asked ASC, completed_at ASC
+          LIMIT 20`,
+        [date],
+      )
+    } catch (error) {
+      if (!isMissingDailyResultsTableError(error)) throw error
+      await logError(
+        context.env.GUESS_DB,
+        'daily.leaderboard',
+        'warn',
+        'daily_results table missing; returning empty leaderboard',
+        error,
+        { path: '/api/v2/daily/leaderboard', method: 'GET', requestId },
+      )
+    }
 
     const leaderboard = rows.map((row, idx) => ({
       rank: idx + 1,

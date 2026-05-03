@@ -45,6 +45,23 @@ type CharacterRow = Pick<CharactersRow, 'id' | 'name' | 'category' | 'image_url'
 
 type QuestionRow = Pick<QuestionsRow, 'id' | 'text' | 'attribute_key'>
 
+function isMissingRetiredAtColumnError(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error)
+  return message.includes('no such column: retired_at')
+}
+
+async function loadQuestionsWithRetirementFallback(db: D1Database): Promise<QuestionRow[]> {
+  try {
+    return await d1Query<QuestionRow>(
+      db,
+      'SELECT id, text, attribute_key FROM questions WHERE retired_at IS NULL ORDER BY priority DESC'
+    )
+  } catch (error) {
+    if (!isMissingRetiredAtColumnError(error)) throw error
+    return d1Query<QuestionRow>(db, 'SELECT id, text, attribute_key FROM questions ORDER BY priority DESC')
+  }
+}
+
 // ── D1 fallback: reconstruct session from backup ─────────────
 
 async function reconstructFromD1(
@@ -77,7 +94,7 @@ async function reconstructFromD1(
     ),
     cachedQuestions
       ? Promise.resolve<QuestionRow[]>([])
-      : d1Query<QuestionRow>(db, 'SELECT id, text, attribute_key FROM questions WHERE retired_at IS NULL ORDER BY priority DESC'),
+      : loadQuestionsWithRetirementFallback(db),
   ])
 
   const serverChars: ServerCharacter[] = characters.map((c) => ({

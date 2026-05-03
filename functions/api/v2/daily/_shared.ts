@@ -42,13 +42,20 @@ export async function getDailyCompletion(
   dateKey: string,
   userId: string,
 ): Promise<{ won: number; questions_asked: number; completed_at: number } | null> {
-  return d1First<{ won: number; questions_asked: number; completed_at: number }>(
-    db,
-    `SELECT won, questions_asked, completed_at
-       FROM daily_results
-      WHERE date = ? AND user_id = ?`,
-    [dateKey, userId],
-  )
+  try {
+    return await d1First<{ won: number; questions_asked: number; completed_at: number }>(
+      db,
+      `SELECT won, questions_asked, completed_at
+         FROM daily_results
+        WHERE date = ? AND user_id = ?`,
+      [dateKey, userId],
+    )
+  } catch (error) {
+    // Gracefully degrade if the deployment database is missing the daily_results migration.
+    const message = error instanceof Error ? error.message : String(error)
+    if (message.includes('no such table: daily_results')) return null
+    throw error
+  }
 }
 
 export function toUserLabel(userId: string): string {

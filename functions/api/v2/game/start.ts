@@ -47,6 +47,23 @@ export const DIFFICULTY_TO_PERSONA: Record<string, string> = {
   hard: 'sherlock',
 }
 
+function isMissingRetiredAtColumnError(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error)
+  return message.includes('no such column: retired_at')
+}
+
+async function loadQuestionsWithRetirementFallback(db: D1Database): Promise<QuestionRow[]> {
+  try {
+    return await d1Query<QuestionRow>(
+      db,
+      'SELECT id, text, attribute_key FROM questions WHERE retired_at IS NULL ORDER BY priority DESC'
+    )
+  } catch (error) {
+    if (!isMissingRetiredAtColumnError(error)) throw error
+    return d1Query<QuestionRow>(db, 'SELECT id, text, attribute_key FROM questions ORDER BY priority DESC')
+  }
+}
+
 function parseTrivia(raw: string | null | undefined): string[] | undefined {
   if (!raw) return undefined
   try {
@@ -109,7 +126,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   const cachedQuestions = await loadCachedQuestions(kv)
   const questionRowsPromise = cachedQuestions
     ? null
-    : d1Query<QuestionRow>(db, 'SELECT id, text, attribute_key FROM questions WHERE retired_at IS NULL ORDER BY priority DESC')
+    : loadQuestionsWithRetirementFallback(db)
 
   // Query 1: Get character pool with denormalized attributes (no separate attribute query)
   //   Fetch 2× POOL_SIZE to get popular chars, then randomly pick POOL_SIZE

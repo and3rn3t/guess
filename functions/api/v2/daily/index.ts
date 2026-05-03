@@ -17,6 +17,11 @@ interface DailyPostBody {
   questionsAsked?: number
 }
 
+function isMissingDailyResultsTableError(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error)
+  return message.includes('no such table: daily_results')
+}
+
 export const onRequestGet: PagesFunction = async (context) => {
   const requestId = getRequestId(context.request)
   const respond = (response: Response): Response => withRequestId(response, requestId)
@@ -90,12 +95,24 @@ export const onRequestPost: PagesFunction = async (context) => {
     }
 
     // Idempotent: first write wins for each (date, user).
-    await d1Run(
-      db,
-      `INSERT OR IGNORE INTO daily_results (date, user_id, character_id, won, questions_asked, completed_at)
-       VALUES (?, ?, ?, ?, ?, ?)`,
-      [date, userId, dailyCharacter.id, body.won ? 1 : 0, questionsAsked, Date.now()],
-    )
+    try {
+      await d1Run(
+        db,
+        `INSERT OR IGNORE INTO daily_results (date, user_id, character_id, won, questions_asked, completed_at)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+        [date, userId, dailyCharacter.id, body.won ? 1 : 0, questionsAsked, Date.now()],
+      )
+    } catch (error) {
+      if (!isMissingDailyResultsTableError(error)) throw error
+      await logError(
+        context.env.GUESS_DB,
+        'daily.post',
+        'warn',
+        'daily_results table missing; skipping daily result persistence',
+        error,
+        { path: '/api/v2/daily', method: 'POST', requestId },
+      )
+    }
 
     return respond(withSetCookie(jsonResponse({ ok: true, date, characterId: dailyCharacter.id }), setCookieHeader))
   } catch (error) {

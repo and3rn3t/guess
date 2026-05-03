@@ -18,6 +18,11 @@ interface QuestionWithCoverage extends QuestionRow {
 
 const QUESTIONS_CACHE_HEADERS = 'public, max-age=60, stale-while-revalidate=300'
 
+function isMissingRetiredAtColumnError(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error)
+  return message.includes('no such column: retired_at')
+}
+
 // ── GET /api/v2/questions ────────────────────────────────────
 // Returns all questions with optional attribute coverage stats
 
@@ -30,36 +35,70 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
   if (withCoverage) {
     // Join with character_attributes to compute coverage per question attribute
-    const questions = await d1Query<QuestionWithCoverage>(
-      db,
-      `SELECT
-        q.id, q.text, q.attribute_key, q.priority,
-        tc.total_characters,
-        COALESCE(cov.filled_count, 0) as filled_count,
-        ROUND(
-          CAST(COALESCE(cov.filled_count, 0) AS REAL)
-          / MAX(tc.total_characters, 1) * 100, 1
-        ) as coverage_pct
-       FROM questions q
-       CROSS JOIN (SELECT COUNT(*) as total_characters FROM characters) tc
-       LEFT JOIN (
-         SELECT attribute_key, COUNT(*) as filled_count
-         FROM character_attributes
-         WHERE value IS NOT NULL
-         GROUP BY attribute_key
-       ) cov ON cov.attribute_key = q.attribute_key
-       WHERE q.retired_at IS NULL
-       ORDER BY q.priority DESC, q.id ASC`
-    )
+    let questions: QuestionWithCoverage[]
+    try {
+      questions = await d1Query<QuestionWithCoverage>(
+        db,
+        `SELECT
+          q.id, q.text, q.attribute_key, q.priority,
+          tc.total_characters,
+          COALESCE(cov.filled_count, 0) as filled_count,
+          ROUND(
+            CAST(COALESCE(cov.filled_count, 0) AS REAL)
+            / MAX(tc.total_characters, 1) * 100, 1
+          ) as coverage_pct
+         FROM questions q
+         CROSS JOIN (SELECT COUNT(*) as total_characters FROM characters) tc
+         LEFT JOIN (
+           SELECT attribute_key, COUNT(*) as filled_count
+           FROM character_attributes
+           WHERE value IS NOT NULL
+           GROUP BY attribute_key
+         ) cov ON cov.attribute_key = q.attribute_key
+         WHERE q.retired_at IS NULL
+         ORDER BY q.priority DESC, q.id ASC`
+      )
+    } catch (error) {
+      if (!isMissingRetiredAtColumnError(error)) throw error
+      questions = await d1Query<QuestionWithCoverage>(
+        db,
+        `SELECT
+          q.id, q.text, q.attribute_key, q.priority,
+          tc.total_characters,
+          COALESCE(cov.filled_count, 0) as filled_count,
+          ROUND(
+            CAST(COALESCE(cov.filled_count, 0) AS REAL)
+            / MAX(tc.total_characters, 1) * 100, 1
+          ) as coverage_pct
+         FROM questions q
+         CROSS JOIN (SELECT COUNT(*) as total_characters FROM characters) tc
+         LEFT JOIN (
+           SELECT attribute_key, COUNT(*) as filled_count
+           FROM character_attributes
+           WHERE value IS NOT NULL
+           GROUP BY attribute_key
+         ) cov ON cov.attribute_key = q.attribute_key
+         ORDER BY q.priority DESC, q.id ASC`
+      )
+    }
     const res = jsonResponse(questions)
     res.headers.set('Cache-Control', QUESTIONS_CACHE_HEADERS)
     return res
   }
 
-  const questions = await d1Query<QuestionRow>(
-    db,
-    'SELECT id, text, attribute_key, priority FROM questions WHERE retired_at IS NULL ORDER BY priority DESC, id ASC'
-  )
+  let questions: QuestionRow[]
+  try {
+    questions = await d1Query<QuestionRow>(
+      db,
+      'SELECT id, text, attribute_key, priority FROM questions WHERE retired_at IS NULL ORDER BY priority DESC, id ASC'
+    )
+  } catch (error) {
+    if (!isMissingRetiredAtColumnError(error)) throw error
+    questions = await d1Query<QuestionRow>(
+      db,
+      'SELECT id, text, attribute_key, priority FROM questions ORDER BY priority DESC, id ASC'
+    )
+  }
   const res = jsonResponse(questions)
   res.headers.set('Cache-Control', QUESTIONS_CACHE_HEADERS)
   return res
