@@ -4,6 +4,12 @@ import { AdminPageHeader } from "../AdminPageHeader";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
+  ADMIN_API_ENDPOINTS,
+  adminProposedAttributePath,
+  adminProposedAttributeScorePath,
+} from "@/lib/constants";
+import { JSON_CONTENT_TYPE } from "@/lib/http";
+import {
   CheckCircleIcon,
   XCircleIcon,
   ArrowLeftIcon,
@@ -65,7 +71,9 @@ export default function ProposedAttrsRoute(): React.JSX.Element {
         page: String(p),
         pageSize: String(pageSize),
       });
-      const res = await fetch(`/api/admin/proposed-attributes?${params}`);
+      const res = await fetch(
+        `${ADMIN_API_ENDPOINTS.proposedAttributes}?${params}`,
+      );
       if (!res.ok) throw new Error(`${res.status}`);
       setData(await res.json());
     } catch (e) {
@@ -83,9 +91,9 @@ export default function ProposedAttrsRoute(): React.JSX.Element {
     if (scoringIds.has(p.id) || scores[p.id] !== undefined) return;
     setScoringIds((prev) => new Set([...prev, p.id]));
     try {
-      const res = await fetch(`/api/admin/proposed-attributes/${p.id}/score`, {
+      const res = await fetch(adminProposedAttributeScorePath(p.id), {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: JSON_CONTENT_TYPE,
         body: JSON.stringify({
           key: p.key,
           displayText: p.display_text,
@@ -121,15 +129,15 @@ export default function ProposedAttrsRoute(): React.JSX.Element {
       let res: Response;
       if (act === "approve") {
         // Use the /[id] route which actually inserts into attribute_definitions
-        res = await fetch(`/api/admin/proposed-attributes/${id}`, {
+        res = await fetch(adminProposedAttributePath(id), {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: JSON_CONTENT_TYPE,
           body: JSON.stringify({ action: "approve" }),
         });
       } else {
-        res = await fetch("/api/admin/proposed-attributes", {
+        res = await fetch(ADMIN_API_ENDPOINTS.proposedAttributes, {
           method: "PATCH",
-          headers: { "Content-Type": "application/json" },
+          headers: JSON_CONTENT_TYPE,
           body: JSON.stringify({ id, status: "rejected" }),
         });
       }

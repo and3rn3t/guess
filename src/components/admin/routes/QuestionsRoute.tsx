@@ -4,6 +4,12 @@ import { AdminPageHeader } from "../AdminPageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import {
+  ADMIN_API_ENDPOINTS,
+  adminQuestionPath,
+  adminQuestionScorePath,
+} from "@/lib/constants";
+import { JSON_CONTENT_TYPE } from "@/lib/http";
 import { cn } from "@/lib/utils";
 import {
   MagnifyingGlassIcon,
@@ -134,7 +140,7 @@ export default function QuestionsRoute(): React.JSX.Element {
 
   const fetchExpansionHistory = async () => {
     try {
-      const res = await fetch("/api/admin/questions/expand");
+      const res = await fetch(ADMIN_API_ENDPOINTS.questionsExpand);
       if (!res.ok) return;
       const body = (await res.json()) as { runs?: ExpansionRun[] };
       setExpansionRuns(body.runs ?? []);
@@ -152,7 +158,7 @@ export default function QuestionsRoute(): React.JSX.Element {
         page: String(pageVal),
         pageSize: String(pageSize),
       });
-      const res = await fetch(`/api/admin/questions?${params}`);
+      const res = await fetch(`${ADMIN_API_ENDPOINTS.questions}?${params}`);
       if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
       setData(await res.json());
     } catch (e) {
@@ -190,14 +196,11 @@ export default function QuestionsRoute(): React.JSX.Element {
   const saveEdit = async (key: string) => {
     setSaving(true);
     try {
-      const res = await fetch(
-        `/api/admin/questions/${encodeURIComponent(key)}`,
-        {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ questionText: editValue }),
-        },
-      );
+      const res = await fetch(adminQuestionPath(key), {
+        method: "PATCH",
+        headers: JSON_CONTENT_TYPE,
+        body: JSON.stringify({ questionText: editValue }),
+      });
       if (!res.ok) {
         const body = (await res.json()) as { error?: string };
         throw new Error(body.error ?? res.statusText);
@@ -234,14 +237,11 @@ export default function QuestionsRoute(): React.JSX.Element {
         : prev,
     );
     try {
-      const res = await fetch(
-        `/api/admin/questions/${encodeURIComponent(q.key)}`,
-        {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ isActive: next }),
-        },
-      );
+      const res = await fetch(adminQuestionPath(q.key), {
+        method: "PATCH",
+        headers: JSON_CONTENT_TYPE,
+        body: JSON.stringify({ isActive: next }),
+      });
       if (!res.ok) throw new Error(res.statusText);
     } catch {
       setData((prev) =>
@@ -260,17 +260,14 @@ export default function QuestionsRoute(): React.JSX.Element {
   const scoreQuestion = async (q: AdminQuestion) => {
     setScoringKey(q.key);
     try {
-      const res = await fetch(
-        `/api/admin/questions/${encodeURIComponent(q.key)}/score`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            displayText: q.displayText,
-            questionText: q.questionText,
-          }),
-        },
-      );
+      const res = await fetch(adminQuestionScorePath(q.key), {
+        method: "POST",
+        headers: JSON_CONTENT_TYPE,
+        body: JSON.stringify({
+          displayText: q.displayText,
+          questionText: q.questionText,
+        }),
+      });
       if (!res.ok) throw new Error(res.statusText);
       const result = (await res.json()) as QuestionScoreResult;
       setScores((prev) => ({ ...prev, [q.key]: result }));
@@ -292,9 +289,9 @@ export default function QuestionsRoute(): React.JSX.Element {
     setError(null);
     setExpansionMessage(null);
     try {
-      const res = await fetch("/api/admin/questions/expand", {
+      const res = await fetch(ADMIN_API_ENDPOINTS.questionsExpand, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: JSON_CONTENT_TYPE,
         body: JSON.stringify({
           dryRun,
           limit: 40,

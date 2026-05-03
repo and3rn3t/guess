@@ -3,6 +3,8 @@ import { toast } from "sonner";
 import { AdminPageHeader } from "../AdminPageHeader";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ADMIN_API_ENDPOINTS } from "@/lib/constants";
+import { JSON_CONTENT_TYPE } from "@/lib/http";
 import { ArrowsClockwiseIcon } from "@phosphor-icons/react";
 
 interface ArmStat {
@@ -71,7 +73,9 @@ export default function ExperimentsRoute(): React.JSX.Element {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`/api/admin/experiments?days=${days}`);
+      const res = await fetch(
+        `${ADMIN_API_ENDPOINTS.experiments}?days=${days}`,
+      );
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       setData((await res.json()) as ExperimentsData);
     } catch (e) {
@@ -88,9 +92,9 @@ export default function ExperimentsRoute(): React.JSX.Element {
       autoTuneEnabled?: boolean;
     }) => {
       try {
-        const res = await fetch("/api/admin/experiments", {
+        const res = await fetch(ADMIN_API_ENDPOINTS.experiments, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: JSON_CONTENT_TYPE,
           body: JSON.stringify(body),
         });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);

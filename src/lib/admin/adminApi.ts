@@ -4,6 +4,8 @@
  * Separated from sync.ts (user-facing) to keep concerns distinct.
  */
 import { httpClient } from '@/lib/http'
+import { ADMIN_API_ENDPOINTS, adminCharacterPath } from '@/lib/constants'
+import { JSON_CONTENT_TYPE } from '@/lib/http'
 import type { Character, CharacterCategory } from '@/lib/types'
 
 interface AdminCharacterRow {
@@ -39,7 +41,7 @@ export async function fetchAdminCharacters(limit: number): Promise<Character[]> 
       page: '1',
     })
     const data = await httpClient.getJson<{ characters: AdminCharacterRow[] }>(
-      `/api/admin/characters?${params.toString()}`,
+      `${ADMIN_API_ENDPOINTS.characters}?${params.toString()}`,
     )
     return (data.characters ?? []).map((r) => ({
       id: r.id,
@@ -62,7 +64,7 @@ export async function fetchAdminCharacters(limit: number): Promise<Character[]> 
 export async function fetchAdminCharacterById(id: string): Promise<Character | null> {
   try {
     const data = await httpClient.getJson<AdminCharacterDetail>(
-      `/api/admin/characters/${encodeURIComponent(id)}`,
+      adminCharacterPath(id),
     )
     const attributes: Record<string, boolean | null> = Object.fromEntries(
       Object.entries(data.attributes).map(([k, v]) => [k, v === 1 ? true : v === 0 ? false : null])
@@ -88,9 +90,9 @@ export async function patchAdminCharacterAttribute(
     value: value === true ? 1 : value === false ? 0 : null,
   }
 
-  await httpClient.requestOrThrow(`/api/admin/characters/${encodeURIComponent(characterId)}`, {
+  await httpClient.requestOrThrow(adminCharacterPath(characterId), {
     method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
+    headers: JSON_CONTENT_TYPE,
     body: JSON.stringify(body),
   })
 }

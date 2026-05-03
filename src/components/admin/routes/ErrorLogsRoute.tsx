@@ -4,6 +4,8 @@ import { AdminPageHeader } from "../AdminPageHeader";
 import { FreshnessPill } from "../FreshnessPill";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { ADMIN_API_ENDPOINTS } from "@/lib/constants";
+import { JSON_CONTENT_TYPE } from "@/lib/http";
 import {
   ArrowLeftIcon,
   ArrowRightIcon,
@@ -101,9 +103,9 @@ function DetailRow({ detail }: { detail: string }) {
     setResolving(true);
     setResolveError(null);
     try {
-      const res = await fetch("/api/admin/resolve-stack", {
+      const res = await fetch(ADMIN_API_ENDPOINTS.resolveStack, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: JSON_CONTENT_TYPE,
         body: JSON.stringify({ stack }),
       });
       const body = (await res.json()) as {
@@ -238,7 +240,7 @@ export default function ErrorLogsRoute(): React.JSX.Element {
         });
         if (filterLevel) params.set("level", filterLevel);
         if (filterSource) params.set("source", filterSource);
-        const res = await fetch(`/api/admin/error-logs?${params}`);
+        const res = await fetch(`${ADMIN_API_ENDPOINTS.errorLogs}?${params}`);
         if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
         setData((await res.json()) as PageData);
         setLastFetchedAt(Date.now());
@@ -263,7 +265,9 @@ export default function ErrorLogsRoute(): React.JSX.Element {
     if (!confirm("Delete all error logs?")) return;
     setClearing(true);
     try {
-      const res = await fetch("/api/admin/error-logs", { method: "DELETE" });
+      const res = await fetch(ADMIN_API_ENDPOINTS.errorLogs, {
+        method: "DELETE",
+      });
       if (!res.ok) throw new Error(`${res.status}`);
       toast.success("All error logs deleted");
       await fetchData(1);
@@ -278,9 +282,12 @@ export default function ErrorLogsRoute(): React.JSX.Element {
     const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
     setClearing(true);
     try {
-      const res = await fetch(`/api/admin/error-logs?before=${sevenDaysAgo}`, {
-        method: "DELETE",
-      });
+      const res = await fetch(
+        `${ADMIN_API_ENDPOINTS.errorLogs}?before=${sevenDaysAgo}`,
+        {
+          method: "DELETE",
+        },
+      );
       if (!res.ok) throw new Error(`${res.status}`);
       toast.success("Logs older than 7 days deleted");
       await fetchData(1);

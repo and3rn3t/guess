@@ -5,7 +5,8 @@
  * `reportFetchError` helper that hands off to the lazy analytics module.
  * Hooks compose these calls and own the UI/state side effects.
  */
-import { httpClient, HttpError } from "@/lib/http";
+import { GAME_API_ENDPOINTS } from "@/lib/constants";
+import { httpClient, HttpError, JSON_CONTENT_TYPE } from "@/lib/http";
 import {
   StartResponseSchema,
   AnswerResponseSchema,
@@ -134,7 +135,7 @@ export interface StartGameInput {
 
 export function startGame(input: StartGameInput): Promise<StartResponse> {
   return httpClient
-    .postJson<unknown>("/api/v2/game/start", {
+    .postJson<unknown>(GAME_API_ENDPOINTS.start, {
       categories: input.categories.length ? input.categories : undefined,
       difficulty: input.difficulty,
       characterId: input.characterId ?? undefined,
@@ -147,7 +148,7 @@ export function submitAnswer(
   value: AnswerValue,
 ): Promise<AnswerResponse> {
   return httpClient
-    .postJson<unknown>("/api/v2/game/answer", {
+    .postJson<unknown>(GAME_API_ENDPOINTS.answer, {
       sessionId,
       value,
     })
@@ -161,9 +162,9 @@ export function submitAnswer(
 export async function skipQuestion(
   sessionId: string,
 ): Promise<SkipResponse | null> {
-  const res = await httpClient.request("/api/v2/game/skip", {
+  const res = await httpClient.request(GAME_API_ENDPOINTS.skip, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: JSON_CONTENT_TYPE,
     body: JSON.stringify({ sessionId }),
   });
   if (res.status === 409) return null;
@@ -176,10 +177,10 @@ export function rejectGuess(
   characterId: string,
 ): Promise<RejectGuessResponse> {
   return httpClient
-    .postJson<unknown>(
-      "/api/v2/game/reject-guess",
-      { sessionId, characterId },
-    )
+    .postJson<unknown>(GAME_API_ENDPOINTS.rejectGuess, {
+      sessionId,
+      characterId,
+    })
     .then((raw) => RejectGuessResponseSchema.parse(raw));
 }
 
@@ -187,18 +188,18 @@ export function submitResult(
   sessionId: string,
   correct: boolean,
 ): Promise<Response> {
-  return httpClient.request("/api/v2/game/result", {
+  return httpClient.request(GAME_API_ENDPOINTS.result, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: JSON_CONTENT_TYPE,
     body: JSON.stringify({ sessionId, correct }),
   });
 }
 
 export function resumeGame(sessionId: string): Promise<ResumeResponse | null> {
   return httpClient
-    .request("/api/v2/game/resume", {
+    .request(GAME_API_ENDPOINTS.resume, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: JSON_CONTENT_TYPE,
       body: JSON.stringify({ sessionId }),
     })
     .then((res) =>
@@ -227,7 +228,7 @@ export function revealCharacter(
   answers: Array<{ questionId: string; value: string }>,
 ): Promise<RevealResponse> {
   return httpClient
-    .postJson<unknown>("/api/v2/game/reveal", {
+    .postJson<unknown>(GAME_API_ENDPOINTS.reveal, {
       characterName,
       answers,
     })
@@ -240,7 +241,7 @@ export function submitGameFeedback(
   feedbackText?: string,
 ): Promise<FeedbackResponse> {
   return httpClient
-    .postJson<unknown>("/api/v2/game/feedback", {
+    .postJson<unknown>(GAME_API_ENDPOINTS.feedback, {
       sessionId,
       rating,
       feedbackText: feedbackText?.trim() || undefined,
@@ -254,20 +255,25 @@ interface DailyLeaderboardResponse {
 }
 
 export function fetchDailyChallengeStatus(): Promise<DailyChallengeStatus> {
-  return httpClient.getJson<DailyChallengeStatus>("/api/v2/daily");
+  return httpClient.getJson<DailyChallengeStatus>(GAME_API_ENDPOINTS.daily);
 }
 
 export function recordDailyChallengeResult(
   won: boolean,
   questionsAsked: number,
 ): Promise<{ ok: boolean; date: string; characterId: string }> {
-  return httpClient.postJson<{ ok: boolean; date: string; characterId: string }>(
-    "/api/v2/daily",
-    { won, questionsAsked },
-  );
+  return httpClient.postJson<{
+    ok: boolean;
+    date: string;
+    characterId: string;
+  }>(GAME_API_ENDPOINTS.daily, { won, questionsAsked });
 }
 
-export function fetchDailyLeaderboard(date?: string): Promise<DailyLeaderboardResponse> {
+export function fetchDailyLeaderboard(
+  date?: string,
+): Promise<DailyLeaderboardResponse> {
   const qs = date ? `?date=${encodeURIComponent(date)}` : "";
-  return httpClient.getJson<DailyLeaderboardResponse>(`/api/v2/daily/leaderboard${qs}`);
+  return httpClient.getJson<DailyLeaderboardResponse>(
+    `${GAME_API_ENDPOINTS.dailyLeaderboard}${qs}`,
+  );
 }

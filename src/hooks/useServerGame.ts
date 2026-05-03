@@ -1,4 +1,5 @@
 import type { GameAction } from "@/hooks/useGameState";
+import { GAME_API_ENDPOINTS, SERVER_SESSION_KEY } from "@/lib/constants";
 import {
   normalizeReadiness,
   rejectGuess as apiRejectGuess,
@@ -23,8 +24,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 const analytics = () => import("@/lib/analytics");
-
-const SERVER_SESSION_KEY = "server-session-id";
 
 /**
  * Server game delegate: manages session ID, remaining count, and
@@ -131,7 +130,7 @@ export function useServerGame(dispatch: React.Dispatch<GameAction>) {
 
         toast.success("Previous session restored");
       } catch (err) {
-        reportFetchError("/api/v2/game/resume", err);
+        reportFetchError(GAME_API_ENDPOINTS.resume, err);
         persistSessionId(null);
       }
     })();
@@ -162,7 +161,7 @@ export function useServerGame(dispatch: React.Dispatch<GameAction>) {
           m.trackGameStart(difficulty, data.totalCharacters),
         );
       } catch (err) {
-        reportFetchError("/api/v2/game/start", err);
+        reportFetchError(GAME_API_ENDPOINTS.start, err);
         toast.error(
           "Failed to start server game — try again or switch to local mode",
         );
@@ -230,7 +229,7 @@ export function useServerGame(dispatch: React.Dispatch<GameAction>) {
           }
         }
       } catch (err) {
-        reportFetchError("/api/v2/game/answer", err);
+        reportFetchError(GAME_API_ENDPOINTS.answer, err);
         const message =
           err instanceof Error ? err.message : "Failed to process answer";
         setLastError({ message, action: "answer", payload: value });
@@ -320,7 +319,7 @@ export function useServerGame(dispatch: React.Dispatch<GameAction>) {
           throw new Error("Unexpected server response after rejecting guess");
         }
       } catch (err) {
-        reportFetchError("/api/v2/game/reject-guess", err);
+        reportFetchError(GAME_API_ENDPOINTS.rejectGuess, err);
         toast.error("Something went wrong — tap 'Try Again' to continue");
       } finally {
         dispatch({ type: "SET_THINKING", isThinking: false });
@@ -354,7 +353,7 @@ export function useServerGame(dispatch: React.Dispatch<GameAction>) {
       });
       setServerRemainingSync(data.remaining ?? serverRemainingRef.current);
     } catch (err) {
-      reportFetchError("/api/v2/game/skip", err);
+      reportFetchError(GAME_API_ENDPOINTS.skip, err);
       const message = err instanceof Error ? err.message : "Failed to skip";
       setLastError({ message, action: "skip" });
       toast.error("Failed to skip — tap Retry below");

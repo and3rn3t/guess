@@ -1,6 +1,8 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { AdminPageHeader } from "../AdminPageHeader";
+import { ADMIN_API_ENDPOINTS, adminCharacterPath } from "@/lib/constants";
+import { JSON_CONTENT_TYPE } from "@/lib/http";
 import {
   ArrowLeftIcon,
   ArrowRightIcon,
@@ -85,7 +87,9 @@ export default function DisputesRoute(): React.JSX.Element {
         page: String(p),
         pageSize: String(pageSize),
       });
-      const res = await fetch(`/api/admin/attribute-disputes?${params}`);
+      const res = await fetch(
+        `${ADMIN_API_ENDPOINTS.attributeDisputes}?${params}`,
+      );
       if (!res.ok) throw new Error(`${res.status}`);
       setData(await res.json());
     } catch (e) {
@@ -102,9 +106,9 @@ export default function DisputesRoute(): React.JSX.Element {
   const action = async (id: number, status: "dismissed") => {
     setActing(id);
     try {
-      const res = await fetch("/api/admin/attribute-disputes", {
+      const res = await fetch(ADMIN_API_ENDPOINTS.attributeDisputes, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: JSON_CONTENT_TYPE,
         body: JSON.stringify({ id, status }),
       });
       if (!res.ok) throw new Error(`${res.status}`);
@@ -123,10 +127,10 @@ export default function DisputesRoute(): React.JSX.Element {
     try {
       // 1. Apply corrected value to character_attributes
       const patchRes = await fetch(
-        `/api/admin/characters/${encodeURIComponent(resolveTarget.characterId)}`,
+        adminCharacterPath(resolveTarget.characterId),
         {
           method: "PATCH",
-          headers: { "Content-Type": "application/json" },
+          headers: JSON_CONTENT_TYPE,
           body: JSON.stringify({
             attributeKey: resolveTarget.attributeKey,
             value: correctedValue,
@@ -140,9 +144,9 @@ export default function DisputesRoute(): React.JSX.Element {
         );
       }
       // 2. Mark dispute resolved
-      const disputeRes = await fetch("/api/admin/attribute-disputes", {
+      const disputeRes = await fetch(ADMIN_API_ENDPOINTS.attributeDisputes, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: JSON_CONTENT_TYPE,
         body: JSON.stringify({ id: resolveTarget.id, status: "resolved" }),
       });
       if (!disputeRes.ok)
@@ -163,9 +167,9 @@ export default function DisputesRoute(): React.JSX.Element {
   const askAi = async (d: Dispute) => {
     setAiLoading(d.id);
     try {
-      const res = await fetch("/api/admin/attribute-disputes-ai", {
+      const res = await fetch(ADMIN_API_ENDPOINTS.attributeDisputesAi, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: JSON_CONTENT_TYPE,
         body: JSON.stringify({
           characterName: d.character_name ?? d.character_id,
           attributeKey: d.attribute_key,

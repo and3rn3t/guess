@@ -33,6 +33,12 @@ import { useSyncStatus } from "@/hooks/useSyncStatus";
 import { useWakeLock } from "@/hooks/useWakeLock";
 import { useWeeklyRecap } from "@/hooks/useWeeklyRecap";
 import { DEFAULT_CHARACTERS, DEFAULT_QUESTIONS } from "@/lib/database";
+import {
+  ONBOARDING_COMPLETE_KEY,
+  PREF_CATEGORIES_KEY,
+  PREF_DIFFICULTY_KEY,
+  PRIMARY_NAV_PHASES,
+} from "@/lib/constants";
 import type { SharePayload } from "@/lib/sharing";
 import type {
   Character,
@@ -108,11 +114,11 @@ function App() {
 
   // ========== SETTINGS ==========
   const [difficulty, setDifficulty] = useKV<Difficulty>(
-    "pref:difficulty",
+    PREF_DIFFICULTY_KEY,
     "medium",
   );
   const [rawCategories, setCategories] = useKV<CharacterCategory[]>(
-    "pref:categories",
+    PREF_CATEGORIES_KEY,
     [],
   );
   const categories = useMemo(
@@ -148,7 +154,7 @@ function App() {
   const weeklyRecap = useWeeklyRecap(gameHistory);
   const maxQuestions = DIFFICULTIES[difficulty].maxQuestions;
   const persona = DIFFICULTY_TO_PERSONA[difficulty];
-  const [onboardingDone] = useKV("onboarding-complete", false);
+  const [onboardingDone] = useKV(ONBOARDING_COMPLETE_KEY, false);
   const [showOnboarding, setShowOnboarding] = useState(false);
 
   // Adaptive difficulty suggestion — show once per session when win rate ≥ 80% over last 10 games
@@ -316,7 +322,7 @@ function App() {
           <main
             role="main"
             aria-label="Game content"
-            className={`container mx-auto px-4 py-8 md:py-12 ${["welcome", "stats", "history", "compare"].includes(gamePhase) ? "pb-24 lg:pb-12" : ""}`}
+            className={`container mx-auto px-4 py-8 md:py-12 ${PRIMARY_NAV_PHASES.includes(gamePhase) ? "pb-24 lg:pb-12" : ""}`}
           >
             <div className="sr-only" aria-live="polite" aria-atomic="true">
               {gamePhase === "playing" &&

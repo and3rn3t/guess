@@ -18,6 +18,8 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { ADMIN_API_ENDPOINTS } from "@/lib/constants";
+import { JSON_CONTENT_TYPE } from "@/lib/http";
 
 interface DuplicatePair {
   pairKey: string;
@@ -56,7 +58,7 @@ export default function DuplicatesRoute(): React.JSX.Element {
     setLoading(true);
     setError(null);
     try {
-      const url = `/api/admin/questions/duplicates?threshold=${encodeURIComponent(t.toFixed(3))}`;
+      const url = `${ADMIN_API_ENDPOINTS.questions}/duplicates?threshold=${encodeURIComponent(t.toFixed(3))}`;
       const res = await fetch(url, { credentials: "include" });
       if (!res.ok) throw new Error(`Failed to load duplicates: ${res.status}`);
       const json = (await res.json()) as DuplicatesResponse;
@@ -75,10 +77,10 @@ export default function DuplicatesRoute(): React.JSX.Element {
   const handleBackfill = useCallback(async () => {
     setBackfilling(true);
     try {
-      const res = await fetch("/api/admin/questions/duplicates/backfill", {
+      const res = await fetch(ADMIN_API_ENDPOINTS.questionDuplicatesBackfill, {
         method: "POST",
         credentials: "include",
-        headers: { "Content-Type": "application/json" },
+        headers: JSON_CONTENT_TYPE,
         body: JSON.stringify({ limit: 100 }),
       });
       if (!res.ok) throw new Error(`Backfill failed: ${res.status}`);
@@ -98,10 +100,10 @@ export default function DuplicatesRoute(): React.JSX.Element {
     async (pair: DuplicatePair) => {
       setBusyPair(pair.pairKey);
       try {
-        const res = await fetch("/api/admin/questions/duplicates/dismiss", {
+        const res = await fetch(ADMIN_API_ENDPOINTS.questionDuplicatesDismiss, {
           method: "POST",
           credentials: "include",
-          headers: { "Content-Type": "application/json" },
+          headers: JSON_CONTENT_TYPE,
           body: JSON.stringify({
             pairKey: pair.pairKey,
             similarity: pair.similarity,
@@ -127,10 +129,10 @@ export default function DuplicatesRoute(): React.JSX.Element {
       if (reason === null) return;
       setBusyPair(pair.pairKey);
       try {
-        const res = await fetch("/api/admin/questions/duplicates/merge", {
+        const res = await fetch(ADMIN_API_ENDPOINTS.questionDuplicatesMerge, {
           method: "POST",
           credentials: "include",
-          headers: { "Content-Type": "application/json" },
+          headers: JSON_CONTENT_TYPE,
           body: JSON.stringify({ sourceKey, targetKey, reason }),
         });
         if (!res.ok) {

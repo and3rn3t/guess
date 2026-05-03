@@ -1,8 +1,9 @@
 import { useReducer, useCallback, useRef, useEffect } from 'react'
+import { KV_GAME_SESSION } from '@/lib/constants'
 import type { Character, Question, Answer, AnswerValue, ReasoningExplanation, GameHistoryStep } from '@/lib/types'
 import { GameStateSchema } from '@/lib/schemas'
 
-const SESSION_KEY = 'kv:game-session'
+const SESSION_KEY = KV_GAME_SESSION
 
 // ========== GAME PHASE TYPE ==========
 export type GamePhase =

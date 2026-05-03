@@ -1,7 +1,8 @@
 import { useCallback, useSyncExternalStore } from 'react'
+import { KV_SOUND_MUTED } from '@/lib/constants'
 import { isMuted, toggleMute, setMuted } from '@/lib/sounds'
 
-const STORAGE_KEY = 'kv:sound-muted'
+const STORAGE_KEY = KV_SOUND_MUTED
 
 let listeners: Array<() => void> = []
 

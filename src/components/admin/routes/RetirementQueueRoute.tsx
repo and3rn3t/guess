@@ -6,6 +6,12 @@ import { Button } from "@/components/ui/button";
 import { FreshnessPill } from "../FreshnessPill";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  ADMIN_API_ENDPOINTS,
+  adminQuestionRetirePath,
+  adminQuestionUnretirePath,
+} from "@/lib/constants";
+import { JSON_CONTENT_TYPE } from "@/lib/http";
 
 interface Candidate {
   questionId: string;
@@ -90,7 +96,7 @@ export default function RetirementQueueRoute(): React.JSX.Element {
     setError(null);
     try {
       const res = await fetch(
-        `/api/admin/questions/retirement-queue?source=${s}&minShown=10&limit=100`,
+        `${ADMIN_API_ENDPOINTS.questionRetirementQueue}?source=${s}&minShown=10&limit=100`,
       );
       if (!res.ok) throw new Error(`${res.status}`);
       const json = (await res.json()) as QueueResponse;
@@ -127,14 +133,11 @@ export default function RetirementQueueRoute(): React.JSX.Element {
     if (reason === null) return; // cancelled
     setBusyKey(attributeKey);
     try {
-      const res = await fetch(
-        `/api/admin/questions/${encodeURIComponent(attributeKey)}/retire`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ reason }),
-        },
-      );
+      const res = await fetch(adminQuestionRetirePath(attributeKey), {
+        method: "POST",
+        headers: JSON_CONTENT_TYPE,
+        body: JSON.stringify({ reason }),
+      });
       if (!res.ok) throw new Error(`${res.status}`);
       toast.success(
         `"${questionText.slice(0, 40)}${questionText.length > 40 ? "…" : ""}" retired`,
@@ -153,12 +156,9 @@ export default function RetirementQueueRoute(): React.JSX.Element {
   async function unretire(attributeKey: string): Promise<void> {
     setBusyKey(attributeKey);
     try {
-      const res = await fetch(
-        `/api/admin/questions/${encodeURIComponent(attributeKey)}/unretire`,
-        {
-          method: "POST",
-        },
-      );
+      const res = await fetch(adminQuestionUnretirePath(attributeKey), {
+        method: "POST",
+      });
       if (!res.ok) throw new Error(`${res.status}`);
       toast.success("Question restored to live queue");
       await fetchData(source);

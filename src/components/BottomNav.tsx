@@ -1,6 +1,7 @@
 import { AnimatePresence, motion } from "motion/react";
 import { useState } from "react";
 import type { GamePhase } from "@/hooks/useGameState";
+import { APP_ROUTE_ADMIN, PRIMARY_NAV_PHASES } from "@/lib/constants";
 import {
   ChartBarIcon,
   ClockCounterClockwiseIcon,
@@ -26,8 +27,6 @@ interface BottomNavProps {
   canInstall: boolean;
   promptInstall: () => Promise<void>;
 }
-
-const NAV_PHASES: GamePhase[] = ["welcome", "stats", "history", "compare"];
 
 const MAIN_TABS = [
   { phase: "welcome" as GamePhase, label: "Home", icon: HouseIcon },
@@ -64,7 +63,7 @@ export function BottomNav({
     themeIcon = <GearSixIcon size={20} weight="duotone" />;
   }
 
-  if (!NAV_PHASES.includes(gamePhase)) return null;
+  if (!PRIMARY_NAV_PHASES.includes(gamePhase)) return null;
 
   const isMoreActive = gamePhase === "compare";
 
@@ -179,7 +178,7 @@ export function BottomNav({
 
               {/* Admin */}
               <a
-                href="/admin"
+                href={APP_ROUTE_ADMIN}
                 className="w-full flex items-center gap-3 px-3 min-h-[48px] rounded-xl text-sm font-medium hover:bg-muted/60 text-muted-foreground transition-colors"
                 onClick={() => setMoreOpen(false)}
               >

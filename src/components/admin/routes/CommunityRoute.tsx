@@ -3,6 +3,8 @@ import { toast } from "sonner";
 import { AdminPageHeader } from "../AdminPageHeader";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { ADMIN_API_ENDPOINTS } from "@/lib/constants";
+import { JSON_CONTENT_TYPE } from "@/lib/http";
 import {
   CheckCircleIcon,
   XCircleIcon,
@@ -40,7 +42,7 @@ export default function CommunityRoute(): React.JSX.Element {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch("/api/admin/community");
+      const res = await fetch(ADMIN_API_ENDPOINTS.community);
       if (!res.ok) throw new Error(`${res.status}`);
       setData(await res.json());
     } catch (e) {
@@ -60,9 +62,9 @@ export default function CommunityRoute(): React.JSX.Element {
   ) => {
     setActing(characterId);
     try {
-      const res = await fetch("/api/admin/community", {
+      const res = await fetch(ADMIN_API_ENDPOINTS.community, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: JSON_CONTENT_TYPE,
         body: JSON.stringify({ action, characterId }),
       });
       if (!res.ok) throw new Error(`${res.status}`);

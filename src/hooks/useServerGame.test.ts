@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import type { GameAction } from "@/hooks/useGameState";
+import { GAME_API_ENDPOINTS, SERVER_SESSION_KEY } from "@/lib/constants";
 import { buildStartResponse } from "@/test/mocks/gameResponses";
 import { server } from "@/test/mocks/server";
 import { act, renderHook, waitFor } from "@testing-library/react";
@@ -52,7 +53,7 @@ describe("useServerGame", () => {
   describe("startServerGame", () => {
     it("starts a game and dispatches actions", async () => {
       server.use(
-        http.post("/api/v2/game/start", () =>
+        http.post(GAME_API_ENDPOINTS.start, () =>
           HttpResponse.json(buildStartResponse({
             sessionId: "sess-123",
             question: { id: "q1", text: "Is human?", attribute: "isHuman" },
@@ -93,7 +94,7 @@ describe("useServerGame", () => {
       const { toast } = await import("sonner");
       server.use(
         http.post(
-          "/api/v2/game/start",
+          GAME_API_ENDPOINTS.start,
           () => new HttpResponse(null, { status: 500 }),
         ),
       );
@@ -115,7 +116,7 @@ describe("useServerGame", () => {
     it("dispatches next question on question response", async () => {
       // First start a game to get a session ID
       server.use(
-        http.post("/api/v2/game/start", () => HttpResponse.json(buildStartResponse())),
+        http.post(GAME_API_ENDPOINTS.start, () => HttpResponse.json(buildStartResponse())),
       );
 
       const { result } = renderHook(() => useServerGame(dispatch));
@@ -125,7 +126,7 @@ describe("useServerGame", () => {
 
       dispatch.mockClear();
       server.use(
-        http.post("/api/v2/game/answer", () =>
+        http.post(GAME_API_ENDPOINTS.answer, () =>
           HttpResponse.json({
             type: "question",
             question: { id: "q2", text: "Q2", attribute: "canFly" },
@@ -167,7 +168,7 @@ describe("useServerGame", () => {
 
     it("dispatches MAKE_GUESS on guess response", async () => {
       server.use(
-        http.post("/api/v2/game/start", () => HttpResponse.json(buildStartResponse())),
+        http.post(GAME_API_ENDPOINTS.start, () => HttpResponse.json(buildStartResponse())),
       );
 
       const { result } = renderHook(() => useServerGame(dispatch));
@@ -177,7 +178,7 @@ describe("useServerGame", () => {
 
       dispatch.mockClear();
       server.use(
-        http.post("/api/v2/game/answer", () =>
+        http.post(GAME_API_ENDPOINTS.answer, () =>
           HttpResponse.json({
             type: "guess",
             character: {
@@ -203,7 +204,7 @@ describe("useServerGame", () => {
 
     it("handles contradiction response", async () => {
       server.use(
-        http.post("/api/v2/game/start", () => HttpResponse.json(buildStartResponse())),
+        http.post(GAME_API_ENDPOINTS.start, () => HttpResponse.json(buildStartResponse())),
       );
 
       const { result } = renderHook(() => useServerGame(dispatch));
@@ -213,7 +214,7 @@ describe("useServerGame", () => {
 
       dispatch.mockClear();
       server.use(
-        http.post("/api/v2/game/answer", () =>
+        http.post(GAME_API_ENDPOINTS.answer, () =>
           HttpResponse.json({
             type: "contradiction",
             message: "Contradictory answers",
@@ -239,7 +240,7 @@ describe("useServerGame", () => {
     it("handles answer failure", async () => {
       const { toast } = await import("sonner");
       server.use(
-        http.post("/api/v2/game/start", () => HttpResponse.json(buildStartResponse())),
+        http.post(GAME_API_ENDPOINTS.start, () => HttpResponse.json(buildStartResponse())),
       );
 
       const { result } = renderHook(() => useServerGame(dispatch));
@@ -249,7 +250,7 @@ describe("useServerGame", () => {
 
       dispatch.mockClear();
       vi.mocked(toast.error).mockClear();
-      server.use(http.post("/api/v2/game/answer", () => HttpResponse.error()));
+      server.use(http.post(GAME_API_ENDPOINTS.answer, () => HttpResponse.error()));
 
       await act(async () => {
         await result.current.handleServerAnswer("yes");
@@ -263,7 +264,7 @@ describe("useServerGame", () => {
   describe("postServerResult", () => {
     it("posts result and clears session", async () => {
       server.use(
-        http.post("/api/v2/game/start", () => HttpResponse.json(buildStartResponse())),
+        http.post(GAME_API_ENDPOINTS.start, () => HttpResponse.json(buildStartResponse())),
       );
       const fetchSpy = vi.spyOn(globalThis, "fetch");
 
@@ -279,7 +280,7 @@ describe("useServerGame", () => {
       });
 
       expect(fetchSpy).toHaveBeenLastCalledWith(
-        "/api/v2/game/result",
+        GAME_API_ENDPOINTS.result,
         expect.objectContaining({ method: "POST" }),
       );
     });
@@ -296,7 +297,7 @@ describe("useServerGame", () => {
 
     it("posts feedback for the last completed session", async () => {
       server.use(
-        http.post("/api/v2/game/start", () =>
+        http.post(GAME_API_ENDPOINTS.start, () =>
           HttpResponse.json(buildStartResponse({
             sessionId: "sess-feedback",
           })),
@@ -323,7 +324,7 @@ describe("useServerGame", () => {
         RequestInit,
       ];
       const [url, options] = lastCall;
-      expect(url).toBe("/api/v2/game/feedback");
+      expect(url).toBe(GAME_API_ENDPOINTS.feedback);
       expect(options.method).toBe("POST");
       expect(options.body).toContain('"sessionId":"sess-feedback"');
       expect(options.body).toContain('"rating":4');
@@ -333,9 +334,9 @@ describe("useServerGame", () => {
 
   describe("auto-resume", () => {
     it("resumes from saved session on mount", async () => {
-      sessionStore["server-session-id"] = "saved-sess";
+      sessionStore[SERVER_SESSION_KEY] = "saved-sess";
       server.use(
-        http.post("/api/v2/game/resume", () =>
+        http.post(GAME_API_ENDPOINTS.resume, () =>
           HttpResponse.json({
             expired: false,
             question: { id: "q1", text: "Q1", attribute: "isHuman" },
@@ -366,9 +367,9 @@ describe("useServerGame", () => {
     });
 
     it("clears session on expired resume", async () => {
-      sessionStore["server-session-id"] = "expired-sess";
+      sessionStore[SERVER_SESSION_KEY] = "expired-sess";
       server.use(
-        http.post("/api/v2/game/resume", () =>
+        http.post(GAME_API_ENDPOINTS.resume, () =>
           HttpResponse.json({ expired: true }),
         ),
       );
@@ -376,7 +377,7 @@ describe("useServerGame", () => {
       renderHook(() => useServerGame(dispatch));
 
       await waitFor(() => {
-        expect(sessionStore["server-session-id"]).toBeUndefined();
+        expect(sessionStore[SERVER_SESSION_KEY]).toBeUndefined();
       });
     });
   });

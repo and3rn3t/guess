@@ -55,7 +55,7 @@ const DEFAULT_RETRYABLE_STATUSES: ReadonlySet<number> = new Set([
   408, 429, 500, 502, 503, 504,
 ]);
 
-const JSON_CONTENT_TYPE = { "Content-Type": "application/json" };
+export const JSON_CONTENT_TYPE = { "Content-Type": "application/json" };
 
 async function defaultParseError(response: Response): Promise<Error> {
   return new HttpError(

@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import type { GameAction, GamePhase } from "@/hooks/useGameState";
+import { APP_ROUTE_ADMIN } from "@/lib/constants";
 import type { Answer, Question } from "@/lib/types";
 import type { SyncStatus } from "@/lib/sync";
 import {
@@ -173,7 +174,7 @@ function AppHeaderBase({
                   </Button>
                 )}
                 <a
-                  href="/admin"
+                  href={APP_ROUTE_ADMIN}
                   aria-label="Admin panel"
                   title="Admin panel"
                   className="hidden lg:inline-flex items-center justify-center h-8 w-8 rounded-md border border-border/50 text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors touch-target"

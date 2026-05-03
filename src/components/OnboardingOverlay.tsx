@@ -2,6 +2,7 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Button } from "@/components/ui/button";
 import { useKV } from "@/hooks/useKV";
+import { ONBOARDING_COMPLETE_KEY } from "@/lib/constants";
 
 const STEPS = [
   {
@@ -28,7 +29,7 @@ interface OnboardingOverlayProps {
 
 export function OnboardingOverlay({ onComplete }: OnboardingOverlayProps) {
   const [step, setStep] = useState(0);
-  const [, setDone] = useKV("onboarding-complete", false);
+  const [, setDone] = useKV(ONBOARDING_COMPLETE_KEY, false);
 
   const finish = () => {
     setDone(true);
