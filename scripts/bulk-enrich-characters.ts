@@ -49,6 +49,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const REPO_ROOT = path.resolve(__dirname, "..");
 const OUT_DIR = path.join(REPO_ROOT, "data", "bulk-enrich");
+const WRANGLER_BIN = path.join(REPO_ROOT, "node_modules", ".bin", "wrangler");
 mkdirSync(OUT_DIR, { recursive: true });
 
 // ── Env loading (mirrors sparse-fill-attributes.ts) ─────────────────────────
@@ -82,6 +83,7 @@ const CONCURRENCY = Number.parseInt(flag("--concurrency", "3"), 10);
 const ATTR_CHUNK_COUNT = Number.parseInt(flag("--attr-chunks", "4"), 10);
 // Apply results to D1 every FLUSH_EVERY chars — preserves partial progress on failure.
 const FLUSH_EVERY = Number.parseInt(flag("--flush-every", "50"), 10);
+const MIN_FLUSH_EVERY = 10;
 const DRY_RUN = process.argv.includes("--dry-run");
 const DB_NAME = ENV_FLAG === "production" ? "guess-db" : "guess-db-preview";
 const MODEL = process.env.BULK_ENRICH_MODEL ?? "gpt-4o-mini";
@@ -96,9 +98,8 @@ console.log(`[bulk-enrich] model=${MODEL}  run=${RUN_ISO}`);
 // ── D1 helpers ───────────────────────────────────────────────────────────────
 function d1<T>(sql: string): T[] {
   const out = execFileSync(
-    "npx",
+    WRANGLER_BIN,
     [
-      "wrangler",
       "d1",
       "execute",
       DB_NAME,
@@ -115,22 +116,60 @@ function d1<T>(sql: string): T[] {
   return parsed[0]?.results ?? [];
 }
 
-function d1ApplyFile(filePath: string): void {
-  execFileSync(
-    "npx",
-    [
-      "wrangler",
-      "d1",
-      "execute",
-      DB_NAME,
-      "--env",
-      ENV_FLAG,
-      "--remote",
-      "--file",
-      filePath,
-    ],
-    { stdio: "inherit" },
-  );
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function isRetryableD1ApplyError(message: string): boolean {
+  const normalized = message.toLowerCase();
+  return [
+    "internal error while starting up d1 db storage caused object to be reset",
+    "etimedout",
+    "econnreset",
+    "fetch failed",
+    "socket hang up",
+    "service unavailable",
+    "status code 503",
+    "too many requests",
+    "status code 429",
+  ].some((marker) => normalized.includes(marker));
+}
+
+async function d1ApplyFile(filePath: string): Promise<void> {
+  const maxAttempts = 4;
+  const baseDelayMs = 2000;
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    try {
+      execFileSync(
+        WRANGLER_BIN,
+        [
+          "d1",
+          "execute",
+          DB_NAME,
+          "--env",
+          ENV_FLAG,
+          "--remote",
+          "--file",
+          filePath,
+        ],
+        { stdio: "inherit" },
+      );
+      return;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      const retryable = isRetryableD1ApplyError(message);
+      const canRetry = retryable && attempt < maxAttempts;
+      if (!canRetry) {
+        throw err;
+      }
+      const delayMs = baseDelayMs * 2 ** (attempt - 1);
+      console.warn(
+        `[bulk-enrich] D1 apply transient failure (attempt ${attempt}/${maxAttempts}) — retrying in ${delayMs}ms`,
+      );
+      await sleep(delayMs);
+    }
+  }
 }
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -465,6 +504,7 @@ let totalFailed = 0;
 let flushCount = 0;
 let isFlushing = false;
 let lastFlushAt = 0;
+let activeFlushEvery = FLUSH_EVERY;
 
 // Defined here so flushAndApply() can use them (not at end-of-file)
 const evidence = `enrichment:openai:${MODEL}:run=${RUN_ISO}`;
@@ -514,8 +554,63 @@ async function flushAndApply(label: string): Promise<void> {
   console.log(
     `[bulk-enrich] flush #${flushIdx}: writing ${cells.length} cells → ${path.basename(outFile)}`,
   );
-  d1ApplyFile(outFile);
+  try {
+    await d1ApplyFile(outFile);
+  } catch (err) {
+    // Re-queue cells so a failed flush does not drop already-enriched results.
+    allFilled.unshift(...cells);
+    throw err;
+  }
   console.log(`[bulk-enrich] flush #${flushIdx}: applied to D1`);
+}
+
+function getErrorMessage(err: unknown): string {
+  return err instanceof Error ? err.message : String(err);
+}
+
+async function flushWithAdaptiveRecovery(
+  label: string,
+  maxAttempts: number,
+): Promise<boolean> {
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    try {
+      await flushAndApply(label);
+      if (attempt > 1) {
+        console.log(
+          `[bulk-enrich] flush recovered after ${attempt} attempt(s) with active flush-every=${activeFlushEvery}`,
+        );
+      }
+      return true;
+    } catch (err) {
+      const message = getErrorMessage(err);
+      if (!isRetryableD1ApplyError(message)) {
+        throw err;
+      }
+
+      const previousFlushEvery = activeFlushEvery;
+      activeFlushEvery = Math.max(MIN_FLUSH_EVERY, Math.floor(activeFlushEvery / 2));
+      const backoffMs = 3000 * attempt;
+      const canRetry = attempt < maxAttempts;
+
+      console.warn(
+        `[bulk-enrich] transient D1 flush failure (${attempt}/${maxAttempts}): ${message.slice(0, 220)}`,
+      );
+      if (activeFlushEvery !== previousFlushEvery) {
+        console.warn(
+          `[bulk-enrich] adaptive mode: reducing flush-every from ${previousFlushEvery} to ${activeFlushEvery}`,
+        );
+      }
+      if (!canRetry) {
+        console.error(
+          `[bulk-enrich] flush attempts exhausted for ${label}; buffered cells retained in memory for next flush opportunity`,
+        );
+        return false;
+      }
+      await sleep(backoffMs);
+    }
+  }
+
+  return false;
 }
 
 async function runWorkerPool(): Promise<void> {
@@ -559,13 +654,18 @@ async function runWorkerPool(): Promise<void> {
       // flushes — safe because JS await points are cooperative (not preemptive).
       if (
         !isFlushing &&
-        totalEnriched - lastFlushAt >= FLUSH_EVERY &&
+        totalEnriched - lastFlushAt >= activeFlushEvery &&
         allFilled.length > 0
       ) {
         isFlushing = true;
-        lastFlushAt = totalEnriched;
         try {
-          await flushAndApply(`after ${totalEnriched} chars`);
+          const flushed = await flushWithAdaptiveRecovery(
+            `after ${totalEnriched} chars`,
+            2,
+          );
+          if (flushed) {
+            lastFlushAt = totalEnriched;
+          }
         } finally {
           isFlushing = false;
         }
@@ -581,7 +681,12 @@ await runWorkerPool();
 
 // Final flush for any remaining cells not yet applied
 if (!DRY_RUN && allFilled.length > 0) {
-  await flushAndApply("final");
+  const flushed = await flushWithAdaptiveRecovery("final", 6);
+  if (!flushed) {
+    throw new Error(
+      "Final D1 flush did not succeed after adaptive retries; exiting non-zero to signal partial completion.",
+    );
+  }
 }
 
 // gpt-4o-mini pricing: $0.15/1M input tokens, $0.60/1M output tokens
