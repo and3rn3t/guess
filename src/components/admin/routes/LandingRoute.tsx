@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { AdminPageHeader } from '../AdminPageHeader'
+import { FreshnessPill } from '../FreshnessPill'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import {
   UsersIcon,
   ArrowsClockwiseIcon,
@@ -10,6 +13,8 @@ import {
   GameControllerIcon,
   CheckCircleIcon,
   CircleIcon,
+  ClockCountdownIcon,
+  SparkleIcon,
 } from '@phosphor-icons/react'
 
 interface DashboardStats {
@@ -34,6 +39,21 @@ interface DashboardData {
   recentGames: RecentGame[]
 }
 
+interface PriorityItem {
+  key: string
+  title: string
+  detail: string
+  to: string
+  tone: 'warning' | 'danger' | 'info'
+}
+
+interface AlertThresholds {
+  pendingEnrich: number
+  openDisputes: number
+  pendingProposals: number
+  lowGames7d: number
+}
+
 interface StatCardProps {
   label: string
   value: number | string
@@ -56,29 +76,142 @@ function StatCard({ label, value, icon, color, to, alert }: StatCardProps): Reac
   return to ? <Link to={to}>{inner}</Link> : inner
 }
 
+function buildPriorityItems(stats: DashboardStats | undefined, thresholds: AlertThresholds): PriorityItem[] {
+  if (!stats) return []
+
+  const items: PriorityItem[] = []
+  if (stats.pendingEnrich > thresholds.pendingEnrich) {
+    items.push({
+      key: 'enrich',
+      title: `${stats.pendingEnrich} characters need enrichment`,
+      detail: 'Run enrichment to improve question quality and confidence.',
+      to: 'enrichment',
+      tone: 'warning',
+    })
+  }
+  if (stats.openDisputes > thresholds.openDisputes) {
+    items.push({
+      key: 'disputes',
+      title: `${stats.openDisputes} open attribute disputes`,
+      detail: 'Resolve conflicts before they impact engine behavior.',
+      to: 'disputes',
+      tone: 'danger',
+    })
+  }
+  if (stats.pendingProposals > thresholds.pendingProposals) {
+    items.push({
+      key: 'proposals',
+      title: `${stats.pendingProposals} attribute proposals pending review`,
+      detail: 'Approve or reject proposed attributes to keep taxonomy clean.',
+      to: 'proposed-attrs',
+      tone: 'info',
+    })
+  }
+  if (stats.games7d < thresholds.lowGames7d) {
+    items.push({
+      key: 'engagement',
+      title: 'Low weekly game volume detected',
+      detail: 'Inspect funnel and drop-off events in analytics.',
+      to: 'analytics',
+      tone: 'info',
+    })
+  }
+  return items
+}
+
+function priorityToneClasses(tone: PriorityItem['tone']): string {
+  if (tone === 'danger') return 'border-red-500/40 bg-red-500/10'
+  if (tone === 'warning') return 'border-yellow-500/40 bg-yellow-500/10'
+  return 'border-blue-500/30 bg-blue-500/10'
+}
+
+const LOADING_CARD_KEYS = ['c1', 'c2', 'c3', 'c4', 'c5', 'c6', 'c7']
+const THRESHOLDS_STORAGE_KEY = 'admin.missionControl.thresholds.v1'
+const DEFAULT_THRESHOLDS: AlertThresholds = {
+  pendingEnrich: 0,
+  openDisputes: 0,
+  pendingProposals: 0,
+  lowGames7d: 20,
+}
+
+function parseThresholds(raw: string | null): AlertThresholds {
+  if (!raw) return DEFAULT_THRESHOLDS
+  try {
+    const parsed = JSON.parse(raw) as Partial<AlertThresholds>
+    return {
+      pendingEnrich: typeof parsed.pendingEnrich === 'number' ? Math.max(0, parsed.pendingEnrich) : DEFAULT_THRESHOLDS.pendingEnrich,
+      openDisputes: typeof parsed.openDisputes === 'number' ? Math.max(0, parsed.openDisputes) : DEFAULT_THRESHOLDS.openDisputes,
+      pendingProposals: typeof parsed.pendingProposals === 'number' ? Math.max(0, parsed.pendingProposals) : DEFAULT_THRESHOLDS.pendingProposals,
+      lowGames7d: typeof parsed.lowGames7d === 'number' ? Math.max(0, parsed.lowGames7d) : DEFAULT_THRESHOLDS.lowGames7d,
+    }
+  } catch {
+    return DEFAULT_THRESHOLDS
+  }
+}
+
 export default function LandingRoute(): React.JSX.Element {
   const [data, setData] = useState<DashboardData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [lastFetchedAt, setLastFetchedAt] = useState<number | null>(null)
+  const [thresholds, setThresholds] = useState<AlertThresholds>(DEFAULT_THRESHOLDS)
+
+  const setThreshold = (field: keyof AlertThresholds, value: string) => {
+    const next = Number.parseInt(value, 10)
+    setThresholds((prev) => ({
+      ...prev,
+      [field]: Number.isNaN(next) ? 0 : Math.max(0, next),
+    }))
+  }
+
+  const fetchDashboard = async (): Promise<void> => {
+    setLoading(true)
+    setError(null)
+    try {
+      const response = await fetch('/api/admin/dashboard')
+      if (!response.ok) throw new Error(`${response.status}`)
+      const json = await response.json() as DashboardData
+      setData(json)
+      setLastFetchedAt(Date.now())
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   useEffect(() => {
-    setLoading(true)
-    fetch('/api/admin/dashboard')
-      .then(async (r) => {
-        if (!r.ok) throw new Error(`${r.status}`)
-        return r.json() as Promise<DashboardData>
-      })
-      .then((d) => { setData(d); setLoading(false) })
-      .catch((e: unknown) => { setError(e instanceof Error ? e.message : 'Failed'); setLoading(false) })
+    const stored = localStorage.getItem(THRESHOLDS_STORAGE_KEY)
+    setThresholds(parseThresholds(stored))
+  }, [])
+
+  useEffect(() => {
+    localStorage.setItem(THRESHOLDS_STORAGE_KEY, JSON.stringify(thresholds))
+  }, [thresholds])
+
+  useEffect(() => {
+    void fetchDashboard()
   }, [])
 
   const s = data?.stats
+  const enrichmentPct = s && s.totalCharacters > 0 ? Math.round((s.enriched / s.totalCharacters) * 100) : 0
+  const proposalLoad = s ? s.pendingProposals + s.openDisputes : 0
+  const priorityItems = buildPriorityItems(s, thresholds)
 
   return (
     <div className="container mx-auto px-4 pb-8 max-w-5xl space-y-8">
       <AdminPageHeader
         title="Mission Control"
         subtitle="Overview of your game database"
+        actions={
+          <div className="flex items-center gap-2">
+            <FreshnessPill fetchedAt={lastFetchedAt} onRefresh={() => void fetchDashboard()} refreshing={loading} />
+            <Button variant="outline" size="sm" onClick={() => void fetchDashboard()} disabled={loading}>
+              <ArrowsClockwiseIcon size={14} className="mr-1.5" />
+              Refresh
+            </Button>
+          </div>
+        }
       />
 
       {error && (
@@ -88,8 +221,8 @@ export default function LandingRoute(): React.JSX.Element {
       {/* Stat grid */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {loading ? (
-          Array.from({ length: 7 }).map((_, i) => (
-            <div key={i} className="rounded-xl border bg-card px-5 py-4 h-20 animate-pulse bg-muted" />
+          LOADING_CARD_KEYS.map((cardKey) => (
+            <div key={cardKey} className="rounded-xl border px-5 py-4 h-20 animate-pulse bg-muted" />
           ))
         ) : (
           <>
@@ -147,6 +280,120 @@ export default function LandingRoute(): React.JSX.Element {
             />
           </>
         )}
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2">
+        <div className="rounded-xl border bg-card p-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-widest">Priority Queue</h2>
+            <ClockCountdownIcon size={14} className="text-muted-foreground" />
+          </div>
+          {priorityItems.length === 0 ? (
+            <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-300">
+              No urgent actions. System looks healthy.
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {priorityItems.map((item) => (
+                <Link
+                  key={item.key}
+                  to={item.to}
+                  className={`block rounded-lg border px-3 py-2 transition-colors hover:bg-muted/30 ${priorityToneClasses(item.tone)}`}
+                >
+                  <p className="text-sm font-medium text-foreground">{item.title}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">{item.detail}</p>
+                </Link>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="rounded-xl border bg-card p-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-widest">Operational Health</h2>
+            <SparkleIcon size={14} className="text-violet-400" />
+          </div>
+          <div className="space-y-2">
+            <div>
+              <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
+                <span>Character coverage</span>
+                <span>{enrichmentPct}%</span>
+              </div>
+              <progress value={enrichmentPct} max={100} className="h-2 w-full rounded-full [&::-webkit-progress-bar]:bg-muted [&::-webkit-progress-value]:bg-emerald-500 [&::-moz-progress-bar]:bg-emerald-500" />
+            </div>
+            <div className="grid grid-cols-3 gap-2 pt-1">
+              <div className="rounded border border-border px-2 py-2">
+                <div className="text-[11px] uppercase tracking-widest text-muted-foreground">Pending</div>
+                <div className="text-sm font-semibold text-yellow-400">{s?.pendingEnrich ?? 0}</div>
+              </div>
+              <div className="rounded border border-border px-2 py-2">
+                <div className="text-[11px] uppercase tracking-widest text-muted-foreground">Review Load</div>
+                <div className="text-sm font-semibold text-violet-400">{proposalLoad}</div>
+              </div>
+              <div className="rounded border border-border px-2 py-2">
+                <div className="text-[11px] uppercase tracking-widest text-muted-foreground">Games 7d</div>
+                <div className="text-sm font-semibold text-blue-400">{s?.games7d ?? 0}</div>
+              </div>
+            </div>
+            <div className="pt-2 space-y-2">
+              <div className="text-[11px] uppercase tracking-widest text-muted-foreground">Alert thresholds</div>
+              <div className="grid grid-cols-2 gap-2">
+                <label htmlFor="threshold-pending-enrich" className="text-xs text-muted-foreground">
+                  Pending enrich
+                  <Input
+                    id="threshold-pending-enrich"
+                    type="number"
+                    min={0}
+                    value={thresholds.pendingEnrich}
+                    onChange={(event) => setThreshold('pendingEnrich', event.target.value)}
+                    className="mt-1 h-8"
+                  />
+                </label>
+                <label htmlFor="threshold-open-disputes" className="text-xs text-muted-foreground">
+                  Open disputes
+                  <Input
+                    id="threshold-open-disputes"
+                    type="number"
+                    min={0}
+                    value={thresholds.openDisputes}
+                    onChange={(event) => setThreshold('openDisputes', event.target.value)}
+                    className="mt-1 h-8"
+                  />
+                </label>
+                <label htmlFor="threshold-pending-proposals" className="text-xs text-muted-foreground">
+                  Pending proposals
+                  <Input
+                    id="threshold-pending-proposals"
+                    type="number"
+                    min={0}
+                    value={thresholds.pendingProposals}
+                    onChange={(event) => setThreshold('pendingProposals', event.target.value)}
+                    className="mt-1 h-8"
+                  />
+                </label>
+                <label htmlFor="threshold-low-games" className="text-xs text-muted-foreground">
+                  Low games (7d)
+                  <Input
+                    id="threshold-low-games"
+                    type="number"
+                    min={0}
+                    value={thresholds.lowGames7d}
+                    onChange={(event) => setThreshold('lowGames7d', event.target.value)}
+                    className="mt-1 h-8"
+                  />
+                </label>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="px-0 text-muted-foreground"
+                onClick={() => setThresholds(DEFAULT_THRESHOLDS)}
+              >
+                Reset thresholds
+              </Button>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Recent games */}

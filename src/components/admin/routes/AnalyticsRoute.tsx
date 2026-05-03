@@ -1,10 +1,11 @@
-import { useEffect, useState } from 'react'
+import { Fragment, useEffect, useState } from 'react'
 import { AdminPageHeader } from '../AdminPageHeader'
 import { FreshnessPill } from '../FreshnessPill'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { ArrowLeftIcon, ArrowRightIcon, ChartBarIcon, LightningIcon, SparkleIcon, XIcon } from '@phosphor-icons/react'
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts'
+import { Input } from '@/components/ui/input'
+import { ArrowLeftIcon, ArrowRightIcon, ChartBarIcon, LightningIcon, MagnifyingGlassIcon, SparkleIcon, XIcon, UsersIcon, ClockCounterClockwiseIcon } from '@phosphor-icons/react'
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
 
 interface ClientEvent {
   id: string
@@ -34,6 +35,23 @@ interface PageData {
   page: number
   pageSize: number
   summary: EventSummary[]
+  filters: {
+    eventType: string
+    q: string
+    days: number
+  }
+  aggregates: {
+    uniqueSessions: number
+    uniqueUsers: number
+  }
+}
+
+interface AnalyticsPreset {
+  id: string
+  label: string
+  eventType: string
+  query: string
+  days: string
 }
 
 const EVENT_COLORS: Record<string, string> = {
@@ -44,26 +62,91 @@ const EVENT_COLORS: Record<string, string> = {
 }
 
 const BAR_COLORS = ['#7c3aed', '#2563eb', '#059669', '#d97706', '#dc2626', '#8b5cf6', '#0891b2']
+const LOADING_ROW_KEYS = ['s1', 's2', 's3', 's4', 's5']
+const CUSTOM_PRESETS_KEY = 'admin.analytics.customPresets.v1'
+
+const BUILTIN_PRESETS: AnalyticsPreset[] = [
+  { id: 'funnel', label: 'Funnel Health (7d)', eventType: 'game_end', query: '', days: '7' },
+  { id: 'shares', label: 'Sharing Activity (30d)', eventType: 'share', query: '', days: '30' },
+  { id: 'guess-quality', label: 'Guess Quality (30d)', eventType: 'guess', query: '', days: '30' },
+]
+
+function payloadPreview(payload: string | null): string {
+  if (!payload) return '--'
+  if (payload.length <= 80) return payload
+  return `${payload.slice(0, 80)}...`
+}
+
+function parseCustomPresets(raw: string | null): AnalyticsPreset[] {
+  if (!raw) return []
+  try {
+    const parsed = JSON.parse(raw) as unknown
+    if (!Array.isArray(parsed)) return []
+    return parsed
+      .filter((item): item is AnalyticsPreset => {
+        if (typeof item !== 'object' || item === null) return false
+        const candidate = item as Record<string, unknown>
+        return (
+          typeof candidate.id === 'string' &&
+          typeof candidate.label === 'string' &&
+          typeof candidate.eventType === 'string' &&
+          typeof candidate.query === 'string' &&
+          typeof candidate.days === 'string'
+        )
+      })
+      .slice(0, 8)
+  } catch {
+    return []
+  }
+}
 
 export default function AnalyticsRoute(): React.JSX.Element {
   const [data, setData] = useState<PageData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [filterType, setFilterType] = useState('')
+  const [query, setQuery] = useState('')
+  const [days, setDays] = useState('30')
   const [page, setPage] = useState(1)
   const [insights, setInsights] = useState<string | null>(null)
   const [insightsLoading, setInsightsLoading] = useState(false)
   const [showInsights, setShowInsights] = useState(false)
   const [ahaMoments, setAhaMoments] = useState<AhaMomentSummary[]>([])
   const [lastFetchedAt, setLastFetchedAt] = useState<number | null>(null)
+  const [expandedEventId, setExpandedEventId] = useState<string | null>(null)
+  const [customPresets, setCustomPresets] = useState<AnalyticsPreset[]>([])
   const pageSize = 25
 
-  const fetchData = async (type: string, p: number) => {
+  const applyPreset = (preset: AnalyticsPreset) => {
+    setFilterType(preset.eventType)
+    setQuery(preset.query)
+    setDays(preset.days)
+    setPage(1)
+  }
+
+  const saveCurrentPreset = () => {
+    const label = globalThis.prompt('Preset name')?.trim()
+    if (!label) return
+
+    const nextPreset: AnalyticsPreset = {
+      id: `custom-${Date.now()}`,
+      label,
+      eventType: filterType,
+      query,
+      days,
+    }
+
+    setCustomPresets((prev) => [nextPreset, ...prev].slice(0, 8))
+  }
+
+  const fetchData = async (type: string, p: number, q: string, d: string) => {
     setLoading(true)
     setError(null)
     try {
       const params = new URLSearchParams({ page: String(p), pageSize: String(pageSize) })
       if (type) params.set('event_type', type)
+      if (q.trim()) params.set('q', q.trim())
+      params.set('days', d)
       const res = await fetch(`/api/admin/analytics?${params}`)
       if (!res.ok) throw new Error(`${res.status}`)
       setData(await res.json())
@@ -75,7 +158,24 @@ export default function AnalyticsRoute(): React.JSX.Element {
     }
   }
 
-  useEffect(() => { void fetchData(filterType, page) }, [filterType, page])
+  useEffect(() => {
+    const stored = localStorage.getItem(CUSTOM_PRESETS_KEY)
+    setCustomPresets(parseCustomPresets(stored))
+  }, [])
+
+  useEffect(() => {
+    localStorage.setItem(CUSTOM_PRESETS_KEY, JSON.stringify(customPresets))
+  }, [customPresets])
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setPage(1)
+      void fetchData(filterType, 1, query, days)
+    }, 250)
+    return () => clearTimeout(timer)
+  }, [filterType, query, days])
+
+  useEffect(() => { void fetchData(filterType, page, query, days) }, [page]) // eslint-disable-line react-hooks/exhaustive-deps -- explicit args are passed and debounce effect above handles filter/query updates
 
   useEffect(() => {
     void fetch('/api/admin/analytics/aha-moments')
@@ -99,7 +199,7 @@ export default function AnalyticsRoute(): React.JSX.Element {
       const res = await fetch('/api/admin/analytics/insights', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ summary: data?.summary ?? [], bustCache: bust }),
+        body: JSON.stringify({ summary: data?.summary ?? [], totalGames7d: data?.total ?? 0, bustCache: bust }),
       })
       if (!res.ok) throw new Error(`${res.status}`)
       const json = await res.json() as { insights: string }
@@ -121,7 +221,7 @@ export default function AnalyticsRoute(): React.JSX.Element {
           <>
             <FreshnessPill
               fetchedAt={lastFetchedAt}
-              onRefresh={() => void fetchData(filterType, page)}
+              onRefresh={() => void fetchData(filterType, page, query, days)}
               refreshing={loading}
             />
             <Button
@@ -175,6 +275,103 @@ export default function AnalyticsRoute(): React.JSX.Element {
         </div>
       )}
 
+      {(data?.total ?? 0) > 0 && (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div className="rounded-xl border bg-card px-4 py-3 space-y-1">
+            <div className="text-[11px] uppercase tracking-widest text-muted-foreground">Events</div>
+            <div className="text-xl font-semibold text-foreground">{data?.total.toLocaleString() ?? '0'}</div>
+            <div className="text-xs text-muted-foreground">Last {days} days</div>
+          </div>
+          <div className="rounded-xl border bg-card px-4 py-3 space-y-1">
+            <div className="text-[11px] uppercase tracking-widest text-muted-foreground">Sessions</div>
+            <div className="text-xl font-semibold text-blue-400">{(data?.aggregates.uniqueSessions ?? 0).toLocaleString()}</div>
+            <div className="text-xs text-muted-foreground">Unique session IDs</div>
+          </div>
+          <div className="rounded-xl border bg-card px-4 py-3 space-y-1">
+            <div className="text-[11px] uppercase tracking-widest text-muted-foreground">Users</div>
+            <div className="text-xl font-semibold text-violet-400">{(data?.aggregates.uniqueUsers ?? 0).toLocaleString()}</div>
+            <div className="text-xs text-muted-foreground">Unique user IDs</div>
+          </div>
+          <div className="rounded-xl border bg-card px-4 py-3 space-y-1">
+            <div className="text-[11px] uppercase tracking-widest text-muted-foreground">Top Event</div>
+            <div className="text-base font-semibold text-emerald-400">{data?.summary[0]?.event_type ?? 'n/a'}</div>
+            <div className="text-xs text-muted-foreground">{(data?.summary[0]?.count ?? 0).toLocaleString()} occurrences</div>
+          </div>
+        </div>
+      )}
+
+      <div className="rounded-xl border bg-card px-4 py-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="relative w-72">
+            <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
+            <Input
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Search event payload, session, user"
+              className="pl-9"
+            />
+          </div>
+          <select
+            value={days}
+            onChange={(event) => setDays(event.target.value)}
+            aria-label="Time window"
+            className="h-9 rounded-md border border-input bg-background px-3 text-sm"
+          >
+            <option value="1">Last 24h</option>
+            <option value="7">Last 7d</option>
+            <option value="30">Last 30d</option>
+            <option value="90">Last 90d</option>
+          </select>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              setQuery('')
+              setFilterType('')
+              setDays('30')
+              setPage(1)
+            }}
+          >
+            Reset
+          </Button>
+          <Button variant="outline" size="sm" onClick={saveCurrentPreset}>
+            Save preset
+          </Button>
+          {customPresets.length > 0 && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setCustomPresets([])}
+              className="text-muted-foreground"
+            >
+              Clear saved
+            </Button>
+          )}
+          <div className="ml-auto text-xs text-muted-foreground flex items-center gap-1.5">
+            <UsersIcon size={12} />
+            {(data?.aggregates.uniqueUsers ?? 0).toLocaleString()} users
+            <ClockCounterClockwiseIcon size={12} className="ml-2" />
+            {days}d window
+          </div>
+        </div>
+      </div>
+
+      <div className="rounded-xl border bg-card px-4 py-3 space-y-2">
+        <div className="text-[11px] uppercase tracking-widest text-muted-foreground">Filter Presets</div>
+        <div className="flex flex-wrap gap-2">
+          {BUILTIN_PRESETS.map((preset) => (
+            <Button key={preset.id} size="sm" variant="outline" onClick={() => applyPreset(preset)}>
+              {preset.label}
+            </Button>
+          ))}
+          {customPresets.map((preset) => (
+            <Button key={preset.id} size="sm" variant="secondary" onClick={() => applyPreset(preset)}>
+              {preset.label}
+            </Button>
+          ))}
+        </div>
+      </div>
+
       {/* Aha Moments Card (AN.11) */}
       {ahaMoments.length > 0 && (
         <div className="rounded-xl border bg-card px-5 py-4">
@@ -222,11 +419,7 @@ export default function AnalyticsRoute(): React.JSX.Element {
                 itemStyle={{ color: 'hsl(var(--foreground))' }}
                 labelStyle={{ color: 'hsl(var(--muted-foreground))' }}
               />
-              <Bar dataKey="count" radius={[4, 4, 0, 0]}>
-                {data!.summary.map((_, idx) => (
-                  <Cell key={idx} fill={BAR_COLORS[idx % BAR_COLORS.length]} />
-                ))}
-              </Bar>
+              <Bar dataKey="count" radius={[4, 4, 0, 0]} fill={BAR_COLORS[0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -238,7 +431,7 @@ export default function AnalyticsRoute(): React.JSX.Element {
           <button
             onClick={() => { setFilterType(''); setPage(1) }}
             className={`px-3 py-1.5 rounded-lg text-sm font-medium border transition-colors ${
-              !filterType ? 'bg-violet-600 text-white border-violet-600' : 'bg-card text-muted-foreground border-border hover:text-foreground'
+              filterType === '' ? 'bg-violet-600 text-white border-violet-600' : 'bg-card text-muted-foreground border-border hover:text-foreground'
             }`}
           >
             All
@@ -271,50 +464,70 @@ export default function AnalyticsRoute(): React.JSX.Element {
         </div>
       )}
 
-      {(data?.total ?? 0) > 0 && (
+      {(data?.events.length ?? 0) > 0 && (
         <div className="rounded-xl border bg-card overflow-hidden">
           <table className="w-full text-sm">
-            <thead className="bg-muted/50">
-              <tr>
-                <th className="text-left px-4 py-3 font-medium text-muted-foreground w-36">Time</th>
-                <th className="text-left px-4 py-3 font-medium text-muted-foreground w-36">Event type</th>
-                <th className="text-left px-4 py-3 font-medium text-muted-foreground w-28">Session</th>
-                <th className="text-left px-4 py-3 font-medium text-muted-foreground w-24">User</th>
-                <th className="text-left px-4 py-3 font-medium text-muted-foreground">Data</th>
+            <thead className="bg-muted/20 border-b">
+              <tr className="text-left text-xs text-muted-foreground">
+                <th className="px-4 py-3 font-medium">Time</th>
+                <th className="px-4 py-3 font-medium">Event</th>
+                <th className="px-4 py-3 font-medium">Session</th>
+                <th className="px-4 py-3 font-medium">User</th>
+                <th className="px-4 py-3 font-medium">Payload</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-border">
+            <tbody>
               {loading && !data
-                ? Array.from({ length: 5 }).map((_, i) => (
-                    <tr key={i}>
+                ? LOADING_ROW_KEYS.map((rowKey) => (
+                    <tr key={rowKey}>
                       <td colSpan={5} className="px-4 py-3">
                         <div className="h-4 bg-muted animate-pulse rounded" />
                       </td>
                     </tr>
                   ))
                 : (data?.events ?? []).map((e) => (
-                    <tr key={e.id} className="hover:bg-muted/30 transition-colors">
-                      <td className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">
-                        {formatDate(e.created_at)}
-                      </td>
-                      <td className="px-4 py-3">
-                        <Badge className={`text-xs ${EVENT_COLORS[e.event_type] ?? 'bg-muted text-muted-foreground border-border'}`}>
-                          {e.event_type}
-                        </Badge>
-                      </td>
-                      <td className="px-4 py-3 font-mono text-xs text-muted-foreground">
-                        {e.session_id ? `${e.session_id.slice(0, 8)}\u2026` : '\u2014'}
-                      </td>
-                      <td className="px-4 py-3 font-mono text-xs text-muted-foreground">
-                        {e.user_id ? `${e.user_id.slice(0, 8)}\u2026` : '\u2014'}
-                      </td>
-                      <td
-                        className="px-4 py-3 text-xs text-muted-foreground truncate max-w-xs"
-                        title={e.data ?? ''}
-                      >
-                        {e.data ? (e.data.length > 80 ? `${e.data.slice(0, 80)}\u2026` : e.data) : '\u2014'}
-                      </td>
-                    </tr>
+                    <Fragment key={e.id}>
+                      <tr className="hover:bg-muted/30 transition-colors cursor-pointer" onClick={() => setExpandedEventId((prev) => prev === e.id ? null : e.id)}>
+                        <td className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">
+                          {formatDate(e.created_at)}
+                        </td>
+                        <td className="px-4 py-3">
+                          <Badge className={`text-xs ${EVENT_COLORS[e.event_type] ?? 'bg-muted text-muted-foreground border-border'}`}>
+                            {e.event_type}
+                          </Badge>
+                        </td>
+                        <td className="px-4 py-3 font-mono text-xs text-muted-foreground">
+                          {e.session_id ? `${e.session_id.slice(0, 8)}...` : '--'}
+                        </td>
+                        <td className="px-4 py-3 font-mono text-xs text-muted-foreground">
+                          {e.user_id ? `${e.user_id.slice(0, 8)}...` : '--'}
+                        </td>
+                        <td className="px-4 py-3 text-xs text-muted-foreground truncate max-w-xs" title={e.data ?? ''}>
+                          {payloadPreview(e.data)}
+                        </td>
+                      </tr>
+                      {expandedEventId === e.id && (
+                        <tr className="bg-muted/20">
+                          <td colSpan={5} className="px-4 py-3">
+                            <div className="grid gap-2 md:grid-cols-2">
+                              <div className="rounded border border-border bg-background p-2">
+                                <div className="text-[11px] uppercase tracking-widest text-muted-foreground mb-1">Metadata</div>
+                                <div className="text-xs text-muted-foreground space-y-1">
+                                  <div>id: <span className="font-mono">{e.id}</span></div>
+                                  <div>session: <span className="font-mono">{e.session_id ?? '--'}</span></div>
+                                  <div>user: <span className="font-mono">{e.user_id ?? '--'}</span></div>
+                                  <div>client ts: <span className="font-mono">{e.client_ts ?? '--'}</span></div>
+                                </div>
+                              </div>
+                              <div className="rounded border border-border bg-background p-2">
+                                <div className="text-[11px] uppercase tracking-widest text-muted-foreground mb-1">Payload</div>
+                                <pre className="text-xs whitespace-pre-wrap wrap-break-word text-foreground max-h-40 overflow-auto">{e.data ?? '--'}</pre>
+                              </div>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </Fragment>
                   ))}
             </tbody>
           </table>
