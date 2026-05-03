@@ -70,29 +70,56 @@ pnpm dev
 
 ## Commands
 
+### Core Daily
+
 | Command | Description |
 |---|---|
 | `pnpm dev` | Start Vite dev server |
 | `pnpm build` | Type-check + production build |
+| `pnpm build:fast` | Fast build without full workspace type-check |
 | `pnpm preview` | Preview production build locally |
-| `pnpm lint` | Run ESLint |
-| `pnpm validate` | Type-check + lint + test (full check) |
+| `pnpm typecheck` | Type-check app + shared packages |
+| `pnpm lint` | Run ESLint with local cache |
 | `pnpm test` | Run all Vitest tests |
+
+### Quality And CI
+
+| Command | Description |
+|---|---|
+| `pnpm validate` | Full local gate: typecheck:all + lint + test + refactor guard |
+| `pnpm typecheck:all` | Type-check app, workers, and scripts |
+| `pnpm test:coverage` | Run tests with coverage report |
 | `pnpm test:unit` | Unit tests only (excludes components) |
 | `pnpm test:components` | Component tests only |
 | `pnpm test:e2e` | Playwright E2E tests (auto-starts preview server; requires a build) |
-| `pnpm test:coverage` | Tests with coverage report |
+| `pnpm size` | Check named bundle size budgets |
+| `pnpm build:worker` | Dry-run build check for tail worker |
+
+### Deploy And Cloudflare
+
+| Command | Description |
+|---|---|
 | `pnpm deploy` | Build + deploy to Cloudflare Pages (production) |
 | `pnpm deploy:preview` | Build + deploy preview branch |
 | `pnpm cf:login` | Authenticate with Cloudflare |
-| `pnpm cf:dev` | Dev server with Cloudflare bindings (KV, D1, R2) |
-| `pnpm db:types` | Regenerate D1 row types from migrations |
+| `pnpm cf:dev` | Local Pages + Functions dev server with bindings |
+| `pnpm deploy:tail` | Deploy tail worker to production |
+| `pnpm deploy:tail:preview` | Deploy tail worker to preview |
+
+### Data And DB Ops
+
+| Command | Description |
+|---|---|
 | `pnpm migrate:create` | Scaffold a new timestamped migration file |
+| `pnpm migration:new` | Alias of `pnpm migrate:create` |
 | `pnpm migrate:preview` | Apply pending D1 migrations to preview |
 | `pnpm migrate:prod` | Apply pending D1 migrations to production |
+| `pnpm db:types` | Regenerate D1 row types from migrations |
 | `pnpm analytics:readiness:preview` | Run guess-readiness calibration queries against preview D1 |
 | `pnpm analytics:readiness:prod` | Run guess-readiness calibration queries against production D1 |
 | `pnpm ingest` | Run data ingestion pipeline |
+
+For the complete script catalog (simulation, reconciliation, agreement scoring, and more), see [package.json](package.json).
 
 ## Architecture
 
