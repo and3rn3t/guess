@@ -1,0 +1,75 @@
+name: Quality Ratchet
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [main]
+    paths:
+      - "src/**"
+      - "functions/**"
+      - "packages/**"
+      - "scripts/quality-ratchet.ts"
+      - "vitest.config.ts"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - ".github/workflows/quality-ratchet.yml"
+
+concurrency:
+  group: quality-ratchet-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions: {}
+
+jobs:
+  ratchet:
+    name: Coverage/type ratchet (informational)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      QUALITY_RATCHET_ENFORCE: 'false'
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+      - uses: ./.github/actions/setup
+      - name: Prepare quality-ratchet artifacts
+        run: mkdir -p .ci-artifacts/quality-ratchet
+
+      - name: Typecheck
+        run: |
+          set -o pipefail
+          pnpm typecheck:all 2>&1 | tee .ci-artifacts/quality-ratchet/typecheck.log
+
+      - name: Coverage
+        run: |
+          set -o pipefail
+          pnpm test:coverage 2>&1 | tee .ci-artifacts/quality-ratchet/test-coverage.log
+
+      - name: Quality ratchet report
+        run: |
+          set -o pipefail
+          if [ "${QUALITY_RATCHET_ENFORCE}" = "true" ]; then
+            pnpm quality:ratchet:enforce 2>&1 | tee .ci-artifacts/quality-ratchet/quality-ratchet.log
+          else
+            pnpm quality:ratchet 2>&1 | tee .ci-artifacts/quality-ratchet/quality-ratchet.log
+          fi
+
+      - name: Upload quality-ratchet logs
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: ci-quality-ratchet-logs
+          path: .ci-artifacts/quality-ratchet/
+          retention-days: 7
+
+      - name: Quality ratchet summary
+        if: always()
+        run: |
+          {
+            echo "### Quality Ratchet Artifacts"
+            echo ""
+            echo "- Artifact: ci-quality-ratchet-logs"
+            echo "- Files: typecheck.log, test-coverage.log, quality-ratchet.log"
+            echo "- Rollout mode: ${{ env.QUALITY_RATCHET_ENFORCE == 'true' && 'enforce' || 'warn-only' }}"
+            echo "- Toggle: set QUALITY_RATCHET_ENFORCE='true' in this workflow to enforce"
+          } >> "$GITHUB_STEP_SUMMARY"

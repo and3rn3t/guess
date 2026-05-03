@@ -32,10 +32,60 @@ Source: .github/workflows/ci.yml
 - Artifact: ci-build-logs
 - Contents:
   - build.log
+  - worker-build.log
   - bundle-size.log
   - named-chunk-budgets.log
   - js-asset-sizes-kb.txt
 - Use when: production build or bundle-size budget checks fail.
+
+## Docs link workflow
+
+Source: .github/workflows/docs-links.yml
+
+### links job
+
+- Artifact: ci-docs-links-logs
+- Contents:
+  - lychee-out.md
+- Use when: markdown/docs links fail validation (warn-only rollout mode).
+- Rollout toggle: set `DOCS_LINKS_ENFORCE: 'true'` in `.github/workflows/docs-links.yml`.
+
+## Online validation workflow
+
+Source: .github/workflows/online-validation.yml
+
+### validate-online job
+
+- Artifact: ci-online-validation-logs
+- Contents:
+  - validate-online.log
+- Use when: credentialed validation checks (D1 dry-run, vision gate) fail or were unexpectedly skipped.
+
+## Strict changed workflow
+
+Source: .github/workflows/strict-changed.yml
+
+### strict job
+
+- Artifact: ci-strict-changed-logs
+- Contents:
+  - validate-strict.log
+- Use when: strict lane failures need triage during warn-only rollout.
+- Rollout toggle: set `STRICT_CHANGED_ENFORCE: 'true'` in `.github/workflows/strict-changed.yml`.
+
+## Quality ratchet workflow
+
+Source: .github/workflows/quality-ratchet.yml
+
+### ratchet job
+
+- Artifact: ci-quality-ratchet-logs
+- Contents:
+  - typecheck.log
+  - test-coverage.log
+  - quality-ratchet.log
+- Use when: coverage/type-quality trend warnings need analysis before enforcing ratchets.
+- Rollout toggle: set `QUALITY_RATCHET_ENFORCE: 'true'` in `.github/workflows/quality-ratchet.yml`.
 
 ### db-checks job
 

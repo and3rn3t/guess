@@ -86,7 +86,11 @@ pnpm dev
 
 | Command | Description |
 |---|---|
-| `pnpm validate` | Full local gate: typecheck:all + lint + test + refactor guard |
+| `pnpm validate` | Fast local gate (alias of `pnpm validate:fast`) |
+| `pnpm validate:fast` | Deterministic local gate: typecheck:all + lint + test + refactor guard |
+| `pnpm validate:strict` | Extended offline gate: fast + app build + worker build + migration/schema checks + coverage |
+| `pnpm validate:online` | Conditional credentialed checks (runs only when required env vars are present) |
+| `pnpm validate:all` | Strict + online validation lanes |
 | `pnpm typecheck:all` | Type-check app, workers, and scripts |
 | `pnpm test:coverage` | Run tests with coverage report |
 | `pnpm test:unit` | Unit tests only (excludes components) |

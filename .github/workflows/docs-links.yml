@@ -1,0 +1,99 @@
+name: Docs Link Check
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "**/*.md"
+      - "docs/**"
+      - ".github/workflows/docs-links.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "**/*.md"
+      - "docs/**"
+      - ".github/workflows/docs-links.yml"
+
+concurrency:
+  group: docs-links-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions: {}
+
+jobs:
+  links:
+    name: Validate markdown links
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      DOCS_LINKS_ENFORCE: 'false'
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+      - name: Prepare docs-link artifacts
+        run: mkdir -p .ci-artifacts/docs-links
+
+      - name: Check links (enforce)
+        if: env.DOCS_LINKS_ENFORCE == 'true'
+        uses: lycheeverse/lychee-action@v2
+        with:
+          fail: true
+          args: >-
+            --verbose
+            --no-progress
+            --max-concurrency 12
+            --timeout 20
+            --retry-wait-time 2
+            --max-retries 2
+            --exclude-mail
+            --accept 200,206,429
+            "**/*.md"
+
+      # Warn-only rollout: do not block merges until the baseline is stable.
+      - name: Check links (warn-only)
+        if: env.DOCS_LINKS_ENFORCE != 'true'
+        continue-on-error: true
+        uses: lycheeverse/lychee-action@v2
+        with:
+          fail: true
+          args: >-
+            --verbose
+            --no-progress
+            --max-concurrency 12
+            --timeout 20
+            --retry-wait-time 2
+            --max-retries 2
+            --exclude-mail
+            --accept 200,206,429
+            "**/*.md"
+
+      - name: Save lychee output
+        if: always()
+        run: |
+          if [ -f lychee/out.md ]; then
+            cp lychee/out.md .ci-artifacts/docs-links/lychee-out.md
+          else
+            echo "No lychee output generated." > .ci-artifacts/docs-links/lychee-out.md
+          fi
+
+      - name: Upload docs-link logs
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: ci-docs-links-logs
+          path: .ci-artifacts/docs-links/
+          retention-days: 7
+
+      - name: Docs-link summary
+        if: always()
+        run: |
+          {
+            echo "### Docs Link Artifacts"
+            echo ""
+            echo "- Artifact: ci-docs-links-logs"
+            echo "- File: lychee-out.md"
+            echo "- Rollout mode: ${{ env.DOCS_LINKS_ENFORCE == 'true' && 'enforce' || 'warn-only' }}"
+            echo "- Toggle: set DOCS_LINKS_ENFORCE='true' in this workflow to enforce"
+          } >> "$GITHUB_STEP_SUMMARY"
