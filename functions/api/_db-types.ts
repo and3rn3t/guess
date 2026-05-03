@@ -290,3 +290,12 @@ export interface GameFeedbackRow {
   feedback_text: string | null
   created_at: number
 }
+
+export interface DailyResultsRow {
+  date: string
+  user_id: string
+  character_id: string
+  won: number
+  questions_asked: number
+  completed_at: number
+}
