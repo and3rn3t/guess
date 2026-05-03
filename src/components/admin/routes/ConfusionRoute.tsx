@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { AdminPageHeader } from '../AdminPageHeader'
-import { Button } from '@/components/ui/button'
+import { FreshnessPill } from '../FreshnessPill'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { ArrowsClockwiseIcon, ChartBarIcon } from '@phosphor-icons/react'
+import { ChartBarIcon } from '@phosphor-icons/react'
 
 type ConfusionSource = 'real' | 'sim'
 
@@ -134,10 +134,11 @@ export default function ConfusionRoute(): React.JSX.Element {
         subtitle={copy.subtitle}
         sectionColor="violet"
         actions={
-          <Button variant="outline" size="sm" onClick={() => void fetchData(source)} disabled={loading}>
-            <ArrowsClockwiseIcon size={14} className={`mr-2 ${loading ? 'animate-spin' : ''}`} />
-            Refresh
-          </Button>
+          <FreshnessPill
+            fetchedAt={data?.generatedAt ?? null}
+            onRefresh={() => void fetchData(source)}
+            refreshing={loading}
+          />
         }
       />
 

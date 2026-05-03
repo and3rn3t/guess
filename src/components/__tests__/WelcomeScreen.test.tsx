@@ -47,12 +47,19 @@ const defaultProps = () => ({
   categories: [] as import('@/lib/types').CharacterCategory[],
   setCategories: vi.fn(),
   streak: 0,
+  dailyChallenge: null,
+  dailyLeaderboard: [],
+  dailyLoading: false,
+  dailyError: null,
+  refreshDailyChallenge: vi.fn(),
+  startDailyChallenge: vi.fn(),
 })
 
 describe('WelcomeScreen', () => {
   it('renders hero section', () => {
     render(<WelcomeScreen {...defaultProps()} />)
     expect(screen.getByText('Think of a Character')).toBeInTheDocument()
+    expect(screen.getByText(/daily challenge/i)).toBeInTheDocument()
   })
 
   it('shows Start Game button for new players', () => {
@@ -189,5 +196,14 @@ describe('WelcomeScreen', () => {
     // footer paragraph contains "500 characters"
     const footer = screen.getAllByText(/500/, { selector: 'p' })
     expect(footer.length).toBeGreaterThanOrEqual(1)
+  })
+
+  it('shows daily retry button and calls refresh handler on click', async () => {
+    const user = userEvent.setup()
+    const props = defaultProps()
+    render(<WelcomeScreen {...props} dailyError="Daily service unavailable" />)
+
+    await user.click(screen.getByRole('button', { name: /retry/i }))
+    expect(props.refreshDailyChallenge).toHaveBeenCalledOnce()
   })
 })

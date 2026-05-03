@@ -67,6 +67,27 @@ describe('AppHeader', () => {
     expect(props.toggleTheme).toHaveBeenCalledOnce()
   })
 
+  it('shows correct dark-theme label and next state', () => {
+    render(<AppHeader {...baseProps()} theme="dark" />)
+    expect(
+      screen.getByRole('button', { name: /theme: dark \(switch to light\)/i }),
+    ).toBeInTheDocument()
+  })
+
+  it('shows correct light-theme label and next state', () => {
+    render(<AppHeader {...baseProps()} theme="light" />)
+    expect(
+      screen.getByRole('button', { name: /theme: light \(switch to system\)/i }),
+    ).toBeInTheDocument()
+  })
+
+  it('shows correct system-theme label and next state', () => {
+    render(<AppHeader {...baseProps()} theme="system" />)
+    expect(
+      screen.getByRole('button', { name: /theme: system \(switch to dark\)/i }),
+    ).toBeInTheDocument()
+  })
+
   it('shows nav buttons in welcome phase', () => {
     render(<AppHeader {...baseProps()} gamePhase="welcome" />)
     expect(screen.getByText('Statistics')).toBeInTheDocument()

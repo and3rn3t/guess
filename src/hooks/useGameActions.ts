@@ -31,6 +31,7 @@ export interface UseGameActionsOptions {
   startServerGame: (
     categories: CharacterCategory[],
     difficulty: Difficulty,
+    characterId?: string,
   ) => Promise<void>;
   resetElimination: () => void;
   setIsNewPersonalBest: (value: boolean) => void;
@@ -52,6 +53,7 @@ export interface UseGameActionsOptions {
   answers: Answer[];
   setCharacters: Dispatch<SetStateAction<Character[]>>;
   setQuestions: Dispatch<SetStateAction<Question[]>>;
+  onGameCompleted?: (won: boolean, questionsAsked: number) => void | Promise<void>;
 }
 
 export function useGameActions(options: UseGameActionsOptions) {
@@ -79,6 +81,7 @@ export function useGameActions(options: UseGameActionsOptions) {
     answers,
     setCharacters,
     setQuestions,
+    onGameCompleted,
   } = options;
 
   const startGame = useCallback(async () => {
@@ -86,6 +89,12 @@ export function useGameActions(options: UseGameActionsOptions) {
     resetElimination();
     await startServerGame(categories, difficulty);
   }, [categories, difficulty, resetElimination, setIsNewPersonalBest, startServerGame]);
+
+  const startGameWithCharacter = useCallback(async (characterId: string) => {
+    setIsNewPersonalBest(false);
+    resetElimination();
+    await startServerGame([], difficulty, characterId);
+  }, [difficulty, resetElimination, setIsNewPersonalBest, startServerGame]);
 
   const handleAnswer = useCallback(async (value: AnswerValue) => {
     dispatch({ type: "ANSWER", value });
@@ -106,6 +115,7 @@ export function useGameActions(options: UseGameActionsOptions) {
     toast.success("🎉 I got it right!");
     postServerResult(true);
     refreshStats();
+    void onGameCompleted?.(true, gameSteps.length);
   }, [
     updateBest,
     gameSteps.length,
@@ -115,6 +125,7 @@ export function useGameActions(options: UseGameActionsOptions) {
     guessCount,
     postServerResult,
     refreshStats,
+    onGameCompleted,
   ]);
 
   const handleIncorrectGuess = useCallback(() => {
@@ -127,7 +138,8 @@ export function useGameActions(options: UseGameActionsOptions) {
     toast.error("I'll learn from this and do better next time!");
     postServerResult(false);
     refreshStats();
-  }, [dispatch, difficulty, gameSteps.length, guessCount, postServerResult, refreshStats]);
+    void onGameCompleted?.(false, gameSteps.length);
+  }, [dispatch, difficulty, gameSteps.length, guessCount, postServerResult, refreshStats, onGameCompleted]);
 
   const handleRejectGuess = useCallback(() => {
     if (!finalGuess) return;
@@ -244,6 +256,7 @@ export function useGameActions(options: UseGameActionsOptions) {
 
   return {
     startGame,
+    startGameWithCharacter,
     handleAnswer,
     handleCorrectGuess,
     handleIncorrectGuess,

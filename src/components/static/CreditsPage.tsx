@@ -9,11 +9,31 @@ export function CreditsPage(): React.JSX.Element {
       <div className="space-y-2">
         <h2 className="text-lg font-semibold text-foreground">Character and metadata sources</h2>
         <ul className="list-disc pl-5 space-y-1 text-muted-foreground">
-          <li>TMDb</li>
-          <li>AniList</li>
-          <li>IGDB</li>
-          <li>ComicVine</li>
-          <li>Wikidata</li>
+          <li>
+            <a href="https://www.themoviedb.org/" target="_blank" rel="noreferrer noopener" className="underline underline-offset-2 hover:text-foreground transition-colors">
+              TMDb
+            </a>
+          </li>
+          <li>
+            <a href="https://anilist.co/" target="_blank" rel="noreferrer noopener" className="underline underline-offset-2 hover:text-foreground transition-colors">
+              AniList
+            </a>
+          </li>
+          <li>
+            <a href="https://www.igdb.com/" target="_blank" rel="noreferrer noopener" className="underline underline-offset-2 hover:text-foreground transition-colors">
+              IGDB
+            </a>
+          </li>
+          <li>
+            <a href="https://comicvine.gamespot.com/" target="_blank" rel="noreferrer noopener" className="underline underline-offset-2 hover:text-foreground transition-colors">
+              ComicVine
+            </a>
+          </li>
+          <li>
+            <a href="https://www.wikidata.org/" target="_blank" rel="noreferrer noopener" className="underline underline-offset-2 hover:text-foreground transition-colors">
+              Wikidata
+            </a>
+          </li>
         </ul>
       </div>
 
@@ -30,18 +50,23 @@ export function CreditsPage(): React.JSX.Element {
       <div className="space-y-2">
         <h2 className="text-lg font-semibold text-foreground">Open-source libraries</h2>
         <ul className="list-disc pl-5 space-y-1 text-muted-foreground">
-          <li>React</li>
-          <li>TypeScript</li>
-          <li>Vite</li>
-          <li>Tailwind CSS</li>
-          <li>shadcn/ui</li>
-          <li>Vitest and Playwright</li>
+          <li><a href="https://react.dev/" target="_blank" rel="noreferrer noopener" className="underline underline-offset-2 hover:text-foreground transition-colors">React</a></li>
+          <li><a href="https://www.typescriptlang.org/" target="_blank" rel="noreferrer noopener" className="underline underline-offset-2 hover:text-foreground transition-colors">TypeScript</a></li>
+          <li><a href="https://vite.dev/" target="_blank" rel="noreferrer noopener" className="underline underline-offset-2 hover:text-foreground transition-colors">Vite</a></li>
+          <li><a href="https://tailwindcss.com/" target="_blank" rel="noreferrer noopener" className="underline underline-offset-2 hover:text-foreground transition-colors">Tailwind CSS</a></li>
+          <li><a href="https://ui.shadcn.com/" target="_blank" rel="noreferrer noopener" className="underline underline-offset-2 hover:text-foreground transition-colors">shadcn/ui</a></li>
+          <li><a href="https://vitest.dev/" target="_blank" rel="noreferrer noopener" className="underline underline-offset-2 hover:text-foreground transition-colors">Vitest</a> and <a href="https://playwright.dev/" target="_blank" rel="noreferrer noopener" className="underline underline-offset-2 hover:text-foreground transition-colors">Playwright</a></li>
         </ul>
       </div>
 
       <p className="text-muted-foreground">
         Some character images and metadata remain subject to their original licensors and source platform
         terms. If you are a rightsholder and want an update or removal, open an issue in the project repo.
+      </p>
+
+      <p className="text-muted-foreground">
+        API names and logos are property of their respective owners. This project is an independent portfolio
+        implementation and is not endorsed by source providers.
       </p>
 
       <div className="flex flex-wrap gap-3 pt-1">

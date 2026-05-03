@@ -119,7 +119,10 @@ functions/api/                 # Cloudflare Workers
     ├── questions.ts           # Questions + attribute coverage stats
     ├── attributes.ts          # Attribute definitions + coverage %
     ├── stats.ts               # Database overview
-    ├── daily.ts               # Daily challenge — deterministic character selection + completion tracking
+    ├── daily/
+    │   ├── index.ts           # GET/POST daily status + completion tracking
+    │   ├── leaderboard.ts     # Daily top-20 leaderboard by win/efficiency
+    │   └── _shared.ts         # Deterministic daily character selection helpers
     ├── events.ts              # Client→server analytics event pipeline (POST /api/v2/events)
     ├── history.ts             # Server-side game history (GET /api/v2/history)
     ├── _llm-rephrase.ts       # LLM question rephrasing with 24h KV cache
@@ -276,9 +279,14 @@ Primary database for the server-side engine and character catalog.
 Key-value store for game sessions and user data.
 
 - `game:{sessionId}` — Active game session (character pool, questions, answers; 1hr TTL)
-- `daily:character:{date}` — Today's challenge character (cached until UTC midnight)
-- `daily:done:{date}:{userId}` — User's completion record for a given day (TTL: end of next day)
 - v1 API endpoints store characters, questions, stats, corrections
+
+### Daily challenge persistence
+
+- `daily_results` (D1, migration `0044_daily_results.sql`) stores one row per `(date, user_id)` with `won`, `questions_asked`, and `completed_at`
+- `GET /api/v2/daily` returns date + deterministic daily character id + caller completion state
+- `POST /api/v2/daily` writes completion idempotently (first write wins)
+- `GET /api/v2/daily/leaderboard` returns top-20 rows ordered by `won DESC, questions_asked ASC, completed_at ASC`
 
 ### R2
 

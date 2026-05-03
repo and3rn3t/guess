@@ -10,6 +10,12 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- **Portfolio static pages + theme default hardening (P.7/P.8)** — `/about` and `/credits` routes were expanded with stronger portfolio context, clickable source/library attributions, and clearer ownership disclaimers. ThemeProvider defaults were switched to `system` across app/about/credits/admin entry paths so first-load theme respects OS preference while preserving the existing 3-state toggle behavior. Added route-level regression tests in `src/components/__tests__/StaticPages.test.tsx` and expanded header theme-label coverage in `src/components/__tests__/AppHeader.test.tsx`.
+
+- **Daily challenge leaderboard foundation (P.9)** — introduced migration `migrations/0044_daily_results.sql` (`daily_results` with `(date, user_id)` PK + ranking indexes), new endpoints `GET/POST /api/v2/daily` and `GET /api/v2/daily/leaderboard` under `functions/api/v2/daily/`, and deterministic daily helpers in `functions/api/v2/daily/_shared.ts`. Client wiring includes daily types in `src/lib/types.ts`, API methods in `src/lib/gameApi.ts`, new `useDailyChallenge` hook, `startGameWithCharacter` support in `useGameActions`, app/context integration, and a welcome-card daily UI with top-player preview + retry on fetch failure. Added endpoint tests (`functions/api/v2/daily/index.test.ts`, `functions/api/v2/daily/leaderboard.test.ts`) and UI coverage updates in `src/components/__tests__/WelcomeScreen.test.tsx`.
+
+- **Admin freshness pills (AP.6, initial rollout)** — added reusable `FreshnessPill` (`src/components/admin/FreshnessPill.tsx`) with live age formatting (`Fetched 2m ago`), stale thresholds (`>5m` amber, `>30m` red), and click-to-refetch behavior. Wired into data-heavy admin headers for confusion, retirement queue, and duplicate-question routes (`ConfusionRoute`, `RetirementQueueRoute`, `DuplicatesRoute`) using each endpoint's `generatedAt` timestamp. Added component tests in `src/components/admin/__tests__/FreshnessPill.test.tsx`.
+
 ## [1.6.1] - 2026-05-03
 
 ### Added

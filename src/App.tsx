@@ -17,6 +17,7 @@ import { useAchievements } from "@/hooks/useAchievements";
 import { useAdaptiveDifficulty } from "@/hooks/useAdaptiveDifficulty";
 import { useAppLifecycleEffects } from "@/hooks/useAppLifecycleEffects";
 import { useDailyStreak } from "@/hooks/useDailyStreak";
+import { useDailyChallenge } from "@/hooks/useDailyChallenge";
 import { useEliminationTracker } from "@/hooks/useEliminationTracker";
 import { useGameActions } from "@/hooks/useGameActions";
 import { useGameState } from "@/hooks/useGameState";
@@ -168,11 +169,21 @@ function App() {
 
   // ========== PWA: INSTALL PROMPT ==========
   const { canInstall, promptInstall } = useInstallPrompt();
+  const {
+    status: dailyChallenge,
+    leaderboard: dailyLeaderboard,
+    loading: dailyLoading,
+    error: dailyError,
+    refresh: refreshDailyChallenge,
+    recordCompletion: recordDailyCompletion,
+  } = useDailyChallenge();
+  const [activeDailyDate, setActiveDailyDate] = useState<string | null>(null);
 
   // ========== PWA: SW UPDATE NOTIFICATION ==========
   const { updateAvailable, reload: reloadForUpdate } = useSWUpdate();
   const {
     startGame,
+    startGameWithCharacter,
     handleAnswer,
     handleCorrectGuess,
     handleIncorrectGuess,
@@ -208,7 +219,23 @@ function App() {
     answers,
     setCharacters,
     setQuestions,
+    onGameCompleted: (won, questionsAsked) => {
+      if (!activeDailyDate || activeDailyDate !== dailyChallenge?.date) return;
+      void recordDailyCompletion(won, questionsAsked);
+      setActiveDailyDate(null);
+    },
   });
+
+  const startDailyChallenge = useCallback(async () => {
+    if (!dailyChallenge?.characterId) return;
+    setActiveDailyDate(dailyChallenge.date);
+    await startGameWithCharacter(dailyChallenge.characterId);
+  }, [dailyChallenge, startGameWithCharacter]);
+
+  const startStandardGame = useCallback(async () => {
+    setActiveDailyDate(null);
+    await startGame();
+  }, [startGame]);
 
   useAppLifecycleEffects({
     gamePhase,
@@ -224,7 +251,7 @@ function App() {
     showQuitDialog,
     setShowQuitDialog,
     dispatch,
-    startGame,
+    startGame: startStandardGame,
   });
 
   // Challenge view is a standalone screen — render before the main layout
@@ -339,9 +366,15 @@ function App() {
                 dailyStreak,
                 achievements,
                 weeklyRecap,
+                dailyChallenge,
+                dailyLeaderboard,
+                dailyLoading,
+                dailyError,
+                refreshDailyChallenge,
                 showOnboarding,
                 setShowOnboarding,
-                startGame,
+                startGame: startStandardGame,
+                startDailyChallenge,
                 handleAnswer,
                 handleSkip,
                 handleGiveUp: handleSurrender,

@@ -18,6 +18,8 @@ import {
 import type {
   AnswerValue,
   CharacterCategory,
+  DailyChallengeStatus,
+  DailyLeaderboardEntry,
   Difficulty,
   GuessReadinessSnapshot,
   Question,
@@ -244,4 +246,28 @@ export function submitGameFeedback(
       feedbackText: feedbackText?.trim() || undefined,
     })
     .then((raw) => FeedbackResponseSchema.parse(raw));
+}
+
+interface DailyLeaderboardResponse {
+  date: string;
+  leaderboard: DailyLeaderboardEntry[];
+}
+
+export function fetchDailyChallengeStatus(): Promise<DailyChallengeStatus> {
+  return httpClient.getJson<DailyChallengeStatus>("/api/v2/daily");
+}
+
+export function recordDailyChallengeResult(
+  won: boolean,
+  questionsAsked: number,
+): Promise<{ ok: boolean; date: string; characterId: string }> {
+  return httpClient.postJson<{ ok: boolean; date: string; characterId: string }>(
+    "/api/v2/daily",
+    { won, questionsAsked },
+  );
+}
+
+export function fetchDailyLeaderboard(date?: string): Promise<DailyLeaderboardResponse> {
+  const qs = date ? `?date=${encodeURIComponent(date)}` : "";
+  return httpClient.getJson<DailyLeaderboardResponse>(`/api/v2/daily/leaderboard${qs}`);
 }

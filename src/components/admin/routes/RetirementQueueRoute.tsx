@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { AdminPageHeader } from '../AdminPageHeader'
 import { Button } from '@/components/ui/button'
+import { FreshnessPill } from '../FreshnessPill'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
@@ -159,6 +160,13 @@ export default function RetirementQueueRoute(): React.JSX.Element {
         subtitle={`Last ${data?.windowDays ?? 30} days · min ${data?.minShown ?? 10} impressions`}
         sectionColor="blue"
         breadcrumbs={[{ label: 'Questions', to: '/questions' }, { label: 'Retirement Queue' }]}
+        actions={
+          <FreshnessPill
+            fetchedAt={data?.generatedAt ?? null}
+            onRefresh={() => void fetchData(source)}
+            refreshing={loading}
+          />
+        }
       />
 
       <Tabs value={source} onValueChange={handleSourceChange}>

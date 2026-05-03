@@ -11,6 +11,8 @@ import type {
   Character,
   CharacterCategory,
   Difficulty,
+  DailyChallengeStatus,
+  DailyLeaderboardEntry,
   GameHistoryEntry,
   GuessReadinessSnapshot,
   Persona,
@@ -69,11 +71,17 @@ export interface GameContextValue {
   dailyStreak: number;
   achievements: Achievement[];
   weeklyRecap: WeeklyRecap | null;
+  dailyChallenge: DailyChallengeStatus | null;
+  dailyLeaderboard: DailyLeaderboardEntry[];
+  dailyLoading: boolean;
+  dailyError: string | null;
+  refreshDailyChallenge: () => Promise<void>;
   showOnboarding: boolean;
   setShowOnboarding: (show: boolean) => void;
 
   // Handlers
   startGame: () => void | Promise<void>;
+  startDailyChallenge: () => void | Promise<void>;
   handleAnswer: (value: AnswerValue) => void | Promise<void>;
   handleSkip: () => void;
   handleGiveUp: () => void;

@@ -129,3 +129,30 @@ export interface GameHistoryStep {
   attribute: string
   answer: AnswerValue
 }
+
+export interface DailyChallengeResult {
+  won: boolean
+  questionsAsked: number
+  completedAt: number
+}
+
+export interface DailyChallengeStatus {
+  date: string
+  characterId: string
+  completed: boolean
+  result: DailyChallengeResult | null
+  revealedCharacter: {
+    id: string
+    name: string
+    imageUrl: string | null
+  } | null
+}
+
+export interface DailyLeaderboardEntry {
+  rank: number
+  userLabel: string
+  won: boolean
+  questionsAsked: number
+  completedAt: number
+  isYou: boolean
+}

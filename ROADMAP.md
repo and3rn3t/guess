@@ -230,8 +230,8 @@ The active execution plan, sequenced by **priority × ease**. Pull items top-dow
 
 > **Maintain this block first.** It's the single answer to "what should I work on?" — agents and humans check it before scanning tables. Update in the same commit as the work it describes.
 
-- 🟡 **In progress:** [I.1](#i-1) preview AI Gateway 24h verification window · [I.9](#i-9) AI Gateway semantic caching 7d cache-hit window · [P.7](#p-7) `/about` + `/credits` pages · [P.8](#p-8) light theme + 3-state toggle (system/dark/light)
-- ▶ **Up next:** [P.9](#p-9) daily challenge global leaderboard
+- 🟡 **In progress:** [I.1](#i-1) preview AI Gateway 24h verification window · [I.9](#i-9) AI Gateway semantic caching 7d cache-hit window · [P.7](#p-7) `/about` + `/credits` pages · [P.8](#p-8) light theme + 3-state toggle (system/dark/light) · [P.9](#p-9) daily challenge global leaderboard · [AP.6](#ap-6) freshness pills across admin views
+- ▶ **Up next:** [AP.11](#ap-11) breadcrumbs + page titles
 - ✅ **Recently completed:** [DX.4](#dx-4) MSW for API-dependent component tests (2026-05-02) · admin recommender + Data Hygiene + cost dashboard migrated to server endpoints with request-id/rate-limit/logging hardening (2026-05-02) · post-game reflection feedback capture + coverage tests (2026-05-02) · [EN.29](#en-29) trivia card on reveal (2026-05-02)
 - 🧫 **Blocked / waiting on:** _none_
 - 🎯 **Current wave focus:** Wave 4 complete. Next: Wave 5 — Polish & Depth (admin polish, DX leverage, player-facing gloss).

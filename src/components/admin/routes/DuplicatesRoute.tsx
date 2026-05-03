@@ -12,6 +12,7 @@
  */
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { AdminPageHeader } from '../AdminPageHeader'
+import { FreshnessPill } from '../FreshnessPill'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Input } from '@/components/ui/input'
@@ -155,6 +156,13 @@ export default function DuplicatesRoute(): React.JSX.Element {
         subtitle="Cosine similarity between question embeddings. Merge or dismiss near-duplicates to keep the question pool tight."
         sectionColor="blue"
         breadcrumbs={[{ label: 'Questions', to: '/questions' }, { label: 'Duplicate Queue' }]}
+        actions={
+          <FreshnessPill
+            fetchedAt={data?.generatedAt ?? null}
+            onRefresh={() => void load(threshold)}
+            refreshing={loading}
+          />
+        }
       />
 
       <div className="flex flex-wrap items-end gap-4 mb-6">
@@ -174,9 +182,6 @@ export default function DuplicatesRoute(): React.JSX.Element {
             className="w-28"
           />
         </div>
-        <Button onClick={() => void load(threshold)} variant="outline" disabled={loading}>
-          Refresh
-        </Button>
         <Button onClick={() => void handleBackfill()} disabled={backfilling}>
           {backfilling ? 'Embedding…' : 'Backfill embeddings'}
         </Button>

@@ -75,9 +75,15 @@ export function GamePhaseRouter() {
     dailyStreak,
     achievements,
     weeklyRecap,
+    dailyChallenge,
+    dailyLeaderboard,
+    dailyLoading,
+    dailyError,
+    refreshDailyChallenge,
     showOnboarding,
     setShowOnboarding,
     startGame,
+    startDailyChallenge,
     handleAnswer,
     handleSkip,
     handleGiveUp,
@@ -172,6 +178,12 @@ export function GamePhaseRouter() {
         personalBest={personalBest}
         achievements={achievements}
         weeklyRecap={weeklyRecap}
+        dailyChallenge={dailyChallenge}
+        dailyLeaderboard={dailyLeaderboard}
+        dailyLoading={dailyLoading}
+        dailyError={dailyError}
+        refreshDailyChallenge={() => void refreshDailyChallenge()}
+        startDailyChallenge={() => void startDailyChallenge()}
       />
     ),
     playing: () => (

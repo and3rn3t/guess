@@ -8,9 +8,11 @@ import type { WeeklyRecap } from "@/hooks/useWeeklyRecap";
 import type {
   Character,
   CharacterCategory,
+  Difficulty,
+  DailyChallengeStatus,
+  DailyLeaderboardEntry,
 } from "@/lib/types";
 import { CATEGORY_LABELS } from "@/lib/types";
-import type { Difficulty } from "@/lib/types";
 import {
   BrainIcon,
   ChartBarIcon,
@@ -46,6 +48,12 @@ interface WelcomeScreenProps {
   personalBest?: number | null;
   achievements?: Achievement[];
   weeklyRecap?: WeeklyRecap | null;
+  dailyChallenge: DailyChallengeStatus | null;
+  dailyLeaderboard: DailyLeaderboardEntry[];
+  dailyLoading: boolean;
+  dailyError: string | null;
+  refreshDailyChallenge: () => void;
+  startDailyChallenge: () => void;
 }
 
 export function WelcomeScreen({
@@ -70,6 +78,12 @@ export function WelcomeScreen({
   personalBest = null,
   achievements = [],
   weeklyRecap = null,
+  dailyChallenge,
+  dailyLeaderboard,
+  dailyLoading,
+  dailyError,
+  refreshDailyChallenge,
+  startDailyChallenge,
 }: Readonly<WelcomeScreenProps>) {
   const filteredTotal =
     categories.length === 0
@@ -79,7 +93,6 @@ export function WelcomeScreen({
           .reduce((sum, c) => sum + c.count, 0) ?? null;
 
   return (
-    <>
       <div className="max-w-2xl mx-auto space-y-6">
         {/* Hero */}
         <div className="text-center space-y-3">
@@ -156,6 +169,72 @@ export function WelcomeScreen({
 
         {/* Weekly recap card — shown on Mondays only */}
         {weeklyRecap && <WeeklyRecapCard recap={weeklyRecap} />}
+
+        <div className="rounded-xl border border-border/60 bg-card/60 p-4 space-y-3">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold text-foreground">Daily Challenge</p>
+              <p className="text-xs text-muted-foreground">
+                Everyone plays the same featured character each UTC day.
+              </p>
+            </div>
+            <Button
+              onClick={startDailyChallenge}
+              size="sm"
+              variant="outline"
+              disabled={!dailyChallenge || dailyLoading}
+              className="shrink-0"
+            >
+              Play Daily
+            </Button>
+          </div>
+
+          {dailyError ? (
+            <div className="flex items-center justify-between gap-2 rounded-md border border-destructive/40 bg-destructive/5 px-2.5 py-2">
+              <p className="text-xs text-destructive">{dailyError}</p>
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                className="h-7 px-2 text-xs"
+                onClick={refreshDailyChallenge}
+              >
+                Retry
+              </Button>
+            </div>
+          ) : null}
+
+          {dailyChallenge?.completed && dailyChallenge.result ? (
+            <p className="text-xs text-accent">
+              Today: {dailyChallenge.result.won ? "won" : "lost"} in {dailyChallenge.result.questionsAsked} questions.
+            </p>
+          ) : (
+            <p className="text-xs text-muted-foreground">You have not completed today&apos;s challenge yet.</p>
+          )}
+
+          <div className="space-y-1">
+            <p className="text-xs font-medium text-foreground/90">Top players today</p>
+            {dailyLoading ? (
+              <p className="text-xs text-muted-foreground">Loading leaderboard...</p>
+            ) : dailyLeaderboard.length === 0 ? (
+              <p className="text-xs text-muted-foreground">No entries yet. Be the first!</p>
+            ) : (
+              <ol className="space-y-1">
+                {dailyLeaderboard.slice(0, 5).map((entry) => (
+                  <li
+                    key={`${entry.rank}-${entry.userLabel}`}
+                    className="flex items-center justify-between text-xs rounded-md border border-border/40 px-2 py-1"
+                  >
+                    <span className="text-muted-foreground">#{entry.rank} {entry.userLabel}{entry.isYou ? " (you)" : ""}</span>
+                    <span className={entry.won ? "text-accent" : "text-muted-foreground"}>
+                      {entry.won ? `${entry.questionsAsked}q` : "miss"}
+                    </span>
+                  </li>
+                ))}
+              </ol>
+            )}
+          </div>
+        </div>
 
         {/* Category filter chips */}
         <div
@@ -340,6 +419,5 @@ export function WelcomeScreen({
           </div>
         )}
       </div>
-    </>
   );
 }

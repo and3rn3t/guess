@@ -29,7 +29,7 @@ if (isAdmin) {
   const { AdminApp } = await import('./components/admin/AdminApp.tsx')
   createRoot(document.getElementById('root')!).render(
     <ErrorBoundary FallbackComponent={ErrorFallback}>
-      <ThemeProvider attribute="class" defaultTheme="dark" themes={["dark", "light", "system"]} enableSystem>
+      <ThemeProvider attribute="class" defaultTheme="system" themes={["dark", "light", "system"]} enableSystem>
         <AdminApp />
       </ThemeProvider>
     </ErrorBoundary>
@@ -37,7 +37,7 @@ if (isAdmin) {
 } else if (isAbout) {
   createRoot(document.getElementById('root')!).render(
     <ErrorBoundary FallbackComponent={ErrorFallback}>
-      <ThemeProvider attribute="class" defaultTheme="dark" themes={["dark", "light", "system"]} enableSystem>
+      <ThemeProvider attribute="class" defaultTheme="system" themes={["dark", "light", "system"]} enableSystem>
         <AboutPage />
       </ThemeProvider>
     </ErrorBoundary>
@@ -45,7 +45,7 @@ if (isAdmin) {
 } else if (isCredits) {
   createRoot(document.getElementById('root')!).render(
     <ErrorBoundary FallbackComponent={ErrorFallback}>
-      <ThemeProvider attribute="class" defaultTheme="dark" themes={["dark", "light", "system"]} enableSystem>
+      <ThemeProvider attribute="class" defaultTheme="system" themes={["dark", "light", "system"]} enableSystem>
         <CreditsPage />
       </ThemeProvider>
     </ErrorBoundary>
@@ -53,7 +53,7 @@ if (isAdmin) {
 } else {
   createRoot(document.getElementById('root')!).render(
     <ErrorBoundary FallbackComponent={ErrorFallback}>
-      <ThemeProvider attribute="class" defaultTheme="dark" themes={["dark", "light", "system"]} enableSystem>
+      <ThemeProvider attribute="class" defaultTheme="system" themes={["dark", "light", "system"]} enableSystem>
         <App />
       </ThemeProvider>
     </ErrorBoundary>
