@@ -1440,6 +1440,208 @@ const WORKFLOW_PROGRESS_POST_RESPONSE_SCHEMA: Record<string, unknown> = {
   additionalProperties: false,
 };
 
+const LIVE_OPS_RESPONSE_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    games1h: { type: "number" },
+    wins1h: { type: "number" },
+    losses1h: { type: "number" },
+    errors1h: { type: "number" },
+    warns1h: { type: "number" },
+    gamesPerMin: { type: "number" },
+    winRate: { type: ["number", "null"] },
+    errorsPerMin: { type: "number" },
+    errorRate: { type: ["number", "null"] },
+    p95LatencyMs: { type: ["number", "null"] },
+    telemetryErrors1h: { type: ["number", "null"] },
+    loggingGap: { type: ["boolean", "null"] },
+    generatedAt: { type: "number" },
+  },
+  required: [
+    "games1h",
+    "wins1h",
+    "losses1h",
+    "errors1h",
+    "warns1h",
+    "gamesPerMin",
+    "winRate",
+    "errorsPerMin",
+    "errorRate",
+    "p95LatencyMs",
+    "telemetryErrors1h",
+    "loggingGap",
+    "generatedAt",
+  ],
+  additionalProperties: false,
+};
+
+const DAILY_COST_USAGE_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    date: { type: "string" },
+    promptTokens: { type: "number" },
+    completionTokens: { type: "number" },
+    calls: { type: "number" },
+  },
+  required: ["date", "promptTokens", "completionTokens", "calls"],
+  additionalProperties: false,
+};
+
+const COSTS_RESPONSE_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    source: { type: "string" },
+    windowDays: { type: "number" },
+    today: DAILY_COST_USAGE_SCHEMA,
+    totals: {
+      type: "object",
+      properties: {
+        promptTokens: { type: "number" },
+        completionTokens: { type: "number" },
+        calls: { type: "number" },
+      },
+      required: ["promptTokens", "completionTokens", "calls"],
+      additionalProperties: false,
+    },
+    history: {
+      type: "array",
+      items: DAILY_COST_USAGE_SCHEMA,
+    },
+  },
+  required: ["source", "windowDays", "today", "totals", "history"],
+  additionalProperties: false,
+};
+
+const FUNNEL_RESPONSE_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    windowDays: { type: "number" },
+    totals: {
+      type: "object",
+      properties: {
+        gameStarts: { type: "number" },
+        gameEnds: { type: "number" },
+        gameAbandons: { type: "number" },
+        questionSkips: { type: "number" },
+        completionRate: { type: "number" },
+        abandonRate: { type: "number" },
+        avgSkipsPerGame: { type: "number" },
+      },
+      required: [
+        "gameStarts",
+        "gameEnds",
+        "gameAbandons",
+        "questionSkips",
+        "completionRate",
+        "abandonRate",
+        "avgSkipsPerGame",
+      ],
+      additionalProperties: false,
+    },
+    daily: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          day: { type: "string" },
+          starts: { type: "number" },
+          ends: { type: "number" },
+          abandons: { type: "number" },
+          skips: { type: "number" },
+        },
+        required: ["day", "starts", "ends", "abandons", "skips"],
+        additionalProperties: false,
+      },
+    },
+    skipLeaderboard: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          question_id: { type: "string" },
+          text: { type: ["string", "null"] },
+          skips: { type: "number" },
+          avg_questions_asked: { type: ["number", "null"] },
+        },
+        required: ["question_id", "text", "skips", "avg_questions_asked"],
+        additionalProperties: false,
+      },
+    },
+    perQuestion: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          questionId: { type: "string" },
+          text: { type: ["string", "null"] },
+          shown: { type: "number" },
+          skipped: { type: "number" },
+          yes: { type: "number" },
+          no: { type: "number" },
+          maybe: { type: "number" },
+          unknown: { type: "number" },
+          skipRate: { type: "number" },
+          maybeRate: { type: "number" },
+          frustrationScore: { type: "number" },
+        },
+        required: [
+          "questionId",
+          "text",
+          "shown",
+          "skipped",
+          "yes",
+          "no",
+          "maybe",
+          "unknown",
+          "skipRate",
+          "maybeRate",
+          "frustrationScore",
+        ],
+        additionalProperties: false,
+      },
+    },
+  },
+  required: ["windowDays", "totals", "daily", "skipLeaderboard", "perQuestion"],
+  additionalProperties: false,
+};
+
+const CONFUSION_RESPONSE_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    source: { type: "string", enum: ["real", "sim"] },
+    pairs: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          targetId: { type: "string" },
+          targetName: { type: "string" },
+          confusedWithId: { type: "string" },
+          confusedWithName: { type: "string" },
+          confusionCount: { type: "number" },
+          winPct: { type: ["number", "null"] },
+          lastSeen: { type: ["number", "null"] },
+        },
+        required: [
+          "targetId",
+          "targetName",
+          "confusedWithId",
+          "confusedWithName",
+          "confusionCount",
+          "winPct",
+          "lastSeen",
+        ],
+        additionalProperties: false,
+      },
+    },
+    total: { type: "number" },
+    generatedAt: { type: "number" },
+    message: { type: "string" },
+  },
+  required: ["source", "pairs", "total", "generatedAt"],
+  additionalProperties: false,
+};
+
 const RESUME_RESPONSE_SCHEMA: Record<string, unknown> = {
   oneOf: [
     {
@@ -1644,6 +1846,14 @@ const OPERATION_METADATA: Record<string, OperationMetadata> = {
     summary: "Get latest cron automation report snapshot",
     responseSchema: AUTOMATION_STATUS_RESPONSE_SCHEMA,
   },
+  "get /api/admin/confusion": {
+    summary: "Get confusion matrix from real or simulation data",
+    responseSchema: CONFUSION_RESPONSE_SCHEMA,
+  },
+  "get /api/admin/costs": {
+    summary: "Get KV cost dashboard rollups",
+    responseSchema: COSTS_RESPONSE_SCHEMA,
+  },
   "get /api/admin/curator-queue": {
     summary: "Fetch manual curator queue report",
     responseSchema: CURATOR_QUEUE_GET_RESPONSE_SCHEMA,
@@ -1660,6 +1870,14 @@ const OPERATION_METADATA: Record<string, OperationMetadata> = {
   "get /api/admin/image-health": {
     summary: "Get image health completeness report",
     responseSchema: IMAGE_HEALTH_RESPONSE_SCHEMA,
+  },
+  "get /api/admin/funnel": {
+    summary: "Get game funnel and question frustration analytics",
+    responseSchema: FUNNEL_RESPONSE_SCHEMA,
+  },
+  "get /api/admin/live-ops": {
+    summary: "Get rolling one-hour live ops health snapshot",
+    responseSchema: LIVE_OPS_RESPONSE_SCHEMA,
   },
   "get /api/admin/error-logs": {
     summary: "List error and warning logs with filters",

@@ -1094,7 +1094,7 @@
     "/api/admin/confusion": {
       "get": {
         "operationId": "get-admin-confusion",
-        "summary": "GET /api/admin/confusion",
+        "summary": "Get confusion matrix from real or simulation data",
         "tags": [
           "admin",
           "confusion"
@@ -1106,7 +1106,76 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "additionalProperties": true
+                  "properties": {
+                    "source": {
+                      "type": "string",
+                      "enum": [
+                        "real",
+                        "sim"
+                      ]
+                    },
+                    "pairs": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "targetId": {
+                            "type": "string"
+                          },
+                          "targetName": {
+                            "type": "string"
+                          },
+                          "confusedWithId": {
+                            "type": "string"
+                          },
+                          "confusedWithName": {
+                            "type": "string"
+                          },
+                          "confusionCount": {
+                            "type": "number"
+                          },
+                          "winPct": {
+                            "type": [
+                              "number",
+                              "null"
+                            ]
+                          },
+                          "lastSeen": {
+                            "type": [
+                              "number",
+                              "null"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "targetId",
+                          "targetName",
+                          "confusedWithId",
+                          "confusedWithName",
+                          "confusionCount",
+                          "winPct",
+                          "lastSeen"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "total": {
+                      "type": "number"
+                    },
+                    "generatedAt": {
+                      "type": "number"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "source",
+                    "pairs",
+                    "total",
+                    "generatedAt"
+                  ],
+                  "additionalProperties": false
                 }
               }
             }
@@ -1128,7 +1197,7 @@
     "/api/admin/costs": {
       "get": {
         "operationId": "get-admin-costs",
-        "summary": "GET /api/admin/costs",
+        "summary": "Get KV cost dashboard rollups",
         "tags": [
           "admin",
           "costs"
@@ -1140,7 +1209,93 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "additionalProperties": true
+                  "properties": {
+                    "source": {
+                      "type": "string"
+                    },
+                    "windowDays": {
+                      "type": "number"
+                    },
+                    "today": {
+                      "type": "object",
+                      "properties": {
+                        "date": {
+                          "type": "string"
+                        },
+                        "promptTokens": {
+                          "type": "number"
+                        },
+                        "completionTokens": {
+                          "type": "number"
+                        },
+                        "calls": {
+                          "type": "number"
+                        }
+                      },
+                      "required": [
+                        "date",
+                        "promptTokens",
+                        "completionTokens",
+                        "calls"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "totals": {
+                      "type": "object",
+                      "properties": {
+                        "promptTokens": {
+                          "type": "number"
+                        },
+                        "completionTokens": {
+                          "type": "number"
+                        },
+                        "calls": {
+                          "type": "number"
+                        }
+                      },
+                      "required": [
+                        "promptTokens",
+                        "completionTokens",
+                        "calls"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "history": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "date": {
+                            "type": "string"
+                          },
+                          "promptTokens": {
+                            "type": "number"
+                          },
+                          "completionTokens": {
+                            "type": "number"
+                          },
+                          "calls": {
+                            "type": "number"
+                          }
+                        },
+                        "required": [
+                          "date",
+                          "promptTokens",
+                          "completionTokens",
+                          "calls"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "source",
+                    "windowDays",
+                    "today",
+                    "totals",
+                    "history"
+                  ],
+                  "additionalProperties": false
                 }
               }
             }
@@ -2192,7 +2347,7 @@
     "/api/admin/funnel": {
       "get": {
         "operationId": "get-admin-funnel",
-        "summary": "GET /api/admin/funnel",
+        "summary": "Get game funnel and question frustration analytics",
         "tags": [
           "admin",
           "funnel"
@@ -2204,7 +2359,177 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "additionalProperties": true
+                  "properties": {
+                    "windowDays": {
+                      "type": "number"
+                    },
+                    "totals": {
+                      "type": "object",
+                      "properties": {
+                        "gameStarts": {
+                          "type": "number"
+                        },
+                        "gameEnds": {
+                          "type": "number"
+                        },
+                        "gameAbandons": {
+                          "type": "number"
+                        },
+                        "questionSkips": {
+                          "type": "number"
+                        },
+                        "completionRate": {
+                          "type": "number"
+                        },
+                        "abandonRate": {
+                          "type": "number"
+                        },
+                        "avgSkipsPerGame": {
+                          "type": "number"
+                        }
+                      },
+                      "required": [
+                        "gameStarts",
+                        "gameEnds",
+                        "gameAbandons",
+                        "questionSkips",
+                        "completionRate",
+                        "abandonRate",
+                        "avgSkipsPerGame"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "daily": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "day": {
+                            "type": "string"
+                          },
+                          "starts": {
+                            "type": "number"
+                          },
+                          "ends": {
+                            "type": "number"
+                          },
+                          "abandons": {
+                            "type": "number"
+                          },
+                          "skips": {
+                            "type": "number"
+                          }
+                        },
+                        "required": [
+                          "day",
+                          "starts",
+                          "ends",
+                          "abandons",
+                          "skips"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "skipLeaderboard": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "question_id": {
+                            "type": "string"
+                          },
+                          "text": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "skips": {
+                            "type": "number"
+                          },
+                          "avg_questions_asked": {
+                            "type": [
+                              "number",
+                              "null"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "question_id",
+                          "text",
+                          "skips",
+                          "avg_questions_asked"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "perQuestion": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "questionId": {
+                            "type": "string"
+                          },
+                          "text": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "shown": {
+                            "type": "number"
+                          },
+                          "skipped": {
+                            "type": "number"
+                          },
+                          "yes": {
+                            "type": "number"
+                          },
+                          "no": {
+                            "type": "number"
+                          },
+                          "maybe": {
+                            "type": "number"
+                          },
+                          "unknown": {
+                            "type": "number"
+                          },
+                          "skipRate": {
+                            "type": "number"
+                          },
+                          "maybeRate": {
+                            "type": "number"
+                          },
+                          "frustrationScore": {
+                            "type": "number"
+                          }
+                        },
+                        "required": [
+                          "questionId",
+                          "text",
+                          "shown",
+                          "skipped",
+                          "yes",
+                          "no",
+                          "maybe",
+                          "unknown",
+                          "skipRate",
+                          "maybeRate",
+                          "frustrationScore"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "windowDays",
+                    "totals",
+                    "daily",
+                    "skipLeaderboard",
+                    "perQuestion"
+                  ],
+                  "additionalProperties": false
                 }
               }
             }
@@ -2570,7 +2895,7 @@
     "/api/admin/live-ops": {
       "get": {
         "operationId": "get-admin-live-ops",
-        "summary": "GET /api/admin/live-ops",
+        "summary": "Get rolling one-hour live ops health snapshot",
         "tags": [
           "admin",
           "live-ops"
@@ -2582,7 +2907,78 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "additionalProperties": true
+                  "properties": {
+                    "games1h": {
+                      "type": "number"
+                    },
+                    "wins1h": {
+                      "type": "number"
+                    },
+                    "losses1h": {
+                      "type": "number"
+                    },
+                    "errors1h": {
+                      "type": "number"
+                    },
+                    "warns1h": {
+                      "type": "number"
+                    },
+                    "gamesPerMin": {
+                      "type": "number"
+                    },
+                    "winRate": {
+                      "type": [
+                        "number",
+                        "null"
+                      ]
+                    },
+                    "errorsPerMin": {
+                      "type": "number"
+                    },
+                    "errorRate": {
+                      "type": [
+                        "number",
+                        "null"
+                      ]
+                    },
+                    "p95LatencyMs": {
+                      "type": [
+                        "number",
+                        "null"
+                      ]
+                    },
+                    "telemetryErrors1h": {
+                      "type": [
+                        "number",
+                        "null"
+                      ]
+                    },
+                    "loggingGap": {
+                      "type": [
+                        "boolean",
+                        "null"
+                      ]
+                    },
+                    "generatedAt": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "games1h",
+                    "wins1h",
+                    "losses1h",
+                    "errors1h",
+                    "warns1h",
+                    "gamesPerMin",
+                    "winRate",
+                    "errorsPerMin",
+                    "errorRate",
+                    "p95LatencyMs",
+                    "telemetryErrors1h",
+                    "loggingGap",
+                    "generatedAt"
+                  ],
+                  "additionalProperties": false
                 }
               }
             }
