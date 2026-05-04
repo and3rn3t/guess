@@ -818,7 +818,7 @@
     "/api/admin/characters": {
       "get": {
         "operationId": "get-admin-characters",
-        "summary": "GET /api/admin/characters",
+        "summary": "List admin characters with coverage metrics",
         "tags": [
           "admin",
           "characters"
@@ -830,7 +830,82 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "additionalProperties": true
+                  "properties": {
+                    "characters": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "category": {
+                            "type": "string"
+                          },
+                          "source": {
+                            "type": "string"
+                          },
+                          "popularity": {
+                            "type": "number"
+                          },
+                          "imageUrl": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "attributeCount": {
+                            "type": "number"
+                          },
+                          "totalAttributes": {
+                            "type": "number"
+                          },
+                          "coveragePct": {
+                            "type": "number"
+                          },
+                          "isCustom": {
+                            "type": "boolean"
+                          },
+                          "createdAt": {
+                            "type": "number"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "name",
+                          "category",
+                          "source",
+                          "popularity",
+                          "imageUrl",
+                          "attributeCount",
+                          "totalAttributes",
+                          "coveragePct",
+                          "isCustom",
+                          "createdAt"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "total": {
+                      "type": "number"
+                    },
+                    "page": {
+                      "type": "number"
+                    },
+                    "pageSize": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "characters",
+                    "total",
+                    "page",
+                    "pageSize"
+                  ],
+                  "additionalProperties": false
                 }
               }
             }
@@ -3874,7 +3949,7 @@
     "/api/admin/questions": {
       "get": {
         "operationId": "get-admin-questions",
-        "summary": "GET /api/admin/questions",
+        "summary": "List admin question definitions with usage",
         "tags": [
           "admin",
           "questions"
@@ -3886,7 +3961,76 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "additionalProperties": true
+                  "properties": {
+                    "questions": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "key": {
+                            "type": "string"
+                          },
+                          "displayText": {
+                            "type": "string"
+                          },
+                          "questionText": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "categories": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "isActive": {
+                            "type": "boolean"
+                          },
+                          "createdAt": {
+                            "type": "number"
+                          },
+                          "usageCount": {
+                            "type": "number"
+                          },
+                          "difficulty": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "key",
+                          "displayText",
+                          "questionText",
+                          "categories",
+                          "isActive",
+                          "createdAt",
+                          "usageCount",
+                          "difficulty"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "total": {
+                      "type": "number"
+                    },
+                    "page": {
+                      "type": "number"
+                    },
+                    "pageSize": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "questions",
+                    "total",
+                    "page",
+                    "pageSize"
+                  ],
+                  "additionalProperties": false
                 }
               }
             }
@@ -4268,7 +4412,7 @@
     "/api/admin/questions/expand": {
       "get": {
         "operationId": "get-admin-questions-expand",
-        "summary": "GET /api/admin/questions/expand",
+        "summary": "Get recent question expansion runs",
         "tags": [
           "admin",
           "questions"
@@ -4280,7 +4424,82 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "additionalProperties": true
+                  "properties": {
+                    "ok": {
+                      "type": "boolean"
+                    },
+                    "requestId": {
+                      "type": "string"
+                    },
+                    "runs": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "requestId": {
+                            "type": "string"
+                          },
+                          "actorId": {
+                            "type": "string"
+                          },
+                          "dryRun": {
+                            "type": "boolean"
+                          },
+                          "limit": {
+                            "type": "number"
+                          },
+                          "minCharacterCount": {
+                            "type": "number"
+                          },
+                          "maxPerAttribute": {
+                            "type": "number"
+                          },
+                          "targetAttributes": {
+                            "type": "number"
+                          },
+                          "candidates": {
+                            "type": "number"
+                          },
+                          "inserted": {
+                            "type": "number"
+                          },
+                          "createdAt": {
+                            "type": "string"
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "success",
+                              "error"
+                            ]
+                          },
+                          "error": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "requestId",
+                          "actorId",
+                          "dryRun",
+                          "limit",
+                          "minCharacterCount",
+                          "maxPerAttribute",
+                          "targetAttributes",
+                          "candidates",
+                          "inserted",
+                          "createdAt",
+                          "status"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "ok",
+                    "requestId",
+                    "runs"
+                  ],
+                  "additionalProperties": false
                 }
               }
             }
@@ -4300,7 +4519,7 @@
       },
       "post": {
         "operationId": "post-admin-questions-expand",
-        "summary": "POST /api/admin/questions/expand",
+        "summary": "Run heuristic question expansion",
         "tags": [
           "admin",
           "questions"
@@ -4312,7 +4531,59 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "additionalProperties": true
+                  "properties": {
+                    "ok": {
+                      "type": "boolean"
+                    },
+                    "requestId": {
+                      "type": "string"
+                    },
+                    "dryRun": {
+                      "type": "boolean"
+                    },
+                    "targetAttributes": {
+                      "type": "number"
+                    },
+                    "candidates": {
+                      "type": "number"
+                    },
+                    "inserted": {
+                      "type": "number"
+                    },
+                    "sample": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "attributeKey": {
+                            "type": "string"
+                          },
+                          "text": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "attributeKey",
+                          "text"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "ok",
+                    "requestId",
+                    "dryRun",
+                    "targetAttributes",
+                    "candidates",
+                    "inserted",
+                    "sample"
+                  ],
+                  "additionalProperties": false
                 }
               }
             }
@@ -4335,7 +4606,27 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "additionalProperties": true
+                "properties": {
+                  "limit": {
+                    "type": "number",
+                    "minimum": 1,
+                    "maximum": 200
+                  },
+                  "minCharacterCount": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 50000
+                  },
+                  "maxPerAttribute": {
+                    "type": "number",
+                    "minimum": 1,
+                    "maximum": 3
+                  },
+                  "dryRun": {
+                    "type": "boolean"
+                  }
+                },
+                "additionalProperties": false
               }
             }
           }
@@ -4345,7 +4636,7 @@
     "/api/admin/questions/retirement-queue": {
       "get": {
         "operationId": "get-admin-questions-retirement-queue",
-        "summary": "GET /api/admin/questions/retirement-queue",
+        "summary": "Get question retirement candidates or retired list",
         "tags": [
           "admin",
           "questions"
@@ -4356,8 +4647,161 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "source": {
+                          "const": "live"
+                        },
+                        "windowDays": {
+                          "type": "number"
+                        },
+                        "minShown": {
+                          "type": "number"
+                        },
+                        "generatedAt": {
+                          "type": "number"
+                        },
+                        "candidates": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "questionId": {
+                                "type": "string"
+                              },
+                              "text": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "attributeKey": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "shown": {
+                                "type": "number"
+                              },
+                              "skipped": {
+                                "type": "number"
+                              },
+                              "yes": {
+                                "type": "number"
+                              },
+                              "no": {
+                                "type": "number"
+                              },
+                              "maybe": {
+                                "type": "number"
+                              },
+                              "unknown": {
+                                "type": "number"
+                              },
+                              "skipRate": {
+                                "type": "number"
+                              },
+                              "maybeRate": {
+                                "type": "number"
+                              },
+                              "imbalance": {
+                                "type": "number"
+                              },
+                              "retirementScore": {
+                                "type": "number"
+                              }
+                            },
+                            "required": [
+                              "questionId",
+                              "text",
+                              "attributeKey",
+                              "shown",
+                              "skipped",
+                              "yes",
+                              "no",
+                              "maybe",
+                              "unknown",
+                              "skipRate",
+                              "maybeRate",
+                              "imbalance",
+                              "retirementScore"
+                            ],
+                            "additionalProperties": false
+                          }
+                        }
+                      },
+                      "required": [
+                        "source",
+                        "windowDays",
+                        "minShown",
+                        "generatedAt",
+                        "candidates"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "source": {
+                          "const": "retired"
+                        },
+                        "windowDays": {
+                          "type": "number"
+                        },
+                        "minShown": {
+                          "type": "number"
+                        },
+                        "generatedAt": {
+                          "type": "number"
+                        },
+                        "retired": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "questionId": {
+                                "type": "string"
+                              },
+                              "text": {
+                                "type": "string"
+                              },
+                              "attributeKey": {
+                                "type": "string"
+                              },
+                              "retiredAt": {
+                                "type": "number"
+                              },
+                              "retiredReason": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            },
+                            "required": [
+                              "questionId",
+                              "text",
+                              "attributeKey",
+                              "retiredAt",
+                              "retiredReason"
+                            ],
+                            "additionalProperties": false
+                          }
+                        }
+                      },
+                      "required": [
+                        "source",
+                        "windowDays",
+                        "minShown",
+                        "generatedAt",
+                        "retired"
+                      ],
+                      "additionalProperties": false
+                    }
+                  ]
                 }
               }
             }
@@ -4859,7 +5303,7 @@
     "/api/admin/triage": {
       "get": {
         "operationId": "get-admin-triage",
-        "summary": "GET /api/admin/triage",
+        "summary": "Get catastrophic-failure triage queue",
         "tags": [
           "admin",
           "triage"
@@ -4870,8 +5314,148 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "rows": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "number"
+                              },
+                              "actual_character_id": {
+                                "type": "string"
+                              },
+                              "actual_character_name": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "min_rank": {
+                                "type": [
+                                  "number",
+                                  "null"
+                                ]
+                              },
+                              "created_at": {
+                                "type": "number"
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "actual_character_id",
+                              "actual_character_name",
+                              "min_rank",
+                              "created_at"
+                            ],
+                            "additionalProperties": false
+                          }
+                        },
+                        "total": {
+                          "type": "number"
+                        },
+                        "limit": {
+                          "type": "number"
+                        },
+                        "offset": {
+                          "type": "number"
+                        }
+                      },
+                      "required": [
+                        "rows",
+                        "total",
+                        "limit",
+                        "offset"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "number"
+                        },
+                        "actualCharacterId": {
+                          "type": "string"
+                        },
+                        "actualCharacterName": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "minRank": {
+                          "type": [
+                            "number",
+                            "null"
+                          ]
+                        },
+                        "createdAt": {
+                          "type": "number"
+                        },
+                        "steps": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "idx": {
+                                "type": "number"
+                              },
+                              "questionId": {
+                                "type": "string"
+                              },
+                              "questionText": {
+                                "type": "string"
+                              },
+                              "answer": {
+                                "type": "string"
+                              },
+                              "topTen": {
+                                "type": "array",
+                                "items": {
+                                  "type": "object",
+                                  "properties": {
+                                    "id": {
+                                      "type": "string"
+                                    },
+                                    "name": {
+                                      "type": "string"
+                                    }
+                                  },
+                                  "required": [
+                                    "id",
+                                    "name"
+                                  ],
+                                  "additionalProperties": false
+                                }
+                              }
+                            },
+                            "required": [
+                              "idx",
+                              "questionId",
+                              "questionText",
+                              "answer",
+                              "topTen"
+                            ],
+                            "additionalProperties": false
+                          }
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "actualCharacterId",
+                        "actualCharacterName",
+                        "minRank",
+                        "createdAt",
+                        "steps"
+                      ],
+                      "additionalProperties": false
+                    }
+                  ]
                 }
               }
             }

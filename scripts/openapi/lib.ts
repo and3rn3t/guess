@@ -1943,6 +1943,333 @@ const PIPELINE_POST_RESPONSE_SCHEMA: Record<string, unknown> = {
   additionalProperties: false,
 };
 
+const ADMIN_CHARACTERS_ITEM_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    id: { type: "string" },
+    name: { type: "string" },
+    category: { type: "string" },
+    source: { type: "string" },
+    popularity: { type: "number" },
+    imageUrl: { type: ["string", "null"] },
+    attributeCount: { type: "number" },
+    totalAttributes: { type: "number" },
+    coveragePct: { type: "number" },
+    isCustom: { type: "boolean" },
+    createdAt: { type: "number" },
+  },
+  required: [
+    "id",
+    "name",
+    "category",
+    "source",
+    "popularity",
+    "imageUrl",
+    "attributeCount",
+    "totalAttributes",
+    "coveragePct",
+    "isCustom",
+    "createdAt",
+  ],
+  additionalProperties: false,
+};
+
+const ADMIN_CHARACTERS_GET_RESPONSE_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    characters: {
+      type: "array",
+      items: ADMIN_CHARACTERS_ITEM_SCHEMA,
+    },
+    total: { type: "number" },
+    page: { type: "number" },
+    pageSize: { type: "number" },
+  },
+  required: ["characters", "total", "page", "pageSize"],
+  additionalProperties: false,
+};
+
+const ADMIN_QUESTION_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    key: { type: "string" },
+    displayText: { type: "string" },
+    questionText: { type: ["string", "null"] },
+    categories: { type: ["string", "null"] },
+    isActive: { type: "boolean" },
+    createdAt: { type: "number" },
+    usageCount: { type: "number" },
+    difficulty: { type: ["string", "null"] },
+  },
+  required: [
+    "key",
+    "displayText",
+    "questionText",
+    "categories",
+    "isActive",
+    "createdAt",
+    "usageCount",
+    "difficulty",
+  ],
+  additionalProperties: false,
+};
+
+const ADMIN_QUESTIONS_GET_RESPONSE_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    questions: {
+      type: "array",
+      items: ADMIN_QUESTION_SCHEMA,
+    },
+    total: { type: "number" },
+    page: { type: "number" },
+    pageSize: { type: "number" },
+  },
+  required: ["questions", "total", "page", "pageSize"],
+  additionalProperties: false,
+};
+
+const QUESTIONS_EXPAND_RUN_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    requestId: { type: "string" },
+    actorId: { type: "string" },
+    dryRun: { type: "boolean" },
+    limit: { type: "number" },
+    minCharacterCount: { type: "number" },
+    maxPerAttribute: { type: "number" },
+    targetAttributes: { type: "number" },
+    candidates: { type: "number" },
+    inserted: { type: "number" },
+    createdAt: { type: "string" },
+    status: { type: "string", enum: ["success", "error"] },
+    error: { type: "string" },
+  },
+  required: [
+    "requestId",
+    "actorId",
+    "dryRun",
+    "limit",
+    "minCharacterCount",
+    "maxPerAttribute",
+    "targetAttributes",
+    "candidates",
+    "inserted",
+    "createdAt",
+    "status",
+  ],
+  additionalProperties: false,
+};
+
+const QUESTIONS_EXPAND_CANDIDATE_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    id: { type: "string" },
+    attributeKey: { type: "string" },
+    text: { type: "string" },
+  },
+  required: ["id", "attributeKey", "text"],
+  additionalProperties: false,
+};
+
+const QUESTIONS_EXPAND_GET_RESPONSE_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    ok: { type: "boolean" },
+    requestId: { type: "string" },
+    runs: {
+      type: "array",
+      items: QUESTIONS_EXPAND_RUN_SCHEMA,
+    },
+  },
+  required: ["ok", "requestId", "runs"],
+  additionalProperties: false,
+};
+
+const QUESTIONS_EXPAND_POST_REQUEST_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    limit: { type: "number", minimum: 1, maximum: 200 },
+    minCharacterCount: { type: "number", minimum: 0, maximum: 50000 },
+    maxPerAttribute: { type: "number", minimum: 1, maximum: 3 },
+    dryRun: { type: "boolean" },
+  },
+  additionalProperties: false,
+};
+
+const QUESTIONS_EXPAND_POST_RESPONSE_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    ok: { type: "boolean" },
+    requestId: { type: "string" },
+    dryRun: { type: "boolean" },
+    targetAttributes: { type: "number" },
+    candidates: { type: "number" },
+    inserted: { type: "number" },
+    sample: {
+      type: "array",
+      items: QUESTIONS_EXPAND_CANDIDATE_SCHEMA,
+    },
+  },
+  required: ["ok", "requestId", "dryRun", "targetAttributes", "candidates", "inserted", "sample"],
+  additionalProperties: false,
+};
+
+const RETIREMENT_CANDIDATE_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    questionId: { type: "string" },
+    text: { type: ["string", "null"] },
+    attributeKey: { type: ["string", "null"] },
+    shown: { type: "number" },
+    skipped: { type: "number" },
+    yes: { type: "number" },
+    no: { type: "number" },
+    maybe: { type: "number" },
+    unknown: { type: "number" },
+    skipRate: { type: "number" },
+    maybeRate: { type: "number" },
+    imbalance: { type: "number" },
+    retirementScore: { type: "number" },
+  },
+  required: [
+    "questionId",
+    "text",
+    "attributeKey",
+    "shown",
+    "skipped",
+    "yes",
+    "no",
+    "maybe",
+    "unknown",
+    "skipRate",
+    "maybeRate",
+    "imbalance",
+    "retirementScore",
+  ],
+  additionalProperties: false,
+};
+
+const RETIRED_ENTRY_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    questionId: { type: "string" },
+    text: { type: "string" },
+    attributeKey: { type: "string" },
+    retiredAt: { type: "number" },
+    retiredReason: { type: ["string", "null"] },
+  },
+  required: ["questionId", "text", "attributeKey", "retiredAt", "retiredReason"],
+  additionalProperties: false,
+};
+
+const RETIREMENT_QUEUE_RESPONSE_SCHEMA: Record<string, unknown> = {
+  oneOf: [
+    {
+      type: "object",
+      properties: {
+        source: { const: "live" },
+        windowDays: { type: "number" },
+        minShown: { type: "number" },
+        generatedAt: { type: "number" },
+        candidates: {
+          type: "array",
+          items: RETIREMENT_CANDIDATE_SCHEMA,
+        },
+      },
+      required: ["source", "windowDays", "minShown", "generatedAt", "candidates"],
+      additionalProperties: false,
+    },
+    {
+      type: "object",
+      properties: {
+        source: { const: "retired" },
+        windowDays: { type: "number" },
+        minShown: { type: "number" },
+        generatedAt: { type: "number" },
+        retired: {
+          type: "array",
+          items: RETIRED_ENTRY_SCHEMA,
+        },
+      },
+      required: ["source", "windowDays", "minShown", "generatedAt", "retired"],
+      additionalProperties: false,
+    },
+  ],
+};
+
+const TRIAGE_LIST_ROW_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    id: { type: "number" },
+    actual_character_id: { type: "string" },
+    actual_character_name: { type: ["string", "null"] },
+    min_rank: { type: ["number", "null"] },
+    created_at: { type: "number" },
+  },
+  required: ["id", "actual_character_id", "actual_character_name", "min_rank", "created_at"],
+  additionalProperties: false,
+};
+
+const TRIAGE_STEP_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    idx: { type: "number" },
+    questionId: { type: "string" },
+    questionText: { type: "string" },
+    answer: { type: "string" },
+    topTen: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          id: { type: "string" },
+          name: { type: "string" },
+        },
+        required: ["id", "name"],
+        additionalProperties: false,
+      },
+    },
+  },
+  required: ["idx", "questionId", "questionText", "answer", "topTen"],
+  additionalProperties: false,
+};
+
+const TRIAGE_RESPONSE_SCHEMA: Record<string, unknown> = {
+  oneOf: [
+    {
+      type: "object",
+      properties: {
+        rows: {
+          type: "array",
+          items: TRIAGE_LIST_ROW_SCHEMA,
+        },
+        total: { type: "number" },
+        limit: { type: "number" },
+        offset: { type: "number" },
+      },
+      required: ["rows", "total", "limit", "offset"],
+      additionalProperties: false,
+    },
+    {
+      type: "object",
+      properties: {
+        id: { type: "number" },
+        actualCharacterId: { type: "string" },
+        actualCharacterName: { type: ["string", "null"] },
+        minRank: { type: ["number", "null"] },
+        createdAt: { type: "number" },
+        steps: {
+          type: "array",
+          items: TRIAGE_STEP_SCHEMA,
+        },
+      },
+      required: ["id", "actualCharacterId", "actualCharacterName", "minRank", "createdAt", "steps"],
+      additionalProperties: false,
+    },
+  ],
+};
+
 const RESUME_RESPONSE_SCHEMA: Record<string, unknown> = {
   oneOf: [
     {
@@ -2147,6 +2474,10 @@ const OPERATION_METADATA: Record<string, OperationMetadata> = {
     summary: "Get latest cron automation report snapshot",
     responseSchema: AUTOMATION_STATUS_RESPONSE_SCHEMA,
   },
+  "get /api/admin/characters": {
+    summary: "List admin characters with coverage metrics",
+    responseSchema: ADMIN_CHARACTERS_GET_RESPONSE_SCHEMA,
+  },
   "get /api/admin/confusion": {
     summary: "Get confusion matrix from real or simulation data",
     responseSchema: CONFUSION_RESPONSE_SCHEMA,
@@ -2200,6 +2531,23 @@ const OPERATION_METADATA: Record<string, OperationMetadata> = {
     summary: "List pipeline run audit entries",
     responseSchema: PIPELINE_GET_RESPONSE_SCHEMA,
   },
+  "get /api/admin/questions": {
+    summary: "List admin question definitions with usage",
+    responseSchema: ADMIN_QUESTIONS_GET_RESPONSE_SCHEMA,
+  },
+  "get /api/admin/questions/expand": {
+    summary: "Get recent question expansion runs",
+    responseSchema: QUESTIONS_EXPAND_GET_RESPONSE_SCHEMA,
+  },
+  "post /api/admin/questions/expand": {
+    summary: "Run heuristic question expansion",
+    requestSchema: QUESTIONS_EXPAND_POST_REQUEST_SCHEMA,
+    responseSchema: QUESTIONS_EXPAND_POST_RESPONSE_SCHEMA,
+  },
+  "get /api/admin/questions/retirement-queue": {
+    summary: "Get question retirement candidates or retired list",
+    responseSchema: RETIREMENT_QUEUE_RESPONSE_SCHEMA,
+  },
   "post /api/admin/pipeline": {
     summary: "Log a pipeline run entry",
     requestSchema: PIPELINE_POST_REQUEST_SCHEMA,
@@ -2216,6 +2564,10 @@ const OPERATION_METADATA: Record<string, OperationMetadata> = {
   "get /api/admin/source-health-status": {
     summary: "Get latest persisted source health report status",
     responseSchema: SOURCE_HEALTH_STATUS_RESPONSE_SCHEMA,
+  },
+  "get /api/admin/triage": {
+    summary: "Get catastrophic-failure triage queue",
+    responseSchema: TRIAGE_RESPONSE_SCHEMA,
   },
   "get /api/admin/workflow-progress": {
     summary: "Get mission-control workflow progress state",
