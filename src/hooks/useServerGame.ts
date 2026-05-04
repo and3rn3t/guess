@@ -1,6 +1,8 @@
 import type { GameAction } from "@/hooks/useGameState";
 import {
+  buildRejectReadinessSnapshot,
   classifyServerAnswerResponse,
+  classifyServerRejectResponse,
   buildCollectingEvidenceMessage,
   buildRetryGuessMessage,
   getRejectCooldownRemaining,
@@ -283,8 +285,9 @@ export function useServerGame(dispatch: React.Dispatch<GameAction>) {
       dispatch({ type: "REJECT_GUESS" });
       try {
         const data = await apiRejectGuess(serverSessionId, characterId);
+        const responseKind = classifyServerRejectResponse(data);
 
-        if (data.type === "exhausted") {
+        if (responseKind === "exhausted") {
           dispatch({ type: "SET_EXHAUSTED" });
           postServerResult(false);
           analytics().then((m) =>
@@ -296,22 +299,14 @@ export function useServerGame(dispatch: React.Dispatch<GameAction>) {
               true,
             ),
           );
-        } else if (
-          data.type === "question" &&
-          data.question &&
-          data.reasoning
-        ) {
+        } else if (responseKind === "question" && data.question && data.reasoning) {
           dispatch({
             type: "SET_QUESTION",
             question: data.question,
             reasoning: data.reasoning,
           });
           setServerRemainingSync(data.remaining ?? 0);
-          setServerReadiness({
-            trigger: "insufficient_data",
-            blockedByRejectCooldown: (data.rejectCooldownRemaining ?? 0) > 0,
-            rejectCooldownRemaining: data.rejectCooldownRemaining ?? 0,
-          });
+          setServerReadiness(buildRejectReadinessSnapshot(data.rejectCooldownRemaining));
           if (data.maxQuestions) setServerMaxQuestions(data.maxQuestions);
           const cooldown = getRejectCooldownRemaining(data);
           toast.info(buildRetryGuessMessage(cooldown));
