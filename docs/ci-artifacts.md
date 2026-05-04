@@ -209,6 +209,10 @@ Source: .github/workflows/reconcile-nightly.yml
 - Artifact: attribute-drift-sql
 - Artifact: reconcile-log
   - reconcile-output.log
+- Artifact: reconcile-risk-tier-log
+  - risk-tier.log
+- Artifact: reconcile-risk-tier-sample
+  - risk-tier-sample.json
 - Artifact: reconcile-metadata
   - metadata.txt
 

@@ -74,6 +74,8 @@
     "dq:null-closure:prod": "tsx scripts/data-quality/build-null-closure-queue.ts --env production",
     "dq:source-health:preview": "tsx scripts/data-quality/check-source-ids.ts --env preview",
     "dq:source-health:prod": "tsx scripts/data-quality/check-source-ids.ts --env production",
+    "dq:risk-sample:preview": "tsx scripts/data-quality/select-risk-tier-sample.ts --env preview --tier tier1 --limit 50",
+    "dq:risk-sample:prod": "tsx scripts/data-quality/select-risk-tier-sample.ts --env production --tier tier1 --limit 50",
     "agreement:dry-run": "tsx scripts/compute-agreement.ts --dry-run --env preview",
     "agreement:preview": "tsx scripts/compute-agreement.ts --env preview",
     "agreement:prod": "tsx scripts/compute-agreement.ts --env production",

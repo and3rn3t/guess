@@ -1,4 +1,4 @@
-name: Nightly attribute reconciliation (DQ.6)
+name: Risk-tiered reconciliation (DQ.6/DQ.37)
 
 # Samples N random characters from production D1, re-runs the canonical
 # enrichment LLM prompt against them, and appends every attribute-value
@@ -11,9 +11,12 @@ name: Nightly attribute reconciliation (DQ.6)
 
 on:
   schedule:
-    # Daily at 00:30 UTC. Sits 15 min after `real-data-aggregate.yml` so we
-    # don't contend on the same wrangler API token rate-limits.
+    # Tier 1 daily (top played + high disagreement)
     - cron: "30 0 * * *"
+    # Tier 2 weekly (Sunday UTC)
+    - cron: "0 1 * * 0"
+    # Tier 3 monthly (day 1 UTC)
+    - cron: "30 1 1 * *"
   workflow_dispatch:
     inputs:
       env:
@@ -24,10 +27,19 @@ on:
         options:
           - production
           - preview
+      risk_tier:
+        description: "Risk tier"
+        required: true
+        default: "tier1"
+        type: choice
+        options:
+          - tier1
+          - tier2
+          - tier3
       sample:
-        description: "Sample size (random characters)"
+        description: "Sample size (tier sample cap)"
         required: false
-        default: "50"
+        default: ""
       batch_size:
         description: "Characters per LLM call"
         required: false
@@ -68,17 +80,55 @@ jobs:
         run: |
           set -o pipefail
           ENV_FLAG="${{ github.event.inputs.env || 'production' }}"
-          SAMPLE="${{ github.event.inputs.sample || '50' }}"
+          SCHEDULE="${{ github.event.schedule || '' }}"
+          INPUT_TIER="${{ github.event.inputs.risk_tier || '' }}"
+
+          if [ -n "$INPUT_TIER" ]; then
+            RISK_TIER="$INPUT_TIER"
+          elif [ "$SCHEDULE" = "30 0 * * *" ]; then
+            RISK_TIER="tier1"
+          elif [ "$SCHEDULE" = "0 1 * * 0" ]; then
+            RISK_TIER="tier2"
+          elif [ "$SCHEDULE" = "30 1 1 * *" ]; then
+            RISK_TIER="tier3"
+          else
+            RISK_TIER="tier1"
+          fi
+
+          INPUT_SAMPLE="${{ github.event.inputs.sample || '' }}"
+          if [ -n "$INPUT_SAMPLE" ]; then
+            SAMPLE="$INPUT_SAMPLE"
+          elif [ "$RISK_TIER" = "tier1" ]; then
+            SAMPLE="50"
+          elif [ "$RISK_TIER" = "tier2" ]; then
+            SAMPLE="120"
+          else
+            SAMPLE="200"
+          fi
+
           BATCH="${{ github.event.inputs.batch_size || '5' }}"
+
+          npx tsx scripts/data-quality/select-risk-tier-sample.ts \
+            --env "$ENV_FLAG" \
+            --tier "$RISK_TIER" \
+            --limit "$SAMPLE" \
+            --out .ci-artifacts/reconcile/risk-tier-sample.json \
+            | tee .ci-artifacts/reconcile/risk-tier.log
+
           {
             echo "env=$ENV_FLAG"
+            echo "schedule=$SCHEDULE"
+            echo "risk_tier=$RISK_TIER"
             echo "sample=$SAMPLE"
             echo "batch_size=$BATCH"
             echo "sha=${{ github.sha }}"
           } > .ci-artifacts/reconcile/metadata.txt
+
           npx tsx scripts/reconcile-attributes.ts \
             --env "$ENV_FLAG" \
             --sample "$SAMPLE" \
+            --risk-tier "$RISK_TIER" \
+            --sample-file .ci-artifacts/reconcile/risk-tier-sample.json \
             --batch-size "$BATCH" \
             | tee .ci-artifacts/reconcile/reconcile-output.log
 
@@ -100,6 +150,24 @@ jobs:
           if-no-files-found: ignore
           retention-days: 30
 
+      - name: Upload risk-tier log
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: reconcile-risk-tier-log
+          path: .ci-artifacts/reconcile/risk-tier.log
+          if-no-files-found: ignore
+          retention-days: 30
+
+      - name: Upload risk-tier sample
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: reconcile-risk-tier-sample
+          path: .ci-artifacts/reconcile/risk-tier-sample.json
+          if-no-files-found: ignore
+          retention-days: 30
+
       - name: Upload reconcile metadata
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
@@ -117,5 +185,7 @@ jobs:
             echo ""
             echo "- Artifact: attribute-drift-sql"
             echo "- Artifact: reconcile-log"
+            echo "- Artifact: reconcile-risk-tier-log"
+            echo "- Artifact: reconcile-risk-tier-sample"
             echo "- Artifact: reconcile-metadata"
           } >> "$GITHUB_STEP_SUMMARY"

@@ -27,7 +27,7 @@ Purpose: single planning map for unshipped Data Quality work with dependency ord
 | DQ.34 | Not started | DQ.31 + DQ.32 | `characters.source`, `characters.source_id` | `scripts/data-quality/check-source-ids.ts`, `/api/admin/source-health` | source-id report JSON |
 | DQ.35 | Not started | DQ.31 + DQ.32 | `characters.image_url` | `scripts/data-quality/check-image-health.ts`, `/api/admin/image-health` | image-health report JSON |
 | DQ.36 | Not started | DQ.31 + DQ.32 | `attribute_disputes` | migration + `/api/admin/curation-queue` | schema + list endpoint |
-| DQ.37 | Not started | DQ.31 + DQ.33 | `scripts/reconcile-attributes.ts` | `scripts/data-quality/select-risk-tier-sample.ts` + scheduler wiring | tier sampler utility |
+| DQ.37 | In progress | DQ.31 + DQ.33 | `scripts/reconcile-attributes.ts` | `scripts/data-quality/select-risk-tier-sample.ts` + scheduler wiring | tier sampler utility |
 | DQ.38 | Not started | DQ.31 + DQ.33 + DQ.34 + DQ.35 + DQ.36 | `reconcile-nightly.yml`, data-quality route | completeness sub-route + weekly markdown report artifact | report generator |
 
 ## Non-completeness DQ Backlog (Unshipped)
