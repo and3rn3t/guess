@@ -10,11 +10,12 @@ import {
 } from 'react-native'
 import { createMobilePlatformAdapters } from './src/platform/adapters'
 import { useCoreGameFlow } from './src/state/useCoreGameFlow'
+import { useMobileServerGame } from './src/state/useMobileServerGame'
 
 export default function App(): ReactElement {
   const platformAdapters = useMemo(() => createMobilePlatformAdapters(), [])
-  const adapterNames = Object.keys(platformAdapters).join(' | ')
-  const { state, dispatch, phaseTitle, phaseSubtitle } = useCoreGameFlow()
+  const { state, dispatch, phaseTitle } = useCoreGameFlow()
+  const server = useMobileServerGame(dispatch, platformAdapters.network)
 
   const renderActions = (): ReactElement => {
     switch (state.phase) {
@@ -23,10 +24,13 @@ export default function App(): ReactElement {
           <View style={styles.actionRow}>
             <Pressable
               accessibilityRole="button"
-              onPress={() => dispatch({ type: 'START_GAME' })}
+              disabled={server.isLoading}
+              onPress={() => void server.startGame()}
               style={styles.primaryButton}
             >
-              <Text style={styles.primaryButtonText}>Start Game</Text>
+              <Text style={styles.primaryButtonText}>
+                {server.isLoading ? 'Starting…' : 'Start Game'}
+              </Text>
             </Pressable>
             <Pressable
               accessibilityRole="button"
@@ -42,17 +46,27 @@ export default function App(): ReactElement {
           <View style={styles.actionRow}>
             <Pressable
               accessibilityRole="button"
-              onPress={() => dispatch({ type: 'SHOW_GUESS' })}
+              disabled={server.isLoading}
+              onPress={() => void server.submitAnswer('yes')}
               style={styles.primaryButton}
             >
-              <Text style={styles.primaryButtonText}>Reveal Guess</Text>
+              <Text style={styles.primaryButtonText}>Yes</Text>
             </Pressable>
             <Pressable
               accessibilityRole="button"
-              onPress={() => dispatch({ type: 'INCREMENT_GUESS_COUNT' })}
+              disabled={server.isLoading}
+              onPress={() => void server.submitAnswer('no')}
               style={styles.secondaryButton}
             >
-              <Text style={styles.secondaryButtonText}>+ Guess Count</Text>
+              <Text style={styles.secondaryButtonText}>No</Text>
+            </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              disabled={server.isLoading}
+              onPress={() => void server.skipQuestion()}
+              style={styles.secondaryButton}
+            >
+              <Text style={styles.secondaryButtonText}>Skip</Text>
             </Pressable>
           </View>
         )
@@ -61,18 +75,22 @@ export default function App(): ReactElement {
           <View style={styles.actionRow}>
             <Pressable
               accessibilityRole="button"
-              onPress={() => dispatch({ type: 'END_GAME' })}
+              disabled={server.isLoading}
+              onPress={() => void server.confirmCorrect()}
               style={styles.primaryButton}
             >
-              <Text style={styles.primaryButtonText}>Mark Correct</Text>
+              <Text style={styles.primaryButtonText}>Correct!</Text>
             </Pressable>
-            <Pressable
-              accessibilityRole="button"
-              onPress={() => dispatch({ type: 'END_GAME', surrendered: true })}
-              style={styles.secondaryButton}
-            >
-              <Text style={styles.secondaryButtonText}>Surrender</Text>
-            </Pressable>
+            {server.guessCharacter && (
+              <Pressable
+                accessibilityRole="button"
+                disabled={server.isLoading}
+                onPress={() => void server.rejectGuess(server.guessCharacter!.id)}
+                style={styles.secondaryButton}
+              >
+                <Text style={styles.secondaryButtonText}>Not This One</Text>
+              </Pressable>
+            )}
           </View>
         )
       case 'gameOver':
@@ -83,7 +101,7 @@ export default function App(): ReactElement {
               onPress={() => dispatch({ type: 'BACK_TO_WELCOME' })}
               style={styles.primaryButton}
             >
-              <Text style={styles.primaryButtonText}>Back To Welcome</Text>
+              <Text style={styles.primaryButtonText}>Play Again</Text>
             </Pressable>
           </View>
         )
@@ -92,7 +110,8 @@ export default function App(): ReactElement {
           <View style={styles.actionRow}>
             <Pressable
               accessibilityRole="button"
-              onPress={() => dispatch({ type: 'START_GAME' })}
+              disabled={server.isLoading}
+              onPress={() => void server.startGame()}
               style={styles.primaryButton}
             >
               <Text style={styles.primaryButtonText}>Start Challenge</Text>
@@ -117,19 +136,28 @@ export default function App(): ReactElement {
       <View style={styles.card}>
         <Text style={styles.eyebrow}>iOS Native Preview</Text>
         <Text style={styles.title}>{phaseTitle}</Text>
-        <Text style={styles.body}>
-          {phaseSubtitle}
-        </Text>
+        {server.question && (
+          <Text style={styles.body}>{server.question.text}</Text>
+        )}
+        {server.alertMessage && (
+          <Text style={styles.alert} onPress={server.clearAlert}>
+            {server.alertMessage}
+          </Text>
+        )}
+        {server.error && (
+          <Text style={styles.errorText} onPress={server.clearError}>
+            Error: {server.error}
+          </Text>
+        )}
         <Text style={styles.caption}>
-          Current phase key: {state.phase}
+          Phase: {state.phase} | Remaining: {server.remaining} | Session:{' '}
+          {server.sessionId ? server.sessionId.slice(0, 8) + '…' : 'none'}
         </Text>
-        <Text style={styles.caption}>
-          Platform adapters: {adapterNames}
-        </Text>
-        <Text style={styles.caption}>
-          Guess count: {state.guessCount} | Exhausted: {String(state.exhausted)} | Surrendered:{' '}
-          {String(state.surrendered)}
-        </Text>
+        {server.guessCharacter && state.phase === 'guessing' && (
+          <Text style={styles.caption}>
+            Guess: {server.guessCharacter.name} ({server.guessCharacter.category})
+          </Text>
+        )}
         {renderActions()}
       </View>
     </SafeAreaView>
@@ -172,6 +200,16 @@ const styles = StyleSheet.create({
   caption: {
     color: '#93c5fd',
     fontSize: 12,
+    lineHeight: 18,
+  },
+  alert: {
+    color: '#fbbf24',
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  errorText: {
+    color: '#f87171',
+    fontSize: 13,
     lineHeight: 18,
   },
   actionRow: {
