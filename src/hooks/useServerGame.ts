@@ -1,5 +1,6 @@
 import type { GameAction } from "@/hooks/useGameState";
 import {
+  buildResumeAnswerReplaySteps,
   buildRejectReadinessSnapshot,
   canResumeServerSession,
   classifyServerAnswerResponse,
@@ -114,21 +115,13 @@ export function useServerGame(dispatch: React.Dispatch<GameAction>) {
         });
 
         // Replay answers into reducer so step count is correct
-        if (data.answers) {
-          for (const a of data.answers) {
+        for (const step of buildResumeAnswerReplaySteps(data.answers)) {
             dispatch({
               type: "SET_QUESTION",
-              question: { id: a.questionId, text: "", attribute: a.questionId },
-              reasoning: {
-                why: "",
-                impact: "",
-                remaining: 0,
-                confidence: 0,
-                topCandidates: [],
-              },
+              question: step.question,
+              reasoning: step.reasoning,
             });
-            dispatch({ type: "ANSWER", value: a.value });
-          }
+            dispatch({ type: "ANSWER", value: step.value });
         }
 
         // Set current question
