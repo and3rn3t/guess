@@ -58,6 +58,20 @@ export type ServerAnswerOutcome<
       kind: 'unknown'
     }
 
+export type ServerAnswerActionPlanStep<TQuestion = unknown, TReasoning = unknown> =
+  | {
+      type: 'undo-last-answer'
+    }
+  | {
+      type: 'set-question'
+      question: TQuestion
+      reasoning: TReasoning
+    }
+  | {
+      type: 'make-guess'
+      character: NormalizedGuessCharacter
+    }
+
 export const classifyServerAnswerResponse = (
   response: ServerAnswerResponseLike,
 ): ServerAnswerResponseKind => {
@@ -124,4 +138,37 @@ export const buildServerAnswerOutcome = <
   }
 
   return { kind: 'unknown' }
+}
+
+export const buildServerAnswerActionPlan = <TQuestion, TReasoning, TReadiness>(
+  outcome: ServerAnswerOutcome<TQuestion, TReasoning, TReadiness>,
+): ServerAnswerActionPlanStep<TQuestion, TReasoning>[] => {
+  if (outcome.kind === 'contradiction') {
+    return outcome.question && outcome.reasoning
+      ? [
+          { type: 'undo-last-answer' },
+          {
+            type: 'set-question',
+            question: outcome.question,
+            reasoning: outcome.reasoning,
+          },
+        ]
+      : [{ type: 'undo-last-answer' }]
+  }
+
+  if (outcome.kind === 'guess') {
+    return [{ type: 'make-guess', character: outcome.character }]
+  }
+
+  if (outcome.kind === 'question') {
+    return [
+      {
+        type: 'set-question',
+        question: outcome.question,
+        reasoning: outcome.reasoning,
+      },
+    ]
+  }
+
+  return []
 }

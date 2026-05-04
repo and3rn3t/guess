@@ -36,6 +36,10 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 - **Shared answer-outcome adapter extracted (M1 extraction)** — extended `packages/app-core/src/server-response.ts` with `buildServerAnswerOutcome` to normalize contradiction/guess/question answer responses into typed UI intents, and added focused unit tests in `packages/app-core/src/server-response.test.ts`. Updated `src/hooks/useServerGame.ts` to consume the shared outcome adapter while preserving dispatch order, toast behavior, readiness handling, and guess normalization.
 
+- **Shared server bootstrap plan extracted (M1 orchestration)** — added `packages/app-core/src/server-bootstrap.ts` and focused tests to model start/resume dispatch sequencing as a shared bootstrap plan (`buildStartBootstrapPlan`, `buildResumeBootstrapPlan`). Updated `src/hooks/useServerGame.ts` to execute the shared plan locally, creating the first platform-agnostic orchestration surface that both web and mobile can build around.
+
+- **Shared answer action plan extracted (M1 orchestration)** — extended `packages/app-core/src/server-response.ts` with `buildServerAnswerActionPlan` and added focused tests in `packages/app-core/src/server-response.test.ts` so contradiction/guess/question dispatch sequencing now lives in a reusable app-core plan. Updated `src/hooks/useServerGame.ts` to execute the shared answer plan locally while preserving toast behavior, readiness updates, and suspense/hint side effects.
+
 - **Completeness burndown + weekly report (DQ.38)**
 
 - **v1 KV endpoint deprecation headers** — `functions/api/corrections.ts` and `functions/api/stats.ts` now emit `Deprecation: true` + `Sunset: Wed, 01 Jan 2027 00:00:00 GMT` on GET responses, matching the headers already present in `characters.ts`, `questions.ts`, and `sync.ts`. All five legacy KV-backed v1 endpoints are now consistently signalling sunset to callers.

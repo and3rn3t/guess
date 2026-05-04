@@ -1,8 +1,11 @@
 import type { GameAction } from "@/hooks/useGameState";
 import {
+  buildResumeBootstrapPlan,
   buildResumedSessionSnapshot,
   buildRejectReadinessSnapshot,
+  buildServerAnswerActionPlan,
   buildServerAnswerOutcome,
+  buildStartBootstrapPlan,
   canResumeServerSession,
   canContinueAfterSkip,
   classifyServerRejectResponse,
@@ -24,9 +27,12 @@ import {
 } from "@/lib/gameApi";
 import { runWhenIdle } from "@/lib/idle";
 import { playSuspense, playThinking } from "@/lib/sounds";
+import {
+  applyBootstrapStep,
+  applyServerAnswerStep,
+} from "@/hooks/serverGameDispatch";
 import type {
   AnswerValue,
-  Character,
   CharacterCategory,
   Difficulty,
   GuessReadinessSnapshot,
@@ -116,28 +122,16 @@ export function useServerGame(dispatch: React.Dispatch<GameAction>) {
         setServerRemainingSync(resumedSession.remaining);
         setServerTotal(resumedSession.totalCharacters);
         setServerReadiness(null);
-        dispatch({
-          type: "START_GAME",
-          characters: [],
-          guessCount: resumedSession.guessCount,
-        });
-
-        // Replay answers into reducer so step count is correct
-        for (const step of resumedSession.replaySteps) {
-            dispatch({
-              type: "SET_QUESTION",
-              question: step.question,
-              reasoning: step.reasoning,
-            });
-            dispatch({ type: "ANSWER", value: step.value });
+        for (
+          const step of buildResumeBootstrapPlan<
+            Question,
+            ReasoningExplanation,
+            AnswerValue,
+            typeof data
+          >(data)
+        ) {
+          applyBootstrapStep(dispatch, step);
         }
-
-        // Set current question
-        dispatch({
-          type: "SET_QUESTION",
-          question: resumedSession.question,
-          reasoning: resumedSession.reasoning,
-        });
 
         toast.success("Previous session restored");
       } catch (err) {
@@ -162,12 +156,13 @@ export function useServerGame(dispatch: React.Dispatch<GameAction>) {
         setServerTotal(data.totalCharacters);
         setServerReadiness(null);
         if (data.maxQuestions) setServerMaxQuestions(data.maxQuestions);
-        dispatch({ type: "START_GAME", characters: [] });
-        dispatch({
-          type: "SET_QUESTION",
-          question: data.question,
-          reasoning: data.reasoning,
-        });
+        for (
+          const step of buildStartBootstrapPlan<Question, ReasoningExplanation>(
+            data,
+          )
+        ) {
+          applyBootstrapStep(dispatch, step);
+        }
         analytics().then((m) =>
           m.trackGameStart(difficulty, data.totalCharacters),
         );
@@ -198,36 +193,24 @@ export function useServerGame(dispatch: React.Dispatch<GameAction>) {
           Partial<GuessReadinessSnapshot>,
           typeof data
         >(data);
+        const answerPlan = buildServerAnswerActionPlan(outcome);
 
         if (outcome.kind === "contradiction") {
-          dispatch({ type: "UNDO_LAST_ANSWER" });
-          toast.warning(outcome.message);
-          if (outcome.question && outcome.reasoning) {
-            dispatch({
-              type: "SET_QUESTION",
-              question: outcome.question,
-              reasoning: outcome.reasoning,
-            });
+          for (const step of answerPlan) {
+            applyServerAnswerStep(dispatch, step);
           }
+          toast.warning(outcome.message);
         } else if (outcome.kind === "guess") {
-          const guessChar: Character = {
-            id: outcome.character.id,
-            name: outcome.character.name,
-            category: outcome.character.category as CharacterCategory,
-            attributes: {},
-            imageUrl: outcome.character.imageUrl,
-            trivia: outcome.character.trivia,
-          };
-          dispatch({ type: "MAKE_GUESS", character: guessChar });
+          for (const step of answerPlan) {
+            applyServerAnswerStep(dispatch, step);
+          }
           setServerRemaining(outcome.remaining);
           setServerReadiness(normalizeReadiness(outcome.readiness));
           playSuspense();
         } else if (outcome.kind === "question") {
-          dispatch({
-            type: "SET_QUESTION",
-            question: outcome.question,
-            reasoning: outcome.reasoning,
-          });
+          for (const step of answerPlan) {
+            applyServerAnswerStep(dispatch, step);
+          }
           setServerRemainingSync(outcome.remaining ?? serverRemainingRef.current);
           setServerReadiness(normalizeReadiness(outcome.readiness));
           if (outcome.readiness?.blockedByRejectCooldown) {
