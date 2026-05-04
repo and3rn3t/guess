@@ -126,6 +126,7 @@ function isRetryableD1ApplyError(message: string): boolean {
   const normalized = message.toLowerCase();
   return [
     "internal error while starting up d1 db storage caused object to be reset",
+    "not currently importing anything",
     "etimedout",
     "econnreset",
     "fetch failed",
@@ -135,6 +136,28 @@ function isRetryableD1ApplyError(message: string): boolean {
     "too many requests",
     "status code 429",
   ].some((marker) => normalized.includes(marker));
+}
+
+function extractExecErrorDetails(err: unknown): string {
+  if (!(err instanceof Error)) {
+    return String(err);
+  }
+
+  const execErr = err as Error & { stdout?: unknown; stderr?: unknown };
+  const stdout =
+    typeof execErr.stdout === "string"
+      ? execErr.stdout
+      : Buffer.isBuffer(execErr.stdout)
+        ? execErr.stdout.toString("utf8")
+        : "";
+  const stderr =
+    typeof execErr.stderr === "string"
+      ? execErr.stderr
+      : Buffer.isBuffer(execErr.stderr)
+        ? execErr.stderr.toString("utf8")
+        : "";
+
+  return [err.message, stdout, stderr].filter(Boolean).join("\n");
 }
 
 async function d1ApplyFile(filePath: string): Promise<void> {
@@ -159,7 +182,7 @@ async function d1ApplyFile(filePath: string): Promise<void> {
       );
       return;
     } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
+      const message = extractExecErrorDetails(err);
       const retryable = isRetryableD1ApplyError(message);
       const canRetry = retryable && attempt < maxAttempts;
       if (!canRetry) {
