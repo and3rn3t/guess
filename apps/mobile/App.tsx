@@ -1,5 +1,7 @@
 import { StatusBar } from 'expo-status-bar'
+import type { CoreGamePhase } from '@guess/app-core'
 import type { ReactElement } from 'react'
+import { useMemo } from 'react'
 import {
   Pressable,
   SafeAreaView,
@@ -7,8 +9,20 @@ import {
   Text,
   View,
 } from 'react-native'
+import { createMobilePlatformAdapters } from './src/platform/adapters'
+
+const CORE_PHASES: readonly CoreGamePhase[] = [
+  'welcome',
+  'playing',
+  'guessing',
+  'gameOver',
+  'challenge',
+]
 
 export default function App(): ReactElement {
+  const platformAdapters = useMemo(() => createMobilePlatformAdapters(), [])
+  const adapterNames = Object.keys(platformAdapters).join(' | ')
+
   return (
     <SafeAreaView style={styles.screen}>
       <StatusBar style="light" />
@@ -17,6 +31,12 @@ export default function App(): ReactElement {
         <Text style={styles.title}>Andernator Mobile</Text>
         <Text style={styles.body}>
           This app shell is intentionally native-first. Web UI components are blocked by guardrails.
+        </Text>
+        <Text style={styles.caption}>
+          Shared phases: {CORE_PHASES.join(' -> ')}
+        </Text>
+        <Text style={styles.caption}>
+          Platform adapters: {adapterNames}
         </Text>
         <Pressable accessibilityRole="button" style={styles.primaryButton}>
           <Text style={styles.primaryButtonText}>Start Native Build</Text>
@@ -58,6 +78,11 @@ const styles = StyleSheet.create({
     color: '#c7d2fe',
     fontSize: 15,
     lineHeight: 22,
+  },
+  caption: {
+    color: '#93c5fd',
+    fontSize: 12,
+    lineHeight: 18,
   },
   primaryButton: {
     marginTop: 6,

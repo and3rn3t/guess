@@ -118,6 +118,10 @@ pnpm dev
 | `pnpm mobile:dev` | Start Expo dev server for apps/mobile |
 | `pnpm mobile:ios` | Build and run apps/mobile on iOS simulator/device |
 | `pnpm mobile:typecheck` | Type-check the mobile app workspace |
+| `pnpm mobile:prebuild:ios` | Generate native iOS project files under apps/mobile/ios |
+| `pnpm mobile:pods` | Install CocoaPods dependencies for apps/mobile/ios |
+| `pnpm mobile:open:xcode` | Open generated Xcode workspace for apps/mobile |
+| `pnpm mobile:setup:xcode` | Run prebuild + pods + open workspace in one command |
 
 ### Data And DB Ops
 

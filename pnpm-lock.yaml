@@ -11,6 +11,9 @@ importers:
 
   .:
     dependencies:
+      '@guess/app-core':
+        specifier: workspace:*
+        version: link:packages/app-core
       '@guess/game-engine':
         specifier: workspace:*
         version: link:packages/game-engine
@@ -213,6 +216,9 @@ importers:
 
   apps/mobile:
     dependencies:
+      '@guess/app-core':
+        specifier: workspace:*
+        version: link:../../packages/app-core
       expo:
         specifier: ^55.0.19
         version: 55.0.19(@babel/core@7.29.0)(@expo/dom-webview@55.0.5)(react-dom@19.2.5(react@19.2.5))(react-native@0.85.2(@babel/core@7.29.0)(@types/react@19.2.14)(react@19.2.5))(react@19.2.5)(typescript@6.0.3)
@@ -232,6 +238,8 @@ importers:
       typescript:
         specifier: ~6.0.3
         version: 6.0.3
+
+  packages/app-core: {}
 
   packages/game-engine:
     dependencies:

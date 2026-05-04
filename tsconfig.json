@@ -29,6 +29,9 @@
       "@/*": [
         "./src/*"
       ],
+      "@guess/app-core": [
+        "./packages/app-core/src/index.ts"
+      ],
       "@guess/game-engine": [
         "./packages/game-engine/src/index.ts"
       ]

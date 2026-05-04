@@ -110,6 +110,10 @@
     "mobile:dev": "pnpm --filter @guess/mobile dev",
     "mobile:ios": "pnpm --filter @guess/mobile ios",
     "mobile:typecheck": "pnpm --filter @guess/mobile typecheck",
+    "mobile:prebuild:ios": "pnpm --filter @guess/mobile prebuild:ios",
+    "mobile:pods": "pnpm --filter @guess/mobile pods",
+    "mobile:open:xcode": "pnpm --filter @guess/mobile open:xcode",
+    "mobile:setup:xcode": "pnpm --filter @guess/mobile setup:xcode",
     "tail": "tsx scripts/tail.ts",
     "openapi:generate": "tsx scripts/openapi/generate.ts",
     "openapi:validate": "tsx scripts/openapi/validate.ts",
@@ -117,6 +121,7 @@
     "prepare": "husky"
   },
   "dependencies": {
+    "@guess/app-core": "workspace:*",
     "@guess/game-engine": "workspace:*",
     "@phosphor-icons/react": "^2.1.7",
     "@radix-ui/react-alert-dialog": "^1.1.6",

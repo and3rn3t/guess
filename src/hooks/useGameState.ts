@@ -1,4 +1,5 @@
 import { useReducer, useCallback, useRef, useEffect } from 'react'
+import type { CoreGamePhase } from '@guess/app-core'
 import { KV_GAME_SESSION } from '@/lib/constants'
 import type { Character, Question, Answer, AnswerValue, ReasoningExplanation, GameHistoryStep } from '@/lib/types'
 import { GameStateSchema } from '@/lib/schemas'
@@ -7,10 +8,7 @@ const SESSION_KEY = KV_GAME_SESSION
 
 // ========== GAME PHASE TYPE ==========
 export type GamePhase =
-  | 'welcome'
-  | 'playing'
-  | 'guessing'
-  | 'gameOver'
+  | CoreGamePhase
   | 'teaching'
   | 'manage'
   | 'stats'

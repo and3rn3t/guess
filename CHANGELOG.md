@@ -14,6 +14,10 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 - **Expo mobile app scaffold (iOS-first, native shell)** — added initial workspace app at `apps/mobile` (`package.json`, `app.json`, `index.js`, `App.tsx`, `tsconfig.json`, `README.md`) with Expo + React Native dependencies and root scripts (`pnpm mobile:dev`, `pnpm mobile:ios`, `pnpm mobile:typecheck`) for local development. Added mobile command docs in README, expanded `.gitignore` for Expo local artifacts, and updated PR template with a required native quality evidence section (scorecard + accessibility + latency checks) for mobile screen changes.
 
+- **Shared app-core phase + adapter contracts (M1 foundation)** — added new workspace package `@guess/app-core` (`packages/app-core`) with canonical core game phases and shared core-phase state contract (`CoreGamePhase`, `CorePhaseState`, and helpers) plus cross-platform adapter interfaces (`PlatformAdapters` with storage/network/share/haptics/lifecycle). Wired web reducer phases in `src/hooks/useGameState.ts` to extend `CoreGamePhase`, and wired `apps/mobile/App.tsx` to consume the shared contracts through native mobile adapter stubs in `apps/mobile/src/platform/adapters.ts`.
+
+- **Xcode bootstrap for mobile workspace** — added iOS/Xcode setup scripts for `@guess/mobile` (`prebuild:ios`, `pods`, `open:xcode`, `setup:xcode`, and `sync:xcode-env`), shared Xcode env config templates (`apps/mobile/.xcode.env`, `.xcode.env.local.example`), root command aliases (`pnpm mobile:prebuild:ios`, `mobile:pods`, `mobile:open:xcode`, `mobile:setup:xcode`), and setup docs (`docs/mobile/xcode-setup.md`, updated mobile README) so native iOS files can be generated and opened directly in Xcode.
+
 - **Completeness burndown + weekly report (DQ.38)**
 
 - **v1 KV endpoint deprecation headers** — `functions/api/corrections.ts` and `functions/api/stats.ts` now emit `Deprecation: true` + `Sunset: Wed, 01 Jan 2027 00:00:00 GMT` on GET responses, matching the headers already present in `characters.ts`, `questions.ts`, and `sync.ts`. All five legacy KV-backed v1 endpoints are now consistently signalling sunset to callers.

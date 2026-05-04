@@ -84,6 +84,12 @@ pids
 .expo-shared/
 apps/mobile/.expo/
 apps/mobile/.expo-shared/
+apps/mobile/ios/Pods/
+apps/mobile/ios/build/
+apps/mobile/ios/.xcode.env.local
+apps/mobile/ios/**/*.xcuserstate
+apps/mobile/ios/**/*.xcworkspace/xcuserdata/
+apps/mobile/ios/**/xcuserdata/
 
 # Playwright MCP session artifacts
 .playwright-mcp/
