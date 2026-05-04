@@ -86,7 +86,7 @@ const FLUSH_EVERY = Number.parseInt(flag("--flush-every", "50"), 10);
 const MIN_FLUSH_EVERY = 10;
 const DRY_RUN = process.argv.includes("--dry-run");
 const DB_NAME = ENV_FLAG === "production" ? "guess-db" : "guess-db-preview";
-const MODEL = process.env.BULK_ENRICH_MODEL ?? "gpt-4o-mini";
+const MODEL = process.env.BULK_ENRICH_MODEL?.trim() || "gpt-4o-mini";
 const OPENAI_URL = "https://api.openai.com/v1/chat/completions";
 const RUN_ISO = new Date().toISOString();
 
