@@ -3,6 +3,7 @@ import {
   buildResumeAnswerReplaySteps,
   buildRejectReadinessSnapshot,
   canResumeServerSession,
+  canContinueAfterSkip,
   classifyServerAnswerResponse,
   classifyServerRejectResponse,
   buildCollectingEvidenceMessage,
@@ -331,7 +332,7 @@ export function useServerGame(dispatch: React.Dispatch<GameAction>) {
     dispatch({ type: "SKIP_QUESTION" });
     try {
       const data = await skipQuestion(serverSessionId);
-      if (!data) {
+      if (!canContinueAfterSkip(data)) {
         toast.info("No more questions to skip to!");
         dispatch({ type: "SET_EXHAUSTED" });
         return;

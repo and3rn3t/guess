@@ -30,6 +30,8 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 - **Shared resume replay-step builder extracted (M1 extraction)** — extended `packages/app-core/src/server-resume.ts` with `buildResumeAnswerReplaySteps` so the pure placeholder mapping for resumed answers lives in app-core. Updated `src/hooks/useServerGame.ts` to consume the shared replay builder while preserving reducer replay order and restored-session behavior.
 
+- **Shared skip-response helper extracted (M1 extraction)** — added `packages/app-core/src/server-skip.ts` with `canContinueAfterSkip` to centralize the skip-response shape guard (`SkipResponse | null`). Updated `src/hooks/useServerGame.ts` to consume the shared helper while preserving exhausted-session handling and question progression behavior.
+
 - **Completeness burndown + weekly report (DQ.38)**
 
 - **v1 KV endpoint deprecation headers** — `functions/api/corrections.ts` and `functions/api/stats.ts` now emit `Deprecation: true` + `Sunset: Wed, 01 Jan 2027 00:00:00 GMT` on GET responses, matching the headers already present in `characters.ts`, `questions.ts`, and `sync.ts`. All five legacy KV-backed v1 endpoints are now consistently signalling sunset to callers.
