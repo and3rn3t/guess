@@ -90,10 +90,27 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
   const coverageMap = getOrBuildCoverageMap(session)
   const scoring = { coverageMap, popularityMap: session.popularityMap }
+  const db = context.env.GUESS_DB
 
   // Pre-compute probabilities once — reused by evaluateGuessReadiness and selectBestQuestion
   // to avoid redundant O(C×A) passes over the same data.
   const probs = calculateProbabilities(filtered, session.answers, scoring)
+
+  // Kick off adaptive-data loading in parallel with readiness checks. This saves
+  // one await in the common "continue asking" path while staying best-effort.
+  const adaptivePromise: Promise<Awaited<ReturnType<typeof loadAdaptiveData>>> = loadAdaptiveData(kv, db)
+    .catch(() => ({
+      maybeRateMap: undefined,
+      netGainMap: undefined,
+      confusionDiscriminators: undefined,
+      disputeMap: undefined,
+      attributeTrustMap: undefined,
+      characterPopularityMap: undefined,
+      questionEmpiricalGainMap: undefined,
+      questionQualityPenaltyMap: undefined,
+      confusionPairs: undefined,
+      activeWeights: undefined,
+    }))
 
   // AN.11/AN.21: record posterior history and top-10 after each answer.
   updatePosteriorHistory(session, probs, filtered)
@@ -140,9 +157,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     }
   }
 
-  // Load runtime adaptive data (parallel — best-effort, failures are non-fatal)
-  const db = context.env.GUESS_DB
-  const adaptive = await loadAdaptiveData(kv, db)
+  // Load runtime adaptive data (already in-flight; best-effort)
+  const adaptive = await adaptivePromise
 
   // Select next question (pass pre-computed probs for efficiency)
   const nextQuestion = selectNextQuestionForTurn({

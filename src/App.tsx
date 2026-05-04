@@ -18,6 +18,7 @@ import { useAdaptiveDifficulty } from "@/hooks/useAdaptiveDifficulty";
 import { useAppLifecycleEffects } from "@/hooks/useAppLifecycleEffects";
 import { useDailyStreak } from "@/hooks/useDailyStreak";
 import { useDailyChallenge } from "@/hooks/useDailyChallenge";
+import { useDailyChallengeGameFlow } from "@/hooks/useDailyChallengeGameFlow";
 import { useEliminationTracker } from "@/hooks/useEliminationTracker";
 import { useGameActions } from "@/hooks/useGameActions";
 import { useGameState } from "@/hooks/useGameState";
@@ -184,7 +185,15 @@ function App() {
     refresh: refreshDailyChallenge,
     recordCompletion: recordDailyCompletion,
   } = useDailyChallenge();
-  const [activeDailyDate, setActiveDailyDate] = useState<string | null>(null);
+  const {
+    activateDailyChallenge,
+    clearActiveDailyChallenge,
+    onGameCompleted,
+  } =
+    useDailyChallengeGameFlow({
+      dailyChallenge,
+      recordDailyCompletion,
+    });
 
   // ========== PWA: SW UPDATE NOTIFICATION ==========
   const { updateAvailable, reload: reloadForUpdate } = useSWUpdate();
@@ -226,23 +235,19 @@ function App() {
     answers,
     setCharacters,
     setQuestions,
-    onGameCompleted: (won, questionsAsked) => {
-      if (!activeDailyDate || activeDailyDate !== dailyChallenge?.date) return;
-      void recordDailyCompletion(won, questionsAsked);
-      setActiveDailyDate(null);
-    },
+    onGameCompleted,
   });
 
   const startDailyChallenge = useCallback(async () => {
     if (!dailyChallenge?.characterId) return;
-    setActiveDailyDate(dailyChallenge.date);
+    activateDailyChallenge(dailyChallenge.date);
     await startGameWithCharacter(dailyChallenge.characterId);
-  }, [dailyChallenge, startGameWithCharacter]);
+  }, [dailyChallenge, activateDailyChallenge, startGameWithCharacter]);
 
   const startStandardGame = useCallback(async () => {
-    setActiveDailyDate(null);
+    clearActiveDailyChallenge();
     await startGame();
-  }, [startGame]);
+  }, [clearActiveDailyChallenge, startGame]);
 
   useAppLifecycleEffects({
     gamePhase,
