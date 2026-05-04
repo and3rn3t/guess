@@ -80,6 +80,108 @@ async function maybeFinalizeReadinessGuess(
   })
 }
 
+async function maybeHandleContradiction(input: {
+  kv: KVNamespace
+  session: Parameters<typeof rollbackAndBuildContradictionResponse>[0]['session']
+  filtered: Parameters<typeof detectContradictions>[0]
+}): Promise<Response | null> {
+  const { hasContradiction } = detectContradictions(input.filtered, input.session.answers)
+  if (!hasContradiction) {
+    return null
+  }
+
+  return jsonResponse(
+    await rollbackAndBuildContradictionResponse({
+      kv: input.kv,
+      session: input.session,
+    }),
+  )
+}
+
+function computeResponseReadiness(input: {
+  session: Parameters<typeof applyRejectCooldown>[0]
+  filtered: Parameters<typeof evaluateGuessReadiness>[0]
+  scoring: Parameters<typeof evaluateGuessReadiness>[5]
+  probs: Parameters<typeof evaluateGuessReadiness>[6]
+}): ReturnType<typeof applyRejectCooldown> {
+  const questionCount = input.session.answers.length
+  const readiness = evaluateGuessReadiness(
+    input.filtered,
+    input.session.answers,
+    questionCount,
+    input.session.maxQuestions,
+    input.session.guessCount,
+    input.scoring,
+    input.probs,
+  )
+
+  return applyRejectCooldown(input.session, readiness)
+}
+
+async function continueWithNextQuestion(input: {
+  env: Env
+  waitUntil: (promise: Promise<unknown>) => void
+  kv: KVNamespace
+  db: D1Database | null | undefined
+  session: Parameters<typeof buildNextQuestionResponse>[0]['session']
+  filtered: Parameters<typeof buildNextQuestionResponse>[0]['filtered']
+  scoring: NonNullable<Parameters<typeof selectNextQuestionForTurn>[0]['scoring']>
+  adaptive: AdaptiveData
+  probs: ReturnType<typeof calculateProbabilities>
+  questionCount: number
+  readiness: Parameters<typeof buildNextQuestionResponse>[0]['readiness']
+}): Promise<Response> {
+  const nextQuestion = selectNextQuestionForTurn({
+    session: input.session,
+    filtered: input.filtered,
+    questions: input.session.questions,
+    scoring: input.scoring,
+    adaptive: input.adaptive,
+    probs: input.probs,
+    recentCategories: getRecentQuestionCategories(input.session),
+    selector: input.session.selector ?? 'mcts',
+  })
+
+  if (!nextQuestion) {
+    const forcedGuessResponse = await finalizeGuessJsonResponse({
+      kv: input.kv,
+      session: input.session,
+      filtered: input.filtered,
+      scoring: input.scoring,
+      questionCount: input.questionCount,
+      remaining: input.filtered.length,
+    })
+
+    if (forcedGuessResponse) {
+      return forcedGuessResponse
+    }
+
+    return errorResponse('No questions or candidates available', 500)
+  }
+
+  const { reasoning, response } = buildNextQuestionResponse({
+    session: input.session,
+    nextQuestion,
+    filtered: input.filtered,
+    scoring: input.scoring,
+    questionCount: input.questionCount,
+    readiness: input.readiness,
+  })
+
+  await persistAndSyncAnswerTurn({
+    env: input.env,
+    kv: input.kv,
+    db: input.db,
+    waitUntil: input.waitUntil,
+    session: input.session,
+    nextQuestion,
+    reasoning,
+    questionNumber: input.questionCount + 1,
+  })
+
+  return jsonResponse(response)
+}
+
 // ── POST /api/v2/game/answer ─────────────────────────────────
 // Processes the user's answer, returns next question or a guess
 
@@ -147,30 +249,22 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   // AN.11/AN.21: record posterior history and top-10 after each answer.
   updatePosteriorHistory(session, probs, filtered)
 
-  // Check for contradictions
-  const { hasContradiction } = detectContradictions(filtered, session.answers)
-  if (hasContradiction) {
-    return respond(jsonResponse(
-      await rollbackAndBuildContradictionResponse({
-        kv,
-        session,
-      })
-    ))
+  const contradictionResponse = await maybeHandleContradiction({
+    kv,
+    session,
+    filtered,
+  })
+  if (contradictionResponse) {
+    return respond(contradictionResponse)
   }
 
   const questionCount = session.answers.length
-  // Pass pre-computed probs to avoid recalculating inside evaluateGuessReadiness
-  const readiness = evaluateGuessReadiness(
+  const responseReadiness = computeResponseReadiness({
+    session,
     filtered,
-    session.answers,
-    questionCount,
-    session.maxQuestions,
-    session.guessCount,
     scoring,
     probs,
-  )
-
-  const responseReadiness = applyRejectCooldown(session, readiness)
+  })
 
   const readinessGuessResponse = await maybeFinalizeReadinessGuess({
     kv,
@@ -188,57 +282,21 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   // Load runtime adaptive data (already in-flight; best-effort)
   const adaptive = await adaptivePromise
 
-  // Select next question (pass pre-computed probs for efficiency)
-  const nextQuestion = selectNextQuestionForTurn({
-    session,
-    filtered,
-    questions: session.questions,
-    scoring,
-    adaptive,
-    probs,
-    recentCategories: getRecentQuestionCategories(session),
-    selector: session.selector ?? 'mcts',
-  })
-
-  if (!nextQuestion) {
-    // No more questions — force a guess
-    const forcedGuessResponse = await finalizeGuessJsonResponse({
+  return respond(
+    await continueWithNextQuestion({
+      env: context.env,
+      waitUntil: context.waitUntil,
       kv,
+      db,
       session,
       filtered,
       scoring,
+      adaptive,
+      probs,
       questionCount,
-      remaining: filtered.length,
-    })
-
-    if (forcedGuessResponse) {
-      return respond(forcedGuessResponse)
-    }
-
-    return respond(errorResponse('No questions or candidates available', 500))
-  }
-
-  const { reasoning, response } = buildNextQuestionResponse({
-    session,
-    nextQuestion,
-    filtered,
-    scoring,
-    questionCount,
-    readiness: responseReadiness,
-  })
-
-  await persistAndSyncAnswerTurn({
-    env: context.env,
-    kv,
-    db,
-    waitUntil: context.waitUntil,
-    session,
-    nextQuestion,
-    reasoning,
-    questionNumber: questionCount + 1,
-  })
-
-  return respond(jsonResponse(response))
+      readiness: responseReadiness,
+    }),
+  )
   } catch (err) {
     console.error('POST /api/v2/game/answer error:', err)
     context.waitUntil(logError(context.env.GUESS_DB, 'answer', 'error', 'answer processing failed', err, {
