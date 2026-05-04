@@ -1,3 +1,23 @@
+//
+//  AppDelegate.swift
+//  Andernator
+//
+//  Expo + React Native app delegate with native service module registration.
+//
+//  Native modules registered:
+//    - HapticsService: Native haptic feedback for game interactions
+//    - VoiceOverAnnouncer: Accessibility announcements for game state changes
+//    - ReduceMotionObserver: Reduce motion setting observation
+//    - LifecycleObserver: App lifecycle state management
+//
+//  Why native modules: These provide capabilities beyond Expo's default abstractions,
+//  meeting iOS HIG requirements for native-quality game interactions and accessibility.
+//
+//  TS contract: See NativeServices.ts for TypeScript type definitions.
+//
+//  Fallback: All modules gracefully degrade if unavailable (simulator, older iOS versions).
+//
+
 internal import Expo
 import React
 import ReactAppDependencyProvider
