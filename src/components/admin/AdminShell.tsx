@@ -14,7 +14,6 @@ import {
   HouseIcon,
   WrenchIcon,
   ChartLineIcon,
-  BugIcon,
   WarningOctagonIcon,
   GridFourIcon,
   DnaIcon,
@@ -31,11 +30,16 @@ import { LiveOpsStrip } from './LiveOpsStrip'
 import { HealthBadge } from './HealthBadge'
 import { RouteErrorBoundary } from './RouteErrorBoundary'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import {
+  ADMIN_ROUTE_MANIFEST,
+  type AdminNavIconKey,
+  type AdminNavSection,
+} from './adminRouteManifest'
 
 interface NavItem {
   to: string
   label: string
-  icon: React.ReactNode
+  iconKey: AdminNavIconKey | 'house'
 }
 
 type SectionColor = 'blue' | 'violet' | 'amber' | 'emerald' | 'default'
@@ -63,53 +67,91 @@ const COLOR_MAP: Record<SectionColor, { title: string; activeItem: string }> = {
   },
 }
 
-const DATA_ITEMS: NavItem[] = [
-  { to: '.', label: 'Mission Control', icon: <HouseIcon size={16} weight="duotone" /> },
-  { to: 'about', label: 'About', icon: <ListChecksIcon size={16} weight="duotone" /> },
+const SECTION_TITLES: Record<AdminNavSection | 'mission-control', string> = {
+  'mission-control': 'Mission Control',
+  mission: 'Mission Control',
+  curate: 'Curate Core Data',
+  expand: 'Expand Knowledge',
+  govern: 'Govern Community Input',
+  monitor: 'Monitor & Improve',
+  labs: 'Labs & Utilities',
+}
+
+const SECTION_COLORS: Record<AdminNavSection | 'mission-control', SectionColor> = {
+  'mission-control': 'blue',
+  mission: 'blue',
+  curate: 'blue',
+  expand: 'amber',
+  govern: 'emerald',
+  monitor: 'violet',
+  labs: 'default',
+}
+
+const SECTION_STORAGE_KEYS: Record<AdminNavSection | 'mission-control', string> = {
+  'mission-control': 'mission-control',
+  mission: 'mission',
+  curate: 'curate',
+  expand: 'expand',
+  govern: 'govern',
+  monitor: 'monitor',
+  labs: 'labs',
+}
+
+const SECTION_ORDER: Array<AdminNavSection | 'mission-control'> = [
+  'mission-control',
+  'curate',
+  'expand',
+  'govern',
+  'monitor',
+  'labs',
 ]
 
-const WORKFLOW_CURATE_ITEMS: NavItem[] = [
-  { to: 'characters', label: 'Characters', icon: <UsersIcon size={16} weight="duotone" /> },
-  { to: 'data-quality', label: 'Data Quality', icon: <ChartLineIcon size={16} weight="fill" /> },
-  { to: 'hygiene', label: 'Data Hygiene', icon: <WrenchIcon size={16} weight="duotone" /> },
-  { to: 'questions', label: 'Questions', icon: <ListChecksIcon size={16} weight="duotone" /> },
-  { to: 'coverage', label: 'Attribute Coverage', icon: <ChartBarIcon size={16} weight="duotone" /> },
-  { to: 'questions/retire', label: 'Retirement Queue', icon: <TrashIcon size={16} weight="duotone" /> },
-  { to: 'questions/duplicates', label: 'Duplicate Queue', icon: <CopySimpleIcon size={16} weight="duotone" /> },
-]
+function getIcon(iconKey: AdminNavIconKey | 'house'): React.ReactNode {
+  switch (iconKey) {
+    case 'house':
+      return <HouseIcon size={16} weight="duotone" />
+    case 'chartBar':
+      return <ChartBarIcon size={16} weight="duotone" />
+    case 'flask':
+      return <FlaskIcon size={16} weight="duotone" />
+    case 'users':
+      return <UsersIcon size={16} weight="duotone" />
+    case 'listChecks':
+      return <ListChecksIcon size={16} weight="duotone" />
+    case 'treeStructure':
+      return <TreeStructureIcon size={16} weight="duotone" />
+    case 'arrowsClockwise':
+      return <ArrowsClockwiseIcon size={16} weight="duotone" />
+    case 'queue':
+      return <QueueIcon size={16} weight="duotone" />
+    case 'usersThree':
+      return <UsersThreeIcon size={16} weight="duotone" />
+    case 'lightning':
+      return <LightningIcon size={16} weight="duotone" />
+    case 'wrench':
+      return <WrenchIcon size={16} weight="duotone" />
+    case 'chartLine':
+      return <ChartLineIcon size={16} weight="duotone" />
+    case 'warningOctagon':
+      return <WarningOctagonIcon size={16} weight="duotone" />
+    case 'gridFour':
+      return <GridFourIcon size={16} weight="duotone" />
+    case 'dna':
+      return <DnaIcon size={16} weight="duotone" />
+    case 'target':
+      return <TargetIcon size={16} weight="duotone" />
+    case 'copySimple':
+      return <CopySimpleIcon size={16} weight="duotone" />
+    case 'trash':
+      return <TrashIcon size={16} weight="duotone" />
+  }
+}
 
-const WORKFLOW_EXPAND_ITEMS: NavItem[] = [
-  { to: 'recommender', label: 'Attribute Recommender', icon: <LightningIcon size={16} weight="duotone" /> },
-  { to: 'category-recommender', label: 'Category Recommender', icon: <TreeStructureIcon size={16} weight="duotone" /> },
-  { to: 'enrich', label: 'Live Enrichment', icon: <LightningIcon size={16} weight="duotone" /> },
-  { to: 'enrichment', label: 'Enrichment Status', icon: <ArrowsClockwiseIcon size={16} weight="duotone" /> },
-  { to: 'pipeline', label: 'Pipeline Log', icon: <TreeStructureIcon size={16} weight="duotone" /> },
-  { to: 'matrix', label: 'DNA Matrix', icon: <DnaIcon size={16} weight="duotone" /> },
-]
-
-const WORKFLOW_GOVERN_ITEMS: NavItem[] = [
-  { to: 'proposed-attrs', label: 'Proposed Attrs', icon: <QueueIcon size={16} weight="duotone" /> },
-  { to: 'disputes', label: 'Attr Disputes', icon: <WarningOctagonIcon size={16} weight="duotone" /> },
-  { to: 'community', label: 'Community Queue', icon: <UsersThreeIcon size={16} weight="duotone" /> },
-]
-
-const WORKFLOW_MONITOR_ITEMS: NavItem[] = [
-  { to: 'analytics', label: 'Analytics', icon: <ChartBarIcon size={16} weight="duotone" /> },
-  { to: 'funnel', label: 'Skip Funnel', icon: <ChartLineIcon size={16} weight="duotone" /> },
-  { to: 'confusion', label: 'Confusion Matrix', icon: <GridFourIcon size={16} weight="duotone" /> },
-  { to: 'experiments', label: 'Experiments (A/B)', icon: <FlaskIcon size={16} weight="duotone" /> },
-  { to: 'cost', label: 'Cost Dashboard', icon: <ChartLineIcon size={16} weight="duotone" /> },
-  { to: 'error-logs', label: 'Error Logs', icon: <WarningOctagonIcon size={16} weight="fill" /> },
-  { to: 'triage', label: 'Failure Triage', icon: <WarningOctagonIcon size={16} weight="duotone" /> },
-]
-
-const OVERFLOW_ITEMS: NavItem[] = [
-  { to: 'api-docs', label: 'API Docs', icon: <ListChecksIcon size={16} weight="duotone" /> },
-  { to: 'stress-test', label: 'Stress Test', icon: <TargetIcon size={16} weight="duotone" /> },
-  { to: 'env', label: 'Environment Test', icon: <FlaskIcon size={16} weight="duotone" /> },
-  { to: 'bulk-habitat', label: 'Bulk Habitat', icon: <ArrowsClockwiseIcon size={16} weight="duotone" /> },
-  { to: 'demo', label: 'Question Gen Demo', icon: <BugIcon size={16} weight="duotone" /> },
-]
+function buildNavItems(section: AdminNavSection): NavItem[] {
+  return ADMIN_ROUTE_MANIFEST
+    .filter((route) => route.section === section)
+    .map((route) => ({ to: route.path, label: route.label, iconKey: route.iconKey }))
+}
 
 /** Fetches badge counts for actionable queues once on mount. */
 function useBadgeCounts(): Record<string, number> {
@@ -209,7 +251,7 @@ function SidebarSection({
                     )
                   }
                 >
-                  {item.icon}
+                  {getIcon(item.iconKey)}
                   <span className="flex-1">{item.label}</span>
                   {badge ? (
                     <span className="text-[10px] font-semibold tabular-nums bg-amber-500/20 text-amber-400 rounded-full px-1.5 min-w-4.5 text-center leading-4 py-px">
@@ -242,14 +284,28 @@ export function AdminShell(): React.JSX.Element {
     return () => document.removeEventListener('keydown', down)
   }, [])
 
-  const commandSections: CommandSection[] = [
-    { title: 'Mission Control', items: DATA_ITEMS },
-    { title: 'Curate Core Data', items: WORKFLOW_CURATE_ITEMS },
-    { title: 'Expand Knowledge', items: WORKFLOW_EXPAND_ITEMS },
-    { title: 'Govern Community Input', items: WORKFLOW_GOVERN_ITEMS },
-    { title: 'Monitor & Improve', items: WORKFLOW_MONITOR_ITEMS },
-    { title: 'Labs & Utilities', items: OVERFLOW_ITEMS },
-  ]
+  const navBySection: Record<AdminNavSection | 'mission-control', NavItem[]> = useMemo(() => ({
+    'mission-control': [{ to: '.', label: 'Mission Control', iconKey: 'house' }],
+    mission: buildNavItems('mission'),
+    curate: buildNavItems('curate'),
+    expand: buildNavItems('expand'),
+    govern: buildNavItems('govern'),
+    monitor: buildNavItems('monitor'),
+    labs: buildNavItems('labs'),
+  }), [])
+
+  const commandSections: CommandSection[] = useMemo(
+    () =>
+      SECTION_ORDER.map((section) => ({
+        title: SECTION_TITLES[section],
+        items: navBySection[section].map((item) => ({
+          to: item.to,
+          label: item.label,
+          icon: getIcon(item.iconKey),
+        })),
+      })).filter((section) => section.items.length > 0),
+    [navBySection]
+  )
 
   return (
     <LiveOpsProvider>
@@ -285,12 +341,21 @@ export function AdminShell(): React.JSX.Element {
           </div>
 
           <nav className="flex-1 overflow-y-auto space-y-1">
-            <SidebarSection title="Mission Control" items={DATA_ITEMS} storageKey="mission-control" color="blue" />
-            <SidebarSection title="Curate Core Data" items={WORKFLOW_CURATE_ITEMS} storageKey="curate" color="blue" />
-            <SidebarSection title="Expand Knowledge" items={WORKFLOW_EXPAND_ITEMS} storageKey="expand" color="amber" />
-            <SidebarSection title="Govern Community Input" items={WORKFLOW_GOVERN_ITEMS} storageKey="govern" color="emerald" badgeMap={badgeCounts} />
-            <SidebarSection title="Monitor & Improve" items={WORKFLOW_MONITOR_ITEMS} storageKey="monitor" color="violet" />
-            <SidebarSection title="Labs & Utilities" items={OVERFLOW_ITEMS} storageKey="labs" defaultOpen={false} />
+            {SECTION_ORDER.map((section) => {
+              const items = navBySection[section]
+              if (items.length === 0) return null
+              return (
+                <SidebarSection
+                  key={section}
+                  title={SECTION_TITLES[section]}
+                  items={items}
+                  storageKey={SECTION_STORAGE_KEYS[section]}
+                  color={SECTION_COLORS[section]}
+                  defaultOpen={section !== 'labs'}
+                  badgeMap={section === 'govern' ? badgeCounts : undefined}
+                />
+              )
+            })}
           </nav>
 
           {/* Working-set selector */}
