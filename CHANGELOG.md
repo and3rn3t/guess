@@ -22,6 +22,8 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 - **Shared server-readiness helpers extracted from web hook (M1 extraction)** — moved reject-cooldown message formatting and cooldown normalization into `packages/app-core/src/server-readiness.ts` and updated `src/hooks/useServerGame.ts` to consume those pure helpers (`buildCollectingEvidenceMessage`, `buildRetryGuessMessage`, `getRejectCooldownRemaining`) so server-response orchestration logic can be reused across web and mobile surfaces.
 
+- **Shared server-response interpretation helpers extracted (M1 extraction)** — added `packages/app-core/src/server-response.ts` with pure helpers to classify answer-response shape (`classifyServerAnswerResponse`) and normalize guessed-character payloads (`normalizeGuessCharacter`). Updated `src/hooks/useServerGame.ts` to consume these helpers for contradiction/guess/question branching and character mapping while preserving existing runtime behavior.
+
 - **Completeness burndown + weekly report (DQ.38)**
 
 - **v1 KV endpoint deprecation headers** — `functions/api/corrections.ts` and `functions/api/stats.ts` now emit `Deprecation: true` + `Sunset: Wed, 01 Jan 2027 00:00:00 GMT` on GET responses, matching the headers already present in `characters.ts`, `questions.ts`, and `sync.ts`. All five legacy KV-backed v1 endpoints are now consistently signalling sunset to callers.

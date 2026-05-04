@@ -1,8 +1,10 @@
 import type { GameAction } from "@/hooks/useGameState";
 import {
+  classifyServerAnswerResponse,
   buildCollectingEvidenceMessage,
   buildRetryGuessMessage,
   getRejectCooldownRemaining,
+  normalizeGuessCharacter,
 } from "@guess/app-core";
 import { GAME_API_ENDPOINTS, SERVER_SESSION_KEY } from "@/lib/constants";
 import {
@@ -186,8 +188,9 @@ export function useServerGame(dispatch: React.Dispatch<GameAction>) {
       dispatch({ type: "SET_THINKING", isThinking: true });
       try {
         const data = await submitAnswer(serverSessionId ?? "", value);
+        const responseKind = classifyServerAnswerResponse(data);
 
-        if (data.type === "contradiction") {
+        if (responseKind === "contradiction") {
           dispatch({ type: "UNDO_LAST_ANSWER" });
           toast.warning(
             data.message || "Contradictory answers — undoing last answer.",
@@ -199,24 +202,21 @@ export function useServerGame(dispatch: React.Dispatch<GameAction>) {
               reasoning: data.reasoning,
             });
           }
-        } else if (data.type === "guess" && data.character) {
+        } else if (responseKind === "guess" && data.character) {
+          const normalized = normalizeGuessCharacter(data.character);
           const guessChar: Character = {
-            id: data.character.id,
-            name: data.character.name,
-            category: (data.character.category || "other") as CharacterCategory,
+            id: normalized.id,
+            name: normalized.name,
+            category: normalized.category as CharacterCategory,
             attributes: {},
-            imageUrl: data.character.imageUrl ?? undefined,
-            trivia: data.character.trivia,
+            imageUrl: normalized.imageUrl,
+            trivia: normalized.trivia,
           };
           dispatch({ type: "MAKE_GUESS", character: guessChar });
           setServerRemaining(data.remaining ?? 1);
           setServerReadiness(normalizeReadiness(data.readiness));
           playSuspense();
-        } else if (
-          data.type === "question" &&
-          data.question &&
-          data.reasoning
-        ) {
+        } else if (responseKind === "question" && data.question && data.reasoning) {
           dispatch({
             type: "SET_QUESTION",
             question: data.question,
