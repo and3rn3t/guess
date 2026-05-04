@@ -79,3 +79,33 @@ export const applyServerAnswerStep = (
   };
   dispatch({ type: "MAKE_GUESS", character: guessChar });
 };
+
+export type RejectDispatchStep =
+  | { type: "set-question"; question: Question; reasoning: ReasoningExplanation }
+  | { type: "set-exhausted" };
+
+export const applyServerRejectStep = (
+  dispatch: React.Dispatch<GameAction>,
+  step: RejectDispatchStep,
+): void => {
+  if (step.type === "set-exhausted") {
+    dispatch({ type: "SET_EXHAUSTED" });
+    return;
+  }
+  dispatch({ type: "SET_QUESTION", question: step.question, reasoning: step.reasoning });
+};
+
+export type SkipDispatchStep =
+  | { type: "set-question"; question: Question; reasoning: ReasoningExplanation }
+  | { type: "set-exhausted" };
+
+export const applyServerSkipStep = (
+  dispatch: React.Dispatch<GameAction>,
+  step: SkipDispatchStep,
+): void => {
+  if (step.type === "set-exhausted") {
+    dispatch({ type: "SET_EXHAUSTED" });
+    return;
+  }
+  dispatch({ type: "SET_QUESTION", question: step.question, reasoning: step.reasoning });
+};

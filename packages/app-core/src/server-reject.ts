@@ -35,3 +35,36 @@ export const buildRejectReadinessSnapshot = (
     rejectCooldownRemaining,
   }
 }
+
+export type ServerRejectActionStep<TQuestion = unknown, TReasoning = unknown> =
+  | { type: 'set-question'; question: TQuestion; reasoning: TReasoning }
+  | { type: 'set-exhausted' }
+
+export const buildServerRejectActionPlan = <
+  TQuestion,
+  TReasoning,
+  TResponse extends ServerRejectResponseLike & {
+    question?: TQuestion
+    reasoning?: TReasoning
+  },
+>(
+  response: TResponse,
+): ServerRejectActionStep<TQuestion, TReasoning>[] => {
+  const kind = classifyServerRejectResponse(response)
+
+  if (kind === 'exhausted') {
+    return [{ type: 'set-exhausted' }]
+  }
+
+  if (kind === 'question' && response.question && response.reasoning) {
+    return [
+      {
+        type: 'set-question',
+        question: response.question,
+        reasoning: response.reasoning,
+      },
+    ]
+  }
+
+  return []
+}

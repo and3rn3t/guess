@@ -5,10 +5,10 @@ import {
   buildRejectReadinessSnapshot,
   buildServerAnswerActionPlan,
   buildServerAnswerOutcome,
+  buildServerRejectActionPlan,
+  buildServerSkipActionPlan,
   buildStartBootstrapPlan,
   canResumeServerSession,
-  canContinueAfterSkip,
-  classifyServerRejectResponse,
   buildCollectingEvidenceMessage,
   buildRetryGuessMessage,
   getRejectCooldownRemaining,
@@ -30,6 +30,8 @@ import { playSuspense, playThinking } from "@/lib/sounds";
 import {
   applyBootstrapStep,
   applyServerAnswerStep,
+  applyServerRejectStep,
+  applyServerSkipStep,
 } from "@/hooks/serverGameDispatch";
 import type {
   AnswerValue,
@@ -272,10 +274,12 @@ export function useServerGame(dispatch: React.Dispatch<GameAction>) {
       dispatch({ type: "REJECT_GUESS" });
       try {
         const data = await apiRejectGuess(serverSessionId, characterId);
-        const responseKind = classifyServerRejectResponse(data);
+        const rejectPlan = buildServerRejectActionPlan<Question, ReasoningExplanation, typeof data>(data);
+        for (const step of rejectPlan) {
+          applyServerRejectStep(dispatch, step);
+        }
 
-        if (responseKind === "exhausted") {
-          dispatch({ type: "SET_EXHAUSTED" });
+        if (rejectPlan[0]?.type === "set-exhausted") {
           postServerResult(false);
           analytics().then((m) =>
             m.trackGameEnd(
@@ -286,12 +290,7 @@ export function useServerGame(dispatch: React.Dispatch<GameAction>) {
               true,
             ),
           );
-        } else if (responseKind === "question" && data.question && data.reasoning) {
-          dispatch({
-            type: "SET_QUESTION",
-            question: data.question,
-            reasoning: data.reasoning,
-          });
+        } else if (rejectPlan[0]?.type === "set-question") {
           setServerRemainingSync(data.remaining ?? 0);
           setServerReadiness(buildRejectReadinessSnapshot(data.rejectCooldownRemaining));
           if (data.maxQuestions) setServerMaxQuestions(data.maxQuestions);
@@ -324,17 +323,15 @@ export function useServerGame(dispatch: React.Dispatch<GameAction>) {
     dispatch({ type: "SKIP_QUESTION" });
     try {
       const data = await skipQuestion(serverSessionId);
-      if (!canContinueAfterSkip(data)) {
+      const skipPlan = buildServerSkipActionPlan<Question, ReasoningExplanation>(data);
+      for (const step of skipPlan) {
+        applyServerSkipStep(dispatch, step);
+      }
+      if (skipPlan[0]?.type === "set-exhausted") {
         toast.info("No more questions to skip to!");
-        dispatch({ type: "SET_EXHAUSTED" });
         return;
       }
-      dispatch({
-        type: "SET_QUESTION",
-        question: data.question,
-        reasoning: data.reasoning,
-      });
-      setServerRemainingSync(data.remaining ?? serverRemainingRef.current);
+      setServerRemainingSync(data?.remaining ?? serverRemainingRef.current);
     } catch (err) {
       reportFetchError(GAME_API_ENDPOINTS.skip, err);
       const message = err instanceof Error ? err.message : "Failed to skip";
