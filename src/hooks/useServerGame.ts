@@ -1,4 +1,9 @@
 import type { GameAction } from "@/hooks/useGameState";
+import {
+  buildCollectingEvidenceMessage,
+  buildRetryGuessMessage,
+  getRejectCooldownRemaining,
+} from "@guess/app-core";
 import { GAME_API_ENDPOINTS, SERVER_SESSION_KEY } from "@/lib/constants";
 import {
   normalizeReadiness,
@@ -220,10 +225,8 @@ export function useServerGame(dispatch: React.Dispatch<GameAction>) {
           setServerRemainingSync(data.remaining ?? serverRemainingRef.current);
           setServerReadiness(normalizeReadiness(data.readiness));
           if (data.readiness?.blockedByRejectCooldown) {
-            const remaining = data.readiness.rejectCooldownRemaining ?? 0;
-            const suffix =
-              remaining > 0 ? ` (${remaining} more before next guess)` : "";
-            toast.info(`Collecting more evidence before guessing${suffix}`);
+            const remaining = getRejectCooldownRemaining(data.readiness);
+            toast.info(buildCollectingEvidenceMessage(remaining));
           } else {
             toast.success(`Answer recorded: ${value}`);
           }
@@ -310,10 +313,8 @@ export function useServerGame(dispatch: React.Dispatch<GameAction>) {
             rejectCooldownRemaining: data.rejectCooldownRemaining ?? 0,
           });
           if (data.maxQuestions) setServerMaxQuestions(data.maxQuestions);
-          const cooldown = data.rejectCooldownRemaining ?? 0;
-          const suffix =
-            cooldown > 0 ? ` (${cooldown} more before next guess)` : "";
-          toast.info(`I'll keep trying — let me ask more questions${suffix}!`);
+          const cooldown = getRejectCooldownRemaining(data);
+          toast.info(buildRetryGuessMessage(cooldown));
         } else {
           // Unexpected response shape — treat as error so user can retry
           throw new Error("Unexpected server response after rejecting guess");

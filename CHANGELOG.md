@@ -20,6 +20,8 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 - **Native mobile phase scaffold (M1 architecture baseline)** — added shared core-phase reducer/actions in `packages/app-core/src/core-phase.ts` and a mobile flow hook `apps/mobile/src/state/useCoreGameFlow.ts` so the app shell can render native placeholders for `welcome`, `playing`, `guessing`, `gameOver`, and `challenge` using shared contracts. Updated `apps/mobile/App.tsx` to render phase-specific native actions and state metadata through the shared reducer path.
 
+- **Shared server-readiness helpers extracted from web hook (M1 extraction)** — moved reject-cooldown message formatting and cooldown normalization into `packages/app-core/src/server-readiness.ts` and updated `src/hooks/useServerGame.ts` to consume those pure helpers (`buildCollectingEvidenceMessage`, `buildRetryGuessMessage`, `getRejectCooldownRemaining`) so server-response orchestration logic can be reused across web and mobile surfaces.
+
 - **Completeness burndown + weekly report (DQ.38)**
 
 - **v1 KV endpoint deprecation headers** — `functions/api/corrections.ts` and `functions/api/stats.ts` now emit `Deprecation: true` + `Sunset: Wed, 01 Jan 2027 00:00:00 GMT` on GET responses, matching the headers already present in `characters.ts`, `questions.ts`, and `sync.ts`. All five legacy KV-backed v1 endpoints are now consistently signalling sunset to callers.
