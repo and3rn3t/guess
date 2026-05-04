@@ -67,3 +67,14 @@ This keeps code health, mobile type safety, and Xcode env parity in sync.
 
 - If a change is made directly in Xcode-native files, mirror intent back into docs and mobile TS entry points so future AI work in VS Code has context.
 - When introducing native module behavior, document why Expo-level APIs were insufficient in `docs/mobile/native-product-contract.md`.
+
+### Swift scaffold entry points
+
+- Starter Swift files are scaffolded at `apps/mobile/ios/Andernator/NativeServices/`.
+- In Xcode, ensure each file is added to the project and has target membership for `Andernator`.
+- Start implementation from:
+   - `HapticsService.swift`
+   - `VoiceOverAnnouncer.swift`
+   - `ReduceMotionObserver.swift`
+   - `LifecycleObserver.swift`
+   - `BridgeContract.swift`
