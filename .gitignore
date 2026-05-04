@@ -79,6 +79,12 @@ pids
 # Wrangler temp build artifacts
 .tmp-functions/
 
+# Expo local artifacts
+.expo/
+.expo-shared/
+apps/mobile/.expo/
+apps/mobile/.expo-shared/
+
 # Playwright MCP session artifacts
 .playwright-mcp/
 

@@ -88,6 +88,7 @@ pnpm dev
 |---|---|
 | `pnpm validate` | Fast local gate (alias of `pnpm validate:fast`) |
 | `pnpm validate:fast` | Deterministic local gate: typecheck:all + lint + test + refactor guard |
+| `pnpm mobile:guardrails` | Enforce native mobile boundaries under apps/mobile (fails on web-only patterns) |
 | `pnpm validate:strict` | Extended offline gate: fast + app build + worker build + migration/schema checks + coverage |
 | `pnpm validate:online` | Conditional credentialed checks (runs only when required env vars are present) |
 | `pnpm validate:all` | Strict + online validation lanes |
@@ -109,6 +110,14 @@ pnpm dev
 | `pnpm cf:dev` | Local Pages + Functions dev server with bindings |
 | `pnpm deploy:tail` | Deploy tail worker to production |
 | `pnpm deploy:tail:preview` | Deploy tail worker to preview |
+
+### Mobile (Expo iOS)
+
+| Command | Description |
+|---|---|
+| `pnpm mobile:dev` | Start Expo dev server for apps/mobile |
+| `pnpm mobile:ios` | Build and run apps/mobile on iOS simulator/device |
+| `pnpm mobile:typecheck` | Type-check the mobile app workspace |
 
 ### Data And DB Ops
 

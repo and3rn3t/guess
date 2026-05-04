@@ -10,6 +10,10 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- **Native mobile boundary guardrails + quality docs (M0 foundation)** — added iOS native-first governance docs under `docs/mobile/` (`native-product-contract.md`, `native-surface-policy.md`, `screen-quality-scorecard.md`) and a new guard script `scripts/mobile/check-mobile-boundaries.ts` that scans `apps/mobile` for web-port drift patterns (web component imports, web-only UI libs, and DOM/browser globals such as `window`, `document`, `navigator`, `localStorage`, `sessionStorage`, and `serviceWorker`). Added `pnpm mobile:guardrails` and wired it into `pnpm validate:fast` plus CI `checks-static` with artifacted diagnostics (`mobile-guardrails.log`). Updated monorepo workspace discovery for future app packages (`apps/*`) and included `apps/**` in CI path filters.
+
+- **Expo mobile app scaffold (iOS-first, native shell)** — added initial workspace app at `apps/mobile` (`package.json`, `app.json`, `index.js`, `App.tsx`, `tsconfig.json`, `README.md`) with Expo + React Native dependencies and root scripts (`pnpm mobile:dev`, `pnpm mobile:ios`, `pnpm mobile:typecheck`) for local development. Added mobile command docs in README, expanded `.gitignore` for Expo local artifacts, and updated PR template with a required native quality evidence section (scorecard + accessibility + latency checks) for mobile screen changes.
+
 - **Completeness burndown + weekly report (DQ.38)**
 
 - **v1 KV endpoint deprecation headers** — `functions/api/corrections.ts` and `functions/api/stats.ts` now emit `Deprecation: true` + `Sunset: Wed, 01 Jan 2027 00:00:00 GMT` on GET responses, matching the headers already present in `characters.ts`, `questions.ts`, and `sync.ts`. All five legacy KV-backed v1 endpoints are now consistently signalling sunset to callers.

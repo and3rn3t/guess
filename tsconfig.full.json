@@ -4,6 +4,7 @@
     "forceConsistentCasingInFileNames": true
   },
   "include": [
+    "apps",
     "src",
     "packages",
     "functions",

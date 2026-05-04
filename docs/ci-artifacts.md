@@ -23,6 +23,7 @@ Source: .github/workflows/ci.yml
   - lint.log
   - typecheck.log
   - dq-sla-check.log
+  - mobile-guardrails.log
   - openapi-generate.log
   - openapi-validate.log
   - openapi-check.log
