@@ -11,6 +11,11 @@
 		3E461D99554A48A4959DE609 /* SplashScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */; };
 		4C5AD412D3B0DE135F22EF94 /* libPods-Andernator.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 0CE6E848C8A38126979D9493 /* libPods-Andernator.a */; };
 		56A6D494454B6CB18A7FCC90 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 5246D7DCD9C5B40C89200DD1 /* PrivacyInfo.xcprivacy */; };
+		A1B2C3D40123456789ABC201 /* BridgeContract.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D40123456789ABC101 /* BridgeContract.swift */; };
+		A1B2C3D40123456789ABC202 /* HapticsService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D40123456789ABC102 /* HapticsService.swift */; };
+		A1B2C3D40123456789ABC203 /* LifecycleObserver.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D40123456789ABC103 /* LifecycleObserver.swift */; };
+		A1B2C3D40123456789ABC204 /* ReduceMotionObserver.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D40123456789ABC104 /* ReduceMotionObserver.swift */; };
+		A1B2C3D40123456789ABC205 /* VoiceOverAnnouncer.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D40123456789ABC105 /* VoiceOverAnnouncer.swift */; };
 		92EEBD7B368C61A03F3044B0 /* ExpoModulesProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65E36108944858880C5EBF62 /* ExpoModulesProvider.swift */; };
 		BB2F792D24A3F905000567C9 /* Expo.plist in Resources */ = {isa = PBXBuildFile; fileRef = BB2F792C24A3F905000567C9 /* Expo.plist */; };
 		F11748422D0307B40044C1D9 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = F11748412D0307B40044C1D9 /* AppDelegate.swift */; };
@@ -23,6 +28,11 @@
 		13B07FB61A68108700A75B9A /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = Andernator/Info.plist; sourceTree = "<group>"; };
 		5246D7DCD9C5B40C89200DD1 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xml; name = PrivacyInfo.xcprivacy; path = Andernator/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		65E36108944858880C5EBF62 /* ExpoModulesProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ExpoModulesProvider.swift; path = "Pods/Target Support Files/Pods-Andernator/ExpoModulesProvider.swift"; sourceTree = "<group>"; };
+		A1B2C3D40123456789ABC101 /* BridgeContract.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BridgeContract.swift; sourceTree = "<group>"; };
+		A1B2C3D40123456789ABC102 /* HapticsService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HapticsService.swift; sourceTree = "<group>"; };
+		A1B2C3D40123456789ABC103 /* LifecycleObserver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LifecycleObserver.swift; sourceTree = "<group>"; };
+		A1B2C3D40123456789ABC104 /* ReduceMotionObserver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReduceMotionObserver.swift; sourceTree = "<group>"; };
+		A1B2C3D40123456789ABC105 /* VoiceOverAnnouncer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceOverAnnouncer.swift; sourceTree = "<group>"; };
 		9D393AA49A11A570B314416B /* Pods-Andernator.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Andernator.debug.xcconfig"; path = "Target Support Files/Pods-Andernator/Pods-Andernator.debug.xcconfig"; sourceTree = "<group>"; };
 		A68ABE5F8FC4C3978921E047 /* Pods-Andernator.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Andernator.release.xcconfig"; path = "Target Support Files/Pods-Andernator/Pods-Andernator.release.xcconfig"; sourceTree = "<group>"; };
 		AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = SplashScreen.storyboard; path = Andernator/SplashScreen.storyboard; sourceTree = "<group>"; };
@@ -49,6 +59,7 @@
 			children = (
 				F11748412D0307B40044C1D9 /* AppDelegate.swift */,
 				F11748442D0722820044C1D9 /* Andernator-Bridging-Header.h */,
+				A1B2C3D40123456789ABC110 /* NativeServices */,
 				BB2F792B24A3F905000567C9 /* Supporting */,
 				13B07FB51A68108700A75B9A /* Images.xcassets */,
 				13B07FB61A68108700A75B9A /* Info.plist */,
@@ -56,6 +67,18 @@
 				5246D7DCD9C5B40C89200DD1 /* PrivacyInfo.xcprivacy */,
 			);
 			name = Andernator;
+			sourceTree = "<group>";
+		};
+		A1B2C3D40123456789ABC110 /* NativeServices */ = {
+			isa = PBXGroup;
+			children = (
+				A1B2C3D40123456789ABC101 /* BridgeContract.swift */,
+				A1B2C3D40123456789ABC102 /* HapticsService.swift */,
+				A1B2C3D40123456789ABC103 /* LifecycleObserver.swift */,
+				A1B2C3D40123456789ABC104 /* ReduceMotionObserver.swift */,
+				A1B2C3D40123456789ABC105 /* VoiceOverAnnouncer.swift */,
+			);
+			path = NativeServices;
 			sourceTree = "<group>";
 		};
 		2D16E6871FA4F8E400B85C8A /* Frameworks */ = {
@@ -320,6 +343,11 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A1B2C3D40123456789ABC201 /* BridgeContract.swift in Sources */,
+				A1B2C3D40123456789ABC202 /* HapticsService.swift in Sources */,
+				A1B2C3D40123456789ABC203 /* LifecycleObserver.swift in Sources */,
+				A1B2C3D40123456789ABC204 /* ReduceMotionObserver.swift in Sources */,
+				A1B2C3D40123456789ABC205 /* VoiceOverAnnouncer.swift in Sources */,
 				F11748422D0307B40044C1D9 /* AppDelegate.swift in Sources */,
 				92EEBD7B368C61A03F3044B0 /* ExpoModulesProvider.swift in Sources */,
 			);
