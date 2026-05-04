@@ -7945,7 +7945,7 @@
     "/api/characters": {
       "get": {
         "operationId": "get-characters",
-        "summary": "GET /api/characters",
+        "summary": "List legacy custom characters",
         "tags": [
           "characters"
         ],
@@ -7955,8 +7955,49 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "name": {
+                        "type": "string"
+                      },
+                      "category": {
+                        "type": "string"
+                      },
+                      "attributes": {
+                        "type": "object",
+                        "additionalProperties": {
+                          "oneOf": [
+                            {
+                              "type": "boolean"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        }
+                      },
+                      "createdBy": {
+                        "type": "string"
+                      },
+                      "createdAt": {
+                        "type": "number"
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "name",
+                      "category",
+                      "attributes",
+                      "createdBy",
+                      "createdAt"
+                    ],
+                    "additionalProperties": false
+                  }
                 }
               }
             }
@@ -7971,7 +8012,7 @@
       },
       "post": {
         "operationId": "post-characters",
-        "summary": "POST /api/characters",
+        "summary": "Create a legacy custom character",
         "tags": [
           "characters"
         ],
@@ -7982,7 +8023,45 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "additionalProperties": true
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "category": {
+                      "type": "string"
+                    },
+                    "attributes": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "oneOf": [
+                          {
+                            "type": "boolean"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      }
+                    },
+                    "createdBy": {
+                      "type": "string"
+                    },
+                    "createdAt": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name",
+                    "category",
+                    "attributes",
+                    "createdBy",
+                    "createdAt"
+                  ],
+                  "additionalProperties": false
                 }
               }
             }
@@ -8000,7 +8079,48 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "additionalProperties": true
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 2,
+                    "maxLength": 50
+                  },
+                  "category": {
+                    "type": "string",
+                    "enum": [
+                      "video-games",
+                      "movies",
+                      "anime",
+                      "comics",
+                      "books",
+                      "cartoons",
+                      "tv-shows",
+                      "pop-culture"
+                    ]
+                  },
+                  "attributes": {
+                    "type": "object",
+                    "propertyNames": {
+                      "type": "string"
+                    },
+                    "additionalProperties": {
+                      "anyOf": [
+                        {
+                          "type": "boolean"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  }
+                },
+                "required": [
+                  "name",
+                  "category",
+                  "attributes"
+                ],
+                "additionalProperties": false
               }
             }
           }
@@ -8010,7 +8130,7 @@
     "/api/corrections": {
       "get": {
         "operationId": "get-corrections",
-        "summary": "GET /api/corrections",
+        "summary": "List correction votes for a character",
         "tags": [
           "corrections"
         ],
@@ -8020,8 +8140,42 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "attribute": {
+                        "type": "string"
+                      },
+                      "currentValue": {
+                        "oneOf": [
+                          {
+                            "type": "boolean"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "suggestedValue": {
+                        "type": "boolean"
+                      },
+                      "userId": {
+                        "type": "string"
+                      },
+                      "createdAt": {
+                        "type": "number"
+                      }
+                    },
+                    "required": [
+                      "attribute",
+                      "currentValue",
+                      "suggestedValue",
+                      "userId",
+                      "createdAt"
+                    ],
+                    "additionalProperties": false
+                  }
                 }
               }
             }
@@ -8036,7 +8190,7 @@
       },
       "post": {
         "operationId": "post-corrections",
-        "summary": "POST /api/corrections",
+        "summary": "Submit a correction vote",
         "tags": [
           "corrections"
         ],
@@ -8047,7 +8201,19 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "additionalProperties": true
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "autoApplied": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "autoApplied"
+                  ],
+                  "additionalProperties": false
                 }
               }
             }
@@ -8065,7 +8231,33 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "additionalProperties": true
+                "properties": {
+                  "characterId": {
+                    "type": "string"
+                  },
+                  "attribute": {
+                    "type": "string"
+                  },
+                  "suggestedValue": {
+                    "type": "boolean"
+                  },
+                  "currentValue": {
+                    "oneOf": [
+                      {
+                        "type": "boolean"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "characterId",
+                  "attribute",
+                  "suggestedValue"
+                ],
+                "additionalProperties": false
               }
             }
           }
@@ -8075,7 +8267,7 @@
     "/api/csp-report": {
       "post": {
         "operationId": "post-csp-report",
-        "summary": "POST /api/csp-report",
+        "summary": "Ingest CSP violation reports",
         "tags": [
           "csp-report"
         ],
@@ -8086,7 +8278,12 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "additionalProperties": true
+                  "properties": {
+                    "accepted": {
+                      "type": "boolean"
+                    }
+                  },
+                  "additionalProperties": false
                 }
               }
             }
@@ -8114,7 +8311,7 @@
     "/api/images/{path}": {
       "get": {
         "operationId": "get-images-by-path",
-        "summary": "GET /api/images/{path}",
+        "summary": "Fetch character image asset from R2",
         "tags": [
           "images"
         ],
@@ -8125,7 +8322,12 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "additionalProperties": true
+                  "properties": {
+                    "contentType": {
+                      "type": "string"
+                    }
+                  },
+                  "additionalProperties": false
                 }
               }
             }
@@ -8142,7 +8344,7 @@
     "/api/llm": {
       "post": {
         "operationId": "post-llm",
-        "summary": "POST /api/llm",
+        "summary": "Proxy non-streaming LLM completions",
         "tags": [
           "llm"
         ],
@@ -8153,7 +8355,12 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "additionalProperties": true
+                  "properties": {
+                    "text": {
+                      "type": "string"
+                    }
+                  },
+                  "additionalProperties": false
                 }
               }
             }
@@ -8171,7 +8378,34 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "additionalProperties": true
+                "properties": {
+                  "prompt": {
+                    "type": "string",
+                    "maxLength": 50000
+                  },
+                  "model": {
+                    "type": "string",
+                    "enum": [
+                      "gpt-4o",
+                      "gpt-4o-mini"
+                    ]
+                  },
+                  "jsonMode": {
+                    "type": "boolean"
+                  },
+                  "jsonSchema": {
+                    "type": "object",
+                    "additionalProperties": true
+                  },
+                  "systemPrompt": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "prompt",
+                  "model"
+                ],
+                "additionalProperties": false
               }
             }
           }
@@ -8181,7 +8415,7 @@
     "/api/llm-stream": {
       "post": {
         "operationId": "post-llm-stream",
-        "summary": "POST /api/llm-stream",
+        "summary": "Proxy streaming LLM completions",
         "tags": [
           "llm-stream"
         ],
@@ -8192,7 +8426,15 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "additionalProperties": true
+                  "properties": {
+                    "token": {
+                      "type": "string"
+                    },
+                    "done": {
+                      "type": "boolean"
+                    }
+                  },
+                  "additionalProperties": false
                 }
               }
             }
@@ -8210,7 +8452,27 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "additionalProperties": true
+                "properties": {
+                  "prompt": {
+                    "type": "string",
+                    "maxLength": 50000
+                  },
+                  "model": {
+                    "type": "string",
+                    "enum": [
+                      "gpt-4o",
+                      "gpt-4o-mini"
+                    ]
+                  },
+                  "systemPrompt": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "prompt",
+                  "model"
+                ],
+                "additionalProperties": false
               }
             }
           }
@@ -8220,7 +8482,7 @@
     "/api/questions": {
       "get": {
         "operationId": "get-questions",
-        "summary": "GET /api/questions",
+        "summary": "List legacy custom questions",
         "tags": [
           "questions"
         ],
@@ -8230,8 +8492,35 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "text": {
+                        "type": "string"
+                      },
+                      "attribute": {
+                        "type": "string"
+                      },
+                      "createdBy": {
+                        "type": "string"
+                      },
+                      "createdAt": {
+                        "type": "number"
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "text",
+                      "attribute",
+                      "createdBy",
+                      "createdAt"
+                    ],
+                    "additionalProperties": false
+                  }
                 }
               }
             }
@@ -8246,7 +8535,7 @@
       },
       "post": {
         "operationId": "post-questions",
-        "summary": "POST /api/questions",
+        "summary": "Create a legacy custom question",
         "tags": [
           "questions"
         ],
@@ -8257,7 +8546,31 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "additionalProperties": true
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "text": {
+                      "type": "string"
+                    },
+                    "attribute": {
+                      "type": "string"
+                    },
+                    "createdBy": {
+                      "type": "string"
+                    },
+                    "createdAt": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "text",
+                    "attribute",
+                    "createdBy",
+                    "createdAt"
+                  ],
+                  "additionalProperties": false
                 }
               }
             }
@@ -8275,7 +8588,24 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "additionalProperties": true
+                "properties": {
+                  "text": {
+                    "type": "string",
+                    "minLength": 10,
+                    "maxLength": 200
+                  },
+                  "attribute": {
+                    "type": "string",
+                    "minLength": 2,
+                    "maxLength": 50,
+                    "pattern": "^[a-z][a-zA-Z]*$"
+                  }
+                },
+                "required": [
+                  "text",
+                  "attribute"
+                ],
+                "additionalProperties": false
               }
             }
           }
@@ -8285,7 +8615,7 @@
     "/api/stats": {
       "get": {
         "operationId": "get-stats",
-        "summary": "GET /api/stats",
+        "summary": "Get legacy per-character or leaderboard stats",
         "tags": [
           "stats"
         ],
@@ -8295,8 +8625,85 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "characterId": {
+                          "type": "string"
+                        },
+                        "timesPlayed": {
+                          "type": "number"
+                        },
+                        "timesGuessed": {
+                          "type": "number"
+                        },
+                        "totalQuestions": {
+                          "type": "number"
+                        },
+                        "wins": {
+                          "type": "number"
+                        },
+                        "losses": {
+                          "type": "number"
+                        },
+                        "byDifficulty": {
+                          "type": "object",
+                          "additionalProperties": true
+                        }
+                      },
+                      "required": [
+                        "characterId",
+                        "timesPlayed",
+                        "timesGuessed",
+                        "totalQuestions",
+                        "wins",
+                        "losses",
+                        "byDifficulty"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "characterId": {
+                            "type": "string"
+                          },
+                          "timesPlayed": {
+                            "type": "number"
+                          },
+                          "timesGuessed": {
+                            "type": "number"
+                          },
+                          "totalQuestions": {
+                            "type": "number"
+                          },
+                          "wins": {
+                            "type": "number"
+                          },
+                          "losses": {
+                            "type": "number"
+                          },
+                          "byDifficulty": {
+                            "type": "object",
+                            "additionalProperties": true
+                          }
+                        },
+                        "required": [
+                          "characterId",
+                          "timesPlayed",
+                          "timesGuessed",
+                          "totalQuestions",
+                          "wins",
+                          "losses",
+                          "byDifficulty"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  ]
                 }
               }
             }
@@ -8311,7 +8718,7 @@
       },
       "post": {
         "operationId": "post-stats",
-        "summary": "POST /api/stats",
+        "summary": "Record legacy game stat entry",
         "tags": [
           "stats"
         ],
@@ -8322,7 +8729,15 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "additionalProperties": true
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "success"
+                  ],
+                  "additionalProperties": false
                 }
               }
             }
@@ -8340,7 +8755,36 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "additionalProperties": true
+                "properties": {
+                  "characterId": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "won": {
+                    "type": "boolean"
+                  },
+                  "questionsAsked": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "difficulty": {
+                    "default": "medium",
+                    "type": "string",
+                    "enum": [
+                      "easy",
+                      "medium",
+                      "hard"
+                    ]
+                  }
+                },
+                "required": [
+                  "characterId",
+                  "won",
+                  "questionsAsked",
+                  "difficulty"
+                ],
+                "additionalProperties": false
               }
             }
           }
@@ -8350,7 +8794,7 @@
     "/api/sync": {
       "get": {
         "operationId": "get-sync",
-        "summary": "GET /api/sync",
+        "summary": "Get legacy user sync payload",
         "tags": [
           "sync"
         ],
@@ -8361,7 +8805,29 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "additionalProperties": true
+                  "properties": {
+                    "userId": {
+                      "type": "string"
+                    },
+                    "settings": {
+                      "type": "object",
+                      "additionalProperties": true
+                    },
+                    "gameStats": {
+                      "type": "object",
+                      "additionalProperties": true
+                    },
+                    "lastSync": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "userId",
+                    "settings",
+                    "gameStats",
+                    "lastSync"
+                  ],
+                  "additionalProperties": false
                 }
               }
             }
@@ -8376,7 +8842,7 @@
       },
       "post": {
         "operationId": "post-sync",
-        "summary": "POST /api/sync",
+        "summary": "Update legacy user sync payload",
         "tags": [
           "sync"
         ],
@@ -8387,7 +8853,19 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "additionalProperties": true
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "lastSync": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "lastSync"
+                  ],
+                  "additionalProperties": false
                 }
               }
             }

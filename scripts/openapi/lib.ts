@@ -4,8 +4,11 @@ import { z } from "zod";
 import {
   AnswerRequestSchema,
   ClientEventSchema,
+  CreateCharacterRequestSchema,
+  CreateQuestionRequestSchema,
   EventsBatchRequestSchema,
   FeedbackRequestSchema,
+  RecordStatRequestSchema,
   RejectGuessRequestSchema,
   ResultRequestSchema,
   ResumeRequestSchema,
@@ -3572,6 +3575,205 @@ const ERROR_LOGS_DELETE_RESPONSE_SCHEMA: Record<string, unknown> = {
   additionalProperties: false,
 };
 
+const LEGACY_CHARACTER_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    id: { type: "string" },
+    name: { type: "string" },
+    category: { type: "string" },
+    attributes: {
+      type: "object",
+      additionalProperties: { oneOf: [{ type: "boolean" }, { type: "null" }] },
+    },
+    createdBy: { type: "string" },
+    createdAt: { type: "number" },
+  },
+  required: ["id", "name", "category", "attributes", "createdBy", "createdAt"],
+  additionalProperties: false,
+};
+
+const LEGACY_CHARACTERS_GET_RESPONSE_SCHEMA: Record<string, unknown> = {
+  type: "array",
+  items: LEGACY_CHARACTER_SCHEMA,
+};
+
+const LEGACY_CORRECTIONS_GET_RESPONSE_SCHEMA: Record<string, unknown> = {
+  type: "array",
+  items: {
+    type: "object",
+    properties: {
+      attribute: { type: "string" },
+      currentValue: { oneOf: [{ type: "boolean" }, { type: "null" }] },
+      suggestedValue: { type: "boolean" },
+      userId: { type: "string" },
+      createdAt: { type: "number" },
+    },
+    required: ["attribute", "currentValue", "suggestedValue", "userId", "createdAt"],
+    additionalProperties: false,
+  },
+};
+
+const LEGACY_CORRECTIONS_POST_REQUEST_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    characterId: { type: "string" },
+    attribute: { type: "string" },
+    suggestedValue: { type: "boolean" },
+    currentValue: { oneOf: [{ type: "boolean" }, { type: "null" }] },
+  },
+  required: ["characterId", "attribute", "suggestedValue"],
+  additionalProperties: false,
+};
+
+const LEGACY_CORRECTIONS_POST_RESPONSE_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    success: { type: "boolean" },
+    autoApplied: { type: "boolean" },
+  },
+  required: ["success", "autoApplied"],
+  additionalProperties: false,
+};
+
+const CSP_REPORT_RESPONSE_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    accepted: { type: "boolean" },
+  },
+  additionalProperties: false,
+};
+
+const IMAGES_GET_RESPONSE_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    contentType: { type: "string" },
+  },
+  additionalProperties: false,
+};
+
+const LLM_REQUEST_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    prompt: { type: "string", maxLength: 50000 },
+    model: { type: "string", enum: ["gpt-4o", "gpt-4o-mini"] },
+    jsonMode: { type: "boolean" },
+    jsonSchema: { type: "object", additionalProperties: true },
+    systemPrompt: { type: "string" },
+  },
+  required: ["prompt", "model"],
+  additionalProperties: false,
+};
+
+const LLM_RESPONSE_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    text: { type: "string" },
+  },
+  additionalProperties: false,
+};
+
+const LLM_STREAM_REQUEST_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    prompt: { type: "string", maxLength: 50000 },
+    model: { type: "string", enum: ["gpt-4o", "gpt-4o-mini"] },
+    systemPrompt: { type: "string" },
+  },
+  required: ["prompt", "model"],
+  additionalProperties: false,
+};
+
+const LLM_STREAM_RESPONSE_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    token: { type: "string" },
+    done: { type: "boolean" },
+  },
+  additionalProperties: false,
+};
+
+const LEGACY_QUESTION_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    id: { type: "string" },
+    text: { type: "string" },
+    attribute: { type: "string" },
+    createdBy: { type: "string" },
+    createdAt: { type: "number" },
+  },
+  required: ["id", "text", "attribute", "createdBy", "createdAt"],
+  additionalProperties: false,
+};
+
+const LEGACY_QUESTIONS_GET_RESPONSE_SCHEMA: Record<string, unknown> = {
+  type: "array",
+  items: LEGACY_QUESTION_SCHEMA,
+};
+
+const LEGACY_STATS_ENTRY_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    characterId: { type: "string" },
+    timesPlayed: { type: "number" },
+    timesGuessed: { type: "number" },
+    totalQuestions: { type: "number" },
+    wins: { type: "number" },
+    losses: { type: "number" },
+    byDifficulty: { type: "object", additionalProperties: true },
+  },
+  required: [
+    "characterId",
+    "timesPlayed",
+    "timesGuessed",
+    "totalQuestions",
+    "wins",
+    "losses",
+    "byDifficulty",
+  ],
+  additionalProperties: false,
+};
+
+const LEGACY_STATS_GET_RESPONSE_SCHEMA: Record<string, unknown> = {
+  oneOf: [
+    LEGACY_STATS_ENTRY_SCHEMA,
+    {
+      type: "array",
+      items: LEGACY_STATS_ENTRY_SCHEMA,
+    },
+  ],
+};
+
+const LEGACY_STATS_POST_RESPONSE_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    success: { type: "boolean" },
+  },
+  required: ["success"],
+  additionalProperties: false,
+};
+
+const LEGACY_SYNC_GET_RESPONSE_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    userId: { type: "string" },
+    settings: { type: "object", additionalProperties: true },
+    gameStats: { type: "object", additionalProperties: true },
+    lastSync: { type: "number" },
+  },
+  required: ["userId", "settings", "gameStats", "lastSync"],
+  additionalProperties: false,
+};
+
+const LEGACY_SYNC_POST_RESPONSE_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    success: { type: "boolean" },
+    lastSync: { type: "number" },
+  },
+  required: ["success", "lastSync"],
+  additionalProperties: false,
+};
+
 const RESUME_RESPONSE_SCHEMA: Record<string, unknown> = {
   oneOf: [
     {
@@ -3740,6 +3942,68 @@ const OPERATION_METADATA: Record<string, OperationMetadata> = {
     summary: "Submit reveal outcome after an incorrect guess",
     requestSchema: REVEAL_REQUEST_SCHEMA,
     responseSchema: REVEAL_RESPONSE_SCHEMA,
+  },
+  "get /api/characters": {
+    summary: "List legacy custom characters",
+    responseSchema: LEGACY_CHARACTERS_GET_RESPONSE_SCHEMA,
+  },
+  "post /api/characters": {
+    summary: "Create a legacy custom character",
+    requestSchema: toJsonSchema(CreateCharacterRequestSchema),
+    responseSchema: LEGACY_CHARACTER_SCHEMA,
+  },
+  "get /api/corrections": {
+    summary: "List correction votes for a character",
+    responseSchema: LEGACY_CORRECTIONS_GET_RESPONSE_SCHEMA,
+  },
+  "post /api/corrections": {
+    summary: "Submit a correction vote",
+    requestSchema: LEGACY_CORRECTIONS_POST_REQUEST_SCHEMA,
+    responseSchema: LEGACY_CORRECTIONS_POST_RESPONSE_SCHEMA,
+  },
+  "post /api/csp-report": {
+    summary: "Ingest CSP violation reports",
+    responseSchema: CSP_REPORT_RESPONSE_SCHEMA,
+  },
+  "get /api/images/{path}": {
+    summary: "Fetch character image asset from R2",
+    responseSchema: IMAGES_GET_RESPONSE_SCHEMA,
+  },
+  "post /api/llm": {
+    summary: "Proxy non-streaming LLM completions",
+    requestSchema: LLM_REQUEST_SCHEMA,
+    responseSchema: LLM_RESPONSE_SCHEMA,
+  },
+  "post /api/llm-stream": {
+    summary: "Proxy streaming LLM completions",
+    requestSchema: LLM_STREAM_REQUEST_SCHEMA,
+    responseSchema: LLM_STREAM_RESPONSE_SCHEMA,
+  },
+  "get /api/questions": {
+    summary: "List legacy custom questions",
+    responseSchema: LEGACY_QUESTIONS_GET_RESPONSE_SCHEMA,
+  },
+  "post /api/questions": {
+    summary: "Create a legacy custom question",
+    requestSchema: toJsonSchema(CreateQuestionRequestSchema),
+    responseSchema: LEGACY_QUESTION_SCHEMA,
+  },
+  "get /api/stats": {
+    summary: "Get legacy per-character or leaderboard stats",
+    responseSchema: LEGACY_STATS_GET_RESPONSE_SCHEMA,
+  },
+  "post /api/stats": {
+    summary: "Record legacy game stat entry",
+    requestSchema: toJsonSchema(RecordStatRequestSchema),
+    responseSchema: LEGACY_STATS_POST_RESPONSE_SCHEMA,
+  },
+  "get /api/sync": {
+    summary: "Get legacy user sync payload",
+    responseSchema: LEGACY_SYNC_GET_RESPONSE_SCHEMA,
+  },
+  "post /api/sync": {
+    summary: "Update legacy user sync payload",
+    responseSchema: LEGACY_SYNC_POST_RESPONSE_SCHEMA,
   },
   "get /api/admin/about": {
     summary: "Get admin build and data freshness metadata",
