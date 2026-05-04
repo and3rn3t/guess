@@ -2845,6 +2845,733 @@ const COVERAGE_PRIORITY_RESPONSE_SCHEMA: Record<string, unknown> = {
   additionalProperties: false,
 };
 
+const ENRICHMENT_CHARACTER_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    id: { type: "string" },
+    name: { type: "string" },
+    category: { type: "string" },
+    imageUrl: { type: ["string", "null"] },
+    enriched: { type: "boolean" },
+    createdAt: { type: "number" },
+  },
+  required: ["id", "name", "category", "imageUrl", "enriched", "createdAt"],
+  additionalProperties: false,
+};
+
+const ENRICHMENT_GET_RESPONSE_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    summary: {
+      type: "object",
+      properties: {
+        total: { type: "number" },
+        enriched: { type: "number" },
+        pending: { type: "number" },
+        coveragePct: { type: "number" },
+      },
+      required: ["total", "enriched", "pending", "coveragePct"],
+      additionalProperties: false,
+    },
+    characters: {
+      type: "array",
+      items: ENRICHMENT_CHARACTER_SCHEMA,
+    },
+    total: { type: "number" },
+    page: { type: "number" },
+    pageSize: { type: "number" },
+  },
+  required: ["summary", "characters", "total", "page", "pageSize"],
+  additionalProperties: false,
+};
+
+const ENRICHMENT_POST_REQUEST_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    characterIds: {
+      type: "array",
+      items: { type: "string" },
+      maxItems: 500,
+    },
+  },
+  additionalProperties: false,
+};
+
+const ENRICHMENT_POST_RESPONSE_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    ok: { type: "boolean" },
+    queued: { type: "number" },
+    message: { type: "string" },
+  },
+  required: ["ok", "queued"],
+  additionalProperties: false,
+};
+
+const ENRICH_START_REQUEST_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    action: { type: "string", enum: ["start", "stop", "chain"] },
+    limit: { type: "number" },
+    batchId: { type: "string" },
+  },
+  additionalProperties: false,
+};
+
+const ENRICH_START_RESPONSE_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    ok: { type: "boolean" },
+    message: { type: "string" },
+    batchId: { type: "string" },
+  },
+  required: ["ok", "message"],
+  additionalProperties: false,
+};
+
+const ENRICH_STREAM_RUN_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    id: { type: "number" },
+    run_batch: { type: "string" },
+    character_id: { type: "string" },
+    character_name: { type: ["string", "null"] },
+    step: { type: "string" },
+    status: { type: "string" },
+    error: { type: ["string", "null"] },
+    duration_ms: { type: ["number", "null"] },
+    created_at: { type: "number" },
+  },
+  required: [
+    "id",
+    "run_batch",
+    "character_id",
+    "character_name",
+    "step",
+    "status",
+    "error",
+    "duration_ms",
+    "created_at",
+  ],
+  additionalProperties: false,
+};
+
+const ENRICH_STREAM_LAST_BATCH_STATS_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    batchId: { type: "string" },
+    promptTokens: { type: "number" },
+    completionTokens: { type: "number" },
+    totalTokens: { type: "number" },
+    characters: { type: "number" },
+    runAt: { type: "string" },
+    status: { type: "string", enum: ["success", "error"] },
+  },
+  required: [
+    "batchId",
+    "promptTokens",
+    "completionTokens",
+    "totalTokens",
+    "characters",
+    "runAt",
+    "status",
+  ],
+  additionalProperties: false,
+};
+
+const ENRICH_STREAM_RESPONSE_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    runs: {
+      type: "array",
+      items: ENRICH_STREAM_RUN_SCHEMA,
+    },
+    jobActive: { type: "boolean" },
+    jobStartedAt: { type: ["number", "null"] },
+    activeBatchId: { type: ["string", "null"] },
+    pendingCount: { type: "number" },
+    lastBatchStats: {
+      oneOf: [ENRICH_STREAM_LAST_BATCH_STATS_SCHEMA, { type: "null" }],
+    },
+  },
+  required: ["runs", "jobActive", "jobStartedAt", "activeBatchId", "pendingCount", "lastBatchStats"],
+  additionalProperties: false,
+};
+
+const HYGIENE_ATTRIBUTES_REQUEST_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    characterId: { type: "string" },
+    characterName: { type: "string" },
+    attributes: {
+      type: "object",
+      additionalProperties: { oneOf: [{ type: "boolean" }, { type: "null" }] },
+    },
+  },
+  required: ["characterId", "characterName", "attributes"],
+  additionalProperties: false,
+};
+
+const HYGIENE_ATTRIBUTES_RESPONSE_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    issues: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          characterId: { type: "string" },
+          characterName: { type: "string" },
+          type: {
+            type: "string",
+            enum: ["contradiction", "likely-incorrect", "missing-critical"],
+          },
+          attribute: { type: "string" },
+          currentValue: { oneOf: [{ type: "boolean" }, { type: "null" }] },
+          suggestedValue: { oneOf: [{ type: "boolean" }, { type: "null" }] },
+          reason: { type: "string" },
+        },
+        required: [
+          "characterId",
+          "characterName",
+          "type",
+          "attribute",
+          "currentValue",
+          "suggestedValue",
+          "reason",
+        ],
+        additionalProperties: false,
+      },
+    },
+  },
+  required: ["issues"],
+  additionalProperties: false,
+};
+
+const HYGIENE_CATEGORIES_REQUEST_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    characterId: { type: "string" },
+    characterName: { type: "string" },
+    currentCategory: {
+      type: "string",
+      enum: [
+        "video-games",
+        "movies",
+        "anime",
+        "comics",
+        "books",
+        "cartoons",
+        "tv-shows",
+        "pop-culture",
+      ],
+    },
+    attributes: {
+      type: "object",
+      additionalProperties: { oneOf: [{ type: "boolean" }, { type: "null" }] },
+    },
+  },
+  required: ["characterId", "characterName", "currentCategory", "attributes"],
+  additionalProperties: false,
+};
+
+const HYGIENE_CATEGORIES_RESPONSE_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    suggestion: {
+      oneOf: [
+        {
+          type: "object",
+          properties: {
+            characterId: { type: "string" },
+            characterName: { type: "string" },
+            currentCategory: { type: "string" },
+            suggestedCategory: { type: "string" },
+            confidence: { type: "number" },
+            reasoning: { type: "string" },
+          },
+          required: [
+            "characterId",
+            "characterName",
+            "currentCategory",
+            "suggestedCategory",
+            "confidence",
+            "reasoning",
+          ],
+          additionalProperties: false,
+        },
+        { type: "null" },
+      ],
+    },
+  },
+  required: ["suggestion"],
+  additionalProperties: false,
+};
+
+const HYGIENE_DUPLICATES_REQUEST_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    a: {
+      type: "object",
+      properties: {
+        id: { type: "string" },
+        name: { type: "string" },
+      },
+      required: ["id", "name"],
+      additionalProperties: false,
+    },
+    b: {
+      type: "object",
+      properties: {
+        id: { type: "string" },
+        name: { type: "string" },
+      },
+      required: ["id", "name"],
+      additionalProperties: false,
+    },
+  },
+  required: ["a", "b"],
+  additionalProperties: false,
+};
+
+const HYGIENE_DUPLICATES_RESPONSE_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    isDuplicate: { type: "boolean" },
+    canonicalId: { type: "string" },
+    reason: { type: "string" },
+  },
+  required: ["isDuplicate"],
+  additionalProperties: false,
+};
+
+const HYGIENE_QUESTION_SCORES_REQUEST_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    questions: {
+      type: "array",
+      minItems: 1,
+      maxItems: 25,
+      items: {
+        type: "object",
+        properties: {
+          id: { type: "string" },
+          text: { type: "string" },
+          attribute: { type: "string" },
+        },
+        required: ["id", "text", "attribute"],
+        additionalProperties: false,
+      },
+    },
+  },
+  required: ["questions"],
+  additionalProperties: false,
+};
+
+const HYGIENE_QUESTION_SCORES_RESPONSE_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    scores: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          questionId: { type: "string" },
+          clarity: { type: "number" },
+          power: { type: "number" },
+          grammar: { type: "number" },
+          rewrite: { type: "string" },
+        },
+        required: ["questionId", "clarity", "power", "grammar"],
+        additionalProperties: false,
+      },
+    },
+  },
+  required: ["scores"],
+  additionalProperties: false,
+};
+
+const QUESTIONS_DUPLICATES_BACKFILL_REQUEST_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    limit: { type: "number", minimum: 1, maximum: 200 },
+  },
+  additionalProperties: false,
+};
+
+const QUESTIONS_DUPLICATES_BACKFILL_RESPONSE_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    embedded: { type: "number" },
+    model: { type: "string" },
+    dim: { type: "number" },
+  },
+  required: ["embedded", "model", "dim"],
+  additionalProperties: false,
+};
+
+const QUESTIONS_DUPLICATES_DISMISS_REQUEST_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    pairKey: { type: "string" },
+    similarity: { type: "number" },
+    reason: { type: "string" },
+  },
+  required: ["pairKey"],
+  additionalProperties: false,
+};
+
+const QUESTIONS_DUPLICATES_DISMISS_RESPONSE_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    ok: { type: "boolean" },
+    pairKey: { type: "string" },
+  },
+  required: ["ok", "pairKey"],
+  additionalProperties: false,
+};
+
+const QUESTIONS_DUPLICATES_MERGE_REQUEST_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    sourceKey: { type: "string" },
+    targetKey: { type: "string" },
+    reason: { type: "string" },
+  },
+  required: ["sourceKey", "targetKey"],
+  additionalProperties: false,
+};
+
+const QUESTIONS_DUPLICATES_MERGE_RESPONSE_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    ok: { type: "boolean" },
+    retired: { type: "string" },
+    target: { type: "string" },
+    retiredAt: { type: "number" },
+    reason: { type: "string" },
+  },
+  required: ["ok", "retired", "target", "retiredAt", "reason"],
+  additionalProperties: false,
+};
+
+const RECOMMENDER_REQUEST_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    characterName: { type: "string" },
+    category: { type: "string" },
+    existingAttributes: {
+      type: "object",
+      additionalProperties: { oneOf: [{ type: "boolean" }, { type: "null" }] },
+    },
+    availableAttributes: {
+      type: "array",
+      maxItems: 400,
+      items: {
+        type: "object",
+        properties: {
+          key: { type: "string" },
+          label: { type: "string" },
+        },
+        required: ["key", "label"],
+        additionalProperties: false,
+      },
+    },
+    maxRecommendations: { type: "number" },
+    focusDescription: { type: "string" },
+  },
+  required: ["characterName", "existingAttributes", "availableAttributes"],
+  additionalProperties: false,
+};
+
+const RECOMMENDER_RESPONSE_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    recommendations: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          attribute: { type: "string" },
+          label: { type: "string" },
+          reason: { type: "string" },
+          priority: { type: "string", enum: ["high", "medium", "low"] },
+        },
+        required: ["attribute", "label", "reason", "priority"],
+        additionalProperties: false,
+      },
+    },
+  },
+  required: ["recommendations"],
+  additionalProperties: false,
+};
+
+const RESOLVE_STACK_REQUEST_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    stack: { type: "string", minLength: 1, maxLength: 64000 },
+    sha: { type: "string" },
+  },
+  required: ["stack"],
+  additionalProperties: false,
+};
+
+const RESOLVE_STACK_RESPONSE_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    sha: { type: "string" },
+    frames: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          raw: { type: "string" },
+          resolved: {
+            oneOf: [
+              {
+                type: "object",
+                properties: {
+                  source: { type: "string" },
+                  line: { type: "number" },
+                  column: { type: "number" },
+                  name: { type: ["string", "null"] },
+                },
+                required: ["source", "line", "column", "name"],
+                additionalProperties: false,
+              },
+              { type: "null" },
+            ],
+          },
+          reason: { type: "string" },
+        },
+        required: ["raw", "resolved"],
+        additionalProperties: false,
+      },
+    },
+  },
+  required: ["sha", "frames"],
+  additionalProperties: false,
+};
+
+const STRESS_TEST_RESPONSE_SCHEMA: Record<string, unknown> = {
+  oneOf: [
+    {
+      type: "object",
+      properties: {
+        hasData: { const: false },
+        message: { type: "string" },
+      },
+      required: ["hasData", "message"],
+      additionalProperties: false,
+    },
+    {
+      type: "object",
+      properties: {
+        hasData: { const: true },
+        total: { type: "number" },
+        summary: {
+          type: "object",
+          properties: {
+            total: { type: "number" },
+            winPct: { type: "number" },
+            avgQuestions: { type: "number" },
+            avgConfidence: { type: "number" },
+          },
+          required: ["total", "winPct", "avgQuestions", "avgConfidence"],
+          additionalProperties: false,
+        },
+        hardest: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              id: { type: "string" },
+              name: { type: "string" },
+              games: { type: "number" },
+              winPct: { type: "number" },
+              avgQuestions: { type: "number" },
+            },
+            required: ["id", "name", "games", "winPct", "avgQuestions"],
+            additionalProperties: false,
+          },
+        },
+        byDifficulty: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              difficulty: { type: "string" },
+              total: { type: "number" },
+              winPct: { type: "number" },
+              avgQuestions: { type: "number" },
+            },
+            required: ["difficulty", "total", "winPct", "avgQuestions"],
+            additionalProperties: false,
+          },
+        },
+        recentRuns: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              runId: { type: "string" },
+              games: { type: "number" },
+              winPct: { type: "number" },
+              startedAt: { type: "number" },
+              difficulty: { type: "string" },
+            },
+            required: ["runId", "games", "winPct", "startedAt", "difficulty"],
+            additionalProperties: false,
+          },
+        },
+      },
+      required: ["hasData", "total", "summary", "hardest", "byDifficulty", "recentRuns"],
+      additionalProperties: false,
+    },
+  ],
+};
+
+const UPLOAD_ATTRS_REQUEST_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    secret: { type: "string" },
+    attributes: {
+      type: "array",
+      maxItems: 500,
+      items: {
+        type: "object",
+        properties: {
+          c: { type: "string" },
+          k: { type: "string" },
+          v: { type: "number" },
+        },
+        required: ["c", "k", "v"],
+        additionalProperties: false,
+      },
+    },
+    images: {
+      type: "array",
+      maxItems: 500,
+      items: {
+        type: "object",
+        properties: {
+          id: { type: "string" },
+          url: { type: "string" },
+        },
+        required: ["id", "url"],
+        additionalProperties: false,
+      },
+    },
+  },
+  required: ["secret"],
+  additionalProperties: false,
+};
+
+const UPLOAD_ATTRS_RESPONSE_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    ok: { type: "boolean" },
+    attributes: { type: "number" },
+    images: { type: "number" },
+    errors: {
+      type: "array",
+      items: { type: "string" },
+    },
+  },
+  required: ["ok", "attributes", "images"],
+  additionalProperties: false,
+};
+
+const CLOSURE_QUEUE_ITEM_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    characterId: { type: "string" },
+    characterName: { type: "string" },
+    category: { type: "string" },
+    attributeKey: { type: "string" },
+    score: { type: "number" },
+    lane: { type: "string", enum: ["automation", "manual"] },
+    components: {
+      type: "object",
+      properties: {
+        popularity: { type: "number" },
+        selectorImpact: { type: "number" },
+        confidenceGap: { type: "number" },
+        staleness: { type: "number" },
+      },
+      required: ["popularity", "selectorImpact", "confidenceGap", "staleness"],
+      additionalProperties: false,
+    },
+  },
+  required: [
+    "characterId",
+    "characterName",
+    "category",
+    "attributeKey",
+    "score",
+    "lane",
+    "components",
+  ],
+  additionalProperties: false,
+};
+
+const CLOSURE_QUEUE_REPORT_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    generatedAt: { type: "string" },
+    limit: { type: "number" },
+    lanePolicy: {
+      type: "object",
+      properties: {
+        automationScoreThreshold: { type: "number" },
+        automationMinConfidenceGap: { type: "number" },
+      },
+      required: ["automationScoreThreshold", "automationMinConfidenceGap"],
+      additionalProperties: false,
+    },
+    totalCandidatePairs: { type: "number" },
+    summary: {
+      type: "object",
+      properties: {
+        totalPairs: { type: "number" },
+        automationPairs: { type: "number" },
+        manualPairs: { type: "number" },
+        categories: { type: "object", additionalProperties: { type: "number" } },
+        attributes: { type: "object", additionalProperties: { type: "number" } },
+      },
+      required: ["totalPairs", "automationPairs", "manualPairs", "categories", "attributes"],
+      additionalProperties: false,
+    },
+    queue: {
+      type: "array",
+      items: CLOSURE_QUEUE_ITEM_SCHEMA,
+    },
+  },
+  required: ["generatedAt", "limit", "lanePolicy", "totalCandidatePairs", "summary", "queue"],
+  additionalProperties: false,
+};
+
+const CLOSURE_QUEUE_STATUS_RESPONSE_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    report: {
+      oneOf: [CLOSURE_QUEUE_REPORT_SCHEMA, { type: "null" }],
+    },
+    fetchedAt: { type: "number" },
+  },
+  required: ["report", "fetchedAt"],
+  additionalProperties: false,
+};
+
+const ERROR_LOGS_DELETE_RESPONSE_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    success: { type: "boolean" },
+  },
+  required: ["success"],
+  additionalProperties: false,
+};
+
 const RESUME_RESPONSE_SCHEMA: Record<string, unknown> = {
   oneOf: [
     {
@@ -3117,9 +3844,59 @@ const OPERATION_METADATA: Record<string, OperationMetadata> = {
     summary: "Get live and historical data-quality metrics",
     responseSchema: DATA_QUALITY_RESPONSE_SCHEMA,
   },
+  "get /api/admin/data-quality/closure-queue": {
+    summary: "Get deterministic null-closure queue report",
+    responseSchema: CLOSURE_QUEUE_REPORT_SCHEMA,
+  },
+  "get /api/admin/data-quality/closure-queue-status": {
+    summary: "Get latest persisted null-closure queue report status",
+    responseSchema: CLOSURE_QUEUE_STATUS_RESPONSE_SCHEMA,
+  },
+  "post /api/admin/enrich/start": {
+    summary: "Start, stop, or chain server enrichment batch",
+    requestSchema: ENRICH_START_REQUEST_SCHEMA,
+    responseSchema: ENRICH_START_RESPONSE_SCHEMA,
+  },
+  "get /api/admin/enrich/stream": {
+    summary: "Stream enrichment run snapshots",
+    responseSchema: ENRICH_STREAM_RESPONSE_SCHEMA,
+  },
+  "get /api/admin/enrichment": {
+    summary: "Get enrichment coverage summary and character list",
+    responseSchema: ENRICHMENT_GET_RESPONSE_SCHEMA,
+  },
+  "post /api/admin/enrichment": {
+    summary: "Queue enrichment retry for all or selected characters",
+    requestSchema: ENRICHMENT_POST_REQUEST_SCHEMA,
+    responseSchema: ENRICHMENT_POST_RESPONSE_SCHEMA,
+  },
+  "delete /api/admin/error-logs": {
+    summary: "Delete error logs, optionally before a timestamp",
+    responseSchema: ERROR_LOGS_DELETE_RESPONSE_SCHEMA,
+  },
   "get /api/admin/image-health": {
     summary: "Get image health completeness report",
     responseSchema: IMAGE_HEALTH_RESPONSE_SCHEMA,
+  },
+  "post /api/admin/hygiene-attributes": {
+    summary: "Run attribute hygiene analysis",
+    requestSchema: HYGIENE_ATTRIBUTES_REQUEST_SCHEMA,
+    responseSchema: HYGIENE_ATTRIBUTES_RESPONSE_SCHEMA,
+  },
+  "post /api/admin/hygiene-categories": {
+    summary: "Suggest corrected category for a character",
+    requestSchema: HYGIENE_CATEGORIES_REQUEST_SCHEMA,
+    responseSchema: HYGIENE_CATEGORIES_RESPONSE_SCHEMA,
+  },
+  "post /api/admin/hygiene-duplicates": {
+    summary: "Analyze whether two characters are duplicates",
+    requestSchema: HYGIENE_DUPLICATES_REQUEST_SCHEMA,
+    responseSchema: HYGIENE_DUPLICATES_RESPONSE_SCHEMA,
+  },
+  "post /api/admin/hygiene-question-scores": {
+    summary: "Score question quality in bulk",
+    requestSchema: HYGIENE_QUESTION_SCORES_REQUEST_SCHEMA,
+    responseSchema: HYGIENE_QUESTION_SCORES_RESPONSE_SCHEMA,
   },
   "get /api/admin/funnel": {
     summary: "Get game funnel and question frustration analytics",
@@ -3174,6 +3951,21 @@ const OPERATION_METADATA: Record<string, OperationMetadata> = {
     requestSchema: QUESTIONS_EXPAND_POST_REQUEST_SCHEMA,
     responseSchema: QUESTIONS_EXPAND_POST_RESPONSE_SCHEMA,
   },
+  "post /api/admin/questions/duplicates/backfill": {
+    summary: "Backfill question embeddings for duplicate detection",
+    requestSchema: QUESTIONS_DUPLICATES_BACKFILL_REQUEST_SCHEMA,
+    responseSchema: QUESTIONS_DUPLICATES_BACKFILL_RESPONSE_SCHEMA,
+  },
+  "post /api/admin/questions/duplicates/dismiss": {
+    summary: "Dismiss a duplicate-question pair",
+    requestSchema: QUESTIONS_DUPLICATES_DISMISS_REQUEST_SCHEMA,
+    responseSchema: QUESTIONS_DUPLICATES_DISMISS_RESPONSE_SCHEMA,
+  },
+  "post /api/admin/questions/duplicates/merge": {
+    summary: "Merge duplicate questions by retiring source",
+    requestSchema: QUESTIONS_DUPLICATES_MERGE_REQUEST_SCHEMA,
+    responseSchema: QUESTIONS_DUPLICATES_MERGE_RESPONSE_SCHEMA,
+  },
   "get /api/admin/questions/retirement-queue": {
     summary: "Get question retirement candidates or retired list",
     responseSchema: RETIREMENT_QUEUE_RESPONSE_SCHEMA,
@@ -3220,6 +4012,20 @@ const OPERATION_METADATA: Record<string, OperationMetadata> = {
     requestSchema: EXPERIMENTS_POST_REQUEST_SCHEMA,
     responseSchema: EXPERIMENTS_POST_RESPONSE_SCHEMA,
   },
+  "post /api/admin/recommender": {
+    summary: "Generate LLM-powered attribute recommendations",
+    requestSchema: RECOMMENDER_REQUEST_SCHEMA,
+    responseSchema: RECOMMENDER_RESPONSE_SCHEMA,
+  },
+  "post /api/admin/resolve-stack": {
+    summary: "Resolve stack trace frames against uploaded source maps",
+    requestSchema: RESOLVE_STACK_REQUEST_SCHEMA,
+    responseSchema: RESOLVE_STACK_RESPONSE_SCHEMA,
+  },
+  "get /api/admin/stress-test": {
+    summary: "Get stress-test aggregate simulation stats",
+    responseSchema: STRESS_TEST_RESPONSE_SCHEMA,
+  },
   "get /api/admin/source-health": {
     summary: "Get source and source_id health report",
     responseSchema: SOURCE_HEALTH_RESPONSE_SCHEMA,
@@ -3240,6 +4046,11 @@ const OPERATION_METADATA: Record<string, OperationMetadata> = {
     summary: "Update mission-control workflow progress state",
     requestSchema: WORKFLOW_PROGRESS_POST_REQUEST_SCHEMA,
     responseSchema: WORKFLOW_PROGRESS_POST_RESPONSE_SCHEMA,
+  },
+  "post /api/admin/upload-attrs": {
+    summary: "Bulk upload character attributes and image URLs",
+    requestSchema: UPLOAD_ATTRS_REQUEST_SCHEMA,
+    responseSchema: UPLOAD_ATTRS_RESPONSE_SCHEMA,
   },
 };
 
