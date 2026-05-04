@@ -1160,6 +1160,286 @@ const AUTOMATION_STATUS_RESPONSE_SCHEMA: Record<string, unknown> = {
   additionalProperties: false,
 };
 
+const ANALYTICS_EVENT_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    id: { type: "string" },
+    session_id: { type: ["string", "null"] },
+    user_id: { type: ["string", "null"] },
+    event_type: { type: "string" },
+    data: { type: ["string", "null"] },
+    client_ts: { type: ["number", "null"] },
+    created_at: { type: "number" },
+  },
+  required: ["id", "session_id", "user_id", "event_type", "data", "client_ts", "created_at"],
+  additionalProperties: false,
+};
+
+const ANALYTICS_SUMMARY_ITEM_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    event_type: { type: "string" },
+    count: { type: "number" },
+  },
+  required: ["event_type", "count"],
+  additionalProperties: false,
+};
+
+const ANALYTICS_GET_RESPONSE_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    events: {
+      type: "array",
+      items: ANALYTICS_EVENT_SCHEMA,
+    },
+    total: { type: "number" },
+    page: { type: "number" },
+    pageSize: { type: "number" },
+    summary: {
+      type: "array",
+      items: ANALYTICS_SUMMARY_ITEM_SCHEMA,
+    },
+    filters: {
+      type: "object",
+      properties: {
+        eventType: { type: "string" },
+        q: { type: "string" },
+        days: { type: "number" },
+      },
+      required: ["eventType", "q", "days"],
+      additionalProperties: false,
+    },
+    aggregates: {
+      type: "object",
+      properties: {
+        uniqueSessions: { type: "number" },
+        uniqueUsers: { type: "number" },
+      },
+      required: ["uniqueSessions", "uniqueUsers"],
+      additionalProperties: false,
+    },
+  },
+  required: ["events", "total", "page", "pageSize", "summary", "filters", "aggregates"],
+  additionalProperties: false,
+};
+
+const ANALYTICS_AHA_MOMENTS_RESPONSE_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    moments: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          attribute: { type: "string" },
+          count: { type: "number" },
+          medianJump: { type: "number" },
+          avgJump: { type: "number" },
+        },
+        required: ["attribute", "count", "medianJump", "avgJump"],
+        additionalProperties: false,
+      },
+    },
+  },
+  required: ["moments"],
+  additionalProperties: false,
+};
+
+const ANALYTICS_INSIGHTS_REQUEST_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    summary: {
+      type: "array",
+      items: ANALYTICS_SUMMARY_ITEM_SCHEMA,
+    },
+    totalGames7d: { type: "number" },
+    bustCache: { type: "boolean" },
+  },
+  additionalProperties: false,
+};
+
+const ANALYTICS_INSIGHTS_RESPONSE_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    insights: { type: "string" },
+    generated_at: { type: "number" },
+  },
+  required: ["insights", "generated_at"],
+  additionalProperties: false,
+};
+
+const ATTRIBUTE_DISPUTE_ROW_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    id: { type: "number" },
+    character_id: { type: "string" },
+    attribute_key: { type: "string" },
+    current_value: { oneOf: [{ type: "boolean" }, { type: "string" }, { type: "number" }, { type: "null" }] },
+    dispute_reason: { type: ["string", "null"] },
+    confidence: { type: ["number", "null"] },
+    disputed_by: { type: ["string", "null"] },
+    created_at: { type: "number" },
+    status: { type: "string" },
+    resolved_by: { type: ["string", "null"] },
+    resolved_at: { type: ["number", "null"] },
+    character_name: { type: ["string", "null"] },
+  },
+  required: [
+    "id",
+    "character_id",
+    "attribute_key",
+    "current_value",
+    "dispute_reason",
+    "confidence",
+    "disputed_by",
+    "created_at",
+    "status",
+    "resolved_by",
+    "resolved_at",
+    "character_name",
+  ],
+  additionalProperties: false,
+};
+
+const ATTRIBUTE_DISPUTES_GET_RESPONSE_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    disputes: {
+      type: "array",
+      items: ATTRIBUTE_DISPUTE_ROW_SCHEMA,
+    },
+    total: { type: "number" },
+    page: { type: "number" },
+    pageSize: { type: "number" },
+  },
+  required: ["disputes", "total", "page", "pageSize"],
+  additionalProperties: false,
+};
+
+const ATTRIBUTE_DISPUTES_PATCH_REQUEST_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    id: { type: "number" },
+    status: { type: "string", enum: ["resolved", "dismissed"] },
+    resolved_by: { type: "string" },
+  },
+  required: ["id", "status"],
+  additionalProperties: false,
+};
+
+const ATTRIBUTE_DISPUTES_PATCH_RESPONSE_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    ok: { type: "boolean" },
+  },
+  required: ["ok"],
+  additionalProperties: false,
+};
+
+const ATTRIBUTE_DISPUTES_AI_REQUEST_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    characterName: { type: "string" },
+    attributeKey: { type: "string" },
+    currentValue: { oneOf: [{ type: "boolean" }, { type: "null" }] },
+    disputeReason: { type: "string" },
+    confidence: { type: "number" },
+  },
+  required: ["characterName", "attributeKey"],
+  additionalProperties: false,
+};
+
+const ATTRIBUTE_DISPUTES_AI_RESPONSE_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    correct: { type: "string", enum: ["current", "flagged"] },
+    confidence: { type: "number" },
+    reason: { type: "string" },
+  },
+  required: ["correct", "confidence", "reason"],
+  additionalProperties: false,
+};
+
+const ERROR_LOG_ROW_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    id: { type: "number" },
+    level: { type: "string" },
+    source: { type: "string" },
+    message: { type: "string" },
+    detail: { type: ["string", "null"] },
+    created_at: { type: "number" },
+  },
+  required: ["id", "level", "source", "message", "detail", "created_at"],
+  additionalProperties: false,
+};
+
+const ERROR_LOGS_GET_RESPONSE_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    logs: {
+      type: "array",
+      items: ERROR_LOG_ROW_SCHEMA,
+    },
+    total: { type: "number" },
+    page: { type: "number" },
+    pageSize: { type: "number" },
+    sources: {
+      type: "array",
+      items: { type: "string" },
+    },
+  },
+  required: ["logs", "total", "page", "pageSize", "sources"],
+  additionalProperties: false,
+};
+
+const WORKFLOW_PROGRESS_RECORD_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    activeTo: { type: ["string", "null"] },
+    completed: { type: "boolean" },
+  },
+  required: ["activeTo", "completed"],
+  additionalProperties: false,
+};
+
+const WORKFLOW_PROGRESS_MAP_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  additionalProperties: WORKFLOW_PROGRESS_RECORD_SCHEMA,
+};
+
+const WORKFLOW_PROGRESS_GET_RESPONSE_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    progress: WORKFLOW_PROGRESS_MAP_SCHEMA,
+    updatedAt: { type: ["number", "null"] },
+    updatedBy: { type: ["string", "null"] },
+  },
+  required: ["progress", "updatedAt", "updatedBy"],
+  additionalProperties: false,
+};
+
+const WORKFLOW_PROGRESS_POST_REQUEST_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    progress: WORKFLOW_PROGRESS_MAP_SCHEMA,
+  },
+  required: ["progress"],
+  additionalProperties: false,
+};
+
+const WORKFLOW_PROGRESS_POST_RESPONSE_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    ok: { type: "boolean" },
+    progress: WORKFLOW_PROGRESS_MAP_SCHEMA,
+    updatedAt: { type: "number" },
+    updatedBy: { type: "string" },
+  },
+  required: ["ok", "progress", "updatedAt", "updatedBy"],
+  additionalProperties: false,
+};
+
 const RESUME_RESPONSE_SCHEMA: Record<string, unknown> = {
   oneOf: [
     {
@@ -1333,6 +1613,33 @@ const OPERATION_METADATA: Record<string, OperationMetadata> = {
     summary: "Get admin build and data freshness metadata",
     responseSchema: ADMIN_ABOUT_RESPONSE_SCHEMA,
   },
+  "get /api/admin/analytics": {
+    summary: "List client events with summary and aggregates",
+    responseSchema: ANALYTICS_GET_RESPONSE_SCHEMA,
+  },
+  "get /api/admin/analytics/aha-moments": {
+    summary: "Fetch ranked aha-moment attributes",
+    responseSchema: ANALYTICS_AHA_MOMENTS_RESPONSE_SCHEMA,
+  },
+  "post /api/admin/analytics/insights": {
+    summary: "Generate cached analytics insights with AI",
+    requestSchema: ANALYTICS_INSIGHTS_REQUEST_SCHEMA,
+    responseSchema: ANALYTICS_INSIGHTS_RESPONSE_SCHEMA,
+  },
+  "get /api/admin/attribute-disputes": {
+    summary: "List attribute disputes with pagination",
+    responseSchema: ATTRIBUTE_DISPUTES_GET_RESPONSE_SCHEMA,
+  },
+  "patch /api/admin/attribute-disputes": {
+    summary: "Resolve or dismiss an attribute dispute",
+    requestSchema: ATTRIBUTE_DISPUTES_PATCH_REQUEST_SCHEMA,
+    responseSchema: ATTRIBUTE_DISPUTES_PATCH_RESPONSE_SCHEMA,
+  },
+  "post /api/admin/attribute-disputes-ai": {
+    summary: "Run AI arbitration on an attribute dispute",
+    requestSchema: ATTRIBUTE_DISPUTES_AI_REQUEST_SCHEMA,
+    responseSchema: ATTRIBUTE_DISPUTES_AI_RESPONSE_SCHEMA,
+  },
   "get /api/admin/automation-status": {
     summary: "Get latest cron automation report snapshot",
     responseSchema: AUTOMATION_STATUS_RESPONSE_SCHEMA,
@@ -1354,6 +1661,10 @@ const OPERATION_METADATA: Record<string, OperationMetadata> = {
     summary: "Get image health completeness report",
     responseSchema: IMAGE_HEALTH_RESPONSE_SCHEMA,
   },
+  "get /api/admin/error-logs": {
+    summary: "List error and warning logs with filters",
+    responseSchema: ERROR_LOGS_GET_RESPONSE_SCHEMA,
+  },
   "get /api/admin/source-health": {
     summary: "Get source and source_id health report",
     responseSchema: SOURCE_HEALTH_RESPONSE_SCHEMA,
@@ -1361,6 +1672,15 @@ const OPERATION_METADATA: Record<string, OperationMetadata> = {
   "get /api/admin/source-health-status": {
     summary: "Get latest persisted source health report status",
     responseSchema: SOURCE_HEALTH_STATUS_RESPONSE_SCHEMA,
+  },
+  "get /api/admin/workflow-progress": {
+    summary: "Get mission-control workflow progress state",
+    responseSchema: WORKFLOW_PROGRESS_GET_RESPONSE_SCHEMA,
+  },
+  "post /api/admin/workflow-progress": {
+    summary: "Update mission-control workflow progress state",
+    requestSchema: WORKFLOW_PROGRESS_POST_REQUEST_SCHEMA,
+    responseSchema: WORKFLOW_PROGRESS_POST_RESPONSE_SCHEMA,
   },
 };
 

@@ -137,7 +137,7 @@
     "/api/admin/analytics": {
       "get": {
         "operationId": "get-admin-analytics",
-        "summary": "GET /api/admin/analytics",
+        "summary": "List client events with summary and aggregates",
         "tags": [
           "admin",
           "analytics"
@@ -149,7 +149,133 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "additionalProperties": true
+                  "properties": {
+                    "events": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "session_id": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "user_id": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "event_type": {
+                            "type": "string"
+                          },
+                          "data": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "client_ts": {
+                            "type": [
+                              "number",
+                              "null"
+                            ]
+                          },
+                          "created_at": {
+                            "type": "number"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "session_id",
+                          "user_id",
+                          "event_type",
+                          "data",
+                          "client_ts",
+                          "created_at"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "total": {
+                      "type": "number"
+                    },
+                    "page": {
+                      "type": "number"
+                    },
+                    "pageSize": {
+                      "type": "number"
+                    },
+                    "summary": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "event_type": {
+                            "type": "string"
+                          },
+                          "count": {
+                            "type": "number"
+                          }
+                        },
+                        "required": [
+                          "event_type",
+                          "count"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "filters": {
+                      "type": "object",
+                      "properties": {
+                        "eventType": {
+                          "type": "string"
+                        },
+                        "q": {
+                          "type": "string"
+                        },
+                        "days": {
+                          "type": "number"
+                        }
+                      },
+                      "required": [
+                        "eventType",
+                        "q",
+                        "days"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "aggregates": {
+                      "type": "object",
+                      "properties": {
+                        "uniqueSessions": {
+                          "type": "number"
+                        },
+                        "uniqueUsers": {
+                          "type": "number"
+                        }
+                      },
+                      "required": [
+                        "uniqueSessions",
+                        "uniqueUsers"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "events",
+                    "total",
+                    "page",
+                    "pageSize",
+                    "summary",
+                    "filters",
+                    "aggregates"
+                  ],
+                  "additionalProperties": false
                 }
               }
             }
@@ -171,7 +297,7 @@
     "/api/admin/analytics/aha-moments": {
       "get": {
         "operationId": "get-admin-analytics-aha-moments",
-        "summary": "GET /api/admin/analytics/aha-moments",
+        "summary": "Fetch ranked aha-moment attributes",
         "tags": [
           "admin",
           "analytics"
@@ -183,7 +309,39 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "additionalProperties": true
+                  "properties": {
+                    "moments": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "attribute": {
+                            "type": "string"
+                          },
+                          "count": {
+                            "type": "number"
+                          },
+                          "medianJump": {
+                            "type": "number"
+                          },
+                          "avgJump": {
+                            "type": "number"
+                          }
+                        },
+                        "required": [
+                          "attribute",
+                          "count",
+                          "medianJump",
+                          "avgJump"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "moments"
+                  ],
+                  "additionalProperties": false
                 }
               }
             }
@@ -205,7 +363,7 @@
     "/api/admin/analytics/insights": {
       "post": {
         "operationId": "post-admin-analytics-insights",
-        "summary": "POST /api/admin/analytics/insights",
+        "summary": "Generate cached analytics insights with AI",
         "tags": [
           "admin",
           "analytics"
@@ -217,7 +375,19 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "additionalProperties": true
+                  "properties": {
+                    "insights": {
+                      "type": "string"
+                    },
+                    "generated_at": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "insights",
+                    "generated_at"
+                  ],
+                  "additionalProperties": false
                 }
               }
             }
@@ -240,7 +410,34 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "additionalProperties": true
+                "properties": {
+                  "summary": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "event_type": {
+                          "type": "string"
+                        },
+                        "count": {
+                          "type": "number"
+                        }
+                      },
+                      "required": [
+                        "event_type",
+                        "count"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "totalGames7d": {
+                    "type": "number"
+                  },
+                  "bustCache": {
+                    "type": "boolean"
+                  }
+                },
+                "additionalProperties": false
               }
             }
           }
@@ -250,7 +447,7 @@
     "/api/admin/attribute-disputes": {
       "get": {
         "operationId": "get-admin-attribute-disputes",
-        "summary": "GET /api/admin/attribute-disputes",
+        "summary": "List attribute disputes with pagination",
         "tags": [
           "admin",
           "attribute-disputes"
@@ -262,7 +459,114 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "additionalProperties": true
+                  "properties": {
+                    "disputes": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "number"
+                          },
+                          "character_id": {
+                            "type": "string"
+                          },
+                          "attribute_key": {
+                            "type": "string"
+                          },
+                          "current_value": {
+                            "oneOf": [
+                              {
+                                "type": "boolean"
+                              },
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "number"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "dispute_reason": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "confidence": {
+                            "type": [
+                              "number",
+                              "null"
+                            ]
+                          },
+                          "disputed_by": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "created_at": {
+                            "type": "number"
+                          },
+                          "status": {
+                            "type": "string"
+                          },
+                          "resolved_by": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "resolved_at": {
+                            "type": [
+                              "number",
+                              "null"
+                            ]
+                          },
+                          "character_name": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "character_id",
+                          "attribute_key",
+                          "current_value",
+                          "dispute_reason",
+                          "confidence",
+                          "disputed_by",
+                          "created_at",
+                          "status",
+                          "resolved_by",
+                          "resolved_at",
+                          "character_name"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "total": {
+                      "type": "number"
+                    },
+                    "page": {
+                      "type": "number"
+                    },
+                    "pageSize": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "disputes",
+                    "total",
+                    "page",
+                    "pageSize"
+                  ],
+                  "additionalProperties": false
                 }
               }
             }
@@ -282,7 +586,7 @@
       },
       "patch": {
         "operationId": "patch-admin-attribute-disputes",
-        "summary": "PATCH /api/admin/attribute-disputes",
+        "summary": "Resolve or dismiss an attribute dispute",
         "tags": [
           "admin",
           "attribute-disputes"
@@ -294,7 +598,15 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "additionalProperties": true
+                  "properties": {
+                    "ok": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "ok"
+                  ],
+                  "additionalProperties": false
                 }
               }
             }
@@ -317,7 +629,26 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "additionalProperties": true
+                "properties": {
+                  "id": {
+                    "type": "number"
+                  },
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "resolved",
+                      "dismissed"
+                    ]
+                  },
+                  "resolved_by": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "status"
+                ],
+                "additionalProperties": false
               }
             }
           }
@@ -327,7 +658,7 @@
     "/api/admin/attribute-disputes-ai": {
       "post": {
         "operationId": "post-admin-attribute-disputes-ai",
-        "summary": "POST /api/admin/attribute-disputes-ai",
+        "summary": "Run AI arbitration on an attribute dispute",
         "tags": [
           "admin",
           "attribute-disputes-ai"
@@ -339,7 +670,27 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "additionalProperties": true
+                  "properties": {
+                    "correct": {
+                      "type": "string",
+                      "enum": [
+                        "current",
+                        "flagged"
+                      ]
+                    },
+                    "confidence": {
+                      "type": "number"
+                    },
+                    "reason": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "correct",
+                    "confidence",
+                    "reason"
+                  ],
+                  "additionalProperties": false
                 }
               }
             }
@@ -362,7 +713,35 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "additionalProperties": true
+                "properties": {
+                  "characterName": {
+                    "type": "string"
+                  },
+                  "attributeKey": {
+                    "type": "string"
+                  },
+                  "currentValue": {
+                    "oneOf": [
+                      {
+                        "type": "boolean"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "disputeReason": {
+                    "type": "string"
+                  },
+                  "confidence": {
+                    "type": "number"
+                  }
+                },
+                "required": [
+                  "characterName",
+                  "attributeKey"
+                ],
+                "additionalProperties": false
               }
             }
           }
@@ -1640,7 +2019,7 @@
       },
       "get": {
         "operationId": "get-admin-error-logs",
-        "summary": "GET /api/admin/error-logs",
+        "summary": "List error and warning logs with filters",
         "tags": [
           "admin",
           "error-logs"
@@ -1652,7 +2031,69 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "additionalProperties": true
+                  "properties": {
+                    "logs": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "number"
+                          },
+                          "level": {
+                            "type": "string"
+                          },
+                          "source": {
+                            "type": "string"
+                          },
+                          "message": {
+                            "type": "string"
+                          },
+                          "detail": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "created_at": {
+                            "type": "number"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "level",
+                          "source",
+                          "message",
+                          "detail",
+                          "created_at"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "total": {
+                      "type": "number"
+                    },
+                    "page": {
+                      "type": "number"
+                    },
+                    "pageSize": {
+                      "type": "number"
+                    },
+                    "sources": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "required": [
+                    "logs",
+                    "total",
+                    "page",
+                    "pageSize",
+                    "sources"
+                  ],
+                  "additionalProperties": false
                 }
               }
             }
@@ -3548,7 +3989,7 @@
     "/api/admin/workflow-progress": {
       "get": {
         "operationId": "get-admin-workflow-progress",
-        "summary": "GET /api/admin/workflow-progress",
+        "summary": "Get mission-control workflow progress state",
         "tags": [
           "admin",
           "workflow-progress"
@@ -3560,7 +4001,48 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "additionalProperties": true
+                  "properties": {
+                    "progress": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "object",
+                        "properties": {
+                          "activeTo": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "completed": {
+                            "type": "boolean"
+                          }
+                        },
+                        "required": [
+                          "activeTo",
+                          "completed"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "updatedAt": {
+                      "type": [
+                        "number",
+                        "null"
+                      ]
+                    },
+                    "updatedBy": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "progress",
+                    "updatedAt",
+                    "updatedBy"
+                  ],
+                  "additionalProperties": false
                 }
               }
             }
@@ -3580,7 +4062,7 @@
       },
       "post": {
         "operationId": "post-admin-workflow-progress",
-        "summary": "POST /api/admin/workflow-progress",
+        "summary": "Update mission-control workflow progress state",
         "tags": [
           "admin",
           "workflow-progress"
@@ -3592,7 +4074,46 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "additionalProperties": true
+                  "properties": {
+                    "ok": {
+                      "type": "boolean"
+                    },
+                    "progress": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "object",
+                        "properties": {
+                          "activeTo": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "completed": {
+                            "type": "boolean"
+                          }
+                        },
+                        "required": [
+                          "activeTo",
+                          "completed"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "updatedAt": {
+                      "type": "number"
+                    },
+                    "updatedBy": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "ok",
+                    "progress",
+                    "updatedAt",
+                    "updatedBy"
+                  ],
+                  "additionalProperties": false
                 }
               }
             }
@@ -3615,7 +4136,34 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "additionalProperties": true
+                "properties": {
+                  "progress": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "type": "object",
+                      "properties": {
+                        "activeTo": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "completed": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "activeTo",
+                        "completed"
+                      ],
+                      "additionalProperties": false
+                    }
+                  }
+                },
+                "required": [
+                  "progress"
+                ],
+                "additionalProperties": false
               }
             }
           }
