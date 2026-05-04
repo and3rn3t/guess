@@ -9,7 +9,7 @@ import {
   rowsToCsv,
   rowsToJson,
   rowsToMarkdown,
-} from '../TableExportMenu'
+} from '../tableExport'
 
 const columns: TableExportColumn[] = [
   { key: 'id', header: 'ID' },
@@ -94,7 +94,7 @@ test('Markdown export — basic table', () => {
 test('Markdown export — escapes pipes in values', () => {
   const rows = [{ id: '1', name: 'Alice | Bob', count: '42' }]
   const result = rowsToMarkdown(rows, columns)
-  expect(result).toContain('Alice \\| Bob')
+  expect(result).toContain(`Alice ${String.raw`\|`} Bob`)
   expect(result).not.toContain('Alice | Bob |')
 })
 

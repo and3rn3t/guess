@@ -12,15 +12,8 @@
 import { useState } from 'react'
 import { Download, Copy, Check } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-
-export interface TableExportRow {
-  [key: string]: string | number | boolean | null | undefined
-}
-
-export interface TableExportColumn {
-  key: string
-  header: string
-}
+import { rowsToTsv, rowsToCsv, rowsToJson, rowsToMarkdown } from './tableExport'
+import type { TableExportRow, TableExportColumn } from './tableExport'
 
 interface TableExportMenuProps {
   /** Rows to export (typically filtered) */
@@ -29,74 +22,6 @@ interface TableExportMenuProps {
   columns: TableExportColumn[]
   /** Optional filename base (without extension) */
   filename?: string
-}
-
-/** Convert rows to TSV string */
-export function rowsToTsv(rows: TableExportRow[], columns: TableExportColumn[]): string {
-  const header = columns.map((c) => c.header).join('\t')
-  const body = rows
-    .map((row) =>
-      columns
-        .map((col) => {
-          const val = row[col.key]
-          const str = val === null || val === undefined ? '' : String(val)
-          // Escape tabs and newlines in TSV
-          return str.replace(/\t/g, ' ').replace(/\n/g, ' ')
-        })
-        .join('\t'),
-    )
-    .join('\n')
-  return `${header}\n${body}`
-}
-
-/** Convert rows to CSV string (RFC 4180) */
-export function rowsToCsv(rows: TableExportRow[], columns: TableExportColumn[]): string {
-  const escaped = (val: unknown): string => {
-    const str = val === null || val === undefined ? '' : String(val)
-    // RFC 4180: fields containing commas, quotes, or newlines must be quoted
-    if (str.includes(',') || str.includes('"') || str.includes('\n')) {
-      return `"${str.replace(/"/g, '""')}"` // Escape quotes by doubling
-    }
-    return str
-  }
-
-  const header = columns.map((c) => escaped(c.header)).join(',')
-  const body = rows
-    .map((row) => columns.map((col) => escaped(row[col.key])).join(','))
-    .join('\n')
-  return `${header}\n${body}`
-}
-
-/** Convert rows to JSON string */
-export function rowsToJson(rows: TableExportRow[], columns: TableExportColumn[]): string {
-  const filtered = rows.map((row) => {
-    const obj: TableExportRow = {}
-    columns.forEach((col) => {
-      obj[col.key] = row[col.key]
-    })
-    return obj
-  })
-  return JSON.stringify(filtered, null, 2)
-}
-
-/** Convert rows to Markdown table string */
-export function rowsToMarkdown(rows: TableExportRow[], columns: TableExportColumn[]): string {
-  const header = `| ${columns.map((c) => c.header).join(' | ')} |`
-  const separator = `| ${columns.map(() => '---').join(' | ')} |`
-  const body = rows
-    .map(
-      (row) =>
-        `| ${columns
-          .map((col) => {
-            const val = row[col.key]
-            const str = val === null || val === undefined ? '' : String(val)
-            // Escape pipes in markdown
-            return str.replace(/\|/g, '\\|')
-          })
-          .join(' | ')} |`,
-    )
-    .join('\n')
-  return `${header}\n${separator}\n${body}`
 }
 
 /** Trigger a file download */
@@ -108,7 +33,7 @@ function downloadFile(content: string, filename: string, mimeType: string): void
   link.download = filename
   document.body.appendChild(link)
   link.click()
-  document.body.removeChild(link)
+  link.remove()
   URL.revokeObjectURL(url)
 }
 

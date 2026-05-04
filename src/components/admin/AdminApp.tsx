@@ -4,37 +4,49 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { AdminShell } from './AdminShell'
 import { AdminDataProvider } from './AdminDataProvider'
 
-const CoverageRoute = lazy(() => import('./routes/CoverageRoute'))
-const HygieneRoute = lazy(() => import('./routes/HygieneRoute'))
-const CostRoute = lazy(() => import('./routes/CostRoute'))
-const RecommenderRoute = lazy(() => import('./routes/RecommenderRoute'))
-const CategoryRecommenderRoute = lazy(() => import('./routes/CategoryRecommenderRoute'))
-const EnvTestRoute = lazy(() => import('./routes/EnvTestRoute'))
-const BulkHabitatRoute = lazy(() => import('./routes/BulkHabitatRoute'))
-const DemoRoute = lazy(() => import('./routes/DemoRoute'))
+interface AdminRouteDef {
+  path: string
+  loader: () => Promise<{ default: React.ComponentType }>
+}
 
-const CharactersRoute = lazy(() => import('./routes/CharactersRoute'))
-const QuestionsRoute = lazy(() => import('./routes/QuestionsRoute'))
-const RetirementQueueRoute = lazy(() => import('./routes/RetirementQueueRoute'))
-const DuplicatesRoute = lazy(() => import('./routes/DuplicatesRoute'))
-const EnrichmentRoute = lazy(() => import('./routes/EnrichmentRoute'))
-const PipelineRoute = lazy(() => import('./routes/PipelineRoute'))
-const AnalyticsRoute = lazy(() => import('./routes/AnalyticsRoute'))
-const FunnelRoute = lazy(() => import('./routes/FunnelRoute'))
-const EnrichDashboardRoute = lazy(() => import('./routes/EnrichDashboardRoute'))
-const ProposedAttrsRoute = lazy(() => import('./routes/ProposedAttrsRoute'))
-const DisputesRoute = lazy(() => import('./routes/DisputesRoute'))
-const CommunityRoute = lazy(() => import('./routes/CommunityRoute'))
-const ErrorLogsRoute = lazy(() => import('./routes/ErrorLogsRoute'))
 const LandingRoute = lazy(() => import('./routes/LandingRoute'))
-const ConfusionRoute = lazy(() => import('./routes/ConfusionRoute'))
-const MatrixRoute = lazy(() => import('./routes/MatrixRoute'))
-const StressTestRoute = lazy(() => import('./routes/StressTestRoute'))
-const ExperimentsRoute = lazy(() => import('./routes/ExperimentsRoute'))
-const DataQualityRoute = lazy(() => import('./routes/DataQualityRoute'))
-const TriageRoute = lazy(() => import('./routes/TriageRoute'))
-const ApiDocsRoute = lazy(() => import('./routes/ApiDocsRoute'))
-const AboutRoute = lazy(() => import('./routes/AboutRoute'))
+
+const ADMIN_ROUTES: AdminRouteDef[] = [
+  { path: 'coverage', loader: () => import('./routes/CoverageRoute') },
+  { path: 'hygiene', loader: () => import('./routes/HygieneRoute') },
+  { path: 'cost', loader: () => import('./routes/CostRoute') },
+  { path: 'recommender', loader: () => import('./routes/RecommenderRoute') },
+  { path: 'category-recommender', loader: () => import('./routes/CategoryRecommenderRoute') },
+  { path: 'env', loader: () => import('./routes/EnvTestRoute') },
+  { path: 'bulk-habitat', loader: () => import('./routes/BulkHabitatRoute') },
+  { path: 'demo', loader: () => import('./routes/DemoRoute') },
+  { path: 'characters', loader: () => import('./routes/CharactersRoute') },
+  { path: 'questions', loader: () => import('./routes/QuestionsRoute') },
+  { path: 'questions/retire', loader: () => import('./routes/RetirementQueueRoute') },
+  { path: 'questions/duplicates', loader: () => import('./routes/DuplicatesRoute') },
+  { path: 'enrichment', loader: () => import('./routes/EnrichmentRoute') },
+  { path: 'pipeline', loader: () => import('./routes/PipelineRoute') },
+  { path: 'analytics', loader: () => import('./routes/AnalyticsRoute') },
+  { path: 'funnel', loader: () => import('./routes/FunnelRoute') },
+  { path: 'confusion', loader: () => import('./routes/ConfusionRoute') },
+  { path: 'matrix', loader: () => import('./routes/MatrixRoute') },
+  { path: 'stress-test', loader: () => import('./routes/StressTestRoute') },
+  { path: 'experiments', loader: () => import('./routes/ExperimentsRoute') },
+  { path: 'data-quality', loader: () => import('./routes/DataQualityRoute') },
+  { path: 'enrich', loader: () => import('./routes/EnrichDashboardRoute') },
+  { path: 'proposed-attrs', loader: () => import('./routes/ProposedAttrsRoute') },
+  { path: 'disputes', loader: () => import('./routes/DisputesRoute') },
+  { path: 'community', loader: () => import('./routes/CommunityRoute') },
+  { path: 'error-logs', loader: () => import('./routes/ErrorLogsRoute') },
+  { path: 'triage', loader: () => import('./routes/TriageRoute') },
+  { path: 'api-docs', loader: () => import('./routes/ApiDocsRoute') },
+  { path: 'about', loader: () => import('./routes/AboutRoute') },
+]
+
+const ADMIN_LAZY_ROUTES = ADMIN_ROUTES.map((route) => ({
+  ...route,
+  Component: lazy(route.loader),
+}))
 
 function RouteWrapper({ children }: Readonly<{ children: React.ReactNode }>): React.JSX.Element {
   return (
@@ -57,35 +69,13 @@ export function AdminApp(): React.JSX.Element {
         <Routes>
           <Route path="/" element={<AdminShell />}>
             <Route index element={<RouteWrapper><LandingRoute /></RouteWrapper>} />
-            <Route path="coverage" element={<RouteWrapper><CoverageRoute /></RouteWrapper>} />
-            <Route path="hygiene" element={<RouteWrapper><HygieneRoute /></RouteWrapper>} />
-            <Route path="cost" element={<RouteWrapper><CostRoute /></RouteWrapper>} />
-            <Route path="recommender" element={<RouteWrapper><RecommenderRoute /></RouteWrapper>} />
-            <Route path="category-recommender" element={<RouteWrapper><CategoryRecommenderRoute /></RouteWrapper>} />
-            <Route path="env" element={<RouteWrapper><EnvTestRoute /></RouteWrapper>} />
-            <Route path="bulk-habitat" element={<RouteWrapper><BulkHabitatRoute /></RouteWrapper>} />
-            <Route path="demo" element={<RouteWrapper><DemoRoute /></RouteWrapper>} />
-            <Route path="characters" element={<RouteWrapper><CharactersRoute /></RouteWrapper>} />
-            <Route path="questions" element={<RouteWrapper><QuestionsRoute /></RouteWrapper>} />
-            <Route path="questions/retire" element={<RouteWrapper><RetirementQueueRoute /></RouteWrapper>} />
-            <Route path="questions/duplicates" element={<RouteWrapper><DuplicatesRoute /></RouteWrapper>} />
-            <Route path="enrichment" element={<RouteWrapper><EnrichmentRoute /></RouteWrapper>} />
-            <Route path="pipeline" element={<RouteWrapper><PipelineRoute /></RouteWrapper>} />
-            <Route path="analytics" element={<RouteWrapper><AnalyticsRoute /></RouteWrapper>} />
-            <Route path="funnel" element={<RouteWrapper><FunnelRoute /></RouteWrapper>} />
-            <Route path="confusion" element={<RouteWrapper><ConfusionRoute /></RouteWrapper>} />
-            <Route path="matrix" element={<RouteWrapper><MatrixRoute /></RouteWrapper>} />
-            <Route path="stress-test" element={<RouteWrapper><StressTestRoute /></RouteWrapper>} />
-            <Route path="experiments" element={<RouteWrapper><ExperimentsRoute /></RouteWrapper>} />
-            <Route path="data-quality" element={<RouteWrapper><DataQualityRoute /></RouteWrapper>} />
-            <Route path="enrich" element={<RouteWrapper><EnrichDashboardRoute /></RouteWrapper>} />
-            <Route path="proposed-attrs" element={<RouteWrapper><ProposedAttrsRoute /></RouteWrapper>} />
-            <Route path="disputes" element={<RouteWrapper><DisputesRoute /></RouteWrapper>} />
-            <Route path="community" element={<RouteWrapper><CommunityRoute /></RouteWrapper>} />
-            <Route path="error-logs" element={<RouteWrapper><ErrorLogsRoute /></RouteWrapper>} />
-            <Route path="triage" element={<RouteWrapper><TriageRoute /></RouteWrapper>} />
-            <Route path="api-docs" element={<RouteWrapper><ApiDocsRoute /></RouteWrapper>} />
-            <Route path="about" element={<RouteWrapper><AboutRoute /></RouteWrapper>} />
+            {ADMIN_LAZY_ROUTES.map(({ path, Component }) => (
+              <Route
+                key={path}
+                path={path}
+                element={<RouteWrapper><Component /></RouteWrapper>}
+              />
+            ))}
             <Route path="*" element={<Navigate to="/" replace />} />
           </Route>
         </Routes>

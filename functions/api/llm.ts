@@ -227,8 +227,7 @@ function buildOpenAIPayload(
   return body;
 }
 
-/** Process successful OpenAI response: cache + track tokens + return */
-async function processSuccess(
+interface ProcessSuccessInput {
   data: {
     choices: Array<{ message: { content: string } }>;
     usage?: {
@@ -236,15 +235,27 @@ async function processSuccess(
       completion_tokens: number;
       total_tokens: number;
     };
-  },
-  kv: KVNamespace | undefined,
-  cacheKey: string,
-  request: Request,
-  env: Env,
-  model: string,
-  retryCount: number,
-  retryOutcome: RetryOutcome,
-): Promise<Response> {
+  };
+  kv: KVNamespace | undefined;
+  cacheKey: string;
+  request: Request;
+  env: Env;
+  model: string;
+  retryCount: number;
+  retryOutcome: RetryOutcome;
+}
+
+/** Process successful OpenAI response: cache + track tokens + return */
+async function processSuccess({
+  data,
+  kv,
+  cacheKey,
+  request,
+  env,
+  model,
+  retryCount,
+  retryOutcome,
+}: ProcessSuccessInput): Promise<Response> {
   const content = data.choices?.[0]?.message?.content;
   if (!content) {
     return Response.json(
@@ -435,7 +446,16 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       };
     } = await openaiResponse.json();
 
-    return processSuccess(data, kv, cacheKey, context.request, context.env, model, retryCount, retryOutcome);
+    return processSuccess({
+      data,
+      kv,
+      cacheKey,
+      request: context.request,
+      env: context.env,
+      model,
+      retryCount,
+      retryOutcome,
+    });
   } catch (error) {
     console.error("LLM proxy error:", error);
     context.waitUntil(logError(context.env.GUESS_DB, 'llm', 'error', 'LLM proxy error', error));
