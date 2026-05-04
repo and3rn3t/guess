@@ -5,7 +5,6 @@ import {
   parseJsonBodyWithSchema,
   isValidCategory,
   d1Query,
-  d1First,
   d1Run,
   getOrCreateUserId,
   getRequestId,
@@ -32,12 +31,15 @@ import {
 } from '../_game-engine'
 import { rephraseQuestionWithCache } from '../_llm-rephrase'
 import { assignVariant } from '../_ab'
+import {
+  queryCharacterPoolWithTriviaFallback,
+  queryPinnedCharacterWithTriviaFallback,
+  type TriviaFallbackLogContext,
+} from './_start_trivia_fallback'
 
-import type { CharactersRow, QuestionsRow } from '../../_db-types'
+import type { QuestionsRow } from '../../_db-types'
 
 // ── Types ────────────────────────────────────────────────────
-
-type CharacterRow = Pick<CharactersRow, 'id' | 'name' | 'category' | 'image_url' | 'popularity' | 'trivia'> & { attributes_json: string }
 
 type QuestionRow = Pick<QuestionsRow, 'id' | 'text' | 'attribute_key'>
 
@@ -48,8 +50,8 @@ export const DIFFICULTY_TO_PERSONA: Record<string, string> = {
 }
 
 function isMissingRetiredAtColumnError(error: unknown): boolean {
-  const message = error instanceof Error ? error.message : String(error)
-  return message.includes('no such column: retired_at')
+  if (!(error instanceof Error)) return false
+  return error.message.includes('no such column: retired_at')
 }
 
 async function loadQuestionsWithRetirementFallback(db: D1Database): Promise<QuestionRow[]> {
@@ -120,6 +122,13 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   params.push(MIN_ATTRIBUTES)
 
   const where = `WHERE ${conditions.join(' AND ')}`
+  const triviaFallbackCtx: TriviaFallbackLogContext = {
+    env: context.env,
+    requestId,
+    actorId,
+    path: url.pathname,
+    method: context.request.method,
+  }
 
   // Check questions KV cache first — questions are immutable at runtime, so a 24h
   // cache eliminates the D1 round-trip on every game start after the first.
@@ -132,36 +141,13 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   //   Fetch 2× POOL_SIZE to get popular chars, then randomly pick POOL_SIZE
   //   This ensures variety across games while keeping the pool reasonably well-known
   const candidateLimit = POOL_SIZE * 2
-  let candidates: CharacterRow[] = []
-  try {
-    candidates = await d1Query<CharacterRow>(
-      db,
-      `SELECT c.id, c.name, c.category, c.image_url, c.popularity, c.attributes_json, c.trivia
-       FROM characters c
-       ${where}
-       ORDER BY c.popularity DESC
-       LIMIT ?`,
-      [...params, candidateLimit]
-    )
-  } catch (err) {
-    // Fallback: if trivia column doesn't exist (pre-migration), query without it
-    logError(context.env.GUESS_DB, 'start', 'warn', 'Character query with trivia failed, falling back', err, {
-      requestId,
-      actorId,
-      path: url.pathname,
-      method: context.request.method,
-      extra: { fallback: 'characters_without_trivia' },
-    }).catch(() => {})
-    candidates = await d1Query<CharacterRow>(
-      db,
-      `SELECT c.id, c.name, c.category, c.image_url, c.popularity, c.attributes_json, NULL as trivia
-       FROM characters c
-       ${where}
-       ORDER BY c.popularity DESC
-       LIMIT ?`,
-      [...params, candidateLimit]
-    )
-  }
+  const candidates = await queryCharacterPoolWithTriviaFallback(
+    db,
+    where,
+    params,
+    candidateLimit,
+    triviaFallbackCtx,
+  )
 
   // Shuffle candidates and take POOL_SIZE
   for (let i = candidates.length - 1; i > 0; i--) {
@@ -172,28 +158,11 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
   // Daily challenge: ensure the pinned character is in the pool
   if (pinnedCharId && !characters.some((c) => c.id === pinnedCharId)) {
-    let pinned: CharacterRow | null
-    try {
-      pinned = await d1First<CharacterRow>(
-        db,
-        'SELECT id, name, category, image_url, popularity, attributes_json, trivia FROM characters WHERE id = ?',
-        [pinnedCharId]
-      )
-    } catch (err) {
-      // Fallback: if trivia column doesn't exist, query without it
-      logError(context.env.GUESS_DB, 'start', 'warn', 'Pinned character query with trivia failed, falling back', err, {
-        requestId,
-        actorId,
-        path: url.pathname,
-        method: context.request.method,
-        extra: { fallback: 'pinned_character_without_trivia' },
-      }).catch(() => {})
-      pinned = await d1First<CharacterRow>(
-        db,
-        'SELECT id, name, category, image_url, popularity, attributes_json, NULL as trivia FROM characters WHERE id = ?',
-        [pinnedCharId]
-      )
-    }
+    const pinned = await queryPinnedCharacterWithTriviaFallback(
+      db,
+      pinnedCharId,
+      triviaFallbackCtx,
+    )
     if (pinned) {
       // Replace the last slot with the pinned character
       characters[characters.length - 1] = pinned
@@ -251,7 +220,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   // Select first question
   const firstQuestion = selectBestQuestion(serverChars, [], serverQuestions, {
     scoring: { coverageMap, popularityMap },
-    gameDifficulty: difficulty as 'easy' | 'medium' | 'hard',
+    gameDifficulty: difficulty,
   })
   if (!firstQuestion) {
     return respond(errorResponse('No questions available', 500))

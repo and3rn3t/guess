@@ -11,6 +11,7 @@ import {
 } from '../../_helpers'
 import { AnswerRequestSchema } from '../../_schemas'
 import {
+  type AdaptiveData,
   detectContradictions,
   evaluateGuessReadiness,
   calculateProbabilities,
@@ -35,6 +36,49 @@ import {
   buildQuestionAttemptInput,
   queueQuestionAttemptWrite,
 } from './_turn-effects'
+
+const EMPTY_ADAPTIVE_DATA: AdaptiveData = {
+  maybeRateMap: undefined,
+  netGainMap: undefined,
+  confusionDiscriminators: undefined,
+  disputeMap: undefined,
+  attributeTrustMap: undefined,
+  characterPopularityMap: undefined,
+  questionEmpiricalGainMap: undefined,
+  questionQualityPenaltyMap: undefined,
+  confusionPairs: undefined,
+  activeWeights: undefined,
+}
+
+function prefetchAdaptiveData(
+  kv: KVNamespace,
+  db: D1Database | undefined,
+): Promise<AdaptiveData> {
+  return loadAdaptiveData(kv, db).catch(() => EMPTY_ADAPTIVE_DATA)
+}
+
+async function finalizeGuessJsonResponse(
+  input: Parameters<typeof finalizeBestGuessForSession>[0],
+): Promise<Response | null> {
+  const guessResponse = await finalizeBestGuessForSession(input)
+  return guessResponse ? jsonResponse(guessResponse) : null
+}
+
+async function maybeFinalizeReadinessGuess(
+  input: {
+    readiness: { shouldGuess: boolean; blockedByRejectCooldown: boolean }
+  } & Omit<Parameters<typeof finalizeBestGuessForSession>[0], 'recordAnalytics' | 'readiness'>
+): Promise<Response | null> {
+  if (!input.readiness.shouldGuess || input.readiness.blockedByRejectCooldown) {
+    return null
+  }
+
+  return finalizeGuessJsonResponse({
+    ...input,
+    readiness: input.readiness,
+    recordAnalytics: true,
+  })
+}
 
 // ── POST /api/v2/game/answer ─────────────────────────────────
 // Processes the user's answer, returns next question or a guess
@@ -98,19 +142,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
   // Kick off adaptive-data loading in parallel with readiness checks. This saves
   // one await in the common "continue asking" path while staying best-effort.
-  const adaptivePromise: Promise<Awaited<ReturnType<typeof loadAdaptiveData>>> = loadAdaptiveData(kv, db)
-    .catch(() => ({
-      maybeRateMap: undefined,
-      netGainMap: undefined,
-      confusionDiscriminators: undefined,
-      disputeMap: undefined,
-      attributeTrustMap: undefined,
-      characterPopularityMap: undefined,
-      questionEmpiricalGainMap: undefined,
-      questionQualityPenaltyMap: undefined,
-      confusionPairs: undefined,
-      activeWeights: undefined,
-    }))
+  const adaptivePromise = prefetchAdaptiveData(kv, db)
 
   // AN.11/AN.21: record posterior history and top-10 after each answer.
   updatePosteriorHistory(session, probs, filtered)
@@ -140,21 +172,17 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
   const responseReadiness = applyRejectCooldown(session, readiness)
 
-  // Check if we should guess
-  if (responseReadiness.shouldGuess && !responseReadiness.blockedByRejectCooldown) {
-    const guessResponse = await finalizeBestGuessForSession({
-      kv,
-      session,
-      filtered,
-      scoring,
-      questionCount,
-      remaining: filtered.length,
-      readiness: responseReadiness,
-      recordAnalytics: true,
-    })
-    if (guessResponse) {
-      return respond(jsonResponse(guessResponse))
-    }
+  const readinessGuessResponse = await maybeFinalizeReadinessGuess({
+    kv,
+    session,
+    filtered,
+    scoring,
+    questionCount,
+    remaining: filtered.length,
+    readiness: responseReadiness,
+  })
+  if (readinessGuessResponse) {
+    return respond(readinessGuessResponse)
   }
 
   // Load runtime adaptive data (already in-flight; best-effort)
@@ -174,7 +202,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
   if (!nextQuestion) {
     // No more questions — force a guess
-    const guessResponse = await finalizeBestGuessForSession({
+    const forcedGuessResponse = await finalizeGuessJsonResponse({
       kv,
       session,
       filtered,
@@ -183,8 +211,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       remaining: filtered.length,
     })
 
-    if (guessResponse) {
-      return respond(jsonResponse(guessResponse))
+    if (forcedGuessResponse) {
+      return respond(forcedGuessResponse)
     }
 
     return respond(errorResponse('No questions or candidates available', 500))

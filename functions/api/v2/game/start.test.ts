@@ -21,6 +21,8 @@ const {
   parseAttrsJsonMock,
   rephraseQuestionWithCacheMock,
   assignVariantMock,
+  queryCharacterPoolWithTriviaFallbackMock,
+  queryPinnedCharacterWithTriviaFallbackMock,
 } = vi.hoisted(() => ({
   jsonResponseMock: vi.fn(
     (data: unknown, status = 200) =>
@@ -48,6 +50,8 @@ const {
   parseAttrsJsonMock: vi.fn(),
   rephraseQuestionWithCacheMock: vi.fn(),
   assignVariantMock: vi.fn(),
+  queryCharacterPoolWithTriviaFallbackMock: vi.fn(),
+  queryPinnedCharacterWithTriviaFallbackMock: vi.fn(),
 }));
 
 vi.mock("../../_helpers", () => ({
@@ -93,6 +97,11 @@ vi.mock("../_llm-rephrase", () => ({
 
 vi.mock("../_ab", () => ({
   assignVariant: assignVariantMock,
+}));
+
+vi.mock("./_start_trivia_fallback", () => ({
+  queryCharacterPoolWithTriviaFallback: queryCharacterPoolWithTriviaFallbackMock,
+  queryPinnedCharacterWithTriviaFallback: queryPinnedCharacterWithTriviaFallbackMock,
 }));
 
 import { onRequestPost } from "./start";
@@ -147,12 +156,6 @@ describe("POST /api/v2/game/start", () => {
     isValidCategoryMock.mockReturnValue(true);
 
     d1QueryMock.mockImplementation((_, query: string) => {
-      if (query.includes("FROM characters")) {
-        return Promise.resolve([
-          CHARACTER_ROW,
-          { ...CHARACTER_ROW, id: "link", name: "Link" },
-        ]);
-      }
       if (query.includes("FROM questions")) {
         return Promise.resolve([
           {
@@ -164,6 +167,12 @@ describe("POST /api/v2/game/start", () => {
       }
       return Promise.resolve([]);
     });
+
+    queryCharacterPoolWithTriviaFallbackMock.mockResolvedValue([
+      CHARACTER_ROW,
+      { ...CHARACTER_ROW, id: "link", name: "Link" },
+    ]);
+    queryPinnedCharacterWithTriviaFallbackMock.mockResolvedValue(null);
 
     loadCachedQuestionsMock.mockResolvedValue(null);
     parseAttrsJsonMock.mockReturnValue({ isHuman: true });
@@ -205,21 +214,7 @@ describe("POST /api/v2/game/start", () => {
   });
 
   it("returns 400 when fewer than two characters are available", async () => {
-    d1QueryMock.mockImplementation((_, query: string) => {
-      if (query.includes("FROM characters")) {
-        return Promise.resolve([CHARACTER_ROW]);
-      }
-      if (query.includes("FROM questions")) {
-        return Promise.resolve([
-          {
-            id: "q1",
-            text: FIRST_QUESTION.text,
-            attribute_key: FIRST_QUESTION.attribute,
-          },
-        ]);
-      }
-      return Promise.resolve([]);
-    });
+    queryCharacterPoolWithTriviaFallbackMock.mockResolvedValue([CHARACTER_ROW]);
 
     const ctx = makeContext({
       categories: ["video-games"],
