@@ -37,6 +37,7 @@ Environment files:
 - Follow docs/mobile/native-product-contract.md
 - Follow docs/mobile/native-surface-policy.md
 - PRs for core screens must include docs/mobile/screen-quality-scorecard.md evidence
+- Start from docs/mobile/README.md for the full Xcode + AI handoff doc map
 
 ## AI Quick Start (VS Code + Xcode)
 
