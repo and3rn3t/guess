@@ -21,7 +21,7 @@
 		13B07F961A680F5B00A75B9A /* Andernator.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Andernator.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		13B07FB51A68108700A75B9A /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Images.xcassets; path = Andernator/Images.xcassets; sourceTree = "<group>"; };
 		13B07FB61A68108700A75B9A /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = Andernator/Info.plist; sourceTree = "<group>"; };
-		5246D7DCD9C5B40C89200DD1 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; name = PrivacyInfo.xcprivacy; path = Andernator/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		5246D7DCD9C5B40C89200DD1 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xml; name = PrivacyInfo.xcprivacy; path = Andernator/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		65E36108944858880C5EBF62 /* ExpoModulesProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ExpoModulesProvider.swift; path = "Pods/Target Support Files/Pods-Andernator/ExpoModulesProvider.swift"; sourceTree = "<group>"; };
 		9D393AA49A11A570B314416B /* Pods-Andernator.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Andernator.debug.xcconfig"; path = "Target Support Files/Pods-Andernator/Pods-Andernator.debug.xcconfig"; sourceTree = "<group>"; };
 		A68ABE5F8FC4C3978921E047 /* Pods-Andernator.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Andernator.release.xcconfig"; path = "Target Support Files/Pods-Andernator/Pods-Andernator.release.xcconfig"; sourceTree = "<group>"; };
@@ -111,7 +111,6 @@
 				9D393AA49A11A570B314416B /* Pods-Andernator.debug.xcconfig */,
 				A68ABE5F8FC4C3978921E047 /* Pods-Andernator.release.xcconfig */,
 			);
-			name = Pods;
 			path = Pods;
 			sourceTree = "<group>";
 		};
@@ -337,12 +336,15 @@
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = Andernator/Andernator.entitlements;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = C8U3P6AJ6L;
 				ENABLE_BITCODE = NO;
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					"$(inherited)",
 					"FB_SONARKIT_ENABLED=1",
 				);
 				INFOPLIST_FILE = Andernator/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Andernator;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.trivia-games";
 				IPHONEOS_DEPLOYMENT_TARGET = 15.1;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -355,7 +357,7 @@
 					"-lc++",
 				);
 				OTHER_SWIFT_FLAGS = "$(inherited) -D EXPO_CONFIGURATION_DEBUG";
-				PRODUCT_BUNDLE_IDENTIFIER = com.andernator.app;
+				PRODUCT_BUNDLE_IDENTIFIER = dev.andernet.andernator;
 				PRODUCT_NAME = Andernator;
 				SWIFT_OBJC_BRIDGING_HEADER = "Andernator/Andernator-Bridging-Header.h";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
@@ -373,7 +375,10 @@
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = Andernator/Andernator.entitlements;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = C8U3P6AJ6L;
 				INFOPLIST_FILE = Andernator/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Andernator;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.trivia-games";
 				IPHONEOS_DEPLOYMENT_TARGET = 15.1;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -386,7 +391,7 @@
 					"-lc++",
 				);
 				OTHER_SWIFT_FLAGS = "$(inherited) -D EXPO_CONFIGURATION_RELEASE";
-				PRODUCT_BUNDLE_IDENTIFIER = com.andernator.app;
+				PRODUCT_BUNDLE_IDENTIFIER = dev.andernet.andernator;
 				PRODUCT_NAME = Andernator;
 				SWIFT_OBJC_BRIDGING_HEADER = "Andernator/Andernator-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
