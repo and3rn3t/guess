@@ -49,8 +49,9 @@ describe('buildLLMUsageDataPoint', () => {
       cacheStatus: 'MISS',
       endpoint: 'llm',
       retryCount: 2,
+      retryOutcome: '5xx',
     })
-    expect(point.blobs).toEqual(['gpt-4o-mini', 'user-abc', 'MISS', 'llm'])
+    expect(point.blobs).toEqual(['gpt-4o-mini', 'user-abc', 'MISS', 'llm', '5xx'])
     expect(point.doubles).toEqual([1000, 500, 1500, 0.00045, 2])
     expect(point.indexes).toEqual(['user-abc'])
   })
@@ -63,6 +64,7 @@ describe('buildLLMUsageDataPoint', () => {
       cacheStatus: 'HIT',
       endpoint: 'llm',
       retryCount: 0,
+      retryOutcome: 'none',
     })
     expect(point.blobs?.[2]).toBe('HIT')
   })
@@ -75,6 +77,7 @@ describe('buildLLMUsageDataPoint', () => {
       cacheStatus: 'MISS',
       endpoint: 'llm',
       retryCount: -5,
+      retryOutcome: 'mixed',
     })
     expect(point.doubles?.[4]).toBe(0)
   })
@@ -90,6 +93,7 @@ describe('recordLLMUsage', () => {
         cacheStatus: 'MISS',
         endpoint: 'llm',
         retryCount: 0,
+        retryOutcome: 'none',
       })
     ).not.toThrow()
   })
@@ -104,11 +108,12 @@ describe('recordLLMUsage', () => {
       cacheStatus: 'MISS',
       endpoint: 'llm',
       retryCount: 1,
+      retryOutcome: '429',
     })
     expect(writeDataPoint).toHaveBeenCalledTimes(1)
     expect(writeDataPoint).toHaveBeenCalledWith(
       expect.objectContaining({
-        blobs: ['gpt-4o-mini', 'u1', 'MISS', 'llm'],
+        blobs: ['gpt-4o-mini', 'u1', 'MISS', 'llm', '429'],
         indexes: ['u1'],
       })
     )
@@ -128,6 +133,7 @@ describe('recordLLMUsage', () => {
         cacheStatus: 'MISS',
         endpoint: 'llm',
         retryCount: 0,
+        retryOutcome: 'none',
       })
     ).not.toThrow()
   })

@@ -109,7 +109,7 @@ describe('POST /api/llm', () => {
     expect(fetchMock).not.toHaveBeenCalled()
     expect(recordLLMUsageMock).toHaveBeenCalledWith(
       expect.anything(),
-      expect.objectContaining({ cacheStatus: 'HIT', retryCount: 0, endpoint: 'llm' }),
+      expect.objectContaining({ cacheStatus: 'HIT', retryCount: 0, retryOutcome: 'none', endpoint: 'llm' }),
     )
   })
 
@@ -136,7 +136,7 @@ describe('POST /api/llm', () => {
     expect(fetchMock).toHaveBeenCalledTimes(2)
     expect(recordLLMUsageMock).toHaveBeenCalledWith(
       expect.anything(),
-      expect.objectContaining({ cacheStatus: 'MISS', retryCount: 1, endpoint: 'llm' }),
+      expect.objectContaining({ cacheStatus: 'MISS', retryCount: 1, retryOutcome: '5xx', endpoint: 'llm' }),
     )
   })
 
@@ -151,9 +151,15 @@ describe('POST /api/llm', () => {
     expect(body.code).toBe('RATE_LIMITED')
     expect(fetchMock).toHaveBeenCalledTimes(3)
     expect(logErrorMock).toHaveBeenCalled()
-    expect(recordLLMUsageMock).not.toHaveBeenCalledWith(
+    expect(recordLLMUsageMock).toHaveBeenCalledWith(
       expect.anything(),
-      expect.objectContaining({ cacheStatus: 'MISS' }),
+      expect.objectContaining({
+        cacheStatus: 'MISS',
+        retryCount: 2,
+        retryOutcome: '429',
+        endpoint: 'llm',
+        usage: { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 },
+      }),
     )
   })
 })

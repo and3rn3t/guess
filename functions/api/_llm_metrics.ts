@@ -12,6 +12,7 @@
  *   blobs[1]  = userId             (per-cookie identifier)
  *   blobs[2]  = cacheStatus        ("HIT" | "MISS")
  *   blobs[3]  = endpoint           ("llm" | "llm-stream" | …)
+ *   blobs[4]  = retryOutcome       ("none" | "429" | "5xx" | "other" | "mixed")
  *   doubles[0] = promptTokens
  *   doubles[1] = completionTokens
  *   doubles[2] = totalTokens
@@ -40,6 +41,8 @@ export interface TokenUsage {
   total_tokens: number
 }
 
+export type RetryOutcome = 'none' | '429' | '5xx' | 'other' | 'mixed'
+
 export interface RecordLLMUsageInput {
   model: string
   userId: string
@@ -47,11 +50,20 @@ export interface RecordLLMUsageInput {
   cacheStatus: 'HIT' | 'MISS'
   endpoint: string
   retryCount: number
+  retryOutcome: RetryOutcome
 }
 
 function normalizeRetryCount(retryCount: number): number {
   const safe = Number.isFinite(retryCount) ? Math.trunc(retryCount) : 0
   return Math.max(0, safe)
+}
+
+function normalizeRetryOutcome(retryOutcome: RetryOutcome): RetryOutcome {
+  if (retryOutcome === 'none') return 'none'
+  if (retryOutcome === '429') return '429'
+  if (retryOutcome === '5xx') return '5xx'
+  if (retryOutcome === 'other') return 'other'
+  return 'mixed'
 }
 
 /** USD per 1K input/output tokens (snapshot 2026-04-30). */
@@ -77,11 +89,12 @@ export function estimateCostUsd(model: string, usage: TokenUsage): number {
  * without spinning up a real binding.
  */
 export function buildLLMUsageDataPoint(input: RecordLLMUsageInput): AnalyticsEngineDataPoint {
-  const { model, userId, usage, cacheStatus, endpoint, retryCount } = input
+  const { model, userId, usage, cacheStatus, endpoint, retryCount, retryOutcome } = input
   const normalizedRetryCount = normalizeRetryCount(retryCount)
+  const normalizedRetryOutcome = normalizeRetryOutcome(retryOutcome)
 
   return {
-    blobs: [model, userId, cacheStatus, endpoint],
+    blobs: [model, userId, cacheStatus, endpoint, normalizedRetryOutcome],
     doubles: [
       usage.prompt_tokens,
       usage.completion_tokens,

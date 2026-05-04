@@ -10,7 +10,7 @@ import {
   sanitizeString,
   logError,
 } from "./_helpers";
-import { recordLLMUsage } from "./_llm_metrics";
+import { recordLLMUsage, type RetryOutcome } from "./_llm_metrics";
 
 const MAX_PROMPT_LENGTH = 50_000;
 const ALLOWED_MODELS = ["gpt-4o", "gpt-4o-mini"];
@@ -39,14 +39,30 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+function classifyRetryStatus(status: number): Exclude<RetryOutcome, "none" | "mixed"> {
+  if (status === 429) return "429";
+  if (status >= 500 && status <= 599) return "5xx";
+  return "other";
+}
+
+function mergeRetryOutcome(
+  current: RetryOutcome,
+  next: Exclude<RetryOutcome, "none" | "mixed">,
+): RetryOutcome {
+  if (current === "none") return next;
+  if (current === next) return current;
+  return "mixed";
+}
+
 /** Call OpenAI with retries on transient errors */
 async function callOpenAIWithRetry(
   endpoint: string,
   headers: Record<string, string>,
   openaiBody: Record<string, unknown>,
-): Promise<{ response: Response; retryCount: number }> {
+): Promise<{ response: Response; retryCount: number; retryOutcome: RetryOutcome }> {
   let lastResponse: Response | null = null;
   let retryCount = 0;
+  let retryOutcome: RetryOutcome = "none";
 
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
     const response = await fetch(endpoint, {
@@ -55,19 +71,20 @@ async function callOpenAIWithRetry(
       body: JSON.stringify(openaiBody),
     });
 
-    if (response.ok) return { response, retryCount };
+    if (response.ok) return { response, retryCount, retryOutcome };
 
     lastResponse = response;
     const retryable = [429, 500, 503].includes(response.status);
     if (!retryable || attempt === MAX_RETRIES) break;
 
     retryCount += 1;
+    retryOutcome = mergeRetryOutcome(retryOutcome, classifyRetryStatus(response.status));
     await sleep(RETRY_DELAYS[attempt]);
   }
 
   // unreachable: loop always runs at least once
   if (!lastResponse) throw new Error("No response from OpenAI");
-  return { response: lastResponse, retryCount };
+  return { response: lastResponse, retryCount, retryOutcome };
 }
 
 /** Validate request body fields, returning an error Response or null if valid */
@@ -226,6 +243,7 @@ async function processSuccess(
   env: Env,
   model: string,
   retryCount: number,
+  retryOutcome: RetryOutcome,
 ): Promise<Response> {
   const content = data.choices?.[0]?.message?.content;
   if (!content) {
@@ -262,6 +280,7 @@ async function processSuccess(
       cacheStatus: "MISS",
       endpoint: "llm",
       retryCount,
+      retryOutcome,
     });
   }
 
@@ -287,9 +306,29 @@ async function handleCacheHitResponse(
     cacheStatus: "HIT",
     endpoint: "llm",
     retryCount: 0,
+    retryOutcome: "none",
   });
 
   return withSetCookie(cacheHit, cachedCookieHeader);
+}
+
+async function recordProviderErrorUsage(
+  request: Request,
+  env: Env,
+  model: string,
+  retryCount: number,
+  retryOutcome: RetryOutcome,
+): Promise<void> {
+  const { userId } = await getOrCreateUserId(request, env);
+  recordLLMUsage(env.LLM_COSTS, {
+    model,
+    userId,
+    usage: { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 },
+    cacheStatus: "MISS",
+    endpoint: "llm",
+    retryCount,
+    retryOutcome,
+  });
 }
 
 function buildProviderErrorResponse(status: number, errorText: string): Response {
@@ -368,7 +407,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   const openaiBody = buildOpenAIPayload(model, prompt, systemPrompt, jsonMode, jsonSchema);
 
   try {
-    const { response: openaiResponse, retryCount } = await callOpenAIWithRetry(endpoint, headers, openaiBody);
+    const { response: openaiResponse, retryCount, retryOutcome } = await callOpenAIWithRetry(endpoint, headers, openaiBody);
 
     if (!openaiResponse.ok) {
       const errorText = await openaiResponse
@@ -376,6 +415,13 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         .catch(() => "Unknown error");
       console.error("OpenAI API error:", openaiResponse.status, errorText);
       context.waitUntil(logError(context.env.GUESS_DB, 'llm', 'error', `OpenAI API error ${openaiResponse.status}`, errorText));
+      await recordProviderErrorUsage(
+        context.request,
+        context.env,
+        model,
+        retryCount,
+        retryOutcome,
+      ).catch(() => {});
 
       return buildProviderErrorResponse(openaiResponse.status, errorText);
     }
@@ -389,7 +435,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       };
     } = await openaiResponse.json();
 
-    return processSuccess(data, kv, cacheKey, context.request, context.env, model, retryCount);
+    return processSuccess(data, kv, cacheKey, context.request, context.env, model, retryCount, retryOutcome);
   } catch (error) {
     console.error("LLM proxy error:", error);
     context.waitUntil(logError(context.env.GUESS_DB, 'llm', 'error', 'LLM proxy error', error));
