@@ -2507,6 +2507,177 @@ const ADMIN_CHARACTER_VALIDATE_RESPONSE_SCHEMA: Record<string, unknown> = {
   additionalProperties: false,
 };
 
+const PROPOSED_ATTRIBUTE_ENTRY_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    id: { type: "number" },
+    key: { type: "string" },
+    display_text: { type: "string" },
+    question_text: { type: "string" },
+    rationale: { type: ["string", "null"] },
+    example_chars: { type: ["string", "null"] },
+    proposed_by: { type: ["string", "null"] },
+    status: { type: "string" },
+    reviewed_by: { type: ["string", "null"] },
+    reviewed_at: { type: ["number", "null"] },
+    created_at: { type: "number" },
+  },
+  required: [
+    "id",
+    "key",
+    "display_text",
+    "question_text",
+    "rationale",
+    "example_chars",
+    "proposed_by",
+    "status",
+    "reviewed_by",
+    "reviewed_at",
+    "created_at",
+  ],
+  additionalProperties: false,
+};
+
+const PROPOSED_ATTRIBUTES_GET_RESPONSE_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    proposals: {
+      type: "array",
+      items: PROPOSED_ATTRIBUTE_ENTRY_SCHEMA,
+    },
+    total: { type: "number" },
+    page: { type: "number" },
+    pageSize: { type: "number" },
+  },
+  required: ["proposals", "total", "page", "pageSize"],
+  additionalProperties: false,
+};
+
+const PROPOSED_ATTRIBUTE_INPUT_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    key: { type: "string" },
+    display_text: { type: "string" },
+    question_text: { type: "string" },
+    rationale: { type: "string" },
+    example_chars: { type: "string" },
+    proposed_by: { type: "string" },
+  },
+  required: ["key", "display_text", "question_text"],
+  additionalProperties: false,
+};
+
+const PROPOSED_ATTRIBUTES_POST_REQUEST_SCHEMA: Record<string, unknown> = {
+  oneOf: [
+    PROPOSED_ATTRIBUTE_INPUT_SCHEMA,
+    {
+      type: "object",
+      properties: {
+        proposals: {
+          type: "array",
+          items: PROPOSED_ATTRIBUTE_INPUT_SCHEMA,
+          minItems: 1,
+          maxItems: 100,
+        },
+      },
+      required: ["proposals"],
+      additionalProperties: false,
+    },
+  ],
+};
+
+const PROPOSED_ATTRIBUTES_POST_RESPONSE_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    inserted: { type: "number" },
+    submitted: { type: "number" },
+  },
+  required: ["inserted", "submitted"],
+  additionalProperties: false,
+};
+
+const PROPOSED_ATTRIBUTES_PATCH_REQUEST_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    id: { type: "number" },
+    status: { type: "string", enum: ["approved", "rejected"] },
+    reviewed_by: { type: "string" },
+  },
+  required: ["id", "status"],
+  additionalProperties: false,
+};
+
+const PROPOSED_ATTRIBUTES_PATCH_RESPONSE_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    ok: { type: "boolean" },
+  },
+  required: ["ok"],
+  additionalProperties: false,
+};
+
+const PROPOSED_ATTRIBUTE_BY_ID_POST_REQUEST_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    action: { type: "string", enum: ["approve", "reject"] },
+  },
+  required: ["action"],
+  additionalProperties: false,
+};
+
+const PROPOSED_ATTRIBUTE_BY_ID_POST_RESPONSE_SCHEMA: Record<string, unknown> = {
+  oneOf: [
+    {
+      type: "object",
+      properties: {
+        ok: { type: "boolean" },
+        action: { const: "approved" },
+        key: { type: "string" },
+      },
+      required: ["ok", "action", "key"],
+      additionalProperties: false,
+    },
+    {
+      type: "object",
+      properties: {
+        ok: { type: "boolean" },
+        action: { const: "rejected" },
+      },
+      required: ["ok", "action"],
+      additionalProperties: false,
+    },
+  ],
+};
+
+const PROPOSED_ATTRIBUTE_SCORE_REQUEST_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    key: { type: "string" },
+    displayText: { type: "string" },
+    questionText: { type: "string" },
+    rationale: { type: "string" },
+  },
+  required: ["key", "displayText", "questionText"],
+  additionalProperties: false,
+};
+
+const PROPOSED_ATTRIBUTE_SCORE_RESPONSE_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    score: { type: "number" },
+    concerns: {
+      type: "array",
+      items: { type: "string" },
+    },
+    strengths: {
+      type: "array",
+      items: { type: "string" },
+    },
+  },
+  required: ["score", "concerns", "strengths"],
+  additionalProperties: false,
+};
+
 const RESUME_RESPONSE_SCHEMA: Record<string, unknown> = {
   oneOf: [
     {
@@ -2831,6 +3002,30 @@ const OPERATION_METADATA: Record<string, OperationMetadata> = {
     summary: "Log a pipeline run entry",
     requestSchema: PIPELINE_POST_REQUEST_SCHEMA,
     responseSchema: PIPELINE_POST_RESPONSE_SCHEMA,
+  },
+  "get /api/admin/proposed-attributes": {
+    summary: "List proposed attributes",
+    responseSchema: PROPOSED_ATTRIBUTES_GET_RESPONSE_SCHEMA,
+  },
+  "post /api/admin/proposed-attributes": {
+    summary: "Submit one or more proposed attributes",
+    requestSchema: PROPOSED_ATTRIBUTES_POST_REQUEST_SCHEMA,
+    responseSchema: PROPOSED_ATTRIBUTES_POST_RESPONSE_SCHEMA,
+  },
+  "patch /api/admin/proposed-attributes": {
+    summary: "Update proposed attribute review status",
+    requestSchema: PROPOSED_ATTRIBUTES_PATCH_REQUEST_SCHEMA,
+    responseSchema: PROPOSED_ATTRIBUTES_PATCH_RESPONSE_SCHEMA,
+  },
+  "post /api/admin/proposed-attributes/{id}": {
+    summary: "Approve or reject a specific proposed attribute",
+    requestSchema: PROPOSED_ATTRIBUTE_BY_ID_POST_REQUEST_SCHEMA,
+    responseSchema: PROPOSED_ATTRIBUTE_BY_ID_POST_RESPONSE_SCHEMA,
+  },
+  "post /api/admin/proposed-attributes/{id}/score": {
+    summary: "Run LLM quality scoring for a proposed attribute",
+    requestSchema: PROPOSED_ATTRIBUTE_SCORE_REQUEST_SCHEMA,
+    responseSchema: PROPOSED_ATTRIBUTE_SCORE_RESPONSE_SCHEMA,
   },
   "get /api/admin/error-logs": {
     summary: "List error and warning logs with filters",
