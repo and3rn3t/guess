@@ -2,14 +2,13 @@ import type { GameAction } from "@/hooks/useGameState";
 import {
   buildResumedSessionSnapshot,
   buildRejectReadinessSnapshot,
+  buildServerAnswerOutcome,
   canResumeServerSession,
   canContinueAfterSkip,
-  classifyServerAnswerResponse,
   classifyServerRejectResponse,
   buildCollectingEvidenceMessage,
   buildRetryGuessMessage,
   getRejectCooldownRemaining,
-  normalizeGuessCharacter,
 } from "@guess/app-core";
 import { GAME_API_ENDPOINTS, SERVER_SESSION_KEY } from "@/lib/constants";
 import {
@@ -193,44 +192,46 @@ export function useServerGame(dispatch: React.Dispatch<GameAction>) {
       dispatch({ type: "SET_THINKING", isThinking: true });
       try {
         const data = await submitAnswer(serverSessionId ?? "", value);
-        const responseKind = classifyServerAnswerResponse(data);
+        const outcome = buildServerAnswerOutcome<
+          Question,
+          ReasoningExplanation,
+          Partial<GuessReadinessSnapshot>,
+          typeof data
+        >(data);
 
-        if (responseKind === "contradiction") {
+        if (outcome.kind === "contradiction") {
           dispatch({ type: "UNDO_LAST_ANSWER" });
-          toast.warning(
-            data.message || "Contradictory answers — undoing last answer.",
-          );
-          if (data.question && data.reasoning) {
+          toast.warning(outcome.message);
+          if (outcome.question && outcome.reasoning) {
             dispatch({
               type: "SET_QUESTION",
-              question: data.question,
-              reasoning: data.reasoning,
+              question: outcome.question,
+              reasoning: outcome.reasoning,
             });
           }
-        } else if (responseKind === "guess" && data.character) {
-          const normalized = normalizeGuessCharacter(data.character);
+        } else if (outcome.kind === "guess") {
           const guessChar: Character = {
-            id: normalized.id,
-            name: normalized.name,
-            category: normalized.category as CharacterCategory,
+            id: outcome.character.id,
+            name: outcome.character.name,
+            category: outcome.character.category as CharacterCategory,
             attributes: {},
-            imageUrl: normalized.imageUrl,
-            trivia: normalized.trivia,
+            imageUrl: outcome.character.imageUrl,
+            trivia: outcome.character.trivia,
           };
           dispatch({ type: "MAKE_GUESS", character: guessChar });
-          setServerRemaining(data.remaining ?? 1);
-          setServerReadiness(normalizeReadiness(data.readiness));
+          setServerRemaining(outcome.remaining);
+          setServerReadiness(normalizeReadiness(outcome.readiness));
           playSuspense();
-        } else if (responseKind === "question" && data.question && data.reasoning) {
+        } else if (outcome.kind === "question") {
           dispatch({
             type: "SET_QUESTION",
-            question: data.question,
-            reasoning: data.reasoning,
+            question: outcome.question,
+            reasoning: outcome.reasoning,
           });
-          setServerRemainingSync(data.remaining ?? serverRemainingRef.current);
-          setServerReadiness(normalizeReadiness(data.readiness));
-          if (data.readiness?.blockedByRejectCooldown) {
-            const remaining = getRejectCooldownRemaining(data.readiness);
+          setServerRemainingSync(outcome.remaining ?? serverRemainingRef.current);
+          setServerReadiness(normalizeReadiness(outcome.readiness));
+          if (outcome.readiness?.blockedByRejectCooldown) {
+            const remaining = getRejectCooldownRemaining(outcome.readiness);
             toast.info(buildCollectingEvidenceMessage(remaining));
           } else {
             toast.success(`Answer recorded: ${value}`);

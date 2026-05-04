@@ -34,6 +34,8 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 - **Shared resumed-session snapshot builder extracted (M1 extraction)** — extended `packages/app-core/src/server-resume.ts` with `buildResumedSessionSnapshot` so defaulted resume-state shaping (`remaining`, `totalCharacters`, `guessCount`, replay steps, current question/reasoning) lives in app-core. Updated `src/hooks/useServerGame.ts` to consume the prepared snapshot while preserving restored-session behavior.
 
+- **Shared answer-outcome adapter extracted (M1 extraction)** — extended `packages/app-core/src/server-response.ts` with `buildServerAnswerOutcome` to normalize contradiction/guess/question answer responses into typed UI intents, and added focused unit tests in `packages/app-core/src/server-response.test.ts`. Updated `src/hooks/useServerGame.ts` to consume the shared outcome adapter while preserving dispatch order, toast behavior, readiness handling, and guess normalization.
+
 - **Completeness burndown + weekly report (DQ.38)**
 
 - **v1 KV endpoint deprecation headers** — `functions/api/corrections.ts` and `functions/api/stats.ts` now emit `Deprecation: true` + `Sunset: Wed, 01 Jan 2027 00:00:00 GMT` on GET responses, matching the headers already present in `characters.ts`, `questions.ts`, and `sync.ts`. All five legacy KV-backed v1 endpoints are now consistently signalling sunset to callers.
