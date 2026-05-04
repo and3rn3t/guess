@@ -15,9 +15,11 @@ import {
   ReduceMotionEmitter,
   LifecycleEmitter,
   type HapticStyle,
+  type ReduceMotionChangedEvent,
   type VoiceOverPriority,
+  type LifecycleChangedEvent,
   type LifecycleState,
-} from './NativeServices';
+} from './mobile/NativeServices';
 
 // MARK: - Haptics Hook
 
@@ -140,7 +142,7 @@ export function useReduceMotion(): boolean {
     // Subscribe to changes
     const subscription = ReduceMotionEmitter?.addListener(
       'reduceMotionChanged',
-      (event) => {
+      (event: ReduceMotionChangedEvent) => {
         setIsEnabled(event.isEnabled);
       }
     );
@@ -173,7 +175,7 @@ export function useLifecycle(): LifecycleState {
     // Subscribe to changes
     const subscription = LifecycleEmitter?.addListener(
       'lifecycleChanged',
-      (event) => {
+      (event: LifecycleChangedEvent) => {
         setState(event.state);
       }
     );
@@ -216,7 +218,7 @@ export function useOnAppActive(callback: () => void) {
 
     const subscription = LifecycleEmitter?.addListener(
       'lifecycleChanged',
-      (event) => {
+      (event: LifecycleChangedEvent) => {
         if (event.state === 'active') {
           callbackRef.current();
         }
@@ -241,7 +243,7 @@ export function useOnAppBackground(callback: () => void) {
 
     const subscription = LifecycleEmitter?.addListener(
       'lifecycleChanged',
-      (event) => {
+      (event: LifecycleChangedEvent) => {
         if (event.state === 'background') {
           callbackRef.current();
         }
@@ -270,7 +272,7 @@ export function useLifecycleCallbacks(callbacks: {
 
     const subscription = LifecycleEmitter?.addListener(
       'lifecycleChanged',
-      (event) => {
+      (event: LifecycleChangedEvent) => {
         const { state } = event;
         const cbs = callbacksRef.current;
         
