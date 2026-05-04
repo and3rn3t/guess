@@ -80,11 +80,17 @@ describe('GET /api/v2/daily', () => {
 
   it('returns daily status with completion=false when no prior result', async () => {
     const res = await onRequestGet(makeContext('GET'))
-    const body = await res.json() as { date: string; characterId: string; completed: boolean }
+    const body = await res.json() as {
+      date: string
+      characterId: string
+      completed: boolean
+      featuredCharacter: { id: string; name: string; imageUrl: string | null }
+    }
 
     expect(res.status).toBe(200)
     expect(body.date).toBe('2026-05-02')
     expect(body.characterId).toBe('mario')
+    expect(body.featuredCharacter).toEqual({ id: 'mario', name: 'Mario', imageUrl: null })
     expect(body.completed).toBe(false)
   })
 })

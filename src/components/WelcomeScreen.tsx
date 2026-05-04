@@ -213,6 +213,11 @@ export function WelcomeScreen({
             <p className="text-xs text-muted-foreground">
               Everyone plays the same featured character each UTC day.
             </p>
+            {dailyChallenge?.featuredCharacter ? (
+              <p className="text-xs text-foreground/90 mt-1">
+                Today&apos;s character: <span className="font-semibold">{dailyChallenge.featuredCharacter.name}</span>
+              </p>
+            ) : null}
           </div>
           <Button
             onClick={startDailyChallenge}
@@ -224,6 +229,20 @@ export function WelcomeScreen({
             Play Daily
           </Button>
         </div>
+
+        {dailyChallenge?.featuredCharacter?.imageUrl ? (
+          <div className="flex items-center gap-2 rounded-md border border-border/40 bg-background/30 px-2.5 py-2">
+            <img
+              src={dailyChallenge.featuredCharacter.imageUrl}
+              alt={dailyChallenge.featuredCharacter.name}
+              className="h-10 w-10 rounded-md object-cover border border-border/50"
+              loading="lazy"
+            />
+            <p className="text-xs text-muted-foreground">
+              Think of <span className="font-medium text-foreground">{dailyChallenge.featuredCharacter.name}</span>, then press Play Daily.
+            </p>
+          </div>
+        ) : null}
 
         {dailyError ? (
           <div className="flex items-center justify-between gap-2 rounded-md border border-destructive/40 bg-destructive/5 px-2.5 py-2">

@@ -206,4 +206,28 @@ describe('WelcomeScreen', () => {
     await user.click(screen.getByRole('button', { name: /retry/i }))
     expect(props.refreshDailyChallenge).toHaveBeenCalledOnce()
   })
+
+  it('shows featured daily character details', () => {
+    render(
+      <WelcomeScreen
+        {...defaultProps()}
+        dailyChallenge={{
+          date: '2026-05-04',
+          characterId: 'mario',
+          featuredCharacter: {
+            id: 'mario',
+            name: 'Mario',
+            imageUrl: 'https://example.com/mario.png',
+          },
+          completed: false,
+          result: null,
+          revealedCharacter: null,
+        }}
+      />,
+    )
+
+    expect(screen.getByText(/today's character:/i)).toBeInTheDocument()
+    expect(screen.getAllByText('Mario').length).toBeGreaterThanOrEqual(1)
+    expect(screen.getByRole('img', { name: 'Mario' })).toBeInTheDocument()
+  })
 })

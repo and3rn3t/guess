@@ -139,6 +139,11 @@ export interface DailyChallengeResult {
 export interface DailyChallengeStatus {
   date: string
   characterId: string
+  featuredCharacter: {
+    id: string
+    name: string
+    imageUrl: string | null
+  }
   completed: boolean
   result: DailyChallengeResult | null
   revealedCharacter: {

@@ -43,6 +43,11 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     const payload = {
       date,
       characterId: dailyCharacter.id,
+      featuredCharacter: {
+        id: dailyCharacter.id,
+        name: dailyCharacter.name,
+        imageUrl: dailyCharacter.image_url,
+      },
       completed: completion != null,
       result: completion
         ? {
