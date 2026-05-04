@@ -372,7 +372,7 @@
     "/api/admin/automation-status": {
       "get": {
         "operationId": "get-admin-automation-status",
-        "summary": "GET /api/admin/automation-status",
+        "summary": "Get latest cron automation report snapshot",
         "tags": [
           "admin",
           "automation-status"
@@ -384,7 +384,40 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "additionalProperties": true
+                  "properties": {
+                    "report": {
+                      "oneOf": [
+                        {
+                          "type": "object",
+                          "additionalProperties": true
+                        },
+                        {
+                          "type": "array",
+                          "items": {}
+                        },
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "number"
+                        },
+                        {
+                          "type": "boolean"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "fetchedAt": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "report",
+                    "fetchedAt"
+                  ],
+                  "additionalProperties": false
                 }
               }
             }
@@ -829,7 +862,7 @@
     "/api/admin/curator-queue": {
       "get": {
         "operationId": "get-admin-curator-queue",
-        "summary": "GET /api/admin/curator-queue",
+        "summary": "Fetch manual curator queue report",
         "tags": [
           "admin",
           "curator-queue"
@@ -841,7 +874,213 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "additionalProperties": true
+                  "properties": {
+                    "report": {
+                      "type": "object",
+                      "properties": {
+                        "totals": {
+                          "type": "object",
+                          "properties": {
+                            "totalItems": {
+                              "type": "number"
+                            },
+                            "unresolved": {
+                              "type": "number"
+                            },
+                            "assigned": {
+                              "type": "number"
+                            },
+                            "locked": {
+                              "type": "number"
+                            },
+                            "avgAgedDays": {
+                              "type": "number"
+                            }
+                          },
+                          "required": [
+                            "totalItems",
+                            "unresolved",
+                            "assigned",
+                            "locked",
+                            "avgAgedDays"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "perIssueType": {
+                          "type": "object",
+                          "properties": {
+                            "cannot_infer": {
+                              "type": "object",
+                              "properties": {
+                                "count": {
+                                  "type": "number"
+                                },
+                                "percentOfTotal": {
+                                  "type": "number"
+                                }
+                              },
+                              "required": [
+                                "count",
+                                "percentOfTotal"
+                              ],
+                              "additionalProperties": false
+                            },
+                            "canon_conflict": {
+                              "type": "object",
+                              "properties": {
+                                "count": {
+                                  "type": "number"
+                                },
+                                "percentOfTotal": {
+                                  "type": "number"
+                                }
+                              },
+                              "required": [
+                                "count",
+                                "percentOfTotal"
+                              ],
+                              "additionalProperties": false
+                            },
+                            "subjective": {
+                              "type": "object",
+                              "properties": {
+                                "count": {
+                                  "type": "number"
+                                },
+                                "percentOfTotal": {
+                                  "type": "number"
+                                }
+                              },
+                              "required": [
+                                "count",
+                                "percentOfTotal"
+                              ],
+                              "additionalProperties": false
+                            }
+                          },
+                          "required": [
+                            "cannot_infer",
+                            "canon_conflict",
+                            "subjective"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "items": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "number"
+                              },
+                              "characterId": {
+                                "type": "string"
+                              },
+                              "attributeKey": {
+                                "type": "string"
+                              },
+                              "issueType": {
+                                "type": "string",
+                                "enum": [
+                                  "cannot_infer",
+                                  "canon_conflict",
+                                  "subjective"
+                                ]
+                              },
+                              "issueReason": {
+                                "type": "string"
+                              },
+                              "category": {
+                                "type": "string"
+                              },
+                              "assignedTo": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "resolvedAt": {
+                                "type": [
+                                  "number",
+                                  "null"
+                                ]
+                              },
+                              "resolutionReason": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "locked": {
+                                "type": "boolean"
+                              },
+                              "lockedUntil": {
+                                "type": [
+                                  "number",
+                                  "null"
+                                ]
+                              },
+                              "lockReason": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "createdAt": {
+                                "type": "number"
+                              },
+                              "agedDays": {
+                                "type": "number"
+                              },
+                              "popularity": {
+                                "type": "number"
+                              },
+                              "priorityScore": {
+                                "type": "number"
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "characterId",
+                              "attributeKey",
+                              "issueType",
+                              "issueReason",
+                              "category",
+                              "assignedTo",
+                              "resolvedAt",
+                              "resolutionReason",
+                              "locked",
+                              "lockedUntil",
+                              "lockReason",
+                              "createdAt",
+                              "agedDays",
+                              "popularity",
+                              "priorityScore"
+                            ],
+                            "additionalProperties": false
+                          }
+                        }
+                      },
+                      "required": [
+                        "totals",
+                        "perIssueType",
+                        "items"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "fetchedAt": {
+                      "type": "number"
+                    },
+                    "limit": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "report",
+                    "fetchedAt",
+                    "limit"
+                  ],
+                  "additionalProperties": false
                 }
               }
             }
@@ -861,7 +1100,7 @@
       },
       "post": {
         "operationId": "post-admin-curator-queue",
-        "summary": "POST /api/admin/curator-queue",
+        "summary": "Apply a curator queue action",
         "tags": [
           "admin",
           "curator-queue"
@@ -872,8 +1111,88 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "success": {
+                          "const": true
+                        },
+                        "id": {
+                          "type": "number"
+                        },
+                        "assignedTo": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "success",
+                        "id",
+                        "assignedTo"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "success": {
+                          "const": true
+                        },
+                        "id": {
+                          "type": "number"
+                        },
+                        "resolvedAt": {
+                          "type": "number"
+                        }
+                      },
+                      "required": [
+                        "success",
+                        "id",
+                        "resolvedAt"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "success": {
+                          "const": true
+                        },
+                        "id": {
+                          "type": "number"
+                        },
+                        "lockedUntil": {
+                          "type": "number"
+                        }
+                      },
+                      "required": [
+                        "success",
+                        "id",
+                        "lockedUntil"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "success": {
+                          "const": true
+                        },
+                        "id": {
+                          "type": "number"
+                        },
+                        "lockedUntil": {
+                          "type": "null"
+                        }
+                      },
+                      "required": [
+                        "success",
+                        "id",
+                        "lockedUntil"
+                      ],
+                      "additionalProperties": false
+                    }
+                  ]
                 }
               }
             }
@@ -896,7 +1215,21 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "additionalProperties": true
+                "properties": {
+                  "assignedTo": {
+                    "type": "string"
+                  },
+                  "reason": {
+                    "type": "string"
+                  },
+                  "value": {
+                    "type": "string"
+                  },
+                  "durationMinutes": {
+                    "type": "number"
+                  }
+                },
+                "additionalProperties": false
               }
             }
           }
@@ -974,7 +1307,7 @@
     "/api/admin/data-quality-sla": {
       "get": {
         "operationId": "get-admin-data-quality-sla",
-        "summary": "GET /api/admin/data-quality-sla",
+        "summary": "List data quality SLA targets",
         "tags": [
           "admin",
           "data-quality-sla"
@@ -986,7 +1319,39 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "additionalProperties": true
+                  "properties": {
+                    "targets": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "attributeKey": {
+                            "type": "string"
+                          },
+                          "displayName": {
+                            "type": "string"
+                          },
+                          "category": {
+                            "type": "string"
+                          },
+                          "target": {
+                            "type": "number"
+                          }
+                        },
+                        "required": [
+                          "attributeKey",
+                          "displayName",
+                          "category",
+                          "target"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "targets"
+                  ],
+                  "additionalProperties": false
                 }
               }
             }
@@ -1600,7 +1965,7 @@
     "/api/admin/image-health": {
       "get": {
         "operationId": "get-admin-image-health",
-        "summary": "GET /api/admin/image-health",
+        "summary": "Get image health completeness report",
         "tags": [
           "admin",
           "image-health"
@@ -1612,7 +1977,137 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "additionalProperties": true
+                  "properties": {
+                    "generatedAt": {
+                      "type": "string"
+                    },
+                    "totals": {
+                      "type": "object",
+                      "properties": {
+                        "totalCharacters": {
+                          "type": "number"
+                        },
+                        "withImage": {
+                          "type": "number"
+                        },
+                        "validR2Url": {
+                          "type": "number"
+                        },
+                        "missingUrl": {
+                          "type": "number"
+                        },
+                        "invalidUrl": {
+                          "type": "number"
+                        },
+                        "externalUrl": {
+                          "type": "number"
+                        },
+                        "usablePct": {
+                          "type": "number"
+                        }
+                      },
+                      "required": [
+                        "totalCharacters",
+                        "withImage",
+                        "validR2Url",
+                        "missingUrl",
+                        "invalidUrl",
+                        "externalUrl",
+                        "usablePct"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "perCategory": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "category": {
+                            "type": "string"
+                          },
+                          "total": {
+                            "type": "number"
+                          },
+                          "withImage": {
+                            "type": "number"
+                          },
+                          "validR2Url": {
+                            "type": "number"
+                          },
+                          "imageCoveragePct": {
+                            "type": "number"
+                          }
+                        },
+                        "required": [
+                          "category",
+                          "total",
+                          "withImage",
+                          "validR2Url",
+                          "imageCoveragePct"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "issues": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "characterId": {
+                            "type": "string"
+                          },
+                          "characterName": {
+                            "type": "string"
+                          },
+                          "category": {
+                            "type": "string"
+                          },
+                          "issueType": {
+                            "type": "string",
+                            "enum": [
+                              "missing-url",
+                              "invalid-url",
+                              "external-url"
+                            ]
+                          },
+                          "reason": {
+                            "type": "string"
+                          },
+                          "popularity": {
+                            "type": "number"
+                          },
+                          "createdAt": {
+                            "type": "number"
+                          }
+                        },
+                        "required": [
+                          "characterId",
+                          "characterName",
+                          "category",
+                          "issueType",
+                          "reason",
+                          "popularity",
+                          "createdAt"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "fetchedAt": {
+                      "type": "number"
+                    },
+                    "issueLimit": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "generatedAt",
+                    "totals",
+                    "perCategory",
+                    "issues",
+                    "fetchedAt",
+                    "issueLimit"
+                  ],
+                  "additionalProperties": false
                 }
               }
             }
@@ -2584,7 +3079,7 @@
     "/api/admin/source-health": {
       "get": {
         "operationId": "get-admin-source-health",
-        "summary": "GET /api/admin/source-health",
+        "summary": "Get source and source_id health report",
         "tags": [
           "admin",
           "source-health"
@@ -2596,7 +3091,145 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "additionalProperties": true
+                  "properties": {
+                    "generatedAt": {
+                      "type": "string"
+                    },
+                    "totals": {
+                      "type": "object",
+                      "properties": {
+                        "totalCharacters": {
+                          "type": "number"
+                        },
+                        "validCharacters": {
+                          "type": "number"
+                        },
+                        "issueCount": {
+                          "type": "number"
+                        },
+                        "coveragePct": {
+                          "type": "number"
+                        }
+                      },
+                      "required": [
+                        "totalCharacters",
+                        "validCharacters",
+                        "issueCount",
+                        "coveragePct"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "perSource": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "source": {
+                            "type": "string"
+                          },
+                          "total": {
+                            "type": "number"
+                          },
+                          "valid": {
+                            "type": "number"
+                          },
+                          "missing": {
+                            "type": "number"
+                          },
+                          "malformed": {
+                            "type": "number"
+                          },
+                          "coveragePct": {
+                            "type": "number"
+                          }
+                        },
+                        "required": [
+                          "source",
+                          "total",
+                          "valid",
+                          "missing",
+                          "malformed",
+                          "coveragePct"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "issues": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "characterId": {
+                            "type": "string"
+                          },
+                          "characterName": {
+                            "type": "string"
+                          },
+                          "category": {
+                            "type": "string"
+                          },
+                          "source": {
+                            "type": "string"
+                          },
+                          "sourceId": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "issueType": {
+                            "type": "string",
+                            "enum": [
+                              "missing-source",
+                              "missing-source-id",
+                              "malformed-source-id",
+                              "unknown-source"
+                            ]
+                          },
+                          "reason": {
+                            "type": "string"
+                          },
+                          "popularity": {
+                            "type": "number"
+                          },
+                          "agedDays": {
+                            "type": "number"
+                          },
+                          "createdAt": {
+                            "type": "number"
+                          }
+                        },
+                        "required": [
+                          "characterId",
+                          "characterName",
+                          "category",
+                          "source",
+                          "sourceId",
+                          "issueType",
+                          "reason",
+                          "popularity",
+                          "agedDays",
+                          "createdAt"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "fetchedAt": {
+                      "type": "number"
+                    },
+                    "issueLimit": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "generatedAt",
+                    "totals",
+                    "perSource",
+                    "issues",
+                    "fetchedAt",
+                    "issueLimit"
+                  ],
+                  "additionalProperties": false
                 }
               }
             }
@@ -2618,7 +3251,7 @@
     "/api/admin/source-health-status": {
       "get": {
         "operationId": "get-admin-source-health-status",
-        "summary": "GET /api/admin/source-health-status",
+        "summary": "Get latest persisted source health report status",
         "tags": [
           "admin",
           "source-health-status"
@@ -2630,7 +3263,157 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "additionalProperties": true
+                  "properties": {
+                    "report": {
+                      "oneOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "generatedAt": {
+                              "type": "string"
+                            },
+                            "totals": {
+                              "type": "object",
+                              "properties": {
+                                "totalCharacters": {
+                                  "type": "number"
+                                },
+                                "validCharacters": {
+                                  "type": "number"
+                                },
+                                "issueCount": {
+                                  "type": "number"
+                                },
+                                "coveragePct": {
+                                  "type": "number"
+                                }
+                              },
+                              "required": [
+                                "totalCharacters",
+                                "validCharacters",
+                                "issueCount",
+                                "coveragePct"
+                              ],
+                              "additionalProperties": false
+                            },
+                            "perSource": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "source": {
+                                    "type": "string"
+                                  },
+                                  "total": {
+                                    "type": "number"
+                                  },
+                                  "valid": {
+                                    "type": "number"
+                                  },
+                                  "missing": {
+                                    "type": "number"
+                                  },
+                                  "malformed": {
+                                    "type": "number"
+                                  },
+                                  "coveragePct": {
+                                    "type": "number"
+                                  }
+                                },
+                                "required": [
+                                  "source",
+                                  "total",
+                                  "valid",
+                                  "missing",
+                                  "malformed",
+                                  "coveragePct"
+                                ],
+                                "additionalProperties": false
+                              }
+                            },
+                            "issues": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "characterId": {
+                                    "type": "string"
+                                  },
+                                  "characterName": {
+                                    "type": "string"
+                                  },
+                                  "category": {
+                                    "type": "string"
+                                  },
+                                  "source": {
+                                    "type": "string"
+                                  },
+                                  "sourceId": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  },
+                                  "issueType": {
+                                    "type": "string",
+                                    "enum": [
+                                      "missing-source",
+                                      "missing-source-id",
+                                      "malformed-source-id",
+                                      "unknown-source"
+                                    ]
+                                  },
+                                  "reason": {
+                                    "type": "string"
+                                  },
+                                  "popularity": {
+                                    "type": "number"
+                                  },
+                                  "agedDays": {
+                                    "type": "number"
+                                  },
+                                  "createdAt": {
+                                    "type": "number"
+                                  }
+                                },
+                                "required": [
+                                  "characterId",
+                                  "characterName",
+                                  "category",
+                                  "source",
+                                  "sourceId",
+                                  "issueType",
+                                  "reason",
+                                  "popularity",
+                                  "agedDays",
+                                  "createdAt"
+                                ],
+                                "additionalProperties": false
+                              }
+                            }
+                          },
+                          "required": [
+                            "generatedAt",
+                            "totals",
+                            "perSource",
+                            "issues"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "fetchedAt": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "report",
+                    "fetchedAt"
+                  ],
+                  "additionalProperties": false
                 }
               }
             }

@@ -782,6 +782,384 @@ const ADMIN_ABOUT_RESPONSE_SCHEMA: Record<string, unknown> = {
   additionalProperties: false,
 };
 
+const DATA_QUALITY_SLA_RESPONSE_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    targets: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          attributeKey: { type: "string" },
+          displayName: { type: "string" },
+          category: { type: "string" },
+          target: { type: "number" },
+        },
+        required: ["attributeKey", "displayName", "category", "target"],
+        additionalProperties: false,
+      },
+    },
+  },
+  required: ["targets"],
+  additionalProperties: false,
+};
+
+const IMAGE_HEALTH_RESPONSE_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    generatedAt: { type: "string" },
+    totals: {
+      type: "object",
+      properties: {
+        totalCharacters: { type: "number" },
+        withImage: { type: "number" },
+        validR2Url: { type: "number" },
+        missingUrl: { type: "number" },
+        invalidUrl: { type: "number" },
+        externalUrl: { type: "number" },
+        usablePct: { type: "number" },
+      },
+      required: [
+        "totalCharacters",
+        "withImage",
+        "validR2Url",
+        "missingUrl",
+        "invalidUrl",
+        "externalUrl",
+        "usablePct",
+      ],
+      additionalProperties: false,
+    },
+    perCategory: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          category: { type: "string" },
+          total: { type: "number" },
+          withImage: { type: "number" },
+          validR2Url: { type: "number" },
+          imageCoveragePct: { type: "number" },
+        },
+        required: ["category", "total", "withImage", "validR2Url", "imageCoveragePct"],
+        additionalProperties: false,
+      },
+    },
+    issues: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          characterId: { type: "string" },
+          characterName: { type: "string" },
+          category: { type: "string" },
+          issueType: { type: "string", enum: ["missing-url", "invalid-url", "external-url"] },
+          reason: { type: "string" },
+          popularity: { type: "number" },
+          createdAt: { type: "number" },
+        },
+        required: [
+          "characterId",
+          "characterName",
+          "category",
+          "issueType",
+          "reason",
+          "popularity",
+          "createdAt",
+        ],
+        additionalProperties: false,
+      },
+    },
+    fetchedAt: { type: "number" },
+    issueLimit: { type: "number" },
+  },
+  required: ["generatedAt", "totals", "perCategory", "issues", "fetchedAt", "issueLimit"],
+  additionalProperties: false,
+};
+
+const SOURCE_HEALTH_REPORT_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    generatedAt: { type: "string" },
+    totals: {
+      type: "object",
+      properties: {
+        totalCharacters: { type: "number" },
+        validCharacters: { type: "number" },
+        issueCount: { type: "number" },
+        coveragePct: { type: "number" },
+      },
+      required: ["totalCharacters", "validCharacters", "issueCount", "coveragePct"],
+      additionalProperties: false,
+    },
+    perSource: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          source: { type: "string" },
+          total: { type: "number" },
+          valid: { type: "number" },
+          missing: { type: "number" },
+          malformed: { type: "number" },
+          coveragePct: { type: "number" },
+        },
+        required: ["source", "total", "valid", "missing", "malformed", "coveragePct"],
+        additionalProperties: false,
+      },
+    },
+    issues: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          characterId: { type: "string" },
+          characterName: { type: "string" },
+          category: { type: "string" },
+          source: { type: "string" },
+          sourceId: { type: ["string", "null"] },
+          issueType: {
+            type: "string",
+            enum: [
+              "missing-source",
+              "missing-source-id",
+              "malformed-source-id",
+              "unknown-source",
+            ],
+          },
+          reason: { type: "string" },
+          popularity: { type: "number" },
+          agedDays: { type: "number" },
+          createdAt: { type: "number" },
+        },
+        required: [
+          "characterId",
+          "characterName",
+          "category",
+          "source",
+          "sourceId",
+          "issueType",
+          "reason",
+          "popularity",
+          "agedDays",
+          "createdAt",
+        ],
+        additionalProperties: false,
+      },
+    },
+  },
+  required: ["generatedAt", "totals", "perSource", "issues"],
+  additionalProperties: false,
+};
+
+const SOURCE_HEALTH_RESPONSE_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    ...(SOURCE_HEALTH_REPORT_SCHEMA.properties as Record<string, unknown>),
+    fetchedAt: { type: "number" },
+    issueLimit: { type: "number" },
+  },
+  required: ["generatedAt", "totals", "perSource", "issues", "fetchedAt", "issueLimit"],
+  additionalProperties: false,
+};
+
+const SOURCE_HEALTH_STATUS_RESPONSE_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    report: {
+      oneOf: [SOURCE_HEALTH_REPORT_SCHEMA, { type: "null" }],
+    },
+    fetchedAt: { type: "number" },
+  },
+  required: ["report", "fetchedAt"],
+  additionalProperties: false,
+};
+
+const CURATOR_QUEUE_REPORT_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    totals: {
+      type: "object",
+      properties: {
+        totalItems: { type: "number" },
+        unresolved: { type: "number" },
+        assigned: { type: "number" },
+        locked: { type: "number" },
+        avgAgedDays: { type: "number" },
+      },
+      required: ["totalItems", "unresolved", "assigned", "locked", "avgAgedDays"],
+      additionalProperties: false,
+    },
+    perIssueType: {
+      type: "object",
+      properties: {
+        cannot_infer: {
+          type: "object",
+          properties: {
+            count: { type: "number" },
+            percentOfTotal: { type: "number" },
+          },
+          required: ["count", "percentOfTotal"],
+          additionalProperties: false,
+        },
+        canon_conflict: {
+          type: "object",
+          properties: {
+            count: { type: "number" },
+            percentOfTotal: { type: "number" },
+          },
+          required: ["count", "percentOfTotal"],
+          additionalProperties: false,
+        },
+        subjective: {
+          type: "object",
+          properties: {
+            count: { type: "number" },
+            percentOfTotal: { type: "number" },
+          },
+          required: ["count", "percentOfTotal"],
+          additionalProperties: false,
+        },
+      },
+      required: ["cannot_infer", "canon_conflict", "subjective"],
+      additionalProperties: false,
+    },
+    items: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          id: { type: "number" },
+          characterId: { type: "string" },
+          attributeKey: { type: "string" },
+          issueType: { type: "string", enum: ["cannot_infer", "canon_conflict", "subjective"] },
+          issueReason: { type: "string" },
+          category: { type: "string" },
+          assignedTo: { type: ["string", "null"] },
+          resolvedAt: { type: ["number", "null"] },
+          resolutionReason: { type: ["string", "null"] },
+          locked: { type: "boolean" },
+          lockedUntil: { type: ["number", "null"] },
+          lockReason: { type: ["string", "null"] },
+          createdAt: { type: "number" },
+          agedDays: { type: "number" },
+          popularity: { type: "number" },
+          priorityScore: { type: "number" },
+        },
+        required: [
+          "id",
+          "characterId",
+          "attributeKey",
+          "issueType",
+          "issueReason",
+          "category",
+          "assignedTo",
+          "resolvedAt",
+          "resolutionReason",
+          "locked",
+          "lockedUntil",
+          "lockReason",
+          "createdAt",
+          "agedDays",
+          "popularity",
+          "priorityScore",
+        ],
+        additionalProperties: false,
+      },
+    },
+  },
+  required: ["totals", "perIssueType", "items"],
+  additionalProperties: false,
+};
+
+const CURATOR_QUEUE_GET_RESPONSE_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    report: CURATOR_QUEUE_REPORT_SCHEMA,
+    fetchedAt: { type: "number" },
+    limit: { type: "number" },
+  },
+  required: ["report", "fetchedAt", "limit"],
+  additionalProperties: false,
+};
+
+const CURATOR_QUEUE_POST_REQUEST_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    assignedTo: { type: "string" },
+    reason: { type: "string" },
+    value: { type: "string" },
+    durationMinutes: { type: "number" },
+  },
+  additionalProperties: false,
+};
+
+const CURATOR_QUEUE_POST_RESPONSE_SCHEMA: Record<string, unknown> = {
+  oneOf: [
+    {
+      type: "object",
+      properties: {
+        success: { const: true },
+        id: { type: "number" },
+        assignedTo: { type: "string" },
+      },
+      required: ["success", "id", "assignedTo"],
+      additionalProperties: false,
+    },
+    {
+      type: "object",
+      properties: {
+        success: { const: true },
+        id: { type: "number" },
+        resolvedAt: { type: "number" },
+      },
+      required: ["success", "id", "resolvedAt"],
+      additionalProperties: false,
+    },
+    {
+      type: "object",
+      properties: {
+        success: { const: true },
+        id: { type: "number" },
+        lockedUntil: { type: "number" },
+      },
+      required: ["success", "id", "lockedUntil"],
+      additionalProperties: false,
+    },
+    {
+      type: "object",
+      properties: {
+        success: { const: true },
+        id: { type: "number" },
+        lockedUntil: { type: "null" },
+      },
+      required: ["success", "id", "lockedUntil"],
+      additionalProperties: false,
+    },
+  ],
+};
+
+const JSON_ANY_SCHEMA: Record<string, unknown> = {
+  oneOf: [
+    { type: "object", additionalProperties: true },
+    { type: "array", items: {} },
+    { type: "string" },
+    { type: "number" },
+    { type: "boolean" },
+    { type: "null" },
+  ],
+};
+
+const AUTOMATION_STATUS_RESPONSE_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    report: JSON_ANY_SCHEMA,
+    fetchedAt: { type: "number" },
+  },
+  required: ["report", "fetchedAt"],
+  additionalProperties: false,
+};
+
 const RESUME_RESPONSE_SCHEMA: Record<string, unknown> = {
   oneOf: [
     {
@@ -954,6 +1332,35 @@ const OPERATION_METADATA: Record<string, OperationMetadata> = {
   "get /api/admin/about": {
     summary: "Get admin build and data freshness metadata",
     responseSchema: ADMIN_ABOUT_RESPONSE_SCHEMA,
+  },
+  "get /api/admin/automation-status": {
+    summary: "Get latest cron automation report snapshot",
+    responseSchema: AUTOMATION_STATUS_RESPONSE_SCHEMA,
+  },
+  "get /api/admin/curator-queue": {
+    summary: "Fetch manual curator queue report",
+    responseSchema: CURATOR_QUEUE_GET_RESPONSE_SCHEMA,
+  },
+  "post /api/admin/curator-queue": {
+    summary: "Apply a curator queue action",
+    requestSchema: CURATOR_QUEUE_POST_REQUEST_SCHEMA,
+    responseSchema: CURATOR_QUEUE_POST_RESPONSE_SCHEMA,
+  },
+  "get /api/admin/data-quality-sla": {
+    summary: "List data quality SLA targets",
+    responseSchema: DATA_QUALITY_SLA_RESPONSE_SCHEMA,
+  },
+  "get /api/admin/image-health": {
+    summary: "Get image health completeness report",
+    responseSchema: IMAGE_HEALTH_RESPONSE_SCHEMA,
+  },
+  "get /api/admin/source-health": {
+    summary: "Get source and source_id health report",
+    responseSchema: SOURCE_HEALTH_RESPONSE_SCHEMA,
+  },
+  "get /api/admin/source-health-status": {
+    summary: "Get latest persisted source health report status",
+    responseSchema: SOURCE_HEALTH_STATUS_RESPONSE_SCHEMA,
   },
 };
 
