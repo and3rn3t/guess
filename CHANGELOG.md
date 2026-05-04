@@ -26,6 +26,8 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 - **Shared reject-response helpers extracted (M1 extraction)** — added `packages/app-core/src/server-reject.ts` with pure helpers to classify reject-guess response shape (`classifyServerRejectResponse`) and derive cooldown readiness (`buildRejectReadinessSnapshot`). Updated `src/hooks/useServerGame.ts` reject flow to consume shared helpers while preserving toasts, dispatch order, and analytics behavior.
 
+- **Shared resume-response eligibility helper extracted (M1 extraction)** — added `packages/app-core/src/server-resume.ts` with `canResumeServerSession` to centralize validation of resumed session payload shape (not expired + question + reasoning present). Updated `src/hooks/useServerGame.ts` auto-resume guard to consume the shared helper with no behavior change.
+
 - **Completeness burndown + weekly report (DQ.38)**
 
 - **v1 KV endpoint deprecation headers** — `functions/api/corrections.ts` and `functions/api/stats.ts` now emit `Deprecation: true` + `Sunset: Wed, 01 Jan 2027 00:00:00 GMT` on GET responses, matching the headers already present in `characters.ts`, `questions.ts`, and `sync.ts`. All five legacy KV-backed v1 endpoints are now consistently signalling sunset to callers.

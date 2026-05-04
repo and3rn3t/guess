@@ -1,6 +1,7 @@
 import type { GameAction } from "@/hooks/useGameState";
 import {
   buildRejectReadinessSnapshot,
+  canResumeServerSession,
   classifyServerAnswerResponse,
   classifyServerRejectResponse,
   buildCollectingEvidenceMessage,
@@ -96,7 +97,7 @@ export function useServerGame(dispatch: React.Dispatch<GameAction>) {
     (async () => {
       try {
         const data = await resumeGame(savedId);
-        if (!data || data.expired || !data.question || !data.reasoning) {
+        if (!canResumeServerSession(data)) {
           persistSessionId(null);
           return;
         }
