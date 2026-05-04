@@ -1642,6 +1642,307 @@ const CONFUSION_RESPONSE_SCHEMA: Record<string, unknown> = {
   additionalProperties: false,
 };
 
+const DASHBOARD_RECENT_GAME_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    id: { type: "number" },
+    won: { type: "number" },
+    questions_asked: { type: "number" },
+    target_character_id: { type: ["string", "null"] },
+    character_name: { type: ["string", "null"] },
+  },
+  required: ["id", "won", "questions_asked", "target_character_id", "character_name"],
+  additionalProperties: false,
+};
+
+const DASHBOARD_RESPONSE_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    stats: {
+      type: "object",
+      properties: {
+        totalCharacters: { type: "number" },
+        enriched: { type: "number" },
+        pendingEnrich: { type: "number" },
+        activeQuestions: { type: "number" },
+        openDisputes: { type: "number" },
+        pendingProposals: { type: "number" },
+        games7d: { type: "number" },
+      },
+      required: [
+        "totalCharacters",
+        "enriched",
+        "pendingEnrich",
+        "activeQuestions",
+        "openDisputes",
+        "pendingProposals",
+        "games7d",
+      ],
+      additionalProperties: false,
+    },
+    recentGames: {
+      type: "array",
+      items: DASHBOARD_RECENT_GAME_SCHEMA,
+    },
+  },
+  required: ["stats", "recentGames"],
+  additionalProperties: false,
+};
+
+const DATA_QUALITY_HISTORY_ROW_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    captured_at: { type: "number" },
+    data_health_score: { type: "number" },
+    coverage_pct: { type: "number" },
+    evidence_pct: { type: "number" },
+    agreement_avg: { type: "number" },
+    open_disputes: { type: "number" },
+    golden_pass_rate: { type: ["number", "null"] },
+    vision_pass_rate: { type: ["number", "null"] },
+    closure_total_pairs: { type: ["number", "null"] },
+    closure_automation_pairs: { type: ["number", "null"] },
+    closure_manual_pairs: { type: ["number", "null"] },
+  },
+  required: [
+    "captured_at",
+    "data_health_score",
+    "coverage_pct",
+    "evidence_pct",
+    "agreement_avg",
+    "open_disputes",
+    "golden_pass_rate",
+    "vision_pass_rate",
+    "closure_total_pairs",
+    "closure_automation_pairs",
+    "closure_manual_pairs",
+  ],
+  additionalProperties: false,
+};
+
+const DATA_QUALITY_RESPONSE_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    live: {
+      type: "object",
+      properties: {
+        capturedAt: { type: "number" },
+        dataHealthScore: { type: "number" },
+        components: { type: "object", additionalProperties: true },
+        weights: { type: "object", additionalProperties: true },
+        coveragePct: { type: "number" },
+        evidencePct: { type: "number" },
+        agreementAvg: { type: "number" },
+        agreementSampleSize: { type: "number" },
+        openDisputes: { type: "number" },
+        totalCharacters: { type: "number" },
+        activeAttributes: { type: "number" },
+        attributeRows: { type: "number" },
+        completeness: {
+          type: "object",
+          properties: {
+            dataCompleteScore: { type: "number" },
+            components: { type: "object", additionalProperties: true },
+            weights: { type: "object", additionalProperties: true },
+            categoryFloorScore: { type: "number" },
+            categoryCompleteness: {
+              type: "object",
+              additionalProperties: { type: "number" },
+            },
+            globalCompleteness: { type: "number" },
+            evidenceCoverage: { type: "number" },
+            sourceIdCoverage: { type: "number" },
+            openHighPriorityDisputes: { type: "number" },
+            totalRequiredCells: { type: "number" },
+            filledRequiredCells: { type: "number" },
+            gate: { type: "string" },
+            config: { type: "object", additionalProperties: true },
+          },
+          required: [
+            "dataCompleteScore",
+            "components",
+            "weights",
+            "categoryFloorScore",
+            "categoryCompleteness",
+            "globalCompleteness",
+            "evidenceCoverage",
+            "sourceIdCoverage",
+            "openHighPriorityDisputes",
+            "totalRequiredCells",
+            "filledRequiredCells",
+            "gate",
+            "config",
+          ],
+          additionalProperties: false,
+        },
+      },
+      required: [
+        "capturedAt",
+        "dataHealthScore",
+        "components",
+        "weights",
+        "coveragePct",
+        "evidencePct",
+        "agreementAvg",
+        "agreementSampleSize",
+        "openDisputes",
+        "totalCharacters",
+        "activeAttributes",
+        "attributeRows",
+        "completeness",
+      ],
+      additionalProperties: false,
+    },
+    history: {
+      type: "array",
+      items: DATA_QUALITY_HISTORY_ROW_SCHEMA,
+    },
+    windowDays: { type: "number" },
+  },
+  required: ["live", "history", "windowDays"],
+  additionalProperties: false,
+};
+
+const COVERAGE_ATTRIBUTE_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    key: { type: "string" },
+    displayText: { type: "string" },
+    trueCount: { type: "number" },
+    falseCount: { type: "number" },
+    nullCount: { type: "number" },
+    definedCount: { type: "number" },
+    missingCount: { type: "number" },
+    coveragePct: { type: "number" },
+    diversityScore: { type: "number" },
+  },
+  required: [
+    "key",
+    "displayText",
+    "trueCount",
+    "falseCount",
+    "nullCount",
+    "definedCount",
+    "missingCount",
+    "coveragePct",
+    "diversityScore",
+  ],
+  additionalProperties: false,
+};
+
+const COVERAGE_RESPONSE_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    totalEnriched: { type: "number" },
+    totalActive: { type: "number" },
+    category: { type: ["string", "null"] },
+    attributes: {
+      type: "array",
+      items: COVERAGE_ATTRIBUTE_SCHEMA,
+    },
+  },
+  required: ["totalEnriched", "totalActive", "category", "attributes"],
+  additionalProperties: false,
+};
+
+const MATRIX_RESPONSE_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    characters: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          id: { type: "string" },
+          name: { type: "string" },
+          category: { type: "string" },
+          popularity: { type: ["number", "null"] },
+        },
+        required: ["id", "name", "category", "popularity"],
+        additionalProperties: false,
+      },
+    },
+    attributes: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          key: { type: "string" },
+          displayText: { type: "string" },
+        },
+        required: ["key", "displayText"],
+        additionalProperties: false,
+      },
+    },
+    values: {
+      type: "object",
+      additionalProperties: {
+        type: "object",
+        additionalProperties: {
+          oneOf: [{ type: "number" }, { type: "null" }],
+        },
+      },
+    },
+  },
+  required: ["characters", "attributes", "values"],
+  additionalProperties: false,
+};
+
+const PIPELINE_RUN_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    id: { type: "number" },
+    runBatch: { type: "string" },
+    characterId: { type: "string" },
+    step: { type: "string", enum: ["fetch", "dedup", "enrich", "image", "upload"] },
+    status: { type: "string", enum: ["pending", "running", "success", "error"] },
+    error: { type: ["string", "null"] },
+    durationMs: { type: ["number", "null"] },
+    createdAt: { type: "number" },
+  },
+  required: ["id", "runBatch", "characterId", "step", "status", "error", "durationMs", "createdAt"],
+  additionalProperties: false,
+};
+
+const PIPELINE_GET_RESPONSE_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    runs: {
+      type: "array",
+      items: PIPELINE_RUN_SCHEMA,
+    },
+    total: { type: "number" },
+    page: { type: "number" },
+    pageSize: { type: "number" },
+  },
+  required: ["runs", "total", "page", "pageSize"],
+  additionalProperties: false,
+};
+
+const PIPELINE_POST_REQUEST_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    runBatch: { type: "string" },
+    characterId: { type: "string" },
+    step: { type: "string", enum: ["fetch", "dedup", "enrich", "image", "upload"] },
+    status: { type: "string", enum: ["pending", "running", "success", "error"] },
+    error: { type: "string" },
+    durationMs: { type: "number" },
+  },
+  required: ["runBatch", "characterId", "step", "status"],
+  additionalProperties: false,
+};
+
+const PIPELINE_POST_RESPONSE_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    ok: { type: "boolean" },
+    id: { type: "number" },
+  },
+  required: ["ok", "id"],
+  additionalProperties: false,
+};
+
 const RESUME_RESPONSE_SCHEMA: Record<string, unknown> = {
   oneOf: [
     {
@@ -1850,6 +2151,10 @@ const OPERATION_METADATA: Record<string, OperationMetadata> = {
     summary: "Get confusion matrix from real or simulation data",
     responseSchema: CONFUSION_RESPONSE_SCHEMA,
   },
+  "get /api/admin/coverage": {
+    summary: "Get attribute coverage aggregation",
+    responseSchema: COVERAGE_RESPONSE_SCHEMA,
+  },
   "get /api/admin/costs": {
     summary: "Get KV cost dashboard rollups",
     responseSchema: COSTS_RESPONSE_SCHEMA,
@@ -1867,6 +2172,14 @@ const OPERATION_METADATA: Record<string, OperationMetadata> = {
     summary: "List data quality SLA targets",
     responseSchema: DATA_QUALITY_SLA_RESPONSE_SCHEMA,
   },
+  "get /api/admin/dashboard": {
+    summary: "Get admin landing dashboard aggregates",
+    responseSchema: DASHBOARD_RESPONSE_SCHEMA,
+  },
+  "get /api/admin/data-quality": {
+    summary: "Get live and historical data-quality metrics",
+    responseSchema: DATA_QUALITY_RESPONSE_SCHEMA,
+  },
   "get /api/admin/image-health": {
     summary: "Get image health completeness report",
     responseSchema: IMAGE_HEALTH_RESPONSE_SCHEMA,
@@ -1878,6 +2191,19 @@ const OPERATION_METADATA: Record<string, OperationMetadata> = {
   "get /api/admin/live-ops": {
     summary: "Get rolling one-hour live ops health snapshot",
     responseSchema: LIVE_OPS_RESPONSE_SCHEMA,
+  },
+  "get /api/admin/matrix": {
+    summary: "Get character-attribute matrix slice",
+    responseSchema: MATRIX_RESPONSE_SCHEMA,
+  },
+  "get /api/admin/pipeline": {
+    summary: "List pipeline run audit entries",
+    responseSchema: PIPELINE_GET_RESPONSE_SCHEMA,
+  },
+  "post /api/admin/pipeline": {
+    summary: "Log a pipeline run entry",
+    requestSchema: PIPELINE_POST_REQUEST_SCHEMA,
+    responseSchema: PIPELINE_POST_RESPONSE_SCHEMA,
   },
   "get /api/admin/error-logs": {
     summary: "List error and warning logs with filters",

@@ -1317,7 +1317,7 @@
     "/api/admin/coverage": {
       "get": {
         "operationId": "get-admin-coverage",
-        "summary": "GET /api/admin/coverage",
+        "summary": "Get attribute coverage aggregation",
         "tags": [
           "admin",
           "coverage"
@@ -1329,7 +1329,74 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "additionalProperties": true
+                  "properties": {
+                    "totalEnriched": {
+                      "type": "number"
+                    },
+                    "totalActive": {
+                      "type": "number"
+                    },
+                    "category": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "attributes": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "key": {
+                            "type": "string"
+                          },
+                          "displayText": {
+                            "type": "string"
+                          },
+                          "trueCount": {
+                            "type": "number"
+                          },
+                          "falseCount": {
+                            "type": "number"
+                          },
+                          "nullCount": {
+                            "type": "number"
+                          },
+                          "definedCount": {
+                            "type": "number"
+                          },
+                          "missingCount": {
+                            "type": "number"
+                          },
+                          "coveragePct": {
+                            "type": "number"
+                          },
+                          "diversityScore": {
+                            "type": "number"
+                          }
+                        },
+                        "required": [
+                          "key",
+                          "displayText",
+                          "trueCount",
+                          "falseCount",
+                          "nullCount",
+                          "definedCount",
+                          "missingCount",
+                          "coveragePct",
+                          "diversityScore"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "totalEnriched",
+                    "totalActive",
+                    "category",
+                    "attributes"
+                  ],
+                  "additionalProperties": false
                 }
               }
             }
@@ -1773,7 +1840,7 @@
     "/api/admin/dashboard": {
       "get": {
         "operationId": "get-admin-dashboard",
-        "summary": "GET /api/admin/dashboard",
+        "summary": "Get admin landing dashboard aggregates",
         "tags": [
           "admin",
           "dashboard"
@@ -1785,7 +1852,86 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "additionalProperties": true
+                  "properties": {
+                    "stats": {
+                      "type": "object",
+                      "properties": {
+                        "totalCharacters": {
+                          "type": "number"
+                        },
+                        "enriched": {
+                          "type": "number"
+                        },
+                        "pendingEnrich": {
+                          "type": "number"
+                        },
+                        "activeQuestions": {
+                          "type": "number"
+                        },
+                        "openDisputes": {
+                          "type": "number"
+                        },
+                        "pendingProposals": {
+                          "type": "number"
+                        },
+                        "games7d": {
+                          "type": "number"
+                        }
+                      },
+                      "required": [
+                        "totalCharacters",
+                        "enriched",
+                        "pendingEnrich",
+                        "activeQuestions",
+                        "openDisputes",
+                        "pendingProposals",
+                        "games7d"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "recentGames": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "number"
+                          },
+                          "won": {
+                            "type": "number"
+                          },
+                          "questions_asked": {
+                            "type": "number"
+                          },
+                          "target_character_id": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "character_name": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "won",
+                          "questions_asked",
+                          "target_character_id",
+                          "character_name"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "stats",
+                    "recentGames"
+                  ],
+                  "additionalProperties": false
                 }
               }
             }
@@ -1807,7 +1953,7 @@
     "/api/admin/data-quality": {
       "get": {
         "operationId": "get-admin-data-quality",
-        "summary": "GET /api/admin/data-quality",
+        "summary": "Get live and historical data-quality metrics",
         "tags": [
           "admin",
           "data-quality"
@@ -1819,7 +1965,212 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "additionalProperties": true
+                  "properties": {
+                    "live": {
+                      "type": "object",
+                      "properties": {
+                        "capturedAt": {
+                          "type": "number"
+                        },
+                        "dataHealthScore": {
+                          "type": "number"
+                        },
+                        "components": {
+                          "type": "object",
+                          "additionalProperties": true
+                        },
+                        "weights": {
+                          "type": "object",
+                          "additionalProperties": true
+                        },
+                        "coveragePct": {
+                          "type": "number"
+                        },
+                        "evidencePct": {
+                          "type": "number"
+                        },
+                        "agreementAvg": {
+                          "type": "number"
+                        },
+                        "agreementSampleSize": {
+                          "type": "number"
+                        },
+                        "openDisputes": {
+                          "type": "number"
+                        },
+                        "totalCharacters": {
+                          "type": "number"
+                        },
+                        "activeAttributes": {
+                          "type": "number"
+                        },
+                        "attributeRows": {
+                          "type": "number"
+                        },
+                        "completeness": {
+                          "type": "object",
+                          "properties": {
+                            "dataCompleteScore": {
+                              "type": "number"
+                            },
+                            "components": {
+                              "type": "object",
+                              "additionalProperties": true
+                            },
+                            "weights": {
+                              "type": "object",
+                              "additionalProperties": true
+                            },
+                            "categoryFloorScore": {
+                              "type": "number"
+                            },
+                            "categoryCompleteness": {
+                              "type": "object",
+                              "additionalProperties": {
+                                "type": "number"
+                              }
+                            },
+                            "globalCompleteness": {
+                              "type": "number"
+                            },
+                            "evidenceCoverage": {
+                              "type": "number"
+                            },
+                            "sourceIdCoverage": {
+                              "type": "number"
+                            },
+                            "openHighPriorityDisputes": {
+                              "type": "number"
+                            },
+                            "totalRequiredCells": {
+                              "type": "number"
+                            },
+                            "filledRequiredCells": {
+                              "type": "number"
+                            },
+                            "gate": {
+                              "type": "string"
+                            },
+                            "config": {
+                              "type": "object",
+                              "additionalProperties": true
+                            }
+                          },
+                          "required": [
+                            "dataCompleteScore",
+                            "components",
+                            "weights",
+                            "categoryFloorScore",
+                            "categoryCompleteness",
+                            "globalCompleteness",
+                            "evidenceCoverage",
+                            "sourceIdCoverage",
+                            "openHighPriorityDisputes",
+                            "totalRequiredCells",
+                            "filledRequiredCells",
+                            "gate",
+                            "config"
+                          ],
+                          "additionalProperties": false
+                        }
+                      },
+                      "required": [
+                        "capturedAt",
+                        "dataHealthScore",
+                        "components",
+                        "weights",
+                        "coveragePct",
+                        "evidencePct",
+                        "agreementAvg",
+                        "agreementSampleSize",
+                        "openDisputes",
+                        "totalCharacters",
+                        "activeAttributes",
+                        "attributeRows",
+                        "completeness"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "history": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "captured_at": {
+                            "type": "number"
+                          },
+                          "data_health_score": {
+                            "type": "number"
+                          },
+                          "coverage_pct": {
+                            "type": "number"
+                          },
+                          "evidence_pct": {
+                            "type": "number"
+                          },
+                          "agreement_avg": {
+                            "type": "number"
+                          },
+                          "open_disputes": {
+                            "type": "number"
+                          },
+                          "golden_pass_rate": {
+                            "type": [
+                              "number",
+                              "null"
+                            ]
+                          },
+                          "vision_pass_rate": {
+                            "type": [
+                              "number",
+                              "null"
+                            ]
+                          },
+                          "closure_total_pairs": {
+                            "type": [
+                              "number",
+                              "null"
+                            ]
+                          },
+                          "closure_automation_pairs": {
+                            "type": [
+                              "number",
+                              "null"
+                            ]
+                          },
+                          "closure_manual_pairs": {
+                            "type": [
+                              "number",
+                              "null"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "captured_at",
+                          "data_health_score",
+                          "coverage_pct",
+                          "evidence_pct",
+                          "agreement_avg",
+                          "open_disputes",
+                          "golden_pass_rate",
+                          "vision_pass_rate",
+                          "closure_total_pairs",
+                          "closure_automation_pairs",
+                          "closure_manual_pairs"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "windowDays": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "live",
+                    "history",
+                    "windowDays"
+                  ],
+                  "additionalProperties": false
                 }
               }
             }
@@ -3000,7 +3351,7 @@
     "/api/admin/matrix": {
       "get": {
         "operationId": "get-admin-matrix",
-        "summary": "GET /api/admin/matrix",
+        "summary": "Get character-attribute matrix slice",
         "tags": [
           "admin",
           "matrix"
@@ -3012,7 +3363,79 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "additionalProperties": true
+                  "properties": {
+                    "characters": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "category": {
+                            "type": "string"
+                          },
+                          "popularity": {
+                            "type": [
+                              "number",
+                              "null"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "name",
+                          "category",
+                          "popularity"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "attributes": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "key": {
+                            "type": "string"
+                          },
+                          "displayText": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "key",
+                          "displayText"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "values": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "object",
+                        "additionalProperties": {
+                          "oneOf": [
+                            {
+                              "type": "number"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  },
+                  "required": [
+                    "characters",
+                    "attributes",
+                    "values"
+                  ],
+                  "additionalProperties": false
                 }
               }
             }
@@ -3034,7 +3457,7 @@
     "/api/admin/pipeline": {
       "get": {
         "operationId": "get-admin-pipeline",
-        "summary": "GET /api/admin/pipeline",
+        "summary": "List pipeline run audit entries",
         "tags": [
           "admin",
           "pipeline"
@@ -3046,7 +3469,86 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "additionalProperties": true
+                  "properties": {
+                    "runs": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "number"
+                          },
+                          "runBatch": {
+                            "type": "string"
+                          },
+                          "characterId": {
+                            "type": "string"
+                          },
+                          "step": {
+                            "type": "string",
+                            "enum": [
+                              "fetch",
+                              "dedup",
+                              "enrich",
+                              "image",
+                              "upload"
+                            ]
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "pending",
+                              "running",
+                              "success",
+                              "error"
+                            ]
+                          },
+                          "error": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "durationMs": {
+                            "type": [
+                              "number",
+                              "null"
+                            ]
+                          },
+                          "createdAt": {
+                            "type": "number"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "runBatch",
+                          "characterId",
+                          "step",
+                          "status",
+                          "error",
+                          "durationMs",
+                          "createdAt"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "total": {
+                      "type": "number"
+                    },
+                    "page": {
+                      "type": "number"
+                    },
+                    "pageSize": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "runs",
+                    "total",
+                    "page",
+                    "pageSize"
+                  ],
+                  "additionalProperties": false
                 }
               }
             }
@@ -3066,7 +3568,7 @@
       },
       "post": {
         "operationId": "post-admin-pipeline",
-        "summary": "POST /api/admin/pipeline",
+        "summary": "Log a pipeline run entry",
         "tags": [
           "admin",
           "pipeline"
@@ -3078,7 +3580,19 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "additionalProperties": true
+                  "properties": {
+                    "ok": {
+                      "type": "boolean"
+                    },
+                    "id": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "ok",
+                    "id"
+                  ],
+                  "additionalProperties": false
                 }
               }
             }
@@ -3101,7 +3615,46 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "additionalProperties": true
+                "properties": {
+                  "runBatch": {
+                    "type": "string"
+                  },
+                  "characterId": {
+                    "type": "string"
+                  },
+                  "step": {
+                    "type": "string",
+                    "enum": [
+                      "fetch",
+                      "dedup",
+                      "enrich",
+                      "image",
+                      "upload"
+                    ]
+                  },
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "pending",
+                      "running",
+                      "success",
+                      "error"
+                    ]
+                  },
+                  "error": {
+                    "type": "string"
+                  },
+                  "durationMs": {
+                    "type": "number"
+                  }
+                },
+                "required": [
+                  "runBatch",
+                  "characterId",
+                  "step",
+                  "status"
+                ],
+                "additionalProperties": false
               }
             }
           }
