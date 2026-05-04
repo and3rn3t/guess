@@ -1,6 +1,6 @@
 import type { GameAction } from "@/hooks/useGameState";
 import {
-  buildResumeAnswerReplaySteps,
+  buildResumedSessionSnapshot,
   buildRejectReadinessSnapshot,
   canResumeServerSession,
   canContinueAfterSkip,
@@ -31,6 +31,8 @@ import type {
   CharacterCategory,
   Difficulty,
   GuessReadinessSnapshot,
+  Question,
+  ReasoningExplanation,
 } from "@/lib/types";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -103,20 +105,26 @@ export function useServerGame(dispatch: React.Dispatch<GameAction>) {
           persistSessionId(null);
           return;
         }
+        const resumedSession = buildResumedSessionSnapshot<
+          Question,
+          ReasoningExplanation,
+          AnswerValue,
+          typeof data
+        >(data);
 
         // Restore game state
         persistSessionId(savedId);
-        setServerRemainingSync(data.remaining ?? 0);
-        setServerTotal(data.totalCharacters ?? 0);
+        setServerRemainingSync(resumedSession.remaining);
+        setServerTotal(resumedSession.totalCharacters);
         setServerReadiness(null);
         dispatch({
           type: "START_GAME",
           characters: [],
-          guessCount: data.guessCount ?? 0,
+          guessCount: resumedSession.guessCount,
         });
 
         // Replay answers into reducer so step count is correct
-        for (const step of buildResumeAnswerReplaySteps(data.answers)) {
+        for (const step of resumedSession.replaySteps) {
             dispatch({
               type: "SET_QUESTION",
               question: step.question,
@@ -128,8 +136,8 @@ export function useServerGame(dispatch: React.Dispatch<GameAction>) {
         // Set current question
         dispatch({
           type: "SET_QUESTION",
-          question: data.question,
-          reasoning: data.reasoning,
+          question: resumedSession.question,
+          reasoning: resumedSession.reasoning,
         });
 
         toast.success("Previous session restored");
