@@ -83,6 +83,8 @@ const CONCURRENCY = Number.parseInt(flag("--concurrency", "3"), 10);
 const ATTR_CHUNK_COUNT = Number.parseInt(flag("--attr-chunks", "4"), 10);
 // Apply results to D1 every FLUSH_EVERY chars — preserves partial progress on failure.
 const FLUSH_EVERY = Number.parseInt(flag("--flush-every", "50"), 10);
+// Graceful runtime guard: stop claiming new batches after N minutes, flush progress, exit 0.
+const MAX_MINUTES = Number.parseInt(flag("--max-minutes", "55"), 10);
 const MIN_FLUSH_EVERY = 10;
 const DRY_RUN = process.argv.includes("--dry-run");
 const DB_NAME = ENV_FLAG === "production" ? "guess-db" : "guess-db-preview";
@@ -91,7 +93,7 @@ const OPENAI_URL = "https://api.openai.com/v1/chat/completions";
 const RUN_ISO = new Date().toISOString();
 
 console.log(
-  `[bulk-enrich] env=${ENV_FLAG} limit=${LIMIT} batch-size=${BATCH_SIZE} concurrency=${CONCURRENCY} attr-chunks=${ATTR_CHUNK_COUNT} flush-every=${FLUSH_EVERY} dry-run=${DRY_RUN}`,
+  `[bulk-enrich] env=${ENV_FLAG} limit=${LIMIT} batch-size=${BATCH_SIZE} concurrency=${CONCURRENCY} attr-chunks=${ATTR_CHUNK_COUNT} flush-every=${FLUSH_EVERY} max-minutes=${MAX_MINUTES} dry-run=${DRY_RUN}`,
 );
 console.log(`[bulk-enrich] model=${MODEL}  run=${RUN_ISO}`);
 
@@ -615,9 +617,15 @@ async function flushWithAdaptiveRecovery(
 
 async function runWorkerPool(): Promise<void> {
   let batchIdx = 0;
+  const deadlineMs = Date.now() + MAX_MINUTES * 60_000;
+  let stopClaimingNewBatches = false;
 
   async function worker(): Promise<void> {
     while (true) {
+      if (Date.now() >= deadlineMs) {
+        stopClaimingNewBatches = true;
+        break;
+      }
       const idx = batchIdx++;
       if (idx >= totalBatches) break;
       const { chars, categoryAttrs } = batches[idx];
@@ -675,6 +683,14 @@ async function runWorkerPool(): Promise<void> {
 
   // Launch CONCURRENCY workers; each drains the shared batchIdx counter
   await Promise.all(Array.from({ length: CONCURRENCY }, () => worker()));
+
+  if (stopClaimingNewBatches) {
+    const processedBatches = Math.min(batchIdx, totalBatches);
+    const remainingBatches = Math.max(totalBatches - processedBatches, 0);
+    console.warn(
+      `[bulk-enrich] reached max runtime (${MAX_MINUTES}m); stopping after ${processedBatches}/${totalBatches} batches with ${remainingBatches} remaining`,
+    );
+  }
 }
 
 await runWorkerPool();

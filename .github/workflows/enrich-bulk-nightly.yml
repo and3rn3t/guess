@@ -8,10 +8,10 @@ name: Nightly bulk character enrichment
 # time constraint, batching N characters per OpenAI call and processing
 # multiple batches in parallel.
 #
-# Throughput (defaults: limit=1000, batch-size=5, concurrency=3, attr-chunks=4):
+# Throughput (defaults: limit=800, batch-size=5, concurrency=3, attr-chunks=4):
 #   3 concurrent batches × 5 chars × 4 attr-chunks ≈ 90-150 chars/min
-#   → 1 000-char limit runs complete in ~7-11 min
-#   → ~$0.10/night at gpt-4o-mini rates
+#   → variable runtime; graceful cutoff at --max-minutes preserves partial progress
+#   → ~$0.08/night at gpt-4o-mini rates
 #
 # Lives in GH Actions (not the H.3 Cron Worker) because:
 #   1. Workers waitUntil() is hard-capped at ~30 s — insufficient for bulk work.
@@ -20,7 +20,7 @@ name: Nightly bulk character enrichment
 on:
   schedule:
     # Twice daily: 01:00 UTC (after reconcile/sparse-fill) and 13:00 UTC.
-    # Two runs at 1 000 chars each → 2 000 chars/day → ~18 days to clear the backlog.
+    # Two runs at 800 chars each → 1 600 chars/day (with graceful cutoff safety).
     - cron: '0 1 * * *'
     - cron: '0 13 * * *'
   workflow_dispatch:
@@ -36,7 +36,7 @@ on:
       limit:
         description: 'Max characters to enrich this run'
         required: false
-        default: '1000'
+        default: '800'
       batch_size:
         description: 'Characters per LLM call'
         required: false
@@ -53,6 +53,10 @@ on:
         description: 'Apply results to D1 every N chars (preserves partial progress on failure)'
         required: false
         default: '50'
+      max_minutes:
+        description: 'Stop claiming new batches after N minutes and flush progress'
+        required: false
+        default: '55'
       dry_run:
         description: 'Dry run (skip OpenAI + D1 write)'
         required: false
@@ -76,9 +80,8 @@ concurrency:
 jobs:
   bulk-enrich:
     runs-on: ubuntu-latest
-    # 1 000 chars at ~90-150 chars/min ≈ 7-11 min; 60-min cap gives ample
-    # headroom for larger manual runs (up to ~6 000 chars).
-    timeout-minutes: 60
+    # Keep a hard cap, but leave margin for artifact upload and post-steps.
+    timeout-minutes: 75
     if: ${{ github.event_name != 'pull_request' }}
 
     steps:
@@ -110,6 +113,7 @@ jobs:
           CONCURRENCY="${{ github.event.inputs.concurrency || '3' }}"
           ATTR_CHUNKS="${{ github.event.inputs.attr_chunks || '4' }}"
           FLUSH_EVERY="${{ github.event.inputs.flush_every || '50' }}"
+          MAX_MINUTES="${{ github.event.inputs.max_minutes || '55' }}"
           DRY_RUN_FLAG=""
           if [ "${{ github.event.inputs.dry_run || 'false' }}" = "true" ]; then
             DRY_RUN_FLAG="--dry-run"
@@ -121,6 +125,7 @@ jobs:
             echo "concurrency=$CONCURRENCY"
             echo "attr_chunks=$ATTR_CHUNKS"
             echo "flush_every=$FLUSH_EVERY"
+            echo "max_minutes=$MAX_MINUTES"
             echo "dry_run=${{ github.event.inputs.dry_run || 'false' }}"
             echo "model=${{ github.event.inputs.model || '' }}"
             echo "sha=${{ github.sha }}"
@@ -132,6 +137,7 @@ jobs:
             --concurrency "$CONCURRENCY" \
             --attr-chunks "$ATTR_CHUNKS" \
             --flush-every "$FLUSH_EVERY" \
+            --max-minutes "$MAX_MINUTES" \
             $DRY_RUN_FLAG \
             | tee .ci-artifacts/bulk-enrich/bulk-enrich-output.log
 
