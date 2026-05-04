@@ -2678,6 +2678,173 @@ const PROPOSED_ATTRIBUTE_SCORE_RESPONSE_SCHEMA: Record<string, unknown> = {
   additionalProperties: false,
 };
 
+const COMMUNITY_ATTRIBUTE_VOTE_SUMMARY_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    attribute: { type: "string" },
+    yesVotes: { type: "number" },
+    noVotes: { type: "number" },
+    net: { type: "number" },
+  },
+  required: ["attribute", "yesVotes", "noVotes", "net"],
+  additionalProperties: false,
+};
+
+const COMMUNITY_ITEM_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    characterId: { type: "string" },
+    name: { type: "string" },
+    totalVotes: { type: "number" },
+    attributes: {
+      type: "array",
+      items: COMMUNITY_ATTRIBUTE_VOTE_SUMMARY_SCHEMA,
+    },
+  },
+  required: ["characterId", "name", "totalVotes", "attributes"],
+  additionalProperties: false,
+};
+
+const COMMUNITY_GET_RESPONSE_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    items: {
+      type: "array",
+      items: COMMUNITY_ITEM_SCHEMA,
+    },
+    total: { type: "number" },
+  },
+  required: ["items", "total"],
+  additionalProperties: false,
+};
+
+const COMMUNITY_POST_REQUEST_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    action: { type: "string", enum: ["dismiss", "apply"] },
+    characterId: { type: "string" },
+  },
+  required: ["action", "characterId"],
+  additionalProperties: false,
+};
+
+const COMMUNITY_POST_RESPONSE_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    ok: { type: "boolean" },
+    action: { type: "string" },
+    applied: { type: "number" },
+    characterId: { type: "string" },
+    message: { type: "string" },
+  },
+  required: ["ok"],
+  additionalProperties: false,
+};
+
+const EXPERIMENTS_CONFIG_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    pct: { type: "number" },
+    selector: { type: ["string", "null"] },
+    weights: { type: ["string", "null"] },
+    activeWeights: { type: ["string", "null"] },
+    autoTuneEnabled: { type: "boolean" },
+  },
+  required: ["pct", "selector", "weights", "activeWeights", "autoTuneEnabled"],
+  additionalProperties: false,
+};
+
+const EXPERIMENTS_ARM_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    variant: { type: "string" },
+    selector: { type: "string" },
+    games: { type: "number" },
+    wins: { type: "number" },
+    winRate: { type: "number" },
+    avgQuestions: { type: ["number", "null"] },
+    avgConfidence: { type: ["number", "null"] },
+    z: { type: ["number", "null"] },
+    pValue: { type: ["number", "null"] },
+    ci95: { type: "number" },
+  },
+  required: [
+    "variant",
+    "selector",
+    "games",
+    "wins",
+    "winRate",
+    "avgQuestions",
+    "avgConfidence",
+    "z",
+    "pValue",
+    "ci95",
+  ],
+  additionalProperties: false,
+};
+
+const EXPERIMENTS_GET_RESPONSE_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    windowDays: { type: "number" },
+    config: EXPERIMENTS_CONFIG_SCHEMA,
+    arms: {
+      type: "array",
+      items: EXPERIMENTS_ARM_SCHEMA,
+    },
+  },
+  required: ["windowDays", "config", "arms"],
+  additionalProperties: false,
+};
+
+const EXPERIMENTS_POST_REQUEST_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    pct: { type: "integer", minimum: 0, maximum: 100 },
+    selector: { type: "string", enum: ["greedy", "mcts"] },
+    autoTuneEnabled: { type: "boolean" },
+  },
+  additionalProperties: false,
+};
+
+const EXPERIMENTS_POST_RESPONSE_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    ok: { type: "boolean" },
+    updated: {
+      type: "array",
+      items: { type: "string" },
+    },
+  },
+  required: ["ok", "updated"],
+  additionalProperties: false,
+};
+
+const COVERAGE_PRIORITY_ITEM_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    key: { type: "string" },
+    displayText: { type: "string" },
+    nullPct: { type: "number" },
+    reason: { type: "string" },
+  },
+  required: ["key", "displayText", "nullPct", "reason"],
+  additionalProperties: false,
+};
+
+const COVERAGE_PRIORITY_RESPONSE_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    items: {
+      type: "array",
+      items: COVERAGE_PRIORITY_ITEM_SCHEMA,
+    },
+    generated_at: { type: "number" },
+  },
+  required: ["items", "generated_at"],
+  additionalProperties: false,
+};
+
 const RESUME_RESPONSE_SCHEMA: Record<string, unknown> = {
   oneOf: [
     {
@@ -2908,9 +3075,22 @@ const OPERATION_METADATA: Record<string, OperationMetadata> = {
     summary: "Get confusion matrix from real or simulation data",
     responseSchema: CONFUSION_RESPONSE_SCHEMA,
   },
+  "get /api/admin/community": {
+    summary: "List community correction vote summaries",
+    responseSchema: COMMUNITY_GET_RESPONSE_SCHEMA,
+  },
+  "post /api/admin/community": {
+    summary: "Apply or dismiss community corrections",
+    requestSchema: COMMUNITY_POST_REQUEST_SCHEMA,
+    responseSchema: COMMUNITY_POST_RESPONSE_SCHEMA,
+  },
   "get /api/admin/coverage": {
     summary: "Get attribute coverage aggregation",
     responseSchema: COVERAGE_RESPONSE_SCHEMA,
+  },
+  "post /api/admin/coverage-priority": {
+    summary: "Rank sparse attributes by enrichment priority",
+    responseSchema: COVERAGE_PRIORITY_RESPONSE_SCHEMA,
   },
   "get /api/admin/costs": {
     summary: "Get KV cost dashboard rollups",
@@ -3030,6 +3210,15 @@ const OPERATION_METADATA: Record<string, OperationMetadata> = {
   "get /api/admin/error-logs": {
     summary: "List error and warning logs with filters",
     responseSchema: ERROR_LOGS_GET_RESPONSE_SCHEMA,
+  },
+  "get /api/admin/experiments": {
+    summary: "Get A/B experiment performance dashboard",
+    responseSchema: EXPERIMENTS_GET_RESPONSE_SCHEMA,
+  },
+  "post /api/admin/experiments": {
+    summary: "Update live experiment configuration",
+    requestSchema: EXPERIMENTS_POST_REQUEST_SCHEMA,
+    responseSchema: EXPERIMENTS_POST_RESPONSE_SCHEMA,
   },
   "get /api/admin/source-health": {
     summary: "Get source and source_id health report",

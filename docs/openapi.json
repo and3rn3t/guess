@@ -1300,7 +1300,7 @@
     "/api/admin/community": {
       "get": {
         "operationId": "get-admin-community",
-        "summary": "GET /api/admin/community",
+        "summary": "List community correction vote summaries",
         "tags": [
           "admin",
           "community"
@@ -1312,7 +1312,67 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "additionalProperties": true
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "characterId": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "totalVotes": {
+                            "type": "number"
+                          },
+                          "attributes": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "attribute": {
+                                  "type": "string"
+                                },
+                                "yesVotes": {
+                                  "type": "number"
+                                },
+                                "noVotes": {
+                                  "type": "number"
+                                },
+                                "net": {
+                                  "type": "number"
+                                }
+                              },
+                              "required": [
+                                "attribute",
+                                "yesVotes",
+                                "noVotes",
+                                "net"
+                              ],
+                              "additionalProperties": false
+                            }
+                          }
+                        },
+                        "required": [
+                          "characterId",
+                          "name",
+                          "totalVotes",
+                          "attributes"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "total": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "items",
+                    "total"
+                  ],
+                  "additionalProperties": false
                 }
               }
             }
@@ -1332,7 +1392,7 @@
       },
       "post": {
         "operationId": "post-admin-community",
-        "summary": "POST /api/admin/community",
+        "summary": "Apply or dismiss community corrections",
         "tags": [
           "admin",
           "community"
@@ -1344,7 +1404,27 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "additionalProperties": true
+                  "properties": {
+                    "ok": {
+                      "type": "boolean"
+                    },
+                    "action": {
+                      "type": "string"
+                    },
+                    "applied": {
+                      "type": "number"
+                    },
+                    "characterId": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "ok"
+                  ],
+                  "additionalProperties": false
                 }
               }
             }
@@ -1367,7 +1447,23 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "additionalProperties": true
+                "properties": {
+                  "action": {
+                    "type": "string",
+                    "enum": [
+                      "dismiss",
+                      "apply"
+                    ]
+                  },
+                  "characterId": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "action",
+                  "characterId"
+                ],
+                "additionalProperties": false
               }
             }
           }
@@ -1701,7 +1797,7 @@
     "/api/admin/coverage-priority": {
       "post": {
         "operationId": "post-admin-coverage-priority",
-        "summary": "POST /api/admin/coverage-priority",
+        "summary": "Rank sparse attributes by enrichment priority",
         "tags": [
           "admin",
           "coverage-priority"
@@ -1713,7 +1809,43 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "additionalProperties": true
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "key": {
+                            "type": "string"
+                          },
+                          "displayText": {
+                            "type": "string"
+                          },
+                          "nullPct": {
+                            "type": "number"
+                          },
+                          "reason": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "key",
+                          "displayText",
+                          "nullPct",
+                          "reason"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "generated_at": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "items",
+                    "generated_at"
+                  ],
+                  "additionalProperties": false
                 }
               }
             }
@@ -2904,7 +3036,7 @@
     "/api/admin/experiments": {
       "get": {
         "operationId": "get-admin-experiments",
-        "summary": "GET /api/admin/experiments",
+        "summary": "Get A/B experiment performance dashboard",
         "tags": [
           "admin",
           "experiments"
@@ -2916,7 +3048,117 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "additionalProperties": true
+                  "properties": {
+                    "windowDays": {
+                      "type": "number"
+                    },
+                    "config": {
+                      "type": "object",
+                      "properties": {
+                        "pct": {
+                          "type": "number"
+                        },
+                        "selector": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "weights": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "activeWeights": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "autoTuneEnabled": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "pct",
+                        "selector",
+                        "weights",
+                        "activeWeights",
+                        "autoTuneEnabled"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "arms": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "variant": {
+                            "type": "string"
+                          },
+                          "selector": {
+                            "type": "string"
+                          },
+                          "games": {
+                            "type": "number"
+                          },
+                          "wins": {
+                            "type": "number"
+                          },
+                          "winRate": {
+                            "type": "number"
+                          },
+                          "avgQuestions": {
+                            "type": [
+                              "number",
+                              "null"
+                            ]
+                          },
+                          "avgConfidence": {
+                            "type": [
+                              "number",
+                              "null"
+                            ]
+                          },
+                          "z": {
+                            "type": [
+                              "number",
+                              "null"
+                            ]
+                          },
+                          "pValue": {
+                            "type": [
+                              "number",
+                              "null"
+                            ]
+                          },
+                          "ci95": {
+                            "type": "number"
+                          }
+                        },
+                        "required": [
+                          "variant",
+                          "selector",
+                          "games",
+                          "wins",
+                          "winRate",
+                          "avgQuestions",
+                          "avgConfidence",
+                          "z",
+                          "pValue",
+                          "ci95"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "windowDays",
+                    "config",
+                    "arms"
+                  ],
+                  "additionalProperties": false
                 }
               }
             }
@@ -2936,7 +3178,7 @@
       },
       "post": {
         "operationId": "post-admin-experiments",
-        "summary": "POST /api/admin/experiments",
+        "summary": "Update live experiment configuration",
         "tags": [
           "admin",
           "experiments"
@@ -2948,7 +3190,22 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "additionalProperties": true
+                  "properties": {
+                    "ok": {
+                      "type": "boolean"
+                    },
+                    "updated": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "required": [
+                    "ok",
+                    "updated"
+                  ],
+                  "additionalProperties": false
                 }
               }
             }
@@ -2971,7 +3228,24 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "additionalProperties": true
+                "properties": {
+                  "pct": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 100
+                  },
+                  "selector": {
+                    "type": "string",
+                    "enum": [
+                      "greedy",
+                      "mcts"
+                    ]
+                  },
+                  "autoTuneEnabled": {
+                    "type": "boolean"
+                  }
+                },
+                "additionalProperties": false
               }
             }
           }
