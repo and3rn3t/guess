@@ -367,9 +367,9 @@ jobs:
       # — `pages deploy dist` only ships the static dir; Functions are picked up
       # from `<repo-root>/functions/` at deploy time.
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
-      # wrangler-action detects pnpm from pnpm-lock.yaml and uses it to install
-      # wrangler — so pnpm must be on PATH even though we don't run a build here.
-      - uses: pnpm/action-setup@8912a9102ac27614460f54aedde9e1e7f9aec20d # v6
+      # Full setup (pnpm install) so wrangler in devDependencies is available
+      # to `pnpm exec wrangler` used internally by wrangler-action.
+      - uses: ./.github/actions/setup
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
           name: dist
@@ -443,9 +443,9 @@ jobs:
       # — `pages deploy dist` only ships the static dir; Functions are picked up
       # from `<repo-root>/functions/` at deploy time.
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
-      # wrangler-action detects pnpm from pnpm-lock.yaml and uses it to install
-      # wrangler — so pnpm must be on PATH even though we don't run a build here.
-      - uses: pnpm/action-setup@8912a9102ac27614460f54aedde9e1e7f9aec20d # v6
+      # Full setup (pnpm install) so wrangler in devDependencies is available
+      # to `pnpm exec wrangler` used internally by wrangler-action.
+      - uses: ./.github/actions/setup
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
           name: dist
