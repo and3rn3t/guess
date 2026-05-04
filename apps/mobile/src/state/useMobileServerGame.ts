@@ -21,6 +21,7 @@ import {
   buildRetryGuessMessage,
   getRejectCooldownRemaining,
   type CorePhaseAction,
+  type HapticsAdapter,
   type NetworkAdapter,
 } from '@guess/app-core'
 import type { Dispatch } from 'react'
@@ -90,6 +91,7 @@ export interface MobileServerGameActions {
 export const useMobileServerGame = (
   phaseDispatch: Dispatch<CorePhaseAction>,
   network: NetworkAdapter,
+  haptics: HapticsAdapter,
 ): MobileServerGameState & MobileServerGameActions => {
   const [sessionId, setSessionId] = useState<string | null>(null)
   const [question, setQuestion] = useState<MobileQuestion | null>(null)
@@ -155,13 +157,15 @@ export const useMobileServerGame = (
       sessionIdRef.current = data.sessionId
       setSessionId(data.sessionId)
       applyBootstrapPlan(data)
+      void haptics.trigger('success')
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to start game'
       setError(message)
+      void haptics.trigger('error')
     } finally {
       setIsLoading(false)
     }
-  }, [postJson, applyBootstrapPlan])
+  }, [postJson, applyBootstrapPlan, haptics])
 
   const submitAnswer = useCallback(
     async (value: 'yes' | 'no' | 'unknown'): Promise<void> => {
@@ -192,28 +196,33 @@ export const useMobileServerGame = (
           } else if (step.type === 'make-guess') {
             setGuessCharacter(step.character)
             phaseDispatch({ type: 'SHOW_GUESS' })
+            void haptics.trigger('medium')
           }
         }
 
         if (outcome.kind === 'contradiction') {
           setAlertMessage(outcome.message)
+          void haptics.trigger('warning')
         } else if (outcome.kind === 'question' && outcome.remaining !== undefined) {
           setRemaining(outcome.remaining)
+          void haptics.trigger('light')
           if (outcome.readiness?.blockedByRejectCooldown) {
             const cooldown = getRejectCooldownRemaining(outcome.readiness)
             setAlertMessage(buildCollectingEvidenceMessage(cooldown))
           }
         } else if (outcome.kind === 'guess' && outcome.remaining !== undefined) {
           setRemaining(outcome.remaining)
+          void haptics.trigger('medium')
         }
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Failed to submit answer'
         setError(message)
+        void haptics.trigger('error')
       } finally {
         setIsLoading(false)
       }
     },
-    [postJson, phaseDispatch],
+    [postJson, phaseDispatch, haptics],
   )
 
   const skipQuestion = useCallback(async (): Promise<void> => {
@@ -229,20 +238,23 @@ export const useMobileServerGame = (
         if (step.type === 'set-exhausted') {
           setAlertMessage('No more questions to skip to!')
           phaseDispatch({ type: 'END_GAME', exhausted: true })
+          void haptics.trigger('warning')
         } else if (step.type === 'set-question') {
           setQuestion(step.question)
           setReasoning(step.reasoning)
           const remaining = (data as { remaining?: number }).remaining
           if (remaining !== undefined) setRemaining(remaining)
+          void haptics.trigger('light')
         }
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to skip'
       setError(message)
+      void haptics.trigger('error')
     } finally {
       setIsLoading(false)
     }
-  }, [postJson, phaseDispatch])
+  }, [postJson, phaseDispatch, haptics])
 
   const rejectGuess = useCallback(
     async (characterId: string): Promise<void> => {
@@ -262,6 +274,7 @@ export const useMobileServerGame = (
           if (step.type === 'set-exhausted') {
             phaseDispatch({ type: 'END_GAME', exhausted: true })
             void postJson(ENDPOINTS.result, { sessionId: sid, correct: false }).catch(() => {})
+            void haptics.trigger('warning')
           } else if (step.type === 'set-question') {
             setQuestion(step.question)
             setReasoning(step.reasoning)
@@ -273,6 +286,7 @@ export const useMobileServerGame = (
             setAlertMessage(buildRetryGuessMessage(cooldown))
             const remaining = (data as { remaining?: number }).remaining
             if (remaining !== undefined) setRemaining(remaining)
+            void haptics.trigger('light')
           }
         }
 
@@ -282,11 +296,12 @@ export const useMobileServerGame = (
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Failed to reject guess'
         setError(message)
+        void haptics.trigger('error')
       } finally {
         setIsLoading(false)
       }
     },
-    [postJson, phaseDispatch],
+    [postJson, phaseDispatch, haptics],
   )
 
   const confirmCorrect = useCallback(async (): Promise<void> => {
@@ -296,7 +311,8 @@ export const useMobileServerGame = (
     sessionIdRef.current = null
     setSessionId(null)
     phaseDispatch({ type: 'END_GAME' })
-  }, [postJson, phaseDispatch])
+    void haptics.trigger('success')
+  }, [postJson, phaseDispatch, haptics])
 
   const clearError = useCallback(() => setError(null), [])
   const clearAlert = useCallback(() => setAlertMessage(null), [])

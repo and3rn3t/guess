@@ -5,6 +5,7 @@ import type {
   NetworkRequestOptions,
   PlatformAdapters,
 } from '@guess/app-core'
+import * as Haptics from 'expo-haptics'
 import { AppState, type AppStateStatus, Share } from 'react-native'
 
 const mapToLifecycleState = (state: AppStateStatus): LifecycleState => {
@@ -54,8 +55,27 @@ const createMobileShareAdapter = () => ({
 
 const createMobileHapticsAdapter = (): HapticsAdapter => ({
   trigger: async (style): Promise<void> => {
-    void style
-    // TODO: Wire to expo-haptics when interaction surfaces are implemented.
+    if (style === 'light') {
+      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
+      return
+    }
+    if (style === 'medium') {
+      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium)
+      return
+    }
+    if (style === 'heavy') {
+      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy)
+      return
+    }
+    if (style === 'success') {
+      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
+      return
+    }
+    if (style === 'warning') {
+      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning)
+      return
+    }
+    await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error)
   },
 })
 

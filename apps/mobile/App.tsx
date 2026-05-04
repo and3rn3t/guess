@@ -15,7 +15,11 @@ import { useMobileServerGame } from './src/state/useMobileServerGame'
 export default function App(): ReactElement {
   const platformAdapters = useMemo(() => createMobilePlatformAdapters(), [])
   const { state, dispatch, phaseTitle } = useCoreGameFlow()
-  const server = useMobileServerGame(dispatch, platformAdapters.network)
+  const server = useMobileServerGame(
+    dispatch,
+    platformAdapters.network,
+    platformAdapters.haptics,
+  )
 
   const renderActions = (): ReactElement => {
     switch (state.phase) {

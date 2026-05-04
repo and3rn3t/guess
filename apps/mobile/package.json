@@ -16,6 +16,7 @@
   "dependencies": {
     "@guess/app-core": "workspace:*",
     "expo": "^55.0.19",
+    "expo-haptics": "^55.0.14",
     "expo-status-bar": "^3.0.8",
     "react": "^19.0.0",
     "react-native": "^0.85.2"
