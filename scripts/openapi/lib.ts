@@ -2270,6 +2270,243 @@ const TRIAGE_RESPONSE_SCHEMA: Record<string, unknown> = {
   ],
 };
 
+const ADMIN_QUESTION_KEY_PATCH_REQUEST_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    questionText: { type: "string", minLength: 10, maxLength: 300 },
+    isActive: { type: "boolean" },
+    difficulty: {
+      oneOf: [
+        { type: "string", enum: ["easy", "medium", "hard"] },
+        { type: "null" },
+      ],
+    },
+  },
+  additionalProperties: false,
+};
+
+const ADMIN_QUESTION_KEY_PATCH_RESPONSE_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    ok: { type: "boolean" },
+  },
+  required: ["ok"],
+  additionalProperties: false,
+};
+
+const ADMIN_QUESTION_KEY_RETIRE_REQUEST_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    reason: { type: "string", maxLength: 500 },
+  },
+  additionalProperties: false,
+};
+
+const ADMIN_QUESTION_KEY_RETIRE_RESPONSE_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    ok: { type: "boolean" },
+    retired: { type: "number" },
+    reason: { type: ["string", "null"] },
+  },
+  required: ["ok", "retired", "reason"],
+  additionalProperties: false,
+};
+
+const ADMIN_QUESTION_KEY_UNRETIRE_RESPONSE_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    ok: { type: "boolean" },
+    unretired: { type: "number" },
+  },
+  required: ["ok", "unretired"],
+  additionalProperties: false,
+};
+
+const ADMIN_QUESTION_KEY_SCORE_REQUEST_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    displayText: { type: "string" },
+    questionText: { type: "string" },
+  },
+  additionalProperties: false,
+};
+
+const ADMIN_QUESTION_KEY_SCORE_RESPONSE_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    clarity: { type: "number" },
+    power: { type: "number" },
+    grammar: { type: "number" },
+    rewrite: { type: "string" },
+  },
+  required: ["clarity", "power", "grammar"],
+  additionalProperties: false,
+};
+
+const ADMIN_QUESTIONS_BULK_REQUEST_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    keys: {
+      type: "array",
+      items: { type: "string" },
+      minItems: 1,
+      maxItems: 500,
+    },
+    isActive: { type: "boolean" },
+    difficulty: {
+      oneOf: [
+        { type: "string", enum: ["easy", "medium", "hard"] },
+        { type: "null" },
+      ],
+    },
+  },
+  additionalProperties: false,
+};
+
+const ADMIN_QUESTIONS_BULK_RESPONSE_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    ok: { type: "boolean" },
+    touchedKeys: { type: "number" },
+    updatedDefinitions: { type: "number" },
+    updatedQuestions: { type: "number" },
+  },
+  required: ["ok", "touchedKeys", "updatedDefinitions", "updatedQuestions"],
+  additionalProperties: false,
+};
+
+const ADMIN_CHARACTER_DETAIL_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    id: { type: "string" },
+    name: { type: "string" },
+    category: { type: "string" },
+  },
+  required: ["id", "name", "category"],
+  additionalProperties: false,
+};
+
+const ADMIN_CHARACTER_DEFINITION_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    key: { type: "string" },
+    displayText: { type: "string" },
+  },
+  required: ["key", "displayText"],
+  additionalProperties: false,
+};
+
+const ADMIN_CHARACTER_ATTRIBUTE_VALUE_SCHEMA: Record<string, unknown> = {
+  oneOf: [{ type: "integer", enum: [0, 1] }, { type: "null" }],
+};
+
+const ADMIN_CHARACTER_AGREEMENT_VALUE_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    score: { type: ["number", "null"] },
+    signals: { type: "number" },
+  },
+  required: ["score", "signals"],
+  additionalProperties: false,
+};
+
+const ADMIN_CHARACTER_BY_ID_GET_RESPONSE_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    character: ADMIN_CHARACTER_DETAIL_SCHEMA,
+    definitions: {
+      type: "array",
+      items: ADMIN_CHARACTER_DEFINITION_SCHEMA,
+    },
+    attributes: {
+      type: "object",
+      additionalProperties: ADMIN_CHARACTER_ATTRIBUTE_VALUE_SCHEMA,
+    },
+    evidence: {
+      type: "object",
+      additionalProperties: { type: ["string", "null"] },
+    },
+    agreement: {
+      type: "object",
+      additionalProperties: ADMIN_CHARACTER_AGREEMENT_VALUE_SCHEMA,
+    },
+  },
+  required: ["character", "definitions", "attributes", "evidence", "agreement"],
+  additionalProperties: false,
+};
+
+const ADMIN_CHARACTER_BY_ID_PATCH_REQUEST_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    attributeKey: { type: "string" },
+    value: ADMIN_CHARACTER_ATTRIBUTE_VALUE_SCHEMA,
+    confidence: { type: "number", minimum: 0, maximum: 1 },
+    category: { type: "string" },
+  },
+  additionalProperties: false,
+};
+
+const ADMIN_CHARACTER_BY_ID_PATCH_RESPONSE_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    ok: { type: "boolean" },
+  },
+  required: ["ok"],
+  additionalProperties: false,
+};
+
+const ADMIN_CHARACTER_BY_ID_DELETE_RESPONSE_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    ok: { type: "boolean" },
+    deleted: { type: "string" },
+  },
+  required: ["ok", "deleted"],
+  additionalProperties: false,
+};
+
+const ADMIN_CHARACTER_VALIDATE_ISSUE_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    attributeKey: { type: "string" },
+    type: {
+      type: "string",
+      enum: ["contradiction", "suspicious-null", "recommended-fill"],
+    },
+    currentValue: { type: ["boolean", "null"] },
+    suggestedValue: { type: ["boolean", "null"] },
+    reason: { type: "string" },
+  },
+  required: ["attributeKey", "type", "currentValue", "suggestedValue", "reason"],
+  additionalProperties: false,
+};
+
+const ADMIN_CHARACTER_VALIDATE_REQUEST_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    name: { type: "string" },
+    attributes: {
+      type: "object",
+      additionalProperties: { type: ["boolean", "null"] },
+    },
+  },
+  required: ["name", "attributes"],
+  additionalProperties: false,
+};
+
+const ADMIN_CHARACTER_VALIDATE_RESPONSE_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    issues: {
+      type: "array",
+      items: ADMIN_CHARACTER_VALIDATE_ISSUE_SCHEMA,
+    },
+  },
+  required: ["issues"],
+  additionalProperties: false,
+};
+
 const RESUME_RESPONSE_SCHEMA: Record<string, unknown> = {
   oneOf: [
     {
@@ -2478,6 +2715,24 @@ const OPERATION_METADATA: Record<string, OperationMetadata> = {
     summary: "List admin characters with coverage metrics",
     responseSchema: ADMIN_CHARACTERS_GET_RESPONSE_SCHEMA,
   },
+  "get /api/admin/characters/{id}": {
+    summary: "Get character attributes and active definitions",
+    responseSchema: ADMIN_CHARACTER_BY_ID_GET_RESPONSE_SCHEMA,
+  },
+  "patch /api/admin/characters/{id}": {
+    summary: "Update a character category or attribute value",
+    requestSchema: ADMIN_CHARACTER_BY_ID_PATCH_REQUEST_SCHEMA,
+    responseSchema: ADMIN_CHARACTER_BY_ID_PATCH_RESPONSE_SCHEMA,
+  },
+  "delete /api/admin/characters/{id}": {
+    summary: "Delete a character",
+    responseSchema: ADMIN_CHARACTER_BY_ID_DELETE_RESPONSE_SCHEMA,
+  },
+  "post /api/admin/characters/{id}/validate": {
+    summary: "Run LLM validation for a character attribute set",
+    requestSchema: ADMIN_CHARACTER_VALIDATE_REQUEST_SCHEMA,
+    responseSchema: ADMIN_CHARACTER_VALIDATE_RESPONSE_SCHEMA,
+  },
   "get /api/admin/confusion": {
     summary: "Get confusion matrix from real or simulation data",
     responseSchema: CONFUSION_RESPONSE_SCHEMA,
@@ -2534,6 +2789,30 @@ const OPERATION_METADATA: Record<string, OperationMetadata> = {
   "get /api/admin/questions": {
     summary: "List admin question definitions with usage",
     responseSchema: ADMIN_QUESTIONS_GET_RESPONSE_SCHEMA,
+  },
+  "patch /api/admin/questions/{key}": {
+    summary: "Update question text, active state, or difficulty",
+    requestSchema: ADMIN_QUESTION_KEY_PATCH_REQUEST_SCHEMA,
+    responseSchema: ADMIN_QUESTION_KEY_PATCH_RESPONSE_SCHEMA,
+  },
+  "post /api/admin/questions/{key}/retire": {
+    summary: "Retire all questions for an attribute key",
+    requestSchema: ADMIN_QUESTION_KEY_RETIRE_REQUEST_SCHEMA,
+    responseSchema: ADMIN_QUESTION_KEY_RETIRE_RESPONSE_SCHEMA,
+  },
+  "post /api/admin/questions/{key}/score": {
+    summary: "Run LLM quality scoring for a question",
+    requestSchema: ADMIN_QUESTION_KEY_SCORE_REQUEST_SCHEMA,
+    responseSchema: ADMIN_QUESTION_KEY_SCORE_RESPONSE_SCHEMA,
+  },
+  "post /api/admin/questions/{key}/unretire": {
+    summary: "Unretire all questions for an attribute key",
+    responseSchema: ADMIN_QUESTION_KEY_UNRETIRE_RESPONSE_SCHEMA,
+  },
+  "post /api/admin/questions/bulk": {
+    summary: "Bulk update question active state and difficulty",
+    requestSchema: ADMIN_QUESTIONS_BULK_REQUEST_SCHEMA,
+    responseSchema: ADMIN_QUESTIONS_BULK_RESPONSE_SCHEMA,
   },
   "get /api/admin/questions/expand": {
     summary: "Get recent question expansion runs",
