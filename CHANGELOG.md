@@ -18,6 +18,8 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 - **Xcode bootstrap for mobile workspace** — added iOS/Xcode setup scripts for `@guess/mobile` (`prebuild:ios`, `pods`, `open:xcode`, `setup:xcode`, and `sync:xcode-env`), shared Xcode env config templates (`apps/mobile/.xcode.env`, `.xcode.env.local.example`), root command aliases (`pnpm mobile:prebuild:ios`, `mobile:pods`, `mobile:open:xcode`, `mobile:setup:xcode`), and setup docs (`docs/mobile/xcode-setup.md`, updated mobile README) so native iOS files can be generated and opened directly in Xcode.
 
+- **Native mobile phase scaffold (M1 architecture baseline)** — added shared core-phase reducer/actions in `packages/app-core/src/core-phase.ts` and a mobile flow hook `apps/mobile/src/state/useCoreGameFlow.ts` so the app shell can render native placeholders for `welcome`, `playing`, `guessing`, `gameOver`, and `challenge` using shared contracts. Updated `apps/mobile/App.tsx` to render phase-specific native actions and state metadata through the shared reducer path.
+
 - **Completeness burndown + weekly report (DQ.38)**
 
 - **v1 KV endpoint deprecation headers** — `functions/api/corrections.ts` and `functions/api/stats.ts` now emit `Deprecation: true` + `Sunset: Wed, 01 Jan 2027 00:00:00 GMT` on GET responses, matching the headers already present in `characters.ts`, `questions.ts`, and `sync.ts`. All five legacy KV-backed v1 endpoints are now consistently signalling sunset to callers.
