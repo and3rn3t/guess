@@ -34,6 +34,7 @@ Or run all three:
 - Do not import web UI modules into mobile code. Guardrails are enforced by `pnpm mobile:guardrails`.
 - Treat `apps/mobile/ios/Pods` and build outputs as generated artifacts.
 - If Expo config changes, regenerate native files with `pnpm mobile:prebuild:ios`.
+- For AI context handoff limitations between IDEs, use `docs/mobile/xcode-claude-memory-handoff.md` as the canonical repo note.
 
 ## VS Code + Xcode AI Sync Contract
 
