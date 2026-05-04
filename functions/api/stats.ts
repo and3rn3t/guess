@@ -8,6 +8,17 @@ import {
 } from './_helpers'
 import { RecordStatRequestSchema } from './_schemas'
 
+const DEPRECATION_HEADERS = {
+  Deprecation: 'true',
+  Sunset: 'Wed, 01 Jan 2027 00:00:00 GMT',
+} as const
+
+function withDeprecation(response: Response): Response {
+  const res = new Response(response.body, response)
+  Object.entries(DEPRECATION_HEADERS).forEach(([k, v]) => res.headers.set(k, v))
+  return res
+}
+
 interface CharacterStats {
   characterId: string
   timesPlayed: number
@@ -44,11 +55,11 @@ export const onRequestGet = defineHandler(
       const stats =
         (await kvGetObject<CharacterStats>(kv, `stats:${characterId}`)) ||
         emptyStats(characterId)
-      return jsonResponse(stats)
+      return withDeprecation(jsonResponse(stats))
     }
 
     const leaderboard = await kvGetArray<CharacterStats>(kv, 'stats:leaderboard')
-    return jsonResponse(leaderboard)
+    return withDeprecation(jsonResponse(leaderboard))
   },
 )
 

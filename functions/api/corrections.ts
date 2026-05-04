@@ -10,6 +10,11 @@ import {
 } from './_helpers'
 import { SubmitCorrectionRequestSchema } from './_schemas'
 
+const DEPRECATION_HEADERS = {
+  Deprecation: 'true',
+  Sunset: 'Wed, 01 Jan 2027 00:00:00 GMT',
+} as const
+
 interface CorrectionVote {
   attribute: string
   currentValue: boolean | null
@@ -40,7 +45,10 @@ export const onRequestGet = defineHandler(
       env.GUESS_KV,
       `corrections:${characterId}`,
     )
-    return jsonResponse(corrections)
+    const response = jsonResponse(corrections)
+    const res = new Response(response.body, response)
+    Object.entries(DEPRECATION_HEADERS).forEach(([k, v]) => res.headers.set(k, v))
+    return res
   },
 )
 

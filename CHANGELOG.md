@@ -10,7 +10,9 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
-- **Completeness burndown + weekly report (DQ.38)** — added pure burndown helpers `functions/api/admin/data-quality/_completeness_burndown.ts` (`computeSlaMisses`, `computeQueueAging`) with 8 unit tests in `_completeness_burndown.test.ts`. New `GET /api/admin/data-quality/completeness` endpoint (`functions/api/admin/data-quality/completeness.ts`) returns NULL backlog (total + per-category + top-N attrs by null count), SLA misses sorted by gap, queue aging stats (median/p90/oldest days), and a weekly coverage/evidence trend from `data_quality_snapshots`. Added `scripts/data-quality/weekly-report.ts` that queries D1 for current null backlog, SLA misses, and coverage velocity vs. prior snapshot, and emits a markdown report to `data/quality-reports/quality-YYYY-WW.md`. `.github/workflows/reconcile-nightly.yml` now runs the weekly report script on Sundays (tier2 schedule and `risk_tier=tier2` dispatch), uploading `weekly-quality-report` artifact retained for 90 days.
+- **Completeness burndown + weekly report (DQ.38)**
+
+- **v1 KV endpoint deprecation headers** — `functions/api/corrections.ts` and `functions/api/stats.ts` now emit `Deprecation: true` + `Sunset: Wed, 01 Jan 2027 00:00:00 GMT` on GET responses, matching the headers already present in `characters.ts`, `questions.ts`, and `sync.ts`. All five legacy KV-backed v1 endpoints are now consistently signalling sunset to callers.
 
 - **OpenAPI coverage expansion for public/admin routes (DX.31)**
 
