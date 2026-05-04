@@ -30,13 +30,26 @@
       "get": {
         "operationId": "get-admin-about",
         "summary": "Get admin build and data freshness metadata",
-        "tags": [
-          "admin",
-          "about"
-        ],
+        "tags": ["admin", "about"],
         "responses": {
           "200": {
             "description": "Success response",
+            "headers": {
+              "X-Cache": {
+                "description": "Edge cache status for this completion response.",
+                "schema": {
+                  "type": "string",
+                  "enum": ["HIT", "MISS"]
+                }
+              },
+              "X-LLM-Retry-Count": {
+                "description": "Number of provider retry attempts performed before this response.",
+                "schema": {
+                  "type": "string",
+                  "pattern": "^[0-9]+$"
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -52,59 +65,36 @@
                       "type": "object",
                       "properties": {
                         "timestamp": {
-                          "type": [
-                            "number",
-                            "null"
-                          ]
+                          "type": ["number", "null"]
                         },
                         "batchId": {
-                          "type": [
-                            "string",
-                            "null"
-                          ]
+                          "type": ["string", "null"]
                         }
                       },
-                      "required": [
-                        "timestamp",
-                        "batchId"
-                      ],
+                      "required": ["timestamp", "batchId"],
                       "additionalProperties": false
                     },
                     "lastCronRun": {
                       "type": "object",
                       "properties": {
                         "timestamp": {
-                          "type": [
-                            "number",
-                            "null"
-                          ]
+                          "type": ["number", "null"]
                         },
                         "name": {
-                          "type": [
-                            "string",
-                            "null"
-                          ]
+                          "type": ["string", "null"]
                         }
                       },
-                      "required": [
-                        "timestamp",
-                        "name"
-                      ],
+                      "required": ["timestamp", "name"],
                       "additionalProperties": false
                     },
                     "lastD1Backup": {
                       "type": "object",
                       "properties": {
                         "timestamp": {
-                          "type": [
-                            "number",
-                            "null"
-                          ]
+                          "type": ["number", "null"]
                         }
                       },
-                      "required": [
-                        "timestamp"
-                      ],
+                      "required": ["timestamp"],
                       "additionalProperties": false
                     }
                   },
@@ -138,10 +128,7 @@
       "get": {
         "operationId": "get-admin-analytics",
         "summary": "List client events with summary and aggregates",
-        "tags": [
-          "admin",
-          "analytics"
-        ],
+        "tags": ["admin", "analytics"],
         "responses": {
           "200": {
             "description": "Success response",
@@ -159,31 +146,19 @@
                             "type": "string"
                           },
                           "session_id": {
-                            "type": [
-                              "string",
-                              "null"
-                            ]
+                            "type": ["string", "null"]
                           },
                           "user_id": {
-                            "type": [
-                              "string",
-                              "null"
-                            ]
+                            "type": ["string", "null"]
                           },
                           "event_type": {
                             "type": "string"
                           },
                           "data": {
-                            "type": [
-                              "string",
-                              "null"
-                            ]
+                            "type": ["string", "null"]
                           },
                           "client_ts": {
-                            "type": [
-                              "number",
-                              "null"
-                            ]
+                            "type": ["number", "null"]
                           },
                           "created_at": {
                             "type": "number"
@@ -222,10 +197,7 @@
                             "type": "number"
                           }
                         },
-                        "required": [
-                          "event_type",
-                          "count"
-                        ],
+                        "required": ["event_type", "count"],
                         "additionalProperties": false
                       }
                     },
@@ -242,11 +214,7 @@
                           "type": "number"
                         }
                       },
-                      "required": [
-                        "eventType",
-                        "q",
-                        "days"
-                      ],
+                      "required": ["eventType", "q", "days"],
                       "additionalProperties": false
                     },
                     "aggregates": {
@@ -259,10 +227,7 @@
                           "type": "number"
                         }
                       },
-                      "required": [
-                        "uniqueSessions",
-                        "uniqueUsers"
-                      ],
+                      "required": ["uniqueSessions", "uniqueUsers"],
                       "additionalProperties": false
                     }
                   },
@@ -298,10 +263,7 @@
       "get": {
         "operationId": "get-admin-analytics-aha-moments",
         "summary": "Fetch ranked aha-moment attributes",
-        "tags": [
-          "admin",
-          "analytics"
-        ],
+        "tags": ["admin", "analytics"],
         "responses": {
           "200": {
             "description": "Success response",
@@ -338,9 +300,7 @@
                       }
                     }
                   },
-                  "required": [
-                    "moments"
-                  ],
+                  "required": ["moments"],
                   "additionalProperties": false
                 }
               }
@@ -364,10 +324,7 @@
       "post": {
         "operationId": "post-admin-analytics-insights",
         "summary": "Generate cached analytics insights with AI",
-        "tags": [
-          "admin",
-          "analytics"
-        ],
+        "tags": ["admin", "analytics"],
         "responses": {
           "200": {
             "description": "Success response",
@@ -383,10 +340,7 @@
                       "type": "number"
                     }
                   },
-                  "required": [
-                    "insights",
-                    "generated_at"
-                  ],
+                  "required": ["insights", "generated_at"],
                   "additionalProperties": false
                 }
               }
@@ -423,10 +377,7 @@
                           "type": "number"
                         }
                       },
-                      "required": [
-                        "event_type",
-                        "count"
-                      ],
+                      "required": ["event_type", "count"],
                       "additionalProperties": false
                     }
                   },
@@ -448,10 +399,7 @@
       "get": {
         "operationId": "get-admin-attribute-disputes",
         "summary": "List attribute disputes with pagination",
-        "tags": [
-          "admin",
-          "attribute-disputes"
-        ],
+        "tags": ["admin", "attribute-disputes"],
         "responses": {
           "200": {
             "description": "Success response",
@@ -491,22 +439,13 @@
                             ]
                           },
                           "dispute_reason": {
-                            "type": [
-                              "string",
-                              "null"
-                            ]
+                            "type": ["string", "null"]
                           },
                           "confidence": {
-                            "type": [
-                              "number",
-                              "null"
-                            ]
+                            "type": ["number", "null"]
                           },
                           "disputed_by": {
-                            "type": [
-                              "string",
-                              "null"
-                            ]
+                            "type": ["string", "null"]
                           },
                           "created_at": {
                             "type": "number"
@@ -515,22 +454,13 @@
                             "type": "string"
                           },
                           "resolved_by": {
-                            "type": [
-                              "string",
-                              "null"
-                            ]
+                            "type": ["string", "null"]
                           },
                           "resolved_at": {
-                            "type": [
-                              "number",
-                              "null"
-                            ]
+                            "type": ["number", "null"]
                           },
                           "character_name": {
-                            "type": [
-                              "string",
-                              "null"
-                            ]
+                            "type": ["string", "null"]
                           }
                         },
                         "required": [
@@ -560,12 +490,7 @@
                       "type": "number"
                     }
                   },
-                  "required": [
-                    "disputes",
-                    "total",
-                    "page",
-                    "pageSize"
-                  ],
+                  "required": ["disputes", "total", "page", "pageSize"],
                   "additionalProperties": false
                 }
               }
@@ -587,10 +512,7 @@
       "patch": {
         "operationId": "patch-admin-attribute-disputes",
         "summary": "Resolve or dismiss an attribute dispute",
-        "tags": [
-          "admin",
-          "attribute-disputes"
-        ],
+        "tags": ["admin", "attribute-disputes"],
         "responses": {
           "200": {
             "description": "Success response",
@@ -603,9 +525,7 @@
                       "type": "boolean"
                     }
                   },
-                  "required": [
-                    "ok"
-                  ],
+                  "required": ["ok"],
                   "additionalProperties": false
                 }
               }
@@ -635,19 +555,13 @@
                   },
                   "status": {
                     "type": "string",
-                    "enum": [
-                      "resolved",
-                      "dismissed"
-                    ]
+                    "enum": ["resolved", "dismissed"]
                   },
                   "resolved_by": {
                     "type": "string"
                   }
                 },
-                "required": [
-                  "id",
-                  "status"
-                ],
+                "required": ["id", "status"],
                 "additionalProperties": false
               }
             }
@@ -659,10 +573,7 @@
       "post": {
         "operationId": "post-admin-attribute-disputes-ai",
         "summary": "Run AI arbitration on an attribute dispute",
-        "tags": [
-          "admin",
-          "attribute-disputes-ai"
-        ],
+        "tags": ["admin", "attribute-disputes-ai"],
         "responses": {
           "200": {
             "description": "Success response",
@@ -673,10 +584,7 @@
                   "properties": {
                     "correct": {
                       "type": "string",
-                      "enum": [
-                        "current",
-                        "flagged"
-                      ]
+                      "enum": ["current", "flagged"]
                     },
                     "confidence": {
                       "type": "number"
@@ -685,11 +593,7 @@
                       "type": "string"
                     }
                   },
-                  "required": [
-                    "correct",
-                    "confidence",
-                    "reason"
-                  ],
+                  "required": ["correct", "confidence", "reason"],
                   "additionalProperties": false
                 }
               }
@@ -737,10 +641,7 @@
                     "type": "number"
                   }
                 },
-                "required": [
-                  "characterName",
-                  "attributeKey"
-                ],
+                "required": ["characterName", "attributeKey"],
                 "additionalProperties": false
               }
             }
@@ -752,10 +653,7 @@
       "get": {
         "operationId": "get-admin-automation-status",
         "summary": "Get latest cron automation report snapshot",
-        "tags": [
-          "admin",
-          "automation-status"
-        ],
+        "tags": ["admin", "automation-status"],
         "responses": {
           "200": {
             "description": "Success response",
@@ -792,10 +690,7 @@
                       "type": "number"
                     }
                   },
-                  "required": [
-                    "report",
-                    "fetchedAt"
-                  ],
+                  "required": ["report", "fetchedAt"],
                   "additionalProperties": false
                 }
               }
@@ -819,10 +714,7 @@
       "get": {
         "operationId": "get-admin-characters",
         "summary": "List admin characters with coverage metrics",
-        "tags": [
-          "admin",
-          "characters"
-        ],
+        "tags": ["admin", "characters"],
         "responses": {
           "200": {
             "description": "Success response",
@@ -852,10 +744,7 @@
                             "type": "number"
                           },
                           "imageUrl": {
-                            "type": [
-                              "string",
-                              "null"
-                            ]
+                            "type": ["string", "null"]
                           },
                           "attributeCount": {
                             "type": "number"
@@ -899,12 +788,7 @@
                       "type": "number"
                     }
                   },
-                  "required": [
-                    "characters",
-                    "total",
-                    "page",
-                    "pageSize"
-                  ],
+                  "required": ["characters", "total", "page", "pageSize"],
                   "additionalProperties": false
                 }
               }
@@ -928,10 +812,7 @@
       "delete": {
         "operationId": "delete-admin-characters-by-id",
         "summary": "Delete a character",
-        "tags": [
-          "admin",
-          "characters"
-        ],
+        "tags": ["admin", "characters"],
         "responses": {
           "200": {
             "description": "Success response",
@@ -947,10 +828,7 @@
                       "type": "string"
                     }
                   },
-                  "required": [
-                    "ok",
-                    "deleted"
-                  ],
+                  "required": ["ok", "deleted"],
                   "additionalProperties": false
                 }
               }
@@ -983,10 +861,7 @@
       "get": {
         "operationId": "get-admin-characters-by-id",
         "summary": "Get character attributes and active definitions",
-        "tags": [
-          "admin",
-          "characters"
-        ],
+        "tags": ["admin", "characters"],
         "responses": {
           "200": {
             "description": "Success response",
@@ -1008,11 +883,7 @@
                           "type": "string"
                         }
                       },
-                      "required": [
-                        "id",
-                        "name",
-                        "category"
-                      ],
+                      "required": ["id", "name", "category"],
                       "additionalProperties": false
                     },
                     "definitions": {
@@ -1027,10 +898,7 @@
                             "type": "string"
                           }
                         },
-                        "required": [
-                          "key",
-                          "displayText"
-                        ],
+                        "required": ["key", "displayText"],
                         "additionalProperties": false
                       }
                     },
@@ -1040,10 +908,7 @@
                         "oneOf": [
                           {
                             "type": "integer",
-                            "enum": [
-                              0,
-                              1
-                            ]
+                            "enum": [0, 1]
                           },
                           {
                             "type": "null"
@@ -1054,10 +919,7 @@
                     "evidence": {
                       "type": "object",
                       "additionalProperties": {
-                        "type": [
-                          "string",
-                          "null"
-                        ]
+                        "type": ["string", "null"]
                       }
                     },
                     "agreement": {
@@ -1066,19 +928,13 @@
                         "type": "object",
                         "properties": {
                           "score": {
-                            "type": [
-                              "number",
-                              "null"
-                            ]
+                            "type": ["number", "null"]
                           },
                           "signals": {
                             "type": "number"
                           }
                         },
-                        "required": [
-                          "score",
-                          "signals"
-                        ],
+                        "required": ["score", "signals"],
                         "additionalProperties": false
                       }
                     }
@@ -1111,10 +967,7 @@
       "patch": {
         "operationId": "patch-admin-characters-by-id",
         "summary": "Update a character category or attribute value",
-        "tags": [
-          "admin",
-          "characters"
-        ],
+        "tags": ["admin", "characters"],
         "responses": {
           "200": {
             "description": "Success response",
@@ -1127,9 +980,7 @@
                       "type": "boolean"
                     }
                   },
-                  "required": [
-                    "ok"
-                  ],
+                  "required": ["ok"],
                   "additionalProperties": false
                 }
               }
@@ -1161,10 +1012,7 @@
                     "oneOf": [
                       {
                         "type": "integer",
-                        "enum": [
-                          0,
-                          1
-                        ]
+                        "enum": [0, 1]
                       },
                       {
                         "type": "null"
@@ -1191,10 +1039,7 @@
       "post": {
         "operationId": "post-admin-characters-by-id-validate",
         "summary": "Run LLM validation for a character attribute set",
-        "tags": [
-          "admin",
-          "characters"
-        ],
+        "tags": ["admin", "characters"],
         "responses": {
           "200": {
             "description": "Success response",
@@ -1220,16 +1065,10 @@
                             ]
                           },
                           "currentValue": {
-                            "type": [
-                              "boolean",
-                              "null"
-                            ]
+                            "type": ["boolean", "null"]
                           },
                           "suggestedValue": {
-                            "type": [
-                              "boolean",
-                              "null"
-                            ]
+                            "type": ["boolean", "null"]
                           },
                           "reason": {
                             "type": "string"
@@ -1246,9 +1085,7 @@
                       }
                     }
                   },
-                  "required": [
-                    "issues"
-                  ],
+                  "required": ["issues"],
                   "additionalProperties": false
                 }
               }
@@ -1279,17 +1116,11 @@
                   "attributes": {
                     "type": "object",
                     "additionalProperties": {
-                      "type": [
-                        "boolean",
-                        "null"
-                      ]
+                      "type": ["boolean", "null"]
                     }
                   }
                 },
-                "required": [
-                  "name",
-                  "attributes"
-                ],
+                "required": ["name", "attributes"],
                 "additionalProperties": false
               }
             }
@@ -1301,10 +1132,7 @@
       "get": {
         "operationId": "get-admin-community",
         "summary": "List community correction vote summaries",
-        "tags": [
-          "admin",
-          "community"
-        ],
+        "tags": ["admin", "community"],
         "responses": {
           "200": {
             "description": "Success response",
@@ -1368,10 +1196,7 @@
                       "type": "number"
                     }
                   },
-                  "required": [
-                    "items",
-                    "total"
-                  ],
+                  "required": ["items", "total"],
                   "additionalProperties": false
                 }
               }
@@ -1393,10 +1218,7 @@
       "post": {
         "operationId": "post-admin-community",
         "summary": "Apply or dismiss community corrections",
-        "tags": [
-          "admin",
-          "community"
-        ],
+        "tags": ["admin", "community"],
         "responses": {
           "200": {
             "description": "Success response",
@@ -1421,9 +1243,7 @@
                       "type": "string"
                     }
                   },
-                  "required": [
-                    "ok"
-                  ],
+                  "required": ["ok"],
                   "additionalProperties": false
                 }
               }
@@ -1450,19 +1270,13 @@
                 "properties": {
                   "action": {
                     "type": "string",
-                    "enum": [
-                      "dismiss",
-                      "apply"
-                    ]
+                    "enum": ["dismiss", "apply"]
                   },
                   "characterId": {
                     "type": "string"
                   }
                 },
-                "required": [
-                  "action",
-                  "characterId"
-                ],
+                "required": ["action", "characterId"],
                 "additionalProperties": false
               }
             }
@@ -1474,10 +1288,7 @@
       "get": {
         "operationId": "get-admin-confusion",
         "summary": "Get confusion matrix from real or simulation data",
-        "tags": [
-          "admin",
-          "confusion"
-        ],
+        "tags": ["admin", "confusion"],
         "responses": {
           "200": {
             "description": "Success response",
@@ -1488,10 +1299,7 @@
                   "properties": {
                     "source": {
                       "type": "string",
-                      "enum": [
-                        "real",
-                        "sim"
-                      ]
+                      "enum": ["real", "sim"]
                     },
                     "pairs": {
                       "type": "array",
@@ -1514,16 +1322,10 @@
                             "type": "number"
                           },
                           "winPct": {
-                            "type": [
-                              "number",
-                              "null"
-                            ]
+                            "type": ["number", "null"]
                           },
                           "lastSeen": {
-                            "type": [
-                              "number",
-                              "null"
-                            ]
+                            "type": ["number", "null"]
                           }
                         },
                         "required": [
@@ -1548,12 +1350,7 @@
                       "type": "string"
                     }
                   },
-                  "required": [
-                    "source",
-                    "pairs",
-                    "total",
-                    "generatedAt"
-                  ],
+                  "required": ["source", "pairs", "total", "generatedAt"],
                   "additionalProperties": false
                 }
               }
@@ -1577,10 +1374,7 @@
       "get": {
         "operationId": "get-admin-costs",
         "summary": "Get KV cost dashboard rollups",
-        "tags": [
-          "admin",
-          "costs"
-        ],
+        "tags": ["admin", "costs"],
         "responses": {
           "200": {
             "description": "Success response",
@@ -1632,11 +1426,7 @@
                           "type": "number"
                         }
                       },
-                      "required": [
-                        "promptTokens",
-                        "completionTokens",
-                        "calls"
-                      ],
+                      "required": ["promptTokens", "completionTokens", "calls"],
                       "additionalProperties": false
                     },
                     "history": {
@@ -1697,10 +1487,7 @@
       "get": {
         "operationId": "get-admin-coverage",
         "summary": "Get attribute coverage aggregation",
-        "tags": [
-          "admin",
-          "coverage"
-        ],
+        "tags": ["admin", "coverage"],
         "responses": {
           "200": {
             "description": "Success response",
@@ -1716,10 +1503,7 @@
                       "type": "number"
                     },
                     "category": {
-                      "type": [
-                        "string",
-                        "null"
-                      ]
+                      "type": ["string", "null"]
                     },
                     "attributes": {
                       "type": "array",
@@ -1798,10 +1582,7 @@
       "post": {
         "operationId": "post-admin-coverage-priority",
         "summary": "Rank sparse attributes by enrichment priority",
-        "tags": [
-          "admin",
-          "coverage-priority"
-        ],
+        "tags": ["admin", "coverage-priority"],
         "responses": {
           "200": {
             "description": "Success response",
@@ -1828,12 +1609,7 @@
                             "type": "string"
                           }
                         },
-                        "required": [
-                          "key",
-                          "displayText",
-                          "nullPct",
-                          "reason"
-                        ],
+                        "required": ["key", "displayText", "nullPct", "reason"],
                         "additionalProperties": false
                       }
                     },
@@ -1841,10 +1617,7 @@
                       "type": "number"
                     }
                   },
-                  "required": [
-                    "items",
-                    "generated_at"
-                  ],
+                  "required": ["items", "generated_at"],
                   "additionalProperties": false
                 }
               }
@@ -1879,10 +1652,7 @@
       "get": {
         "operationId": "get-admin-curator-queue",
         "summary": "Fetch manual curator queue report",
-        "tags": [
-          "admin",
-          "curator-queue"
-        ],
+        "tags": ["admin", "curator-queue"],
         "responses": {
           "200": {
             "description": "Success response",
@@ -1935,10 +1705,7 @@
                                   "type": "number"
                                 }
                               },
-                              "required": [
-                                "count",
-                                "percentOfTotal"
-                              ],
+                              "required": ["count", "percentOfTotal"],
                               "additionalProperties": false
                             },
                             "canon_conflict": {
@@ -1951,10 +1718,7 @@
                                   "type": "number"
                                 }
                               },
-                              "required": [
-                                "count",
-                                "percentOfTotal"
-                              ],
+                              "required": ["count", "percentOfTotal"],
                               "additionalProperties": false
                             },
                             "subjective": {
@@ -1967,10 +1731,7 @@
                                   "type": "number"
                                 }
                               },
-                              "required": [
-                                "count",
-                                "percentOfTotal"
-                              ],
+                              "required": ["count", "percentOfTotal"],
                               "additionalProperties": false
                             }
                           },
@@ -2010,37 +1771,22 @@
                                 "type": "string"
                               },
                               "assignedTo": {
-                                "type": [
-                                  "string",
-                                  "null"
-                                ]
+                                "type": ["string", "null"]
                               },
                               "resolvedAt": {
-                                "type": [
-                                  "number",
-                                  "null"
-                                ]
+                                "type": ["number", "null"]
                               },
                               "resolutionReason": {
-                                "type": [
-                                  "string",
-                                  "null"
-                                ]
+                                "type": ["string", "null"]
                               },
                               "locked": {
                                 "type": "boolean"
                               },
                               "lockedUntil": {
-                                "type": [
-                                  "number",
-                                  "null"
-                                ]
+                                "type": ["number", "null"]
                               },
                               "lockReason": {
-                                "type": [
-                                  "string",
-                                  "null"
-                                ]
+                                "type": ["string", "null"]
                               },
                               "createdAt": {
                                 "type": "number"
@@ -2077,11 +1823,7 @@
                           }
                         }
                       },
-                      "required": [
-                        "totals",
-                        "perIssueType",
-                        "items"
-                      ],
+                      "required": ["totals", "perIssueType", "items"],
                       "additionalProperties": false
                     },
                     "fetchedAt": {
@@ -2091,11 +1833,7 @@
                       "type": "number"
                     }
                   },
-                  "required": [
-                    "report",
-                    "fetchedAt",
-                    "limit"
-                  ],
+                  "required": ["report", "fetchedAt", "limit"],
                   "additionalProperties": false
                 }
               }
@@ -2117,10 +1855,7 @@
       "post": {
         "operationId": "post-admin-curator-queue",
         "summary": "Apply a curator queue action",
-        "tags": [
-          "admin",
-          "curator-queue"
-        ],
+        "tags": ["admin", "curator-queue"],
         "responses": {
           "200": {
             "description": "Success response",
@@ -2141,11 +1876,7 @@
                           "type": "string"
                         }
                       },
-                      "required": [
-                        "success",
-                        "id",
-                        "assignedTo"
-                      ],
+                      "required": ["success", "id", "assignedTo"],
                       "additionalProperties": false
                     },
                     {
@@ -2161,11 +1892,7 @@
                           "type": "number"
                         }
                       },
-                      "required": [
-                        "success",
-                        "id",
-                        "resolvedAt"
-                      ],
+                      "required": ["success", "id", "resolvedAt"],
                       "additionalProperties": false
                     },
                     {
@@ -2181,11 +1908,7 @@
                           "type": "number"
                         }
                       },
-                      "required": [
-                        "success",
-                        "id",
-                        "lockedUntil"
-                      ],
+                      "required": ["success", "id", "lockedUntil"],
                       "additionalProperties": false
                     },
                     {
@@ -2201,11 +1924,7 @@
                           "type": "null"
                         }
                       },
-                      "required": [
-                        "success",
-                        "id",
-                        "lockedUntil"
-                      ],
+                      "required": ["success", "id", "lockedUntil"],
                       "additionalProperties": false
                     }
                   ]
@@ -2256,10 +1975,7 @@
       "get": {
         "operationId": "get-admin-dashboard",
         "summary": "Get admin landing dashboard aggregates",
-        "tags": [
-          "admin",
-          "dashboard"
-        ],
+        "tags": ["admin", "dashboard"],
         "responses": {
           "200": {
             "description": "Success response",
@@ -2319,16 +2035,10 @@
                             "type": "number"
                           },
                           "target_character_id": {
-                            "type": [
-                              "string",
-                              "null"
-                            ]
+                            "type": ["string", "null"]
                           },
                           "character_name": {
-                            "type": [
-                              "string",
-                              "null"
-                            ]
+                            "type": ["string", "null"]
                           }
                         },
                         "required": [
@@ -2342,10 +2052,7 @@
                       }
                     }
                   },
-                  "required": [
-                    "stats",
-                    "recentGames"
-                  ],
+                  "required": ["stats", "recentGames"],
                   "additionalProperties": false
                 }
               }
@@ -2369,10 +2076,7 @@
       "get": {
         "operationId": "get-admin-data-quality",
         "summary": "Get live and historical data-quality metrics",
-        "tags": [
-          "admin",
-          "data-quality"
-        ],
+        "tags": ["admin", "data-quality"],
         "responses": {
           "200": {
             "description": "Success response",
@@ -2530,34 +2234,19 @@
                             "type": "number"
                           },
                           "golden_pass_rate": {
-                            "type": [
-                              "number",
-                              "null"
-                            ]
+                            "type": ["number", "null"]
                           },
                           "vision_pass_rate": {
-                            "type": [
-                              "number",
-                              "null"
-                            ]
+                            "type": ["number", "null"]
                           },
                           "closure_total_pairs": {
-                            "type": [
-                              "number",
-                              "null"
-                            ]
+                            "type": ["number", "null"]
                           },
                           "closure_automation_pairs": {
-                            "type": [
-                              "number",
-                              "null"
-                            ]
+                            "type": ["number", "null"]
                           },
                           "closure_manual_pairs": {
-                            "type": [
-                              "number",
-                              "null"
-                            ]
+                            "type": ["number", "null"]
                           }
                         },
                         "required": [
@@ -2580,11 +2269,7 @@
                       "type": "number"
                     }
                   },
-                  "required": [
-                    "live",
-                    "history",
-                    "windowDays"
-                  ],
+                  "required": ["live", "history", "windowDays"],
                   "additionalProperties": false
                 }
               }
@@ -2608,10 +2293,7 @@
       "get": {
         "operationId": "get-admin-data-quality-sla",
         "summary": "List data quality SLA targets",
-        "tags": [
-          "admin",
-          "data-quality-sla"
-        ],
+        "tags": ["admin", "data-quality-sla"],
         "responses": {
           "200": {
             "description": "Success response",
@@ -2648,9 +2330,7 @@
                       }
                     }
                   },
-                  "required": [
-                    "targets"
-                  ],
+                  "required": ["targets"],
                   "additionalProperties": false
                 }
               }
@@ -2674,10 +2354,7 @@
       "get": {
         "operationId": "get-admin-data-quality-closure-queue",
         "summary": "Get deterministic null-closure queue report",
-        "tags": [
-          "admin",
-          "data-quality"
-        ],
+        "tags": ["admin", "data-quality"],
         "responses": {
           "200": {
             "description": "Success response",
@@ -2767,10 +2444,7 @@
                           },
                           "lane": {
                             "type": "string",
-                            "enum": [
-                              "automation",
-                              "manual"
-                            ]
+                            "enum": ["automation", "manual"]
                           },
                           "components": {
                             "type": "object",
@@ -2841,10 +2515,7 @@
       "get": {
         "operationId": "get-admin-data-quality-closure-queue-status",
         "summary": "Get latest persisted null-closure queue report status",
-        "tags": [
-          "admin",
-          "data-quality"
-        ],
+        "tags": ["admin", "data-quality"],
         "responses": {
           "200": {
             "description": "Success response",
@@ -2939,10 +2610,7 @@
                                   },
                                   "lane": {
                                     "type": "string",
-                                    "enum": [
-                                      "automation",
-                                      "manual"
-                                    ]
+                                    "enum": ["automation", "manual"]
                                   },
                                   "components": {
                                     "type": "object",
@@ -3001,10 +2669,7 @@
                       "type": "number"
                     }
                   },
-                  "required": [
-                    "report",
-                    "fetchedAt"
-                  ],
+                  "required": ["report", "fetchedAt"],
                   "additionalProperties": false
                 }
               }
@@ -3028,10 +2693,7 @@
       "post": {
         "operationId": "post-admin-enrich-start",
         "summary": "Start, stop, or chain server enrichment batch",
-        "tags": [
-          "admin",
-          "enrich"
-        ],
+        "tags": ["admin", "enrich"],
         "responses": {
           "200": {
             "description": "Success response",
@@ -3050,10 +2712,7 @@
                       "type": "string"
                     }
                   },
-                  "required": [
-                    "ok",
-                    "message"
-                  ],
+                  "required": ["ok", "message"],
                   "additionalProperties": false
                 }
               }
@@ -3080,11 +2739,7 @@
                 "properties": {
                   "action": {
                     "type": "string",
-                    "enum": [
-                      "start",
-                      "stop",
-                      "chain"
-                    ]
+                    "enum": ["start", "stop", "chain"]
                   },
                   "limit": {
                     "type": "number"
@@ -3104,10 +2759,7 @@
       "get": {
         "operationId": "get-admin-enrich-stream",
         "summary": "Stream enrichment run snapshots",
-        "tags": [
-          "admin",
-          "enrich"
-        ],
+        "tags": ["admin", "enrich"],
         "responses": {
           "200": {
             "description": "Success response",
@@ -3131,10 +2783,7 @@
                             "type": "string"
                           },
                           "character_name": {
-                            "type": [
-                              "string",
-                              "null"
-                            ]
+                            "type": ["string", "null"]
                           },
                           "step": {
                             "type": "string"
@@ -3143,16 +2792,10 @@
                             "type": "string"
                           },
                           "error": {
-                            "type": [
-                              "string",
-                              "null"
-                            ]
+                            "type": ["string", "null"]
                           },
                           "duration_ms": {
-                            "type": [
-                              "number",
-                              "null"
-                            ]
+                            "type": ["number", "null"]
                           },
                           "created_at": {
                             "type": "number"
@@ -3176,16 +2819,10 @@
                       "type": "boolean"
                     },
                     "jobStartedAt": {
-                      "type": [
-                        "number",
-                        "null"
-                      ]
+                      "type": ["number", "null"]
                     },
                     "activeBatchId": {
-                      "type": [
-                        "string",
-                        "null"
-                      ]
+                      "type": ["string", "null"]
                     },
                     "pendingCount": {
                       "type": "number"
@@ -3215,10 +2852,7 @@
                             },
                             "status": {
                               "type": "string",
-                              "enum": [
-                                "success",
-                                "error"
-                              ]
+                              "enum": ["success", "error"]
                             }
                           },
                           "required": [
@@ -3269,10 +2903,7 @@
       "get": {
         "operationId": "get-admin-enrichment",
         "summary": "Get enrichment coverage summary and character list",
-        "tags": [
-          "admin",
-          "enrichment"
-        ],
+        "tags": ["admin", "enrichment"],
         "responses": {
           "200": {
             "description": "Success response",
@@ -3320,10 +2951,7 @@
                             "type": "string"
                           },
                           "imageUrl": {
-                            "type": [
-                              "string",
-                              "null"
-                            ]
+                            "type": ["string", "null"]
                           },
                           "enriched": {
                             "type": "boolean"
@@ -3381,10 +3009,7 @@
       "post": {
         "operationId": "post-admin-enrichment",
         "summary": "Queue enrichment retry for all or selected characters",
-        "tags": [
-          "admin",
-          "enrichment"
-        ],
+        "tags": ["admin", "enrichment"],
         "responses": {
           "200": {
             "description": "Success response",
@@ -3403,10 +3028,7 @@
                       "type": "string"
                     }
                   },
-                  "required": [
-                    "ok",
-                    "queued"
-                  ],
+                  "required": ["ok", "queued"],
                   "additionalProperties": false
                 }
               }
@@ -3450,10 +3072,7 @@
       "delete": {
         "operationId": "delete-admin-error-logs",
         "summary": "Delete error logs, optionally before a timestamp",
-        "tags": [
-          "admin",
-          "error-logs"
-        ],
+        "tags": ["admin", "error-logs"],
         "responses": {
           "200": {
             "description": "Success response",
@@ -3466,9 +3085,7 @@
                       "type": "boolean"
                     }
                   },
-                  "required": [
-                    "success"
-                  ],
+                  "required": ["success"],
                   "additionalProperties": false
                 }
               }
@@ -3501,10 +3118,7 @@
       "get": {
         "operationId": "get-admin-error-logs",
         "summary": "List error and warning logs with filters",
-        "tags": [
-          "admin",
-          "error-logs"
-        ],
+        "tags": ["admin", "error-logs"],
         "responses": {
           "200": {
             "description": "Success response",
@@ -3531,10 +3145,7 @@
                             "type": "string"
                           },
                           "detail": {
-                            "type": [
-                              "string",
-                              "null"
-                            ]
+                            "type": ["string", "null"]
                           },
                           "created_at": {
                             "type": "number"
@@ -3567,13 +3178,7 @@
                       }
                     }
                   },
-                  "required": [
-                    "logs",
-                    "total",
-                    "page",
-                    "pageSize",
-                    "sources"
-                  ],
+                  "required": ["logs", "total", "page", "pageSize", "sources"],
                   "additionalProperties": false
                 }
               }
@@ -3597,10 +3202,7 @@
       "get": {
         "operationId": "get-admin-experiments",
         "summary": "Get A/B experiment performance dashboard",
-        "tags": [
-          "admin",
-          "experiments"
-        ],
+        "tags": ["admin", "experiments"],
         "responses": {
           "200": {
             "description": "Success response",
@@ -3619,22 +3221,13 @@
                           "type": "number"
                         },
                         "selector": {
-                          "type": [
-                            "string",
-                            "null"
-                          ]
+                          "type": ["string", "null"]
                         },
                         "weights": {
-                          "type": [
-                            "string",
-                            "null"
-                          ]
+                          "type": ["string", "null"]
                         },
                         "activeWeights": {
-                          "type": [
-                            "string",
-                            "null"
-                          ]
+                          "type": ["string", "null"]
                         },
                         "autoTuneEnabled": {
                           "type": "boolean"
@@ -3670,28 +3263,16 @@
                             "type": "number"
                           },
                           "avgQuestions": {
-                            "type": [
-                              "number",
-                              "null"
-                            ]
+                            "type": ["number", "null"]
                           },
                           "avgConfidence": {
-                            "type": [
-                              "number",
-                              "null"
-                            ]
+                            "type": ["number", "null"]
                           },
                           "z": {
-                            "type": [
-                              "number",
-                              "null"
-                            ]
+                            "type": ["number", "null"]
                           },
                           "pValue": {
-                            "type": [
-                              "number",
-                              "null"
-                            ]
+                            "type": ["number", "null"]
                           },
                           "ci95": {
                             "type": "number"
@@ -3713,11 +3294,7 @@
                       }
                     }
                   },
-                  "required": [
-                    "windowDays",
-                    "config",
-                    "arms"
-                  ],
+                  "required": ["windowDays", "config", "arms"],
                   "additionalProperties": false
                 }
               }
@@ -3739,10 +3316,7 @@
       "post": {
         "operationId": "post-admin-experiments",
         "summary": "Update live experiment configuration",
-        "tags": [
-          "admin",
-          "experiments"
-        ],
+        "tags": ["admin", "experiments"],
         "responses": {
           "200": {
             "description": "Success response",
@@ -3761,10 +3335,7 @@
                       }
                     }
                   },
-                  "required": [
-                    "ok",
-                    "updated"
-                  ],
+                  "required": ["ok", "updated"],
                   "additionalProperties": false
                 }
               }
@@ -3796,10 +3367,7 @@
                   },
                   "selector": {
                     "type": "string",
-                    "enum": [
-                      "greedy",
-                      "mcts"
-                    ]
+                    "enum": ["greedy", "mcts"]
                   },
                   "autoTuneEnabled": {
                     "type": "boolean"
@@ -3816,10 +3384,7 @@
       "get": {
         "operationId": "get-admin-funnel",
         "summary": "Get game funnel and question frustration analytics",
-        "tags": [
-          "admin",
-          "funnel"
-        ],
+        "tags": ["admin", "funnel"],
         "responses": {
           "200": {
             "description": "Success response",
@@ -3907,19 +3472,13 @@
                             "type": "string"
                           },
                           "text": {
-                            "type": [
-                              "string",
-                              "null"
-                            ]
+                            "type": ["string", "null"]
                           },
                           "skips": {
                             "type": "number"
                           },
                           "avg_questions_asked": {
-                            "type": [
-                              "number",
-                              "null"
-                            ]
+                            "type": ["number", "null"]
                           }
                         },
                         "required": [
@@ -3940,10 +3499,7 @@
                             "type": "string"
                           },
                           "text": {
-                            "type": [
-                              "string",
-                              "null"
-                            ]
+                            "type": ["string", "null"]
                           },
                           "shown": {
                             "type": "number"
@@ -4020,10 +3576,7 @@
       "post": {
         "operationId": "post-admin-hygiene-attributes",
         "summary": "Run attribute hygiene analysis",
-        "tags": [
-          "admin",
-          "hygiene-attributes"
-        ],
+        "tags": ["admin", "hygiene-attributes"],
         "responses": {
           "200": {
             "description": "Success response",
@@ -4091,9 +3644,7 @@
                       }
                     }
                   },
-                  "required": [
-                    "issues"
-                  ],
+                  "required": ["issues"],
                   "additionalProperties": false
                 }
               }
@@ -4138,11 +3689,7 @@
                     }
                   }
                 },
-                "required": [
-                  "characterId",
-                  "characterName",
-                  "attributes"
-                ],
+                "required": ["characterId", "characterName", "attributes"],
                 "additionalProperties": false
               }
             }
@@ -4154,10 +3701,7 @@
       "post": {
         "operationId": "post-admin-hygiene-categories",
         "summary": "Suggest corrected category for a character",
-        "tags": [
-          "admin",
-          "hygiene-categories"
-        ],
+        "tags": ["admin", "hygiene-categories"],
         "responses": {
           "200": {
             "description": "Success response",
@@ -4206,9 +3750,7 @@
                       ]
                     }
                   },
-                  "required": [
-                    "suggestion"
-                  ],
+                  "required": ["suggestion"],
                   "additionalProperties": false
                 }
               }
@@ -4283,10 +3825,7 @@
       "post": {
         "operationId": "post-admin-hygiene-duplicates",
         "summary": "Analyze whether two characters are duplicates",
-        "tags": [
-          "admin",
-          "hygiene-duplicates"
-        ],
+        "tags": ["admin", "hygiene-duplicates"],
         "responses": {
           "200": {
             "description": "Success response",
@@ -4305,9 +3844,7 @@
                       "type": "string"
                     }
                   },
-                  "required": [
-                    "isDuplicate"
-                  ],
+                  "required": ["isDuplicate"],
                   "additionalProperties": false
                 }
               }
@@ -4342,10 +3879,7 @@
                         "type": "string"
                       }
                     },
-                    "required": [
-                      "id",
-                      "name"
-                    ],
+                    "required": ["id", "name"],
                     "additionalProperties": false
                   },
                   "b": {
@@ -4358,17 +3892,11 @@
                         "type": "string"
                       }
                     },
-                    "required": [
-                      "id",
-                      "name"
-                    ],
+                    "required": ["id", "name"],
                     "additionalProperties": false
                   }
                 },
-                "required": [
-                  "a",
-                  "b"
-                ],
+                "required": ["a", "b"],
                 "additionalProperties": false
               }
             }
@@ -4380,10 +3908,7 @@
       "post": {
         "operationId": "post-admin-hygiene-question-scores",
         "summary": "Score question quality in bulk",
-        "tags": [
-          "admin",
-          "hygiene-question-scores"
-        ],
+        "tags": ["admin", "hygiene-question-scores"],
         "responses": {
           "200": {
             "description": "Success response",
@@ -4423,9 +3948,7 @@
                       }
                     }
                   },
-                  "required": [
-                    "scores"
-                  ],
+                  "required": ["scores"],
                   "additionalProperties": false
                 }
               }
@@ -4467,18 +3990,12 @@
                           "type": "string"
                         }
                       },
-                      "required": [
-                        "id",
-                        "text",
-                        "attribute"
-                      ],
+                      "required": ["id", "text", "attribute"],
                       "additionalProperties": false
                     }
                   }
                 },
-                "required": [
-                  "questions"
-                ],
+                "required": ["questions"],
                 "additionalProperties": false
               }
             }
@@ -4490,10 +4007,7 @@
       "get": {
         "operationId": "get-admin-image-health",
         "summary": "Get image health completeness report",
-        "tags": [
-          "admin",
-          "image-health"
-        ],
+        "tags": ["admin", "image-health"],
         "responses": {
           "200": {
             "description": "Success response",
@@ -4654,10 +4168,7 @@
       "get": {
         "operationId": "get-admin-live-ops",
         "summary": "Get rolling one-hour live ops health snapshot",
-        "tags": [
-          "admin",
-          "live-ops"
-        ],
+        "tags": ["admin", "live-ops"],
         "responses": {
           "200": {
             "description": "Success response",
@@ -4685,37 +4196,22 @@
                       "type": "number"
                     },
                     "winRate": {
-                      "type": [
-                        "number",
-                        "null"
-                      ]
+                      "type": ["number", "null"]
                     },
                     "errorsPerMin": {
                       "type": "number"
                     },
                     "errorRate": {
-                      "type": [
-                        "number",
-                        "null"
-                      ]
+                      "type": ["number", "null"]
                     },
                     "p95LatencyMs": {
-                      "type": [
-                        "number",
-                        "null"
-                      ]
+                      "type": ["number", "null"]
                     },
                     "telemetryErrors1h": {
-                      "type": [
-                        "number",
-                        "null"
-                      ]
+                      "type": ["number", "null"]
                     },
                     "loggingGap": {
-                      "type": [
-                        "boolean",
-                        "null"
-                      ]
+                      "type": ["boolean", "null"]
                     },
                     "generatedAt": {
                       "type": "number"
@@ -4759,10 +4255,7 @@
       "get": {
         "operationId": "get-admin-matrix",
         "summary": "Get character-attribute matrix slice",
-        "tags": [
-          "admin",
-          "matrix"
-        ],
+        "tags": ["admin", "matrix"],
         "responses": {
           "200": {
             "description": "Success response",
@@ -4786,18 +4279,10 @@
                             "type": "string"
                           },
                           "popularity": {
-                            "type": [
-                              "number",
-                              "null"
-                            ]
+                            "type": ["number", "null"]
                           }
                         },
-                        "required": [
-                          "id",
-                          "name",
-                          "category",
-                          "popularity"
-                        ],
+                        "required": ["id", "name", "category", "popularity"],
                         "additionalProperties": false
                       }
                     },
@@ -4813,10 +4298,7 @@
                             "type": "string"
                           }
                         },
-                        "required": [
-                          "key",
-                          "displayText"
-                        ],
+                        "required": ["key", "displayText"],
                         "additionalProperties": false
                       }
                     },
@@ -4837,11 +4319,7 @@
                       }
                     }
                   },
-                  "required": [
-                    "characters",
-                    "attributes",
-                    "values"
-                  ],
+                  "required": ["characters", "attributes", "values"],
                   "additionalProperties": false
                 }
               }
@@ -4865,10 +4343,7 @@
       "get": {
         "operationId": "get-admin-pipeline",
         "summary": "List pipeline run audit entries",
-        "tags": [
-          "admin",
-          "pipeline"
-        ],
+        "tags": ["admin", "pipeline"],
         "responses": {
           "200": {
             "description": "Success response",
@@ -4903,24 +4378,13 @@
                           },
                           "status": {
                             "type": "string",
-                            "enum": [
-                              "pending",
-                              "running",
-                              "success",
-                              "error"
-                            ]
+                            "enum": ["pending", "running", "success", "error"]
                           },
                           "error": {
-                            "type": [
-                              "string",
-                              "null"
-                            ]
+                            "type": ["string", "null"]
                           },
                           "durationMs": {
-                            "type": [
-                              "number",
-                              "null"
-                            ]
+                            "type": ["number", "null"]
                           },
                           "createdAt": {
                             "type": "number"
@@ -4949,12 +4413,7 @@
                       "type": "number"
                     }
                   },
-                  "required": [
-                    "runs",
-                    "total",
-                    "page",
-                    "pageSize"
-                  ],
+                  "required": ["runs", "total", "page", "pageSize"],
                   "additionalProperties": false
                 }
               }
@@ -4976,10 +4435,7 @@
       "post": {
         "operationId": "post-admin-pipeline",
         "summary": "Log a pipeline run entry",
-        "tags": [
-          "admin",
-          "pipeline"
-        ],
+        "tags": ["admin", "pipeline"],
         "responses": {
           "200": {
             "description": "Success response",
@@ -4995,10 +4451,7 @@
                       "type": "number"
                     }
                   },
-                  "required": [
-                    "ok",
-                    "id"
-                  ],
+                  "required": ["ok", "id"],
                   "additionalProperties": false
                 }
               }
@@ -5031,22 +4484,11 @@
                   },
                   "step": {
                     "type": "string",
-                    "enum": [
-                      "fetch",
-                      "dedup",
-                      "enrich",
-                      "image",
-                      "upload"
-                    ]
+                    "enum": ["fetch", "dedup", "enrich", "image", "upload"]
                   },
                   "status": {
                     "type": "string",
-                    "enum": [
-                      "pending",
-                      "running",
-                      "success",
-                      "error"
-                    ]
+                    "enum": ["pending", "running", "success", "error"]
                   },
                   "error": {
                     "type": "string"
@@ -5055,12 +4497,7 @@
                     "type": "number"
                   }
                 },
-                "required": [
-                  "runBatch",
-                  "characterId",
-                  "step",
-                  "status"
-                ],
+                "required": ["runBatch", "characterId", "step", "status"],
                 "additionalProperties": false
               }
             }
@@ -5072,10 +4509,7 @@
       "get": {
         "operationId": "get-admin-proposed-attributes",
         "summary": "List proposed attributes",
-        "tags": [
-          "admin",
-          "proposed-attributes"
-        ],
+        "tags": ["admin", "proposed-attributes"],
         "responses": {
           "200": {
             "description": "Success response",
@@ -5102,37 +4536,22 @@
                             "type": "string"
                           },
                           "rationale": {
-                            "type": [
-                              "string",
-                              "null"
-                            ]
+                            "type": ["string", "null"]
                           },
                           "example_chars": {
-                            "type": [
-                              "string",
-                              "null"
-                            ]
+                            "type": ["string", "null"]
                           },
                           "proposed_by": {
-                            "type": [
-                              "string",
-                              "null"
-                            ]
+                            "type": ["string", "null"]
                           },
                           "status": {
                             "type": "string"
                           },
                           "reviewed_by": {
-                            "type": [
-                              "string",
-                              "null"
-                            ]
+                            "type": ["string", "null"]
                           },
                           "reviewed_at": {
-                            "type": [
-                              "number",
-                              "null"
-                            ]
+                            "type": ["number", "null"]
                           },
                           "created_at": {
                             "type": "number"
@@ -5164,12 +4583,7 @@
                       "type": "number"
                     }
                   },
-                  "required": [
-                    "proposals",
-                    "total",
-                    "page",
-                    "pageSize"
-                  ],
+                  "required": ["proposals", "total", "page", "pageSize"],
                   "additionalProperties": false
                 }
               }
@@ -5191,10 +4605,7 @@
       "patch": {
         "operationId": "patch-admin-proposed-attributes",
         "summary": "Update proposed attribute review status",
-        "tags": [
-          "admin",
-          "proposed-attributes"
-        ],
+        "tags": ["admin", "proposed-attributes"],
         "responses": {
           "200": {
             "description": "Success response",
@@ -5207,9 +4618,7 @@
                       "type": "boolean"
                     }
                   },
-                  "required": [
-                    "ok"
-                  ],
+                  "required": ["ok"],
                   "additionalProperties": false
                 }
               }
@@ -5239,19 +4648,13 @@
                   },
                   "status": {
                     "type": "string",
-                    "enum": [
-                      "approved",
-                      "rejected"
-                    ]
+                    "enum": ["approved", "rejected"]
                   },
                   "reviewed_by": {
                     "type": "string"
                   }
                 },
-                "required": [
-                  "id",
-                  "status"
-                ],
+                "required": ["id", "status"],
                 "additionalProperties": false
               }
             }
@@ -5261,10 +4664,7 @@
       "post": {
         "operationId": "post-admin-proposed-attributes",
         "summary": "Submit one or more proposed attributes",
-        "tags": [
-          "admin",
-          "proposed-attributes"
-        ],
+        "tags": ["admin", "proposed-attributes"],
         "responses": {
           "200": {
             "description": "Success response",
@@ -5280,10 +4680,7 @@
                       "type": "number"
                     }
                   },
-                  "required": [
-                    "inserted",
-                    "submitted"
-                  ],
+                  "required": ["inserted", "submitted"],
                   "additionalProperties": false
                 }
               }
@@ -5329,11 +4726,7 @@
                         "type": "string"
                       }
                     },
-                    "required": [
-                      "key",
-                      "display_text",
-                      "question_text"
-                    ],
+                    "required": ["key", "display_text", "question_text"],
                     "additionalProperties": false
                   },
                   {
@@ -5363,20 +4756,14 @@
                               "type": "string"
                             }
                           },
-                          "required": [
-                            "key",
-                            "display_text",
-                            "question_text"
-                          ],
+                          "required": ["key", "display_text", "question_text"],
                           "additionalProperties": false
                         },
                         "minItems": 1,
                         "maxItems": 100
                       }
                     },
-                    "required": [
-                      "proposals"
-                    ],
+                    "required": ["proposals"],
                     "additionalProperties": false
                   }
                 ]
@@ -5390,10 +4777,7 @@
       "post": {
         "operationId": "post-admin-proposed-attributes-by-id",
         "summary": "Approve or reject a specific proposed attribute",
-        "tags": [
-          "admin",
-          "proposed-attributes"
-        ],
+        "tags": ["admin", "proposed-attributes"],
         "responses": {
           "200": {
             "description": "Success response",
@@ -5414,11 +4798,7 @@
                           "type": "string"
                         }
                       },
-                      "required": [
-                        "ok",
-                        "action",
-                        "key"
-                      ],
+                      "required": ["ok", "action", "key"],
                       "additionalProperties": false
                     },
                     {
@@ -5431,10 +4811,7 @@
                           "const": "rejected"
                         }
                       },
-                      "required": [
-                        "ok",
-                        "action"
-                      ],
+                      "required": ["ok", "action"],
                       "additionalProperties": false
                     }
                   ]
@@ -5463,15 +4840,10 @@
                 "properties": {
                   "action": {
                     "type": "string",
-                    "enum": [
-                      "approve",
-                      "reject"
-                    ]
+                    "enum": ["approve", "reject"]
                   }
                 },
-                "required": [
-                  "action"
-                ],
+                "required": ["action"],
                 "additionalProperties": false
               }
             }
@@ -5483,10 +4855,7 @@
       "post": {
         "operationId": "post-admin-proposed-attributes-by-id-score",
         "summary": "Run LLM quality scoring for a proposed attribute",
-        "tags": [
-          "admin",
-          "proposed-attributes"
-        ],
+        "tags": ["admin", "proposed-attributes"],
         "responses": {
           "200": {
             "description": "Success response",
@@ -5511,11 +4880,7 @@
                       }
                     }
                   },
-                  "required": [
-                    "score",
-                    "concerns",
-                    "strengths"
-                  ],
+                  "required": ["score", "concerns", "strengths"],
                   "additionalProperties": false
                 }
               }
@@ -5553,11 +4918,7 @@
                     "type": "string"
                   }
                 },
-                "required": [
-                  "key",
-                  "displayText",
-                  "questionText"
-                ],
+                "required": ["key", "displayText", "questionText"],
                 "additionalProperties": false
               }
             }
@@ -5569,10 +4930,7 @@
       "get": {
         "operationId": "get-admin-questions",
         "summary": "List admin question definitions with usage",
-        "tags": [
-          "admin",
-          "questions"
-        ],
+        "tags": ["admin", "questions"],
         "responses": {
           "200": {
             "description": "Success response",
@@ -5593,16 +4951,10 @@
                             "type": "string"
                           },
                           "questionText": {
-                            "type": [
-                              "string",
-                              "null"
-                            ]
+                            "type": ["string", "null"]
                           },
                           "categories": {
-                            "type": [
-                              "string",
-                              "null"
-                            ]
+                            "type": ["string", "null"]
                           },
                           "isActive": {
                             "type": "boolean"
@@ -5614,10 +4966,7 @@
                             "type": "number"
                           },
                           "difficulty": {
-                            "type": [
-                              "string",
-                              "null"
-                            ]
+                            "type": ["string", "null"]
                           }
                         },
                         "required": [
@@ -5643,12 +4992,7 @@
                       "type": "number"
                     }
                   },
-                  "required": [
-                    "questions",
-                    "total",
-                    "page",
-                    "pageSize"
-                  ],
+                  "required": ["questions", "total", "page", "pageSize"],
                   "additionalProperties": false
                 }
               }
@@ -5672,10 +5016,7 @@
       "patch": {
         "operationId": "patch-admin-questions-by-key",
         "summary": "Update question text, active state, or difficulty",
-        "tags": [
-          "admin",
-          "questions"
-        ],
+        "tags": ["admin", "questions"],
         "responses": {
           "200": {
             "description": "Success response",
@@ -5688,9 +5029,7 @@
                       "type": "boolean"
                     }
                   },
-                  "required": [
-                    "ok"
-                  ],
+                  "required": ["ok"],
                   "additionalProperties": false
                 }
               }
@@ -5727,11 +5066,7 @@
                     "oneOf": [
                       {
                         "type": "string",
-                        "enum": [
-                          "easy",
-                          "medium",
-                          "hard"
-                        ]
+                        "enum": ["easy", "medium", "hard"]
                       },
                       {
                         "type": "null"
@@ -5750,10 +5085,7 @@
       "post": {
         "operationId": "post-admin-questions-by-key-retire",
         "summary": "Retire all questions for an attribute key",
-        "tags": [
-          "admin",
-          "questions"
-        ],
+        "tags": ["admin", "questions"],
         "responses": {
           "200": {
             "description": "Success response",
@@ -5769,17 +5101,10 @@
                       "type": "number"
                     },
                     "reason": {
-                      "type": [
-                        "string",
-                        "null"
-                      ]
+                      "type": ["string", "null"]
                     }
                   },
-                  "required": [
-                    "ok",
-                    "retired",
-                    "reason"
-                  ],
+                  "required": ["ok", "retired", "reason"],
                   "additionalProperties": false
                 }
               }
@@ -5820,10 +5145,7 @@
       "post": {
         "operationId": "post-admin-questions-by-key-score",
         "summary": "Run LLM quality scoring for a question",
-        "tags": [
-          "admin",
-          "questions"
-        ],
+        "tags": ["admin", "questions"],
         "responses": {
           "200": {
             "description": "Success response",
@@ -5845,11 +5167,7 @@
                       "type": "string"
                     }
                   },
-                  "required": [
-                    "clarity",
-                    "power",
-                    "grammar"
-                  ],
+                  "required": ["clarity", "power", "grammar"],
                   "additionalProperties": false
                 }
               }
@@ -5892,10 +5210,7 @@
       "post": {
         "operationId": "post-admin-questions-by-key-unretire",
         "summary": "Unretire all questions for an attribute key",
-        "tags": [
-          "admin",
-          "questions"
-        ],
+        "tags": ["admin", "questions"],
         "responses": {
           "200": {
             "description": "Success response",
@@ -5911,10 +5226,7 @@
                       "type": "number"
                     }
                   },
-                  "required": [
-                    "ok",
-                    "unretired"
-                  ],
+                  "required": ["ok", "unretired"],
                   "additionalProperties": false
                 }
               }
@@ -5949,10 +5261,7 @@
       "post": {
         "operationId": "post-admin-questions-bulk",
         "summary": "Bulk update question active state and difficulty",
-        "tags": [
-          "admin",
-          "questions"
-        ],
+        "tags": ["admin", "questions"],
         "responses": {
           "200": {
             "description": "Success response",
@@ -6019,11 +5328,7 @@
                     "oneOf": [
                       {
                         "type": "string",
-                        "enum": [
-                          "easy",
-                          "medium",
-                          "hard"
-                        ]
+                        "enum": ["easy", "medium", "hard"]
                       },
                       {
                         "type": "null"
@@ -6042,10 +5347,7 @@
       "post": {
         "operationId": "post-admin-questions-duplicates-backfill",
         "summary": "Backfill question embeddings for duplicate detection",
-        "tags": [
-          "admin",
-          "questions"
-        ],
+        "tags": ["admin", "questions"],
         "responses": {
           "200": {
             "description": "Success response",
@@ -6064,11 +5366,7 @@
                       "type": "number"
                     }
                   },
-                  "required": [
-                    "embedded",
-                    "model",
-                    "dim"
-                  ],
+                  "required": ["embedded", "model", "dim"],
                   "additionalProperties": false
                 }
               }
@@ -6110,10 +5408,7 @@
       "post": {
         "operationId": "post-admin-questions-duplicates-dismiss",
         "summary": "Dismiss a duplicate-question pair",
-        "tags": [
-          "admin",
-          "questions"
-        ],
+        "tags": ["admin", "questions"],
         "responses": {
           "200": {
             "description": "Success response",
@@ -6129,10 +5424,7 @@
                       "type": "string"
                     }
                   },
-                  "required": [
-                    "ok",
-                    "pairKey"
-                  ],
+                  "required": ["ok", "pairKey"],
                   "additionalProperties": false
                 }
               }
@@ -6167,9 +5459,7 @@
                     "type": "string"
                   }
                 },
-                "required": [
-                  "pairKey"
-                ],
+                "required": ["pairKey"],
                 "additionalProperties": false
               }
             }
@@ -6181,10 +5471,7 @@
       "post": {
         "operationId": "post-admin-questions-duplicates-merge",
         "summary": "Merge duplicate questions by retiring source",
-        "tags": [
-          "admin",
-          "questions"
-        ],
+        "tags": ["admin", "questions"],
         "responses": {
           "200": {
             "description": "Success response",
@@ -6250,10 +5537,7 @@
                     "type": "string"
                   }
                 },
-                "required": [
-                  "sourceKey",
-                  "targetKey"
-                ],
+                "required": ["sourceKey", "targetKey"],
                 "additionalProperties": false
               }
             }
@@ -6265,10 +5549,7 @@
       "get": {
         "operationId": "get-admin-questions-expand",
         "summary": "Get recent question expansion runs",
-        "tags": [
-          "admin",
-          "questions"
-        ],
+        "tags": ["admin", "questions"],
         "responses": {
           "200": {
             "description": "Success response",
@@ -6320,10 +5601,7 @@
                           },
                           "status": {
                             "type": "string",
-                            "enum": [
-                              "success",
-                              "error"
-                            ]
+                            "enum": ["success", "error"]
                           },
                           "error": {
                             "type": "string"
@@ -6346,11 +5624,7 @@
                       }
                     }
                   },
-                  "required": [
-                    "ok",
-                    "requestId",
-                    "runs"
-                  ],
+                  "required": ["ok", "requestId", "runs"],
                   "additionalProperties": false
                 }
               }
@@ -6372,10 +5646,7 @@
       "post": {
         "operationId": "post-admin-questions-expand",
         "summary": "Run heuristic question expansion",
-        "tags": [
-          "admin",
-          "questions"
-        ],
+        "tags": ["admin", "questions"],
         "responses": {
           "200": {
             "description": "Success response",
@@ -6417,11 +5688,7 @@
                             "type": "string"
                           }
                         },
-                        "required": [
-                          "id",
-                          "attributeKey",
-                          "text"
-                        ],
+                        "required": ["id", "attributeKey", "text"],
                         "additionalProperties": false
                       }
                     }
@@ -6489,10 +5756,7 @@
       "get": {
         "operationId": "get-admin-questions-retirement-queue",
         "summary": "Get question retirement candidates or retired list",
-        "tags": [
-          "admin",
-          "questions"
-        ],
+        "tags": ["admin", "questions"],
         "responses": {
           "200": {
             "description": "Success response",
@@ -6524,16 +5788,10 @@
                                 "type": "string"
                               },
                               "text": {
-                                "type": [
-                                  "string",
-                                  "null"
-                                ]
+                                "type": ["string", "null"]
                               },
                               "attributeKey": {
-                                "type": [
-                                  "string",
-                                  "null"
-                                ]
+                                "type": ["string", "null"]
                               },
                               "shown": {
                                 "type": "number"
@@ -6627,10 +5885,7 @@
                                 "type": "number"
                               },
                               "retiredReason": {
-                                "type": [
-                                  "string",
-                                  "null"
-                                ]
+                                "type": ["string", "null"]
                               }
                             },
                             "required": [
@@ -6676,10 +5931,7 @@
       "post": {
         "operationId": "post-admin-recommender",
         "summary": "Generate LLM-powered attribute recommendations",
-        "tags": [
-          "admin",
-          "recommender"
-        ],
+        "tags": ["admin", "recommender"],
         "responses": {
           "200": {
             "description": "Success response",
@@ -6704,11 +5956,7 @@
                           },
                           "priority": {
                             "type": "string",
-                            "enum": [
-                              "high",
-                              "medium",
-                              "low"
-                            ]
+                            "enum": ["high", "medium", "low"]
                           }
                         },
                         "required": [
@@ -6721,9 +5969,7 @@
                       }
                     }
                   },
-                  "required": [
-                    "recommendations"
-                  ],
+                  "required": ["recommendations"],
                   "additionalProperties": false
                 }
               }
@@ -6780,10 +6026,7 @@
                           "type": "string"
                         }
                       },
-                      "required": [
-                        "key",
-                        "label"
-                      ],
+                      "required": ["key", "label"],
                       "additionalProperties": false
                     }
                   },
@@ -6810,10 +6053,7 @@
       "post": {
         "operationId": "post-admin-resolve-stack",
         "summary": "Resolve stack trace frames against uploaded source maps",
-        "tags": [
-          "admin",
-          "resolve-stack"
-        ],
+        "tags": ["admin", "resolve-stack"],
         "responses": {
           "200": {
             "description": "Success response",
@@ -6848,10 +6088,7 @@
                                     "type": "number"
                                   },
                                   "name": {
-                                    "type": [
-                                      "string",
-                                      "null"
-                                    ]
+                                    "type": ["string", "null"]
                                   }
                                 },
                                 "required": [
@@ -6871,18 +6108,12 @@
                             "type": "string"
                           }
                         },
-                        "required": [
-                          "raw",
-                          "resolved"
-                        ],
+                        "required": ["raw", "resolved"],
                         "additionalProperties": false
                       }
                     }
                   },
-                  "required": [
-                    "sha",
-                    "frames"
-                  ],
+                  "required": ["sha", "frames"],
                   "additionalProperties": false
                 }
               }
@@ -6916,9 +6147,7 @@
                     "type": "string"
                   }
                 },
-                "required": [
-                  "stack"
-                ],
+                "required": ["stack"],
                 "additionalProperties": false
               }
             }
@@ -6930,10 +6159,7 @@
       "get": {
         "operationId": "get-admin-source-health",
         "summary": "Get source and source_id health report",
-        "tags": [
-          "admin",
-          "source-health"
-        ],
+        "tags": ["admin", "source-health"],
         "responses": {
           "200": {
             "description": "Success response",
@@ -7022,10 +6248,7 @@
                             "type": "string"
                           },
                           "sourceId": {
-                            "type": [
-                              "string",
-                              "null"
-                            ]
+                            "type": ["string", "null"]
                           },
                           "issueType": {
                             "type": "string",
@@ -7102,10 +6325,7 @@
       "get": {
         "operationId": "get-admin-source-health-status",
         "summary": "Get latest persisted source health report status",
-        "tags": [
-          "admin",
-          "source-health-status"
-        ],
+        "tags": ["admin", "source-health-status"],
         "responses": {
           "200": {
             "description": "Success response",
@@ -7199,10 +6419,7 @@
                                     "type": "string"
                                   },
                                   "sourceId": {
-                                    "type": [
-                                      "string",
-                                      "null"
-                                    ]
+                                    "type": ["string", "null"]
                                   },
                                   "issueType": {
                                     "type": "string",
@@ -7259,10 +6476,7 @@
                       "type": "number"
                     }
                   },
-                  "required": [
-                    "report",
-                    "fetchedAt"
-                  ],
+                  "required": ["report", "fetchedAt"],
                   "additionalProperties": false
                 }
               }
@@ -7286,10 +6500,7 @@
       "get": {
         "operationId": "get-admin-stress-test",
         "summary": "Get stress-test aggregate simulation stats",
-        "tags": [
-          "admin",
-          "stress-test"
-        ],
+        "tags": ["admin", "stress-test"],
         "responses": {
           "200": {
             "description": "Success response",
@@ -7307,10 +6518,7 @@
                           "type": "string"
                         }
                       },
-                      "required": [
-                        "hasData",
-                        "message"
-                      ],
+                      "required": ["hasData", "message"],
                       "additionalProperties": false
                     },
                     {
@@ -7469,10 +6677,7 @@
       "get": {
         "operationId": "get-admin-triage",
         "summary": "Get catastrophic-failure triage queue",
-        "tags": [
-          "admin",
-          "triage"
-        ],
+        "tags": ["admin", "triage"],
         "responses": {
           "200": {
             "description": "Success response",
@@ -7495,16 +6700,10 @@
                                 "type": "string"
                               },
                               "actual_character_name": {
-                                "type": [
-                                  "string",
-                                  "null"
-                                ]
+                                "type": ["string", "null"]
                               },
                               "min_rank": {
-                                "type": [
-                                  "number",
-                                  "null"
-                                ]
+                                "type": ["number", "null"]
                               },
                               "created_at": {
                                 "type": "number"
@@ -7530,12 +6729,7 @@
                           "type": "number"
                         }
                       },
-                      "required": [
-                        "rows",
-                        "total",
-                        "limit",
-                        "offset"
-                      ],
+                      "required": ["rows", "total", "limit", "offset"],
                       "additionalProperties": false
                     },
                     {
@@ -7548,16 +6742,10 @@
                           "type": "string"
                         },
                         "actualCharacterName": {
-                          "type": [
-                            "string",
-                            "null"
-                          ]
+                          "type": ["string", "null"]
                         },
                         "minRank": {
-                          "type": [
-                            "number",
-                            "null"
-                          ]
+                          "type": ["number", "null"]
                         },
                         "createdAt": {
                           "type": "number"
@@ -7591,10 +6779,7 @@
                                       "type": "string"
                                     }
                                   },
-                                  "required": [
-                                    "id",
-                                    "name"
-                                  ],
+                                  "required": ["id", "name"],
                                   "additionalProperties": false
                                 }
                               }
@@ -7643,10 +6828,7 @@
       "post": {
         "operationId": "post-admin-upload-attrs",
         "summary": "Bulk upload character attributes and image URLs",
-        "tags": [
-          "admin",
-          "upload-attrs"
-        ],
+        "tags": ["admin", "upload-attrs"],
         "responses": {
           "200": {
             "description": "Success response",
@@ -7671,11 +6853,7 @@
                       }
                     }
                   },
-                  "required": [
-                    "ok",
-                    "attributes",
-                    "images"
-                  ],
+                  "required": ["ok", "attributes", "images"],
                   "additionalProperties": false
                 }
               }
@@ -7719,11 +6897,7 @@
                           "type": "number"
                         }
                       },
-                      "required": [
-                        "c",
-                        "k",
-                        "v"
-                      ],
+                      "required": ["c", "k", "v"],
                       "additionalProperties": false
                     }
                   },
@@ -7740,17 +6914,12 @@
                           "type": "string"
                         }
                       },
-                      "required": [
-                        "id",
-                        "url"
-                      ],
+                      "required": ["id", "url"],
                       "additionalProperties": false
                     }
                   }
                 },
-                "required": [
-                  "secret"
-                ],
+                "required": ["secret"],
                 "additionalProperties": false
               }
             }
@@ -7762,10 +6931,7 @@
       "get": {
         "operationId": "get-admin-workflow-progress",
         "summary": "Get mission-control workflow progress state",
-        "tags": [
-          "admin",
-          "workflow-progress"
-        ],
+        "tags": ["admin", "workflow-progress"],
         "responses": {
           "200": {
             "description": "Success response",
@@ -7780,40 +6946,24 @@
                         "type": "object",
                         "properties": {
                           "activeTo": {
-                            "type": [
-                              "string",
-                              "null"
-                            ]
+                            "type": ["string", "null"]
                           },
                           "completed": {
                             "type": "boolean"
                           }
                         },
-                        "required": [
-                          "activeTo",
-                          "completed"
-                        ],
+                        "required": ["activeTo", "completed"],
                         "additionalProperties": false
                       }
                     },
                     "updatedAt": {
-                      "type": [
-                        "number",
-                        "null"
-                      ]
+                      "type": ["number", "null"]
                     },
                     "updatedBy": {
-                      "type": [
-                        "string",
-                        "null"
-                      ]
+                      "type": ["string", "null"]
                     }
                   },
-                  "required": [
-                    "progress",
-                    "updatedAt",
-                    "updatedBy"
-                  ],
+                  "required": ["progress", "updatedAt", "updatedBy"],
                   "additionalProperties": false
                 }
               }
@@ -7835,10 +6985,7 @@
       "post": {
         "operationId": "post-admin-workflow-progress",
         "summary": "Update mission-control workflow progress state",
-        "tags": [
-          "admin",
-          "workflow-progress"
-        ],
+        "tags": ["admin", "workflow-progress"],
         "responses": {
           "200": {
             "description": "Success response",
@@ -7856,19 +7003,13 @@
                         "type": "object",
                         "properties": {
                           "activeTo": {
-                            "type": [
-                              "string",
-                              "null"
-                            ]
+                            "type": ["string", "null"]
                           },
                           "completed": {
                             "type": "boolean"
                           }
                         },
-                        "required": [
-                          "activeTo",
-                          "completed"
-                        ],
+                        "required": ["activeTo", "completed"],
                         "additionalProperties": false
                       }
                     },
@@ -7879,12 +7020,7 @@
                       "type": "string"
                     }
                   },
-                  "required": [
-                    "ok",
-                    "progress",
-                    "updatedAt",
-                    "updatedBy"
-                  ],
+                  "required": ["ok", "progress", "updatedAt", "updatedBy"],
                   "additionalProperties": false
                 }
               }
@@ -7915,26 +7051,18 @@
                       "type": "object",
                       "properties": {
                         "activeTo": {
-                          "type": [
-                            "string",
-                            "null"
-                          ]
+                          "type": ["string", "null"]
                         },
                         "completed": {
                           "type": "boolean"
                         }
                       },
-                      "required": [
-                        "activeTo",
-                        "completed"
-                      ],
+                      "required": ["activeTo", "completed"],
                       "additionalProperties": false
                     }
                   }
                 },
-                "required": [
-                  "progress"
-                ],
+                "required": ["progress"],
                 "additionalProperties": false
               }
             }
@@ -7946,9 +7074,7 @@
       "get": {
         "operationId": "get-characters",
         "summary": "List legacy custom characters",
-        "tags": [
-          "characters"
-        ],
+        "tags": ["characters"],
         "responses": {
           "200": {
             "description": "Success response",
@@ -8013,9 +7139,7 @@
       "post": {
         "operationId": "post-characters",
         "summary": "Create a legacy custom character",
-        "tags": [
-          "characters"
-        ],
+        "tags": ["characters"],
         "responses": {
           "200": {
             "description": "Success response",
@@ -8115,11 +7239,7 @@
                     }
                   }
                 },
-                "required": [
-                  "name",
-                  "category",
-                  "attributes"
-                ],
+                "required": ["name", "category", "attributes"],
                 "additionalProperties": false
               }
             }
@@ -8131,9 +7251,7 @@
       "get": {
         "operationId": "get-corrections",
         "summary": "List correction votes for a character",
-        "tags": [
-          "corrections"
-        ],
+        "tags": ["corrections"],
         "responses": {
           "200": {
             "description": "Success response",
@@ -8191,9 +7309,7 @@
       "post": {
         "operationId": "post-corrections",
         "summary": "Submit a correction vote",
-        "tags": [
-          "corrections"
-        ],
+        "tags": ["corrections"],
         "responses": {
           "200": {
             "description": "Success response",
@@ -8209,10 +7325,7 @@
                       "type": "boolean"
                     }
                   },
-                  "required": [
-                    "success",
-                    "autoApplied"
-                  ],
+                  "required": ["success", "autoApplied"],
                   "additionalProperties": false
                 }
               }
@@ -8252,11 +7365,7 @@
                     ]
                   }
                 },
-                "required": [
-                  "characterId",
-                  "attribute",
-                  "suggestedValue"
-                ],
+                "required": ["characterId", "attribute", "suggestedValue"],
                 "additionalProperties": false
               }
             }
@@ -8268,9 +7377,7 @@
       "post": {
         "operationId": "post-csp-report",
         "summary": "Ingest CSP violation reports",
-        "tags": [
-          "csp-report"
-        ],
+        "tags": ["csp-report"],
         "responses": {
           "200": {
             "description": "Success response",
@@ -8312,9 +7419,7 @@
       "get": {
         "operationId": "get-images-by-path",
         "summary": "Fetch character image asset from R2",
-        "tags": [
-          "images"
-        ],
+        "tags": ["images"],
         "responses": {
           "200": {
             "description": "Success response",
@@ -8345,9 +7450,7 @@
       "post": {
         "operationId": "post-llm",
         "summary": "Proxy non-streaming LLM completions",
-        "tags": [
-          "llm"
-        ],
+        "tags": ["llm"],
         "responses": {
           "200": {
             "description": "Success response",
@@ -8385,10 +7488,7 @@
                   },
                   "model": {
                     "type": "string",
-                    "enum": [
-                      "gpt-4o",
-                      "gpt-4o-mini"
-                    ]
+                    "enum": ["gpt-4o", "gpt-4o-mini"]
                   },
                   "jsonMode": {
                     "type": "boolean"
@@ -8401,10 +7501,7 @@
                     "type": "string"
                   }
                 },
-                "required": [
-                  "prompt",
-                  "model"
-                ],
+                "required": ["prompt", "model"],
                 "additionalProperties": false
               }
             }
@@ -8416,9 +7513,7 @@
       "post": {
         "operationId": "post-llm-stream",
         "summary": "Proxy streaming LLM completions",
-        "tags": [
-          "llm-stream"
-        ],
+        "tags": ["llm-stream"],
         "responses": {
           "200": {
             "description": "Success response",
@@ -8459,19 +7554,13 @@
                   },
                   "model": {
                     "type": "string",
-                    "enum": [
-                      "gpt-4o",
-                      "gpt-4o-mini"
-                    ]
+                    "enum": ["gpt-4o", "gpt-4o-mini"]
                   },
                   "systemPrompt": {
                     "type": "string"
                   }
                 },
-                "required": [
-                  "prompt",
-                  "model"
-                ],
+                "required": ["prompt", "model"],
                 "additionalProperties": false
               }
             }
@@ -8483,9 +7572,7 @@
       "get": {
         "operationId": "get-questions",
         "summary": "List legacy custom questions",
-        "tags": [
-          "questions"
-        ],
+        "tags": ["questions"],
         "responses": {
           "200": {
             "description": "Success response",
@@ -8536,9 +7623,7 @@
       "post": {
         "operationId": "post-questions",
         "summary": "Create a legacy custom question",
-        "tags": [
-          "questions"
-        ],
+        "tags": ["questions"],
         "responses": {
           "200": {
             "description": "Success response",
@@ -8601,10 +7686,7 @@
                     "pattern": "^[a-z][a-zA-Z]*$"
                   }
                 },
-                "required": [
-                  "text",
-                  "attribute"
-                ],
+                "required": ["text", "attribute"],
                 "additionalProperties": false
               }
             }
@@ -8616,9 +7698,7 @@
       "get": {
         "operationId": "get-stats",
         "summary": "Get legacy per-character or leaderboard stats",
-        "tags": [
-          "stats"
-        ],
+        "tags": ["stats"],
         "responses": {
           "200": {
             "description": "Success response",
@@ -8719,9 +7799,7 @@
       "post": {
         "operationId": "post-stats",
         "summary": "Record legacy game stat entry",
-        "tags": [
-          "stats"
-        ],
+        "tags": ["stats"],
         "responses": {
           "200": {
             "description": "Success response",
@@ -8734,9 +7812,7 @@
                       "type": "boolean"
                     }
                   },
-                  "required": [
-                    "success"
-                  ],
+                  "required": ["success"],
                   "additionalProperties": false
                 }
               }
@@ -8771,11 +7847,7 @@
                   "difficulty": {
                     "default": "medium",
                     "type": "string",
-                    "enum": [
-                      "easy",
-                      "medium",
-                      "hard"
-                    ]
+                    "enum": ["easy", "medium", "hard"]
                   }
                 },
                 "required": [
@@ -8795,9 +7867,7 @@
       "get": {
         "operationId": "get-sync",
         "summary": "Get legacy user sync payload",
-        "tags": [
-          "sync"
-        ],
+        "tags": ["sync"],
         "responses": {
           "200": {
             "description": "Success response",
@@ -8821,12 +7891,7 @@
                       "type": "number"
                     }
                   },
-                  "required": [
-                    "userId",
-                    "settings",
-                    "gameStats",
-                    "lastSync"
-                  ],
+                  "required": ["userId", "settings", "gameStats", "lastSync"],
                   "additionalProperties": false
                 }
               }
@@ -8843,9 +7908,7 @@
       "post": {
         "operationId": "post-sync",
         "summary": "Update legacy user sync payload",
-        "tags": [
-          "sync"
-        ],
+        "tags": ["sync"],
         "responses": {
           "200": {
             "description": "Success response",
@@ -8861,10 +7924,7 @@
                       "type": "number"
                     }
                   },
-                  "required": [
-                    "success",
-                    "lastSync"
-                  ],
+                  "required": ["success", "lastSync"],
                   "additionalProperties": false
                 }
               }
@@ -8894,10 +7954,7 @@
       "get": {
         "operationId": "get-v2-attributes",
         "summary": "List attribute definitions with optional coverage",
-        "tags": [
-          "v2",
-          "attributes"
-        ],
+        "tags": ["v2", "attributes"],
         "responses": {
           "200": {
             "description": "Success response",
@@ -8917,28 +7974,16 @@
                             "type": "string"
                           },
                           "question_text": {
-                            "type": [
-                              "string",
-                              "null"
-                            ]
+                            "type": ["string", "null"]
                           },
                           "categories": {
-                            "type": [
-                              "string",
-                              "null"
-                            ]
+                            "type": ["string", "null"]
                           },
                           "created_at": {
-                            "type": [
-                              "number",
-                              "null"
-                            ]
+                            "type": ["number", "null"]
                           }
                         },
-                        "required": [
-                          "key",
-                          "display_text"
-                        ],
+                        "required": ["key", "display_text"],
                         "additionalProperties": true
                       }
                     },
@@ -9003,10 +8048,7 @@
       "get": {
         "operationId": "get-v2-characters",
         "summary": "List characters or fetch one character by id",
-        "tags": [
-          "v2",
-          "characters"
-        ],
+        "tags": ["v2", "characters"],
         "responses": {
           "200": {
             "description": "Success response",
@@ -9040,12 +8082,7 @@
                           }
                         }
                       },
-                      "required": [
-                        "id",
-                        "name",
-                        "category",
-                        "attributes"
-                      ],
+                      "required": ["id", "name", "category", "attributes"],
                       "additionalProperties": true
                     },
                     {
@@ -9066,11 +8103,7 @@
                                 "type": "string"
                               }
                             },
-                            "required": [
-                              "id",
-                              "name",
-                              "category"
-                            ],
+                            "required": ["id", "name", "category"],
                             "additionalProperties": true
                           }
                         },
@@ -9084,12 +8117,7 @@
                           "type": "number"
                         }
                       },
-                      "required": [
-                        "characters",
-                        "total",
-                        "limit",
-                        "offset"
-                      ],
+                      "required": ["characters", "total", "limit", "offset"],
                       "additionalProperties": false
                     }
                   ]
@@ -9108,10 +8136,7 @@
       "post": {
         "operationId": "post-v2-characters",
         "summary": "Create a new custom character",
-        "tags": [
-          "v2",
-          "characters"
-        ],
+        "tags": ["v2", "characters"],
         "responses": {
           "200": {
             "description": "Success response",
@@ -9130,18 +8155,10 @@
                       "type": "string"
                     },
                     "description": {
-                      "type": [
-                        "string",
-                        "null"
-                      ]
+                      "type": ["string", "null"]
                     }
                   },
-                  "required": [
-                    "id",
-                    "name",
-                    "category",
-                    "description"
-                  ],
+                  "required": ["id", "name", "category", "description"],
                   "additionalProperties": false
                 }
               }
@@ -9187,11 +8204,7 @@
                     }
                   }
                 },
-                "required": [
-                  "name",
-                  "category",
-                  "attributes"
-                ],
+                "required": ["name", "category", "attributes"],
                 "additionalProperties": false
               }
             }
@@ -9203,10 +8216,7 @@
       "get": {
         "operationId": "get-v2-daily",
         "summary": "Get current user daily challenge status",
-        "tags": [
-          "v2",
-          "daily"
-        ],
+        "tags": ["v2", "daily"],
         "responses": {
           "200": {
             "description": "Success response",
@@ -9239,11 +8249,7 @@
                               "type": "number"
                             }
                           },
-                          "required": [
-                            "won",
-                            "questionsAsked",
-                            "completedAt"
-                          ],
+                          "required": ["won", "questionsAsked", "completedAt"],
                           "additionalProperties": false
                         },
                         {
@@ -9263,17 +8269,10 @@
                               "type": "string"
                             },
                             "imageUrl": {
-                              "type": [
-                                "string",
-                                "null"
-                              ]
+                              "type": ["string", "null"]
                             }
                           },
-                          "required": [
-                            "id",
-                            "name",
-                            "imageUrl"
-                          ],
+                          "required": ["id", "name", "imageUrl"],
                           "additionalProperties": false
                         },
                         {
@@ -9305,10 +8304,7 @@
       "post": {
         "operationId": "post-v2-daily",
         "summary": "Record daily challenge completion result",
-        "tags": [
-          "v2",
-          "daily"
-        ],
+        "tags": ["v2", "daily"],
         "responses": {
           "200": {
             "description": "Success response",
@@ -9327,11 +8323,7 @@
                       "type": "string"
                     }
                   },
-                  "required": [
-                    "ok",
-                    "date",
-                    "characterId"
-                  ],
+                  "required": ["ok", "date", "characterId"],
                   "additionalProperties": false
                 }
               }
@@ -9359,10 +8351,7 @@
                     "minimum": 1
                   }
                 },
-                "required": [
-                  "won",
-                  "questionsAsked"
-                ],
+                "required": ["won", "questionsAsked"],
                 "additionalProperties": false
               }
             }
@@ -9374,10 +8363,7 @@
       "get": {
         "operationId": "get-v2-daily-leaderboard",
         "summary": "Get daily challenge leaderboard",
-        "tags": [
-          "v2",
-          "daily"
-        ],
+        "tags": ["v2", "daily"],
         "responses": {
           "200": {
             "description": "Success response",
@@ -9425,10 +8411,7 @@
                       }
                     }
                   },
-                  "required": [
-                    "date",
-                    "leaderboard"
-                  ],
+                  "required": ["date", "leaderboard"],
                   "additionalProperties": false
                 }
               }
@@ -9447,10 +8430,7 @@
       "post": {
         "operationId": "post-v2-events",
         "summary": "Ingest a client analytics event batch",
-        "tags": [
-          "v2",
-          "events"
-        ],
+        "tags": ["v2", "events"],
         "responses": {
           "200": {
             "description": "Success response",
@@ -9463,9 +8443,7 @@
                       "type": "number"
                     }
                   },
-                  "required": [
-                    "accepted"
-                  ],
+                  "required": ["accepted"],
                   "additionalProperties": false
                 }
               }
@@ -9517,17 +8495,12 @@
                           "type": "number"
                         }
                       },
-                      "required": [
-                        "id",
-                        "eventType"
-                      ],
+                      "required": ["id", "eventType"],
                       "additionalProperties": false
                     }
                   }
                 },
-                "required": [
-                  "events"
-                ],
+                "required": ["events"],
                 "additionalProperties": false
               }
             }
@@ -9539,10 +8512,7 @@
       "post": {
         "operationId": "post-v2-game-answer",
         "summary": "Submit an answer for the current question",
-        "tags": [
-          "v2",
-          "game"
-        ],
+        "tags": ["v2", "game"],
         "responses": {
           "200": {
             "description": "Success response",
@@ -9575,11 +8545,7 @@
                               "type": "string"
                             }
                           },
-                          "required": [
-                            "id",
-                            "text",
-                            "attribute"
-                          ],
+                          "required": ["id", "text", "attribute"],
                           "additionalProperties": false
                         },
                         "reasoning": {
@@ -9599,10 +8565,7 @@
                           "type": "object",
                           "properties": {
                             "trigger": {
-                              "type": [
-                                "string",
-                                "null"
-                              ]
+                              "type": ["string", "null"]
                             },
                             "blockedByRejectCooldown": {
                               "type": "boolean"
@@ -9669,10 +8632,7 @@
                               "type": "string"
                             },
                             "imageUrl": {
-                              "type": [
-                                "string",
-                                "null"
-                              ]
+                              "type": ["string", "null"]
                             },
                             "trivia": {
                               "type": "array",
@@ -9681,12 +8641,7 @@
                               }
                             }
                           },
-                          "required": [
-                            "id",
-                            "name",
-                            "category",
-                            "imageUrl"
-                          ],
+                          "required": ["id", "name", "category", "imageUrl"],
                           "additionalProperties": false
                         },
                         "confidence": {
@@ -9705,10 +8660,7 @@
                           "type": "object",
                           "properties": {
                             "trigger": {
-                              "type": [
-                                "string",
-                                "null"
-                              ]
+                              "type": ["string", "null"]
                             },
                             "blockedByRejectCooldown": {
                               "type": "boolean"
@@ -9773,11 +8725,7 @@
                               "type": "string"
                             }
                           },
-                          "required": [
-                            "id",
-                            "text",
-                            "attribute"
-                          ],
+                          "required": ["id", "text", "attribute"],
                           "additionalProperties": false
                         },
                         "reasoning": {
@@ -9826,18 +8774,10 @@
                   },
                   "value": {
                     "type": "string",
-                    "enum": [
-                      "yes",
-                      "no",
-                      "maybe",
-                      "unknown"
-                    ]
+                    "enum": ["yes", "no", "maybe", "unknown"]
                   }
                 },
-                "required": [
-                  "sessionId",
-                  "value"
-                ],
+                "required": ["sessionId", "value"],
                 "additionalProperties": false
               }
             }
@@ -9849,10 +8789,7 @@
       "post": {
         "operationId": "post-v2-game-feedback",
         "summary": "Submit post-game user feedback",
-        "tags": [
-          "v2",
-          "game"
-        ],
+        "tags": ["v2", "game"],
         "responses": {
           "200": {
             "description": "Success response",
@@ -9865,9 +8802,7 @@
                       "type": "boolean"
                     }
                   },
-                  "required": [
-                    "success"
-                  ],
+                  "required": ["success"],
                   "additionalProperties": false
                 }
               }
@@ -9901,10 +8836,7 @@
                     "maxLength": 2000
                   }
                 },
-                "required": [
-                  "sessionId",
-                  "rating"
-                ],
+                "required": ["sessionId", "rating"],
                 "additionalProperties": false
               }
             }
@@ -9916,10 +8848,7 @@
       "post": {
         "operationId": "post-v2-game-reject-guess",
         "summary": "Reject an AI guess and continue the session",
-        "tags": [
-          "v2",
-          "game"
-        ],
+        "tags": ["v2", "game"],
         "responses": {
           "200": {
             "description": "Success response",
@@ -9952,11 +8881,7 @@
                               "type": "string"
                             }
                           },
-                          "required": [
-                            "id",
-                            "text",
-                            "attribute"
-                          ],
+                          "required": ["id", "text", "attribute"],
                           "additionalProperties": false
                         },
                         "reasoning": {
@@ -9976,10 +8901,7 @@
                           "type": "object",
                           "properties": {
                             "trigger": {
-                              "type": [
-                                "string",
-                                "null"
-                              ]
+                              "type": ["string", "null"]
                             },
                             "blockedByRejectCooldown": {
                               "type": "boolean"
@@ -10083,10 +9005,7 @@
                     "minLength": 1
                   }
                 },
-                "required": [
-                  "sessionId",
-                  "characterId"
-                ],
+                "required": ["sessionId", "characterId"],
                 "additionalProperties": false
               }
             }
@@ -10098,10 +9017,7 @@
       "post": {
         "operationId": "post-v2-game-result",
         "summary": "Finalize game result and persist outcome",
-        "tags": [
-          "v2",
-          "game"
-        ],
+        "tags": ["v2", "game"],
         "responses": {
           "200": {
             "description": "Success response",
@@ -10146,10 +9062,7 @@
                       "additionalProperties": false
                     }
                   },
-                  "required": [
-                    "success",
-                    "summary"
-                  ],
+                  "required": ["success", "summary"],
                   "additionalProperties": false
                 }
               }
@@ -10180,10 +9093,7 @@
                     "type": "string"
                   }
                 },
-                "required": [
-                  "sessionId",
-                  "correct"
-                ],
+                "required": ["sessionId", "correct"],
                 "additionalProperties": false
               }
             }
@@ -10195,10 +9105,7 @@
       "post": {
         "operationId": "post-v2-game-resume",
         "summary": "Resume an existing game session",
-        "tags": [
-          "v2",
-          "game"
-        ],
+        "tags": ["v2", "game"],
         "responses": {
           "200": {
             "description": "Success response",
@@ -10213,9 +9120,7 @@
                           "const": true
                         }
                       },
-                      "required": [
-                        "expired"
-                      ],
+                      "required": ["expired"],
                       "additionalProperties": false
                     },
                     {
@@ -10245,11 +9150,7 @@
                                   "type": "string"
                                 }
                               },
-                              "required": [
-                                "id",
-                                "text",
-                                "attribute"
-                              ],
+                              "required": ["id", "text", "attribute"],
                               "additionalProperties": false
                             },
                             {
@@ -10292,10 +9193,7 @@
                                 "type": "string"
                               }
                             },
-                            "required": [
-                              "questionId",
-                              "value"
-                            ],
+                            "required": ["questionId", "value"],
                             "additionalProperties": false
                           }
                         }
@@ -10336,9 +9234,7 @@
                     "pattern": "^[0-9a-f-]{36}$"
                   }
                 },
-                "required": [
-                  "sessionId"
-                ],
+                "required": ["sessionId"],
                 "additionalProperties": false
               }
             }
@@ -10350,10 +9246,7 @@
       "post": {
         "operationId": "post-v2-game-reveal",
         "summary": "Submit reveal outcome after an incorrect guess",
-        "tags": [
-          "v2",
-          "game"
-        ],
+        "tags": ["v2", "game"],
         "responses": {
           "200": {
             "description": "Success response",
@@ -10366,16 +9259,10 @@
                       "type": "boolean"
                     },
                     "characterId": {
-                      "type": [
-                        "string",
-                        "null"
-                      ]
+                      "type": ["string", "null"]
                     },
                     "characterName": {
-                      "type": [
-                        "string",
-                        "null"
-                      ]
+                      "type": ["string", "null"]
                     },
                     "attributesFilled": {
                       "type": "number"
@@ -10426,18 +9313,12 @@
                           "type": "string"
                         }
                       },
-                      "required": [
-                        "questionId",
-                        "value"
-                      ],
+                      "required": ["questionId", "value"],
                       "additionalProperties": false
                     }
                   }
                 },
-                "required": [
-                  "characterName",
-                  "answers"
-                ],
+                "required": ["characterName", "answers"],
                 "additionalProperties": false
               }
             }
@@ -10449,10 +9330,7 @@
       "post": {
         "operationId": "post-v2-game-skip",
         "summary": "Skip the current question and continue",
-        "tags": [
-          "v2",
-          "game"
-        ],
+        "tags": ["v2", "game"],
         "responses": {
           "200": {
             "description": "Success response",
@@ -10483,11 +9361,7 @@
                           "type": "string"
                         }
                       },
-                      "required": [
-                        "id",
-                        "text",
-                        "attribute"
-                      ],
+                      "required": ["id", "text", "attribute"],
                       "additionalProperties": false
                     },
                     "reasoning": {
@@ -10507,10 +9381,7 @@
                       "type": "object",
                       "properties": {
                         "trigger": {
-                          "type": [
-                            "string",
-                            "null"
-                          ]
+                          "type": ["string", "null"]
                         },
                         "blockedByRejectCooldown": {
                           "type": "boolean"
@@ -10580,9 +9451,7 @@
                     "pattern": "^[0-9a-f-]{36}$"
                   }
                 },
-                "required": [
-                  "sessionId"
-                ],
+                "required": ["sessionId"],
                 "additionalProperties": false
               }
             }
@@ -10594,10 +9463,7 @@
       "post": {
         "operationId": "post-v2-game-start",
         "summary": "Start a new game session",
-        "tags": [
-          "v2",
-          "game"
-        ],
+        "tags": ["v2", "game"],
         "responses": {
           "200": {
             "description": "Success response",
@@ -10628,11 +9494,7 @@
                           "type": "string"
                         }
                       },
-                      "required": [
-                        "id",
-                        "text",
-                        "attribute"
-                      ],
+                      "required": ["id", "text", "attribute"],
                       "additionalProperties": false
                     },
                     "reasoning": {
@@ -10680,11 +9542,7 @@
                   },
                   "difficulty": {
                     "type": "string",
-                    "enum": [
-                      "easy",
-                      "medium",
-                      "hard"
-                    ]
+                    "enum": ["easy", "medium", "hard"]
                   },
                   "characterId": {
                     "type": "string",
@@ -10702,10 +9560,7 @@
       "get": {
         "operationId": "get-v2-history",
         "summary": "Fetch game history for current user",
-        "tags": [
-          "v2",
-          "history"
-        ],
+        "tags": ["v2", "history"],
         "responses": {
           "200": {
             "description": "Success response",
@@ -10785,10 +9640,7 @@
                       "type": "number"
                     }
                   },
-                  "required": [
-                    "games",
-                    "total"
-                  ],
+                  "required": ["games", "total"],
                   "additionalProperties": false
                 }
               }
@@ -10807,10 +9659,7 @@
       "get": {
         "operationId": "get-v2-questions",
         "summary": "List questions with optional attribute coverage",
-        "tags": [
-          "v2",
-          "questions"
-        ],
+        "tags": ["v2", "questions"],
         "responses": {
           "200": {
             "description": "Success response",
@@ -10836,12 +9685,7 @@
                             "type": "number"
                           }
                         },
-                        "required": [
-                          "id",
-                          "text",
-                          "attribute_key",
-                          "priority"
-                        ],
+                        "required": ["id", "text", "attribute_key", "priority"],
                         "additionalProperties": false
                       }
                     },
@@ -10902,10 +9746,7 @@
       "get": {
         "operationId": "get-v2-stats",
         "summary": "Get aggregate catalog and gameplay stats",
-        "tags": [
-          "v2",
-          "stats"
-        ],
+        "tags": ["v2", "stats"],
         "responses": {
           "200": {
             "description": "Success response",
@@ -10936,11 +9777,7 @@
                           "type": "number"
                         }
                       },
-                      "required": [
-                        "total",
-                        "filled",
-                        "fillRate"
-                      ],
+                      "required": ["total", "filled", "fillRate"],
                       "additionalProperties": false
                     },
                     "byCategory": {
@@ -10955,10 +9792,7 @@
                             "type": "number"
                           }
                         },
-                        "required": [
-                          "category",
-                          "count"
-                        ],
+                        "required": ["category", "count"],
                         "additionalProperties": false
                       }
                     },
@@ -10974,10 +9808,7 @@
                             "type": "number"
                           }
                         },
-                        "required": [
-                          "source",
-                          "count"
-                        ],
+                        "required": ["source", "count"],
                         "additionalProperties": false
                       }
                     },
@@ -11141,9 +9972,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "error"
-        ],
+        "required": ["error"],
         "additionalProperties": true
       }
     },

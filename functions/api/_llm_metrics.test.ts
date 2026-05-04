@@ -48,9 +48,10 @@ describe('buildLLMUsageDataPoint', () => {
       usage,
       cacheStatus: 'MISS',
       endpoint: 'llm',
+      retryCount: 2,
     })
     expect(point.blobs).toEqual(['gpt-4o-mini', 'user-abc', 'MISS', 'llm'])
-    expect(point.doubles).toEqual([1000, 500, 1500, 0.00045])
+    expect(point.doubles).toEqual([1000, 500, 1500, 0.00045, 2])
     expect(point.indexes).toEqual(['user-abc'])
   })
 
@@ -61,8 +62,21 @@ describe('buildLLMUsageDataPoint', () => {
       usage,
       cacheStatus: 'HIT',
       endpoint: 'llm',
+      retryCount: 0,
     })
     expect(point.blobs?.[2]).toBe('HIT')
+  })
+
+  it('normalizes negative retry counts to zero', () => {
+    const point = buildLLMUsageDataPoint({
+      model: 'gpt-4o-mini',
+      userId: 'u1',
+      usage,
+      cacheStatus: 'MISS',
+      endpoint: 'llm',
+      retryCount: -5,
+    })
+    expect(point.doubles?.[4]).toBe(0)
   })
 })
 
@@ -75,6 +89,7 @@ describe('recordLLMUsage', () => {
         usage,
         cacheStatus: 'MISS',
         endpoint: 'llm',
+        retryCount: 0,
       })
     ).not.toThrow()
   })
@@ -88,6 +103,7 @@ describe('recordLLMUsage', () => {
       usage,
       cacheStatus: 'MISS',
       endpoint: 'llm',
+      retryCount: 1,
     })
     expect(writeDataPoint).toHaveBeenCalledTimes(1)
     expect(writeDataPoint).toHaveBeenCalledWith(
@@ -111,6 +127,7 @@ describe('recordLLMUsage', () => {
         usage,
         cacheStatus: 'MISS',
         endpoint: 'llm',
+        retryCount: 0,
       })
     ).not.toThrow()
   })

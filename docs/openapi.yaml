@@ -37,6 +37,25 @@
         "responses": {
           "200": {
             "description": "Success response",
+            "headers": {
+              "X-Cache": {
+                "description": "Edge cache status for this completion response.",
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "HIT",
+                    "MISS"
+                  ]
+                }
+              },
+              "X-LLM-Retry-Count": {
+                "description": "Number of provider retry attempts performed before this response.",
+                "schema": {
+                  "type": "string",
+                  "pattern": "^[0-9]+$"
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {

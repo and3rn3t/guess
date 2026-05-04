@@ -44,8 +44,9 @@ async function callOpenAIWithRetry(
   endpoint: string,
   headers: Record<string, string>,
   openaiBody: Record<string, unknown>,
-): Promise<Response> {
+): Promise<{ response: Response; retryCount: number }> {
   let lastResponse: Response | null = null;
+  let retryCount = 0;
 
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
     const response = await fetch(endpoint, {
@@ -54,18 +55,19 @@ async function callOpenAIWithRetry(
       body: JSON.stringify(openaiBody),
     });
 
-    if (response.ok) return response;
+    if (response.ok) return { response, retryCount };
 
     lastResponse = response;
     const retryable = [429, 500, 503].includes(response.status);
     if (!retryable || attempt === MAX_RETRIES) break;
 
+    retryCount += 1;
     await sleep(RETRY_DELAYS[attempt]);
   }
 
   // unreachable: loop always runs at least once
   if (!lastResponse) throw new Error("No response from OpenAI");
-  return lastResponse;
+  return { response: lastResponse, retryCount };
 }
 
 /** Validate request body fields, returning an error Response or null if valid */
@@ -156,7 +158,11 @@ async function checkEdgeCache(
   if (!cached) return null;
   const body = await cached.text();
   return new Response(body, {
-    headers: { "Content-Type": "text/plain", "X-Cache": "HIT" },
+    headers: {
+      "Content-Type": "text/plain",
+      "X-Cache": "HIT",
+      "X-LLM-Retry-Count": "0",
+    },
   });
 }
 
@@ -219,6 +225,7 @@ async function processSuccess(
   request: Request,
   env: Env,
   model: string,
+  retryCount: number,
 ): Promise<Response> {
   const content = data.choices?.[0]?.message?.content;
   if (!content) {
@@ -234,6 +241,7 @@ async function processSuccess(
   const responseHeaders: Record<string, string> = {
     "Content-Type": "text/plain",
     "X-Cache": "MISS",
+    "X-LLM-Retry-Count": String(retryCount),
   };
 
   // Resolve stable cookie-based user ID for analytics + Set-Cookie on response.
@@ -253,10 +261,56 @@ async function processSuccess(
       usage: data.usage,
       cacheStatus: "MISS",
       endpoint: "llm",
+      retryCount,
     });
   }
 
   return withSetCookie(new Response(content, { headers: responseHeaders }), setCookieHeader);
+}
+
+async function handleCacheHitResponse(
+  cacheKey: string,
+  request: Request,
+  env: Env,
+  model: string,
+): Promise<Response | null> {
+  const cacheHit = await checkEdgeCache(cacheKey, request.url).catch(() => null);
+  if (!cacheHit) return null;
+
+  // I.2: record HIT with zero tokens so HIT/MISS ratio is queryable in AE.
+  const { userId: cachedUserId, setCookieHeader: cachedCookieHeader } =
+    await getOrCreateUserId(request, env);
+  recordLLMUsage(env.LLM_COSTS, {
+    model,
+    userId: cachedUserId,
+    usage: { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 },
+    cacheStatus: "HIT",
+    endpoint: "llm",
+    retryCount: 0,
+  });
+
+  return withSetCookie(cacheHit, cachedCookieHeader);
+}
+
+function buildProviderErrorResponse(status: number, errorText: string): Response {
+  // Surface specific error codes to the client.
+  if (status === 429) {
+    const isQuota = errorText.includes("insufficient_quota");
+    return Response.json(
+      {
+        error: isQuota
+          ? "API quota exceeded — please check billing"
+          : "Rate limited by LLM provider",
+        code: isQuota ? "QUOTA_EXCEEDED" : "RATE_LIMITED",
+      },
+      { status: 429 },
+    );
+  }
+
+  return Response.json(
+    { error: "LLM provider error", code: "PROVIDER_ERROR" },
+    { status: 502 },
+  );
 }
 
 export const onRequestPost: PagesFunction<Env> = async (context) => {
@@ -305,23 +359,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   const cacheKey = await sha256CacheKey(
     `${model}:${systemPrompt || ""}:${prompt}:${jsonMode}:${jsonSchema ? JSON.stringify(jsonSchema) : ""}`,
   );
-  const cacheHit = await checkEdgeCache(
-    cacheKey,
-    context.request.url,
-  ).catch(() => null);
-  if (cacheHit) {
-    // I.2: record HIT with zero tokens so HIT/MISS ratio is queryable in AE.
-    const { userId: cachedUserId, setCookieHeader: cachedCookieHeader } =
-      await getOrCreateUserId(context.request, context.env);
-    recordLLMUsage(context.env.LLM_COSTS, {
-      model,
-      userId: cachedUserId,
-      usage: { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 },
-      cacheStatus: "HIT",
-      endpoint: "llm",
-    });
-    return withSetCookie(cacheHit, cachedCookieHeader);
-  }
+  const cacheHitResponse = await handleCacheHitResponse(cacheKey, context.request, context.env, model);
+  if (cacheHitResponse) return cacheHitResponse;
 
   // Build request & call OpenAI (via AI Gateway if configured)
   const endpoint = getCompletionsEndpoint(context.env);
@@ -329,7 +368,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   const openaiBody = buildOpenAIPayload(model, prompt, systemPrompt, jsonMode, jsonSchema);
 
   try {
-    const openaiResponse = await callOpenAIWithRetry(endpoint, headers, openaiBody);
+    const { response: openaiResponse, retryCount } = await callOpenAIWithRetry(endpoint, headers, openaiBody);
 
     if (!openaiResponse.ok) {
       const errorText = await openaiResponse
@@ -338,24 +377,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       console.error("OpenAI API error:", openaiResponse.status, errorText);
       context.waitUntil(logError(context.env.GUESS_DB, 'llm', 'error', `OpenAI API error ${openaiResponse.status}`, errorText));
 
-      // Surface specific error codes to the client
-      if (openaiResponse.status === 429) {
-        const isQuota = errorText.includes("insufficient_quota");
-        return Response.json(
-          {
-            error: isQuota
-              ? "API quota exceeded — please check billing"
-              : "Rate limited by LLM provider",
-            code: isQuota ? "QUOTA_EXCEEDED" : "RATE_LIMITED",
-          },
-          { status: 429 },
-        );
-      }
-
-      return Response.json(
-        { error: "LLM provider error", code: "PROVIDER_ERROR" },
-        { status: 502 },
-      );
+      return buildProviderErrorResponse(openaiResponse.status, errorText);
     }
 
     const data: {
@@ -367,7 +389,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       };
     } = await openaiResponse.json();
 
-    return processSuccess(data, kv, cacheKey, context.request, context.env, model);
+    return processSuccess(data, kv, cacheKey, context.request, context.env, model, retryCount);
   } catch (error) {
     console.error("LLM proxy error:", error);
     context.waitUntil(logError(context.env.GUESS_DB, 'llm', 'error', 'LLM proxy error', error));

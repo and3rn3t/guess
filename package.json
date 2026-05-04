@@ -76,6 +76,8 @@
     "dq:source-health:prod": "tsx scripts/data-quality/check-source-ids.ts --env production",
     "dq:risk-sample:preview": "tsx scripts/data-quality/select-risk-tier-sample.ts --env preview --tier tier1 --limit 50",
     "dq:risk-sample:prod": "tsx scripts/data-quality/select-risk-tier-sample.ts --env production --tier tier1 --limit 50",
+    "dq:perf-baseline:preview": "tsx scripts/data-quality/perf-baseline.ts --env preview",
+    "dq:perf-baseline:prod": "tsx scripts/data-quality/perf-baseline.ts --env production",
     "agreement:dry-run": "tsx scripts/compute-agreement.ts --dry-run --env preview",
     "agreement:preview": "tsx scripts/compute-agreement.ts --env preview",
     "agreement:prod": "tsx scripts/compute-agreement.ts --env production",

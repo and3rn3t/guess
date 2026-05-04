@@ -215,6 +215,15 @@ Source: .github/workflows/reconcile-nightly.yml
   - risk-tier-sample.json
 - Artifact: reconcile-metadata
   - metadata.txt
+- Artifact: reconcile-perf-baseline-pre
+  - perf-baseline-pre.md
+  - perf-baseline-pre.log
+- Artifact: reconcile-perf-baseline-post
+  - perf-baseline-post.md
+  - perf-baseline-post.log
+- Artifact: reconcile-perf-baseline-delta
+  - perf-baseline-delta.md
+  - perf-baseline-delta.log
 
 ### Sparse-fill nightly
 

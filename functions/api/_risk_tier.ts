@@ -35,6 +35,12 @@ interface RiskTierOptions {
   nowMs?: number
 }
 
+function getDefaultLimitForTier(tier: RiskTier): number {
+  if (tier === 'tier1') return 50
+  if (tier === 'tier2') return 120
+  return 200
+}
+
 function toNumber(value: unknown): number {
   const n = Number(value)
   return Number.isFinite(n) ? n : 0
@@ -121,7 +127,8 @@ export function selectRiskTierSample(
   tier: RiskTier,
   options: RiskTierOptions = {},
 ): RiskTierSelection {
-  const limit = Math.max(1, Math.trunc(options.limit ?? (tier === 'tier1' ? 50 : tier === 'tier2' ? 120 : 200)))
+  const defaultLimit = getDefaultLimitForTier(tier)
+  const limit = Math.max(1, Math.trunc(options.limit ?? defaultLimit))
   const nowMs = options.nowMs ?? Date.now()
   const ranked = rankCandidates(candidates, nowMs)
   const withTiers = assignTiers(ranked)

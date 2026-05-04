@@ -33,9 +33,16 @@ function parseIntStrict(raw: string, fallback: number, min: number, max: number)
   return Math.max(min, Math.min(max, parsed))
 }
 
+function defaultLimitForTier(tier: RiskTier): number {
+  if (tier === 'tier1') return 50
+  if (tier === 'tier2') return 120
+  return 200
+}
+
 const ENV_FLAG = flag('--env', 'production')
 const TIER = parseTier(flag('--tier', 'tier1'))
-const LIMIT = parseIntStrict(flag('--limit', TIER === 'tier1' ? '50' : TIER === 'tier2' ? '120' : '200'), 50, 1, 2000)
+const defaultLimit = defaultLimitForTier(TIER)
+const LIMIT = parseIntStrict(flag('--limit', String(defaultLimit)), defaultLimit, 1, 2000)
 const OUT_FILE = flag(
   '--out',
   path.join(OUT_DIR, `risk-tier-${TIER}-${ENV_FLAG}-${new Date().toISOString().slice(0, 10)}.json`),

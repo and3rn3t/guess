@@ -72,6 +72,19 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
 
+      - name: Capture pre-reconcile perf baseline
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -o pipefail
+          ENV_FLAG="${{ github.event.inputs.env || 'production' }}"
+
+          npx tsx scripts/data-quality/perf-baseline.ts \
+            --env "$ENV_FLAG" \
+            --out .ci-artifacts/reconcile/perf-baseline-pre.md \
+            | tee .ci-artifacts/reconcile/perf-baseline-pre.log
+
       - name: Run nightly reconciliation
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
@@ -177,6 +190,155 @@ jobs:
           if-no-files-found: ignore
           retention-days: 30
 
+      - name: Capture post-reconcile perf baseline
+        if: always()
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -o pipefail
+          ENV_FLAG="${{ github.event.inputs.env || 'production' }}"
+
+          npx tsx scripts/data-quality/perf-baseline.ts \
+            --env "$ENV_FLAG" \
+            --out .ci-artifacts/reconcile/perf-baseline-post.md \
+            | tee .ci-artifacts/reconcile/perf-baseline-post.log
+
+      - name: Upload pre-reconcile perf baseline
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: reconcile-perf-baseline-pre
+          path: |
+            .ci-artifacts/reconcile/perf-baseline-pre.md
+            .ci-artifacts/reconcile/perf-baseline-pre.log
+          if-no-files-found: ignore
+          retention-days: 30
+
+      - name: Upload post-reconcile perf baseline
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: reconcile-perf-baseline-post
+          path: |
+            .ci-artifacts/reconcile/perf-baseline-post.md
+            .ci-artifacts/reconcile/perf-baseline-post.log
+          if-no-files-found: ignore
+          retention-days: 30
+
+      - name: Summarize perf baseline deltas
+        if: always()
+        run: |
+          set -o pipefail
+          node <<'NODE' | tee .ci-artifacts/reconcile/perf-baseline-delta.log
+          const fs = require('node:fs')
+
+          const prePath = '.ci-artifacts/reconcile/perf-baseline-pre.md'
+          const postPath = '.ci-artifacts/reconcile/perf-baseline-post.md'
+          const outPath = '.ci-artifacts/reconcile/perf-baseline-delta.md'
+
+          function readFile(path) {
+            return fs.existsSync(path) ? fs.readFileSync(path, 'utf8') : ''
+          }
+
+          function escapeRegExp(value) {
+            return value.replace(/[.*+?^${}()|[\\]\\]/g, '\\$&')
+          }
+
+          function parseMetric(text, metric) {
+            const escaped = escapeRegExp(metric)
+            const threeCol = new RegExp(`\\|\\s*${escaped}\\s*\\|\\s*([^|\\n]+)\\|\\s*([^|\\n]+)\\|`, 'm')
+            const twoCol = new RegExp(`\\|\\s*${escaped}\\s*\\|\\s*([^|\\n]+)\\|`, 'm')
+
+            const threeMatch = text.match(threeCol)
+            if (threeMatch) return threeMatch[1].trim()
+
+            const twoMatch = text.match(twoCol)
+            return twoMatch ? twoMatch[1].trim() : null
+          }
+
+          function toNumber(cell) {
+            if (!cell) return null
+            const normalized = cell.replaceAll(',', '')
+            const match = normalized.match(/-?\\d+(?:\\.\\d+)?/)
+            return match ? Number(match[0]) : null
+          }
+
+          function formatDelta(metric, preCell, postCell) {
+            const preNum = toNumber(preCell)
+            const postNum = toNumber(postCell)
+            if (preNum === null || postNum === null) return '_n/a_'
+
+            const delta = postNum - preNum
+            const sign = delta > 0 ? '+' : ''
+            if (preCell.includes('%') || postCell.includes('%') || metric === 'Coverage') {
+              return `${sign}${delta.toFixed(2)}pp`
+            }
+            return `${sign}${delta.toFixed(2)}`
+          }
+
+          const preText = readFile(prePath)
+          const postText = readFile(postPath)
+
+          const missingInputs = preText.length === 0 || postText.length === 0
+          if (missingInputs) {
+            const lines = [
+              '### Perf Baseline Delta',
+              '',
+              '- Baseline delta summary unavailable for this run (missing pre or post baseline file).',
+            ]
+            fs.writeFileSync(outPath, `${lines.join('\\n')}\\n`, 'utf8')
+            console.log('[perf-baseline-delta] baseline files missing; wrote fallback summary')
+            process.exit(0)
+          }
+
+          const metrics = [
+            'Open disputes',
+            'Critical errors (24h)',
+            'LLM endpoint errors (24h)',
+            'Games (24h)',
+            'Win rate (24h)',
+            'Data health score',
+            'Coverage',
+          ]
+
+          const rows = metrics.map((metric) => {
+            const preCell = parseMetric(preText, metric)
+            const postCell = parseMetric(postText, metric)
+            const deltaCell = formatDelta(metric, preCell, postCell)
+            return {
+              metric,
+              preCell: preCell ?? '_n/a_',
+              postCell: postCell ?? '_n/a_',
+              deltaCell,
+            }
+          })
+
+          const lines = [
+            '### Perf Baseline Delta',
+            '',
+            '| Metric | Pre | Post | Delta |',
+            '|--------|-----|------|-------|',
+            ...rows.map((row) => `| ${row.metric} | ${row.preCell} | ${row.postCell} | ${row.deltaCell} |`),
+          ]
+
+          fs.writeFileSync(outPath, `${lines.join('\\n')}\\n`, 'utf8')
+          console.log('[perf-baseline-delta] wrote .ci-artifacts/reconcile/perf-baseline-delta.md')
+          NODE
+
+          cat .ci-artifacts/reconcile/perf-baseline-delta.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload perf baseline delta summary
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: reconcile-perf-baseline-delta
+          path: |
+            .ci-artifacts/reconcile/perf-baseline-delta.md
+            .ci-artifacts/reconcile/perf-baseline-delta.log
+          if-no-files-found: ignore
+          retention-days: 30
+
       - name: Generate weekly completeness report (Sundays + tier2 dispatch)
         if: |
           github.event.schedule == '0 1 * * 0' ||
@@ -216,6 +378,9 @@ jobs:
             echo "- Artifact: reconcile-risk-tier-log"
             echo "- Artifact: reconcile-risk-tier-sample"
             echo "- Artifact: reconcile-metadata"
+            echo "- Artifact: reconcile-perf-baseline-pre"
+            echo "- Artifact: reconcile-perf-baseline-post"
+            echo "- Artifact: reconcile-perf-baseline-delta"
             if [[ "${{ github.event.schedule }}" == "0 1 * * 0" ]] || [[ "${{ github.event.inputs.risk_tier }}" == "tier2" ]]; then
               echo "- Artifact: weekly-quality-report"
             fi

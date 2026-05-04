@@ -16,6 +16,7 @@
  *   doubles[1] = completionTokens
  *   doubles[2] = totalTokens
  *   doubles[3] = estCostUsd        (model-aware, see PRICES below)
+ *   doubles[4] = retryCount        (number of retry attempts before success/final error)
  *   indexes[0] = userId            (sampling key)
  *
  * Pricing table is intentionally hard-coded — these change rarely and
@@ -45,6 +46,12 @@ export interface RecordLLMUsageInput {
   usage: TokenUsage
   cacheStatus: 'HIT' | 'MISS'
   endpoint: string
+  retryCount: number
+}
+
+function normalizeRetryCount(retryCount: number): number {
+  const safe = Number.isFinite(retryCount) ? Math.trunc(retryCount) : 0
+  return Math.max(0, safe)
 }
 
 /** USD per 1K input/output tokens (snapshot 2026-04-30). */
@@ -70,7 +77,9 @@ export function estimateCostUsd(model: string, usage: TokenUsage): number {
  * without spinning up a real binding.
  */
 export function buildLLMUsageDataPoint(input: RecordLLMUsageInput): AnalyticsEngineDataPoint {
-  const { model, userId, usage, cacheStatus, endpoint } = input
+  const { model, userId, usage, cacheStatus, endpoint, retryCount } = input
+  const normalizedRetryCount = normalizeRetryCount(retryCount)
+
   return {
     blobs: [model, userId, cacheStatus, endpoint],
     doubles: [
@@ -78,6 +87,7 @@ export function buildLLMUsageDataPoint(input: RecordLLMUsageInput): AnalyticsEng
       usage.completion_tokens,
       usage.total_tokens,
       estimateCostUsd(model, usage),
+      normalizedRetryCount,
     ],
     indexes: [userId],
   }
