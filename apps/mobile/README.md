@@ -2,6 +2,8 @@
 
 iOS-first native app shell for Andernator using Expo + React Native.
 
+Canonical iOS strategy and roadmap: [../../docs/mobile/ios-master-plan.md](../../docs/mobile/ios-master-plan.md)
+
 ## Commands
 
 - pnpm --filter @guess/mobile dev
@@ -37,30 +39,24 @@ Environment files:
 - Follow docs/mobile/native-product-contract.md
 - Follow docs/mobile/native-surface-policy.md
 - PRs for core screens must include docs/mobile/screen-quality-scorecard.md evidence
-- Start from docs/mobile/README.md for the full Xcode + AI handoff doc map
+- Start from docs/mobile/README.md for the full mobile docs map
+- Use docs/mobile/ios-master-plan.md for roadmap sequencing, governance, and release gates
 
 ## AI Quick Start (VS Code + Xcode)
 
 Use this when handing work between IDEs or AI agents.
 
-Source-of-truth boundaries:
-
-- Product logic lives in `apps/mobile/src/**` and `packages/app-core/**`.
-- Native bridge runtime (TS/hooks/debug): `apps/mobile/src/native/**`.
-- `apps/mobile/ios/**` is generated native output from Expo prebuild.
-- Shared iOS env source is `apps/mobile/.xcode.env` (sync into `ios/.xcode.env`).
-
-Handoff routine (run from repo root):
-
 1. `pnpm validate:fast`
 2. `pnpm --filter @guess/mobile typecheck`
 3. `pnpm --filter @guess/mobile sync:xcode-env`
 
-When dependencies or Expo config change:
+If dependencies or Expo config changed:
 
 1. `pnpm --filter @guess/mobile prebuild:ios`
 2. `pnpm --filter @guess/mobile pods`
 
-Avoid committing accidental `apps/mobile/ios/**` churn unless the native project itself was intentionally changed.
+For boundaries, handoff, and ownership rules use:
 
-For full policy, see `docs/mobile/xcode-setup.md`.
+- `docs/mobile/ios-master-plan.md`
+- `docs/mobile/xcode-setup.md`
+- `docs/mobile/xcode-claude-memory-handoff.md`

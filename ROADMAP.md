@@ -574,6 +574,7 @@ Larger experimental items (View Transitions API, Document PiP, WebXR, ambient so
 ## Mobile (iOS App)
 
 iOS execution track for work split across VS Code and Xcode. Source-of-truth boundaries remain: product logic in `apps/mobile/src/**` + `packages/app-core/**`; generated native output in `apps/mobile/ios/**`; handoff protocol in `docs/mobile/xcode-claude-memory-handoff.md`.
+The canonical 6-12 month iOS strategy and governance plan lives in `docs/mobile/ios-master-plan.md`.
 
 ### Execution Sprint (1-2 weeks)
 
