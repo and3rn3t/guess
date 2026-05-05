@@ -15,6 +15,8 @@ export default defineConfig({
     include: [
       'src/**/*.test.ts',
       'src/**/*.test.tsx',
+      'apps/mobile/src/**/*.test.ts',
+      'apps/mobile/src/**/*.test.tsx',
       'functions/**/*.test.ts',
       'packages/**/*.test.ts',
       'tail-worker/**/*.test.ts',
@@ -74,6 +76,7 @@ export default defineConfig({
     environmentMatchGlobs: [
       ['src/components/**', 'jsdom'],
       ['src/hooks/**', 'jsdom'],
+      ['apps/mobile/src/**', 'jsdom'],
     ],
     setupFiles: ['src/test/setup.ts'],
   },
