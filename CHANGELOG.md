@@ -10,6 +10,8 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- **MB.5 verification baseline groundwork** — added a canonical physical-device evidence log in `docs/mobile/device-validation-checklist.md` and linked it from mobile docs and scorecard guidance. `scripts/mobile/check-screen-scorecard.ts` now requires top-level `deviceValidationChecklist` metadata in `docs/mobile/screen-quality-scores.json` (checklist file path + `lastUpdated`) and prints checklist status in the scorecard report.
+
 - **Mobile iOS simulator build verified + Expo/Xcode 26 header fix (MB.4)** — headless simulator build passes (EXIT: 0) for Expo SDK 55 + React Native 0.83.6 on Xcode 26.4.1. Root cause: `RCTAppDelegateUmbrella.h` `__has_include` uses underscore-named `React_RCTAppDelegate/` directory but CocoaPods only creates dash-named `React-RCTAppDelegate/`. Fix: `apps/mobile/ios/Podfile` post_install hook creates the underscore dir and copies all headers there. Evidence in `apps/mobile/ios/IMPLEMENTATION_STATUS.md`.
 
 - **Core gameplay screens implemented (MB.3)** — all 5 screens written in `apps/mobile/src/screens/` (WelcomeScreen, PlayingScreen, GuessingScreen, GameOverScreen, ChallengeScreen) with iOS-native design tokens (PlatformColor, Dynamic Type) and Expo Router navigation (`app/_layout.tsx`, 5 route files, GameContext). Typecheck and guardrails pass; device validation pending.

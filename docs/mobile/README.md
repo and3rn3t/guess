@@ -15,7 +15,8 @@ Canonical planning sources:
 4. [xcode-setup.md](xcode-setup.md)
 5. [xcode-claude-memory-handoff.md](xcode-claude-memory-handoff.md)
 6. [screen-quality-scorecard.md](screen-quality-scorecard.md)
-7. [ios-master-plan.md](ios-master-plan.md) (superseded pointer)
+7. [device-validation-checklist.md](device-validation-checklist.md)
+8. [ios-master-plan.md](ios-master-plan.md) (superseded pointer)
 
 ## What Each Doc Is For
 
@@ -25,6 +26,7 @@ Canonical planning sources:
 - [xcode-setup.md](xcode-setup.md): setup steps, sync contract, and Swift scaffold entry points.
 - [xcode-claude-memory-handoff.md](xcode-claude-memory-handoff.md): AI handoff protocol when memory is not shared across IDEs.
 - [screen-quality-scorecard.md](screen-quality-scorecard.md): PR scoring rubric for core screens.
+- [device-validation-checklist.md](device-validation-checklist.md): physical-device runtime checklist used for score evidence updates.
 - [ios-master-plan.md](ios-master-plan.md): superseded compatibility pointer to archived strategy content.
 
 ## Ownership Split (No Overlap)
@@ -36,6 +38,7 @@ Canonical planning sources:
 - `docs/mobile/xcode-setup.md`: setup/sync runbook only.
 - `docs/mobile/xcode-claude-memory-handoff.md`: cross-IDE handoff protocol only.
 - `docs/mobile/screen-quality-scorecard.md`: score rubric and gates only.
+- `docs/mobile/device-validation-checklist.md`: device runtime verification log only.
 
 ## Operational Commands
 

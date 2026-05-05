@@ -49,6 +49,7 @@ This file tracks MB.4 native bridge baseline reliability evidence.
 - [ ] Manual Xcode target membership and bridge registration verification.
 - [ ] Simulator and physical-device runtime verification for all native modules.
 - [ ] Mark MB.4 shipped in roadmap after verification evidence is recorded.
+- [ ] Complete and update `docs/mobile/device-validation-checklist.md` with physical-device evidence.
 ### 1. Project and target wiring (Xcode)
 
 - [ ] Open workspace with `pnpm mobile:open:xcode`.

@@ -104,6 +104,7 @@ Depends on: MB.4.
 Deliverables:
 
 1. Device validation checklist exists and is actively used.
+   - Canonical artifact: `docs/mobile/device-validation-checklist.md`
 2. Scorecard evidence is required for touched core screens.
 3. CI/static checks enforce baseline mobile quality gates.
 

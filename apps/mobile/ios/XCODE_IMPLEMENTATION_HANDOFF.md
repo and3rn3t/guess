@@ -94,6 +94,7 @@ Bridging header:
 
 Before marking MB.4 as shipped:
 
+- Complete and update `docs/mobile/device-validation-checklist.md` with device runtime evidence.
 - Record manual verification evidence in this file
 - Update `apps/mobile/ios/IMPLEMENTATION_STATUS.md` with final runtime evidence
 - Update `ROADMAP.md`:

@@ -5,6 +5,10 @@
     "milestone": { "weighted": 90, "minCategory": 85 },
     "production": { "weighted": 92, "minCategory": 88 }
   },
+  "deviceValidationChecklist": {
+    "file": "docs/mobile/device-validation-checklist.md",
+    "lastUpdated": "2026-05-05"
+  },
   "categoryWeights": {
     "nativeInteractionFidelity": 25,
     "visualNativeFit": 20,

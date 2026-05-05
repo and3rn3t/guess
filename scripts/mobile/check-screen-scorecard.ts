@@ -46,9 +46,15 @@ interface Threshold {
   minCategory: number;
 }
 
+interface DeviceValidationChecklist {
+  file: string;
+  lastUpdated: string;
+}
+
 interface ScoresJson {
   version: number;
   thresholds: { prMerge: Threshold; milestone: Threshold; production: Threshold };
+  deviceValidationChecklist: DeviceValidationChecklist;
   categoryWeights: Record<keyof CategoryScores, number>;
   screens: Record<string, ScreenEntry>;
 }
@@ -225,6 +231,36 @@ function parseCategoryWeights(value: unknown, errors: string[]): Record<keyof Ca
   return parsed as Record<keyof CategoryScores, number>;
 }
 
+function parseDeviceValidationChecklist(
+  value: unknown,
+  errors: string[],
+): DeviceValidationChecklist | null {
+  if (!isRecord(value)) {
+    errors.push('deviceValidationChecklist must be an object.');
+    return null;
+  }
+
+  const file = value.file;
+  if (typeof file !== 'string' || file.length === 0) {
+    errors.push('deviceValidationChecklist.file must be a non-empty string.');
+  } else if (file !== 'docs/mobile/device-validation-checklist.md') {
+    errors.push(
+      `deviceValidationChecklist.file must be 'docs/mobile/device-validation-checklist.md', received '${file}'.`,
+    );
+  }
+
+  const lastUpdated = value.lastUpdated;
+  if (!isIsoDate(lastUpdated)) {
+    errors.push('deviceValidationChecklist.lastUpdated must be in YYYY-MM-DD format.');
+  }
+
+  if (typeof file !== 'string' || !isIsoDate(lastUpdated)) {
+    return null;
+  }
+
+  return { file, lastUpdated };
+}
+
 function parseScoresJson(raw: unknown, coreScreenNames: string[]): { data: ScoresJson | null; errors: string[] } {
   const errors: string[] = [];
 
@@ -257,6 +293,8 @@ function parseScoresJson(raw: unknown, coreScreenNames: string[]): { data: Score
       }
     }
   }
+
+  const deviceValidationChecklist = parseDeviceValidationChecklist(raw.deviceValidationChecklist, errors);
 
   const categoryWeights = parseCategoryWeights(raw.categoryWeights, errors);
 
@@ -319,7 +357,7 @@ function parseScoresJson(raw: unknown, coreScreenNames: string[]): { data: Score
     }
   }
 
-  if (errors.length > 0 || !thresholds || !categoryWeights || !isFiniteNumber(version)) {
+  if (errors.length > 0 || !thresholds || !deviceValidationChecklist || !categoryWeights || !isFiniteNumber(version)) {
     return { data: null, errors };
   }
 
@@ -327,6 +365,7 @@ function parseScoresJson(raw: unknown, coreScreenNames: string[]): { data: Score
     data: {
       version,
       thresholds,
+      deviceValidationChecklist,
       categoryWeights,
       screens,
     },
@@ -528,7 +567,7 @@ function main(): void {
   }
 
   const data = parsed.data;
-  const { thresholds, categoryWeights, screens } = data;
+  const { thresholds, deviceValidationChecklist, categoryWeights, screens } = data;
 
   const baseRef = resolveBaseRef(args.baseRef);
   const selection = selectScreens(coreScreenNames, baseRef);
@@ -546,6 +585,7 @@ function main(): void {
   console.log(`Selection mode: ${selection.selectionMode} (${selection.selectionDetail})`);
   console.log(`Changed files considered: ${selection.changedPaths.length}`);
   console.log(`Screens evaluated: ${rows.length + missing.length}`);
+  console.log(`Device checklist: ${deviceValidationChecklist.file} (lastUpdated: ${deviceValidationChecklist.lastUpdated})`);
   console.log(`Gate threshold: weighted≥${thresholds[args.gate].weighted}, no category<${thresholds[args.gate].minCategory}`);
   console.log(
     `All thresholds: prMerge≥${thresholds.prMerge.weighted}/${thresholds.prMerge.minCategory}, ` +

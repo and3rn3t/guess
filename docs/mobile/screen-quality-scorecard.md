@@ -66,6 +66,7 @@ For each touched core screen:
 - Score per category + weighted total.
 - Accessibility checks performed.
 - Performance measurements on target device.
+- Device checklist run recorded in `docs/mobile/device-validation-checklist.md`.
 - Known issues and mitigation plan.
 
 ## Guardrail Automation
