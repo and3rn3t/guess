@@ -26,6 +26,7 @@ import {
 } from '@guess/app-core'
 import type { Dispatch } from 'react'
 import { useCallback, useRef, useState } from 'react'
+import { NativeModules } from 'react-native'
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
@@ -34,8 +35,34 @@ import { useCallback, useRef, useState } from 'react'
  * In production, set EXPO_PUBLIC_API_BASE_URL to the deployed Cloudflare Pages domain.
  * During development, set to your local `pnpm cf:dev` URL.
  */
-const API_BASE =
-  (typeof process !== 'undefined' && process.env.EXPO_PUBLIC_API_BASE_URL) || ''
+const resolveApiBase = (): string => {
+  const explicitBase =
+    typeof process !== 'undefined' && typeof process.env.EXPO_PUBLIC_API_BASE_URL === 'string'
+      ? process.env.EXPO_PUBLIC_API_BASE_URL.trim()
+      : ''
+
+  if (explicitBase.length > 0) {
+    return explicitBase
+  }
+
+  if (__DEV__) {
+    const scriptURL = (NativeModules as { SourceCode?: { scriptURL?: string } }).SourceCode?.scriptURL
+    if (typeof scriptURL === 'string' && scriptURL.length > 0) {
+      try {
+        const metroHost = new URL(scriptURL).hostname
+        if (metroHost.length > 0) {
+          return `http://${metroHost}:8788`
+        }
+      } catch {
+        // Ignore parse failures and fall back to empty base.
+      }
+    }
+  }
+
+  return ''
+}
+
+const API_BASE = resolveApiBase()
 
 const ENDPOINTS = {
   start: `${API_BASE}/api/v2/game/start`,
@@ -178,6 +205,7 @@ export const useMobileServerGame = (
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to start game'
       setError(message)
+      setAlertMessage(message)
       emitCue(`Error: ${message}`, 'high')
       void haptics.trigger('error')
     } finally {
@@ -240,6 +268,7 @@ export const useMobileServerGame = (
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Failed to submit answer'
         setError(message)
+        setAlertMessage(message)
         emitCue(`Error: ${message}`, 'high')
         void haptics.trigger('error')
       } finally {
@@ -277,6 +306,7 @@ export const useMobileServerGame = (
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to skip'
       setError(message)
+      setAlertMessage(message)
       emitCue(`Error: ${message}`, 'high')
       void haptics.trigger('error')
     } finally {
@@ -327,6 +357,7 @@ export const useMobileServerGame = (
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Failed to reject guess'
         setError(message)
+        setAlertMessage(message)
         emitCue(`Error: ${message}`, 'high')
         void haptics.trigger('error')
       } finally {

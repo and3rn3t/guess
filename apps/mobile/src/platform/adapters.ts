@@ -53,14 +53,22 @@ const createMobileStorageAdapter = () => {
 
 const createMobileNetworkAdapter = (): NetworkAdapter => ({
   fetchJson: async <T>(url: string, options?: NetworkRequestOptions): Promise<T> => {
-    const response = await fetch(url, {
-      method: options?.method,
-      headers: options?.headers,
-      body: options?.body,
-    })
+    let response: Response
+    try {
+      response = await fetch(url, {
+        method: options?.method,
+        headers: options?.headers,
+        body: options?.body,
+      })
+    } catch (err) {
+      const detail = err instanceof Error ? err.message : 'Unknown network error'
+      throw new Error(`Network request failed for ${url}: ${detail}`, {
+        cause: err,
+      })
+    }
 
     if (!response.ok) {
-      throw new Error(`Request failed with status ${response.status}`)
+      throw new Error(`Request failed for ${url} with status ${response.status}`)
     }
 
     return (await response.json()) as T

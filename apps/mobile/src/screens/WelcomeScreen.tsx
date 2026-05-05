@@ -74,13 +74,16 @@ export function WelcomeScreen({
         </Pressable>
       </View>
 
-      {server.alertMessage ? (
+      {server.alertMessage || server.error ? (
         <Pressable
           accessibilityRole="alert"
-          onPress={server.clearAlert}
+          onPress={() => {
+            server.clearAlert();
+            server.clearError();
+          }}
           style={styles.alert}
         >
-          <Text style={styles.alertText}>{server.alertMessage}</Text>
+          <Text style={styles.alertText}>{server.alertMessage ?? server.error}</Text>
         </Pressable>
       ) : null}
     </ScrollView>
