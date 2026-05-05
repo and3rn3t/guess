@@ -2,7 +2,10 @@
 
 iOS-first native app shell for Andernator using Expo + React Native.
 
-Canonical iOS strategy and roadmap: [../../docs/mobile/ios-master-plan.md](../../docs/mobile/ios-master-plan.md)
+Canonical iOS planning:
+
+- [../../ROADMAP.md](../../ROADMAP.md) for active queue/status (`MB.*`)
+- [../../docs/mobile/roadmap-foundations.md](../../docs/mobile/roadmap-foundations.md) for foundational sequencing
 
 ## Commands
 
@@ -17,11 +20,11 @@ Canonical iOS strategy and roadmap: [../../docs/mobile/ios-master-plan.md](../..
 ## Xcode Setup
 
 1. Generate iOS native project files:
-	- pnpm --filter @guess/mobile prebuild:ios
+   - pnpm --filter @guess/mobile prebuild:ios
 2. Install CocoaPods dependencies:
-	- pnpm --filter @guess/mobile pods
+   - pnpm --filter @guess/mobile pods
 3. Open the generated workspace in Xcode:
-	- pnpm --filter @guess/mobile open:xcode
+   - pnpm --filter @guess/mobile open:xcode
 
 One-command bootstrap:
 
@@ -40,7 +43,7 @@ Environment files:
 - Follow docs/mobile/native-surface-policy.md
 - PRs for core screens must include docs/mobile/screen-quality-scorecard.md evidence
 - Start from docs/mobile/README.md for the full mobile docs map
-- Use docs/mobile/ios-master-plan.md for roadmap sequencing, governance, and release gates
+- Use docs/mobile/roadmap-foundations.md for mobile foundation sequencing and acceptance criteria
 
 ## AI Quick Start (VS Code + Xcode)
 
@@ -57,6 +60,7 @@ If dependencies or Expo config changed:
 
 For boundaries, handoff, and ownership rules use:
 
-- `docs/mobile/ios-master-plan.md`
+- `ROADMAP.md`
+- `docs/mobile/roadmap-foundations.md`
 - `docs/mobile/xcode-setup.md`
 - `docs/mobile/xcode-claude-memory-handoff.md`

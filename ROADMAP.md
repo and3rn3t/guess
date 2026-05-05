@@ -59,8 +59,7 @@
     - [Near-Term Polish (1–2 days each)](#near-term-polish-12-days-each)
     - [Medium-Term UX Projects (2–4 days each)](#medium-term-ux-projects-24-days-each)
   - [Mobile (iOS App)](#mobile-ios-app)
-    - [Execution Sprint (1-2 weeks)](#execution-sprint-1-2-weeks)
-    - [Monthly Outlook (next 2-4 weeks)](#monthly-outlook-next-2-4-weeks)
+    - [Foundations Queue (start here)](#foundations-queue-start-here)
   - [Modern Web Platform](#modern-web-platform)
     - [CSS \& Layout](#css--layout)
     - [Browser APIs](#browser-apis)
@@ -257,11 +256,11 @@ The active execution plan, sequenced by **priority × ease**. Pull items top-dow
 
 > **Maintain this block first.** It's the single answer to "what should I work on?" — agents and humans check it before scanning tables. Update in the same commit as the work it describes.
 
-- 🟡 **In progress:** [I.9](#i-9) AI Gateway semantic caching 7d cache-hit window (expected: 2026-05-07) · [M.4](#m-4) native verification pipeline completion · [M.5](#m-5) screen quality scorecard gate
-- ▶ **Up next:** [M.6](#m-6) lifecycle resilience matrix
-- ✅ **Recently completed:** [DQ.31](#dq-31) completeness release gate (2026-05-04) · [DQ.33](#dq-33) null-closure queue (2026-05-04) · [DQ.36](#dq-36) curator closure queue (2026-05-04) · [DQ.37](#dq-37) risk-tiered revalidation (2026-05-04) · [DQ.38](#dq-38) completeness burndown + weekly report (2026-05-04) · [M.1](#m-1) native bridge source-of-truth consolidation (2026-05-04) · [M.2](#m-2) core gameplay screen decomposition (2026-05-04) · [M.3](#m-3) persistent mobile storage adapter (2026-05-04)
-- 🧫 **Blocked / waiting on:** M.4 pending manual Xcode device build + runtime checks · M.5 pending device validation to clear scorecard weighted threshold
-- 🎯 **Current wave focus:** Wave 5 DQ completeness program ✅ complete; mobile track driving M.4 native verification and M.5 scorecard gate; M.6 lifecycle resilience matrix up next.
+- 🟡 **In progress:** [I.9](#i-9) AI Gateway semantic caching 7d cache-hit window (expected: 2026-05-07) · [MB.1](#mb-1) toolchain and local run reliability baseline
+- ▶ **Up next:** [MB.2](#mb-2) architecture boundaries and shared-core contract lock
+- ✅ **Recently completed:** [DQ.31](#dq-31) completeness release gate (2026-05-04) · [DQ.33](#dq-33) null-closure queue (2026-05-04) · [DQ.36](#dq-36) curator closure queue (2026-05-04) · [DQ.37](#dq-37) risk-tiered revalidation (2026-05-04) · [DQ.38](#dq-38) completeness burndown + weekly report (2026-05-04)
+- 🧫 **Blocked / waiting on:** none
+- 🎯 **Current wave focus:** Wave 5 DQ completeness program ✅ complete; mobile track reset to foundations-first execution (MB.1 -> MB.5).
 
 ### Wave 1 — Foundation (start here, ~1 week of focused work)
 
@@ -574,25 +573,22 @@ Larger experimental items (View Transitions API, Document PiP, WebXR, ambient so
 ## Mobile (iOS App)
 
 iOS execution track for work split across VS Code and Xcode. Source-of-truth boundaries remain: product logic in `apps/mobile/src/**` + `packages/app-core/**`; generated native output in `apps/mobile/ios/**`; handoff protocol in `docs/mobile/xcode-claude-memory-handoff.md`.
-The canonical 6-12 month iOS strategy and governance plan lives in `docs/mobile/ios-master-plan.md`.
 
-### Execution Sprint (1-2 weeks)
+Mobile planning ownership split:
 
-| Status | # | Item | Effort | Notes |
-|---|---|---|---|---|
-| ✅ 2026-05-04 | <a id="m-1"></a>M.1 | **Native bridge source-of-truth consolidation** | M | Collapse duplicate native module trees (`apps/mobile/ios/Andernator/NativeServices/` vs `apps/mobile/ios/mobile/`) to one canonical implementation path; align docs and Xcode project references to match. |
-| ✅ 2026-05-04 | <a id="m-2"></a>M.2 | **Core gameplay screen decomposition** | M | Replace single preview shell in `apps/mobile/App.tsx` with contract-aligned screens (Welcome, Playing, Guessing, Game Over, Challenge) while preserving existing `useMobileServerGame` behavior. |
-| ✅ 2026-05-04 | <a id="m-3"></a>M.3 | **Persistent mobile storage adapter** | S | Replace in-memory `Map` adapter in `apps/mobile/src/platform/adapters.ts` with persistent mobile storage and define fallback/error behavior. |
-| 🟡 | <a id="m-4"></a>M.4 | **Native verification pipeline completion** | M | Complete Xcode target membership and bridge registration checks, run device validation, and update implementation status docs to shipped state. |
+- Queue and status live here in `ROADMAP.md`.
+- Foundations detail and acceptance criteria live in `docs/mobile/roadmap-foundations.md`.
+- Legacy strategy content is archived at `docs/mobile/archive/2026-05-04-ios-master-plan.md`.
 
-### Monthly Outlook (next 2-4 weeks)
+### Foundations Queue (start here)
 
 | Status | # | Item | Effort | Notes |
 |---|---|---|---|---|
-| 🟡 | <a id="m-5"></a>M.5 | **Screen quality scorecard gate** | M | Require scorecard evidence for touched core screens and enforce threshold tracking from `docs/mobile/screen-quality-scorecard.md`. |
-| ⬜ | <a id="m-6"></a>M.6 | **Lifecycle resilience matrix** | M | Add explicit test matrix for background/foreground/re-entry and stale session recovery, validated against native lifecycle hooks. |
-| ⬜ | <a id="m-7"></a>M.7 | **Challenge/share path hardening** | S | Improve challenge entry/share behavior with native accessibility announcements and platform-consistent share flow. |
-| ⬜ | <a id="m-8"></a>M.8 | **Dual-IDE handoff runbook hardening** | S | Prune stale iOS docs, keep one canonical handoff checklist, and verify sync routine remains accurate after each native change. |
+| 🟡 | <a id="mb-1"></a>MB.1 | **Toolchain and local run reliability baseline** | S | Verify prebuild/pods/open-xcode flow and synchronize shared environment routine with one canonical setup path. |
+| ⬜ | <a id="mb-2"></a>MB.2 | **Architecture boundaries and shared-core contract lock** | S | Enforce native boundary policy and confirm guardrail checks are green in local and CI workflows. |
+| ⬜ | <a id="mb-3"></a>MB.3 | **Core gameplay shell/state-flow baseline** | M | Validate Welcome/Playing/Guessing/Game Over/Challenge phase flow and document transition evidence for handoff continuity. |
+| ⬜ | <a id="mb-4"></a>MB.4 | **Native bridge baseline reliability** | M | Complete Xcode target/runtime verification and device checks for haptics, VoiceOver, reduce-motion, and lifecycle modules. |
+| ⬜ | <a id="mb-5"></a>MB.5 | **Verification baseline and quality gates** | M | Require scorecard evidence + device checklist usage and keep mobile guardrails blocking on missing required evidence. |
 
 ---
 
@@ -933,6 +929,7 @@ The shell ships 24 routes across three sidebar groups (Tools / Data / Pipeline).
 | 2026-05 | Wave 5 pull-order override: DQ completeness before AP.10 | Execution moved from AP.10 to DQ.31 intentionally to establish measurable data-completeness gates before additional admin polish. Updated In Progress/Up Next accordingly and will return to AP.10 after DQ.31-DQ.33 foundational slices. |
 | 2026-05-03 | DQ.33 started once DQ.31/DQ.32 foundations were wired | Began the deterministic null-closure queue before formally shipping the full completeness program because the shared scorer, SLA source of truth, admin completeness payload, and warn-only CI gate were already in place. This keeps Wave 5 work on the same dependency chain without context-switching to unrelated polish. |
 | 2026-05-04 | iOS native services source of truth set to `apps/mobile/ios/Andernator/NativeServices/` | Two parallel native module trees existed (`apps/mobile/ios/Andernator/NativeServices/` scaffold path and `apps/mobile/ios/mobile/` bridge implementation path), which created handoff ambiguity across VS Code/Xcode and increased drift risk. Mobile roadmap track M.1 starts by consolidating to a single canonical location before further screen/integration work. |
+| 2026-05-04 | Mobile roadmap reset to MB-series foundations | Mobile planning had become too distributed across roadmap and docs, which slowed foundational execution. Active queue migrated from `M.*` to `MB.*` in `ROADMAP.md`, legacy strategy plan archived at `docs/mobile/archive/2026-05-04-ios-master-plan.md`, and active foundations detail moved to `docs/mobile/roadmap-foundations.md` with strict non-overlapping doc ownership. |
 
 ---
 

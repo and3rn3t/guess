@@ -67,3 +67,35 @@ For each touched core screen:
 - Accessibility checks performed.
 - Performance measurements on target device.
 - Known issues and mitigation plan.
+
+## Guardrail Automation
+
+Run the scorecard guardrail from repo root:
+
+- `pnpm mobile:scorecard`
+
+The guardrail validates touched core screens by default using git diff against the base ref.
+Fallback behavior validates all core screens when touched-screen detection is unavailable.
+
+Supported gate modes:
+
+- `--gate=prMerge` (default)
+- `--gate=milestone`
+- `--gate=production`
+
+Optional base ref overrides:
+
+- `--base-ref=<git-ref>`
+- `MOBILE_SCORECARD_BASE_REF=<git-ref>` environment variable
+
+Gate behavior:
+
+- Missing score entry for a touched core screen: fail.
+- `prMerge` gate: below-threshold rows warn only when `deviceValidationPending=true`, otherwise fail.
+- `milestone` and `production` gates: below-threshold rows fail regardless of pending device validation.
+
+Threshold tracking output includes:
+
+- Weighted score per screen.
+- Per-threshold pass/fail state (`prMerge`, `milestone`, `production`).
+- Device-validation pending marker.

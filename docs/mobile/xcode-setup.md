@@ -2,6 +2,11 @@
 
 This project uses Expo + React Native. The Xcode workspace is generated from Expo config and should be treated as a native output surface.
 
+Planning references:
+
+- `ROADMAP.md` for active mobile queue/status (`MB.*`).
+- `docs/mobile/roadmap-foundations.md` for foundational sequencing and acceptance criteria.
+
 ## Prerequisites
 
 - Xcode installed (latest stable)
@@ -34,7 +39,7 @@ Or run all three:
 - Do not import web UI modules into mobile code. Guardrails are enforced by `pnpm mobile:guardrails`.
 - Treat `apps/mobile/ios/Pods` and build outputs as generated artifacts.
 - If Expo config changes, regenerate native files with `pnpm mobile:prebuild:ios`.
-- For AI context handoff limitations between IDEs, use `docs/mobile/xcode-claude-memory-handoff.md` as the canonical repo note.
+- For AI context handoff limitations between IDEs, use `docs/mobile/xcode-claude-memory-handoff.md`.
 
 ## VS Code + Xcode AI Sync Contract
 

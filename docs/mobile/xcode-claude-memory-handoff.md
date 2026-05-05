@@ -16,10 +16,11 @@ Do not depend on external memory files as the primary handoff mechanism.
 
 Before starting Xcode-native work, read in order:
 
-1. `docs/mobile/native-product-contract.md`
-2. `docs/mobile/native-surface-policy.md`
-3. `docs/mobile/xcode-setup.md`
-4. `apps/mobile/README.md` (AI quick start)
+1. `ROADMAP.md` (mobile queue/status)
+2. `docs/mobile/roadmap-foundations.md`
+3. `docs/mobile/native-product-contract.md`
+4. `docs/mobile/native-surface-policy.md`
+5. `docs/mobile/xcode-setup.md`
 
 ## Required handoff block for native PRs
 

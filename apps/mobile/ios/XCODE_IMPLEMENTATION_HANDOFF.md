@@ -2,7 +2,7 @@
 
 Last updated: 2026-05-04
 
-This document is the execution handoff for M.4 (native verification pipeline completion).
+This document is the execution handoff for MB.4 (native bridge baseline reliability).
 It reflects the current state after Expo SDK 55 / React Native compatibility alignment and headless simulator build verification.
 
 ## Current Status
@@ -18,7 +18,7 @@ It reflects the current state after Expo SDK 55 / React Native compatibility ali
 - Mobile storage adapter now persists via AsyncStorage with in-memory fallback in:
   - `apps/mobile/src/platform/adapters.ts`
 
-### Completed for M.4 technical unblockers
+### Completed for MB.4 technical unblockers
 
 - Expo/RN version alignment completed for SDK 55:
   - `react-native` set to `0.83.6` in `apps/mobile/package.json`
@@ -68,7 +68,7 @@ Bridging header:
 
 - `apps/mobile/ios/Andernator/Andernator-Bridging-Header.h`
 
-## Remaining M.4 Checks (Manual Xcode/Device)
+## Remaining MB.4 Checks (Manual Xcode/Device)
 
 ### 1. Xcode target wiring
 
@@ -92,13 +92,13 @@ Bridging header:
 
 ## Close-out Requirements
 
-Before marking M.4 as shipped:
+Before marking MB.4 as shipped:
 
 - Record manual verification evidence in this file
 - Update `apps/mobile/ios/IMPLEMENTATION_STATUS.md` with final runtime evidence
 - Update `ROADMAP.md`:
-  - mark M.4 as shipped with date
-  - move M.5 to in-progress if started
+  - mark MB.4 as shipped with date
+  - move MB.5 to in-progress if started
 
 ## Quick Commands
 

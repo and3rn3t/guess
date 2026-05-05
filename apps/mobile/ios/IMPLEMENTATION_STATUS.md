@@ -2,7 +2,7 @@
 
 Last updated: 2026-05-04
 
-This file tracks M.4 native verification pipeline completion.
+This file tracks MB.4 native bridge baseline reliability evidence.
 
 ## Current State
 
@@ -33,13 +33,13 @@ This file tracks M.4 native verification pipeline completion.
   - `xcodebuild -quiet -workspace Andernator.xcworkspace -scheme Andernator -configuration Debug -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' build CODE_SIGNING_ALLOWED=NO`
   - Re-verified 2026-05-04 after updates in `apps/mobile/ios/Andernator.xcodeproj/project.pbxproj`.
 
-### Remaining for M.4
+### Remaining for MB.4
 
 - [ ] Manual Xcode target membership and bridge registration verification.
 - [ ] Simulator and physical-device runtime verification for all native modules.
-- [ ] Mark M.4 shipped in roadmap after verification evidence is recorded.
+- [ ] Mark MB.4 shipped in roadmap after verification evidence is recorded.
 
-## M.4 Verification Checklist
+## MB.4 Verification Checklist
 
 ### 1. Project and target wiring (Xcode)
 
@@ -69,7 +69,7 @@ This file tracks M.4 native verification pipeline completion.
 ### 4. Evidence and close-out
 
 - [ ] Capture verification notes in `apps/mobile/ios/XCODE_IMPLEMENTATION_HANDOFF.md`.
-- [ ] Update roadmap status for M.4 to shipped with date.
+- [ ] Update roadmap status for MB.4 to shipped with date.
 - [ ] Move next mobile item to in-progress in roadmap block.
 
 ## Reference Files

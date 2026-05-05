@@ -40,7 +40,7 @@
         "platformBehaviorIntegrity": 80,
         "contentClarityAndCognitiveLoad": 88
       },
-      "notes": "All three Pressables have haptics: success() on Yes, light trigger on No/Skip. Tokens applied. accessibilityState propagated on all. VNF at 80 — fixed font sizes remain; Dynamic Type follow-up tracked in M.6."
+      "notes": "All three Pressables have haptics: success() on Yes, light trigger on No/Skip. Tokens applied. accessibilityState propagated on all. VNF at 80 — fixed font sizes remain; Dynamic Type follow-up tracked in MB.5 verification baseline."
     },
     "GuessingScreen": {
       "file": "apps/mobile/src/screens/GuessingScreen.tsx",
