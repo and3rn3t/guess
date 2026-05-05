@@ -35,11 +35,11 @@
 		5246D7DCD9C5B40C89200DD1 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xml; name = PrivacyInfo.xcprivacy; path = Andernator/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		65E36108944858880C5EBF62 /* ExpoModulesProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ExpoModulesProvider.swift; path = "Pods/Target Support Files/Pods-Andernator/ExpoModulesProvider.swift"; sourceTree = "<group>"; };
 		9D393AA49A11A570B314416B /* Pods-Andernator.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Andernator.debug.xcconfig"; path = "Target Support Files/Pods-Andernator/Pods-Andernator.debug.xcconfig"; sourceTree = "<group>"; };
-			A1B2C3D40123456789ABC101 /* BridgeContract.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Andernator/NativeServices/BridgeContract.swift; sourceTree = SOURCE_ROOT; };
-			A1B2C3D40123456789ABC102 /* HapticsService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Andernator/NativeServices/HapticsService.swift; sourceTree = SOURCE_ROOT; };
-			A1B2C3D40123456789ABC103 /* LifecycleObserver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Andernator/NativeServices/LifecycleObserver.swift; sourceTree = SOURCE_ROOT; };
-			A1B2C3D40123456789ABC104 /* ReduceMotionObserver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Andernator/NativeServices/ReduceMotionObserver.swift; sourceTree = SOURCE_ROOT; };
-			A1B2C3D40123456789ABC105 /* VoiceOverAnnouncer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Andernator/NativeServices/VoiceOverAnnouncer.swift; sourceTree = SOURCE_ROOT; };
+		A1B2C3D40123456789ABC101 /* BridgeContract.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Andernator/NativeServices/BridgeContract.swift; sourceTree = SOURCE_ROOT; };
+		A1B2C3D40123456789ABC102 /* HapticsService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Andernator/NativeServices/HapticsService.swift; sourceTree = SOURCE_ROOT; };
+		A1B2C3D40123456789ABC103 /* LifecycleObserver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Andernator/NativeServices/LifecycleObserver.swift; sourceTree = SOURCE_ROOT; };
+		A1B2C3D40123456789ABC104 /* ReduceMotionObserver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Andernator/NativeServices/ReduceMotionObserver.swift; sourceTree = SOURCE_ROOT; };
+		A1B2C3D40123456789ABC105 /* VoiceOverAnnouncer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Andernator/NativeServices/VoiceOverAnnouncer.swift; sourceTree = SOURCE_ROOT; };
 		A68ABE5F8FC4C3978921E047 /* Pods-Andernator.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Andernator.release.xcconfig"; path = "Target Support Files/Pods-Andernator/Pods-Andernator.release.xcconfig"; sourceTree = "<group>"; };
 		AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = SplashScreen.storyboard; path = Andernator/SplashScreen.storyboard; sourceTree = "<group>"; };
 		BB2F792C24A3F905000567C9 /* Expo.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Expo.plist; sourceTree = "<group>"; };
@@ -287,8 +287,10 @@
 				"${PODS_CONFIGURATION_BUILD_DIR}/EXConstants/EXConstants.bundle",
 				"${PODS_CONFIGURATION_BUILD_DIR}/EXConstants/ExpoConstants_privacy.bundle",
 				"${PODS_CONFIGURATION_BUILD_DIR}/ExpoFileSystem/ExpoFileSystem_privacy.bundle",
+				"${PODS_CONFIGURATION_BUILD_DIR}/ExpoSystemUI/ExpoSystemUI_privacy.bundle",
 				"${PODS_CONFIGURATION_BUILD_DIR}/React-Core/React-Core_privacy.bundle",
 				"${PODS_CONFIGURATION_BUILD_DIR}/React-cxxreact/React-cxxreact_privacy.bundle",
+				"${PODS_CONFIGURATION_BUILD_DIR}/SDWebImage/SDWebImage.bundle",
 			);
 			name = "[CP] Copy Pods Resources";
 			outputPaths = (
@@ -296,8 +298,10 @@
 				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/EXConstants.bundle",
 				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/ExpoConstants_privacy.bundle",
 				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/ExpoFileSystem_privacy.bundle",
+				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/ExpoSystemUI_privacy.bundle",
 				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/React-Core_privacy.bundle",
 				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/React-cxxreact_privacy.bundle",
+				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/SDWebImage.bundle",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;

@@ -1,6 +1,7 @@
 # iOS Native Services - Implementation Status
 
 Last updated: 2026-05-04
+Last updated: 2026-05-05
 
 This file tracks MB.4 native bridge baseline reliability evidence.
 
@@ -35,12 +36,19 @@ This file tracks MB.4 native bridge baseline reliability evidence.
 
 ### Remaining for MB.4
 
+### Verified in VS Code (2026-05-05)
+
+- [x] Expo prebuilt + Xcode 26 (year-based, `iPhoneSimulator26.4.sdk`) header fix applied via `Podfile` `post_install` hook.
+  - Root cause: `RCTAppDelegateUmbrella.h` uses `__has_include(<React_RCTAppDelegate/...>)` (underscore) but CocoaPods only creates `React-RCTAppDelegate/` (dash) in `Pods/Headers/Public/`.
+  - Fix: creates `Pods/Headers/Public/React_RCTAppDelegate/` (underscore) and copies all headers from the dash dir.
+  - `pod install` confirms: `[Andernator] Created React_RCTAppDelegate/ (underscore) for Expo prebuilt compatibility.`
+- [x] Headless simulator build re-verified (2026-05-05): `xcodebuild ... -sdk iphonesimulator build CODE_SIGNING_ALLOWED=NO` → `EXIT: 0`.
+## MB.4 Verification Checklist
+### Remaining for MB.4
+
 - [ ] Manual Xcode target membership and bridge registration verification.
 - [ ] Simulator and physical-device runtime verification for all native modules.
 - [ ] Mark MB.4 shipped in roadmap after verification evidence is recorded.
-
-## MB.4 Verification Checklist
-
 ### 1. Project and target wiring (Xcode)
 
 - [ ] Open workspace with `pnpm mobile:open:xcode`.
