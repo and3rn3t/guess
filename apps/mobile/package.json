@@ -10,6 +10,7 @@
     "ios": "expo run:ios",
     "typecheck": "tsc --noEmit",
     "prebuild:ios": "expo prebuild --platform ios && pnpm sync:xcode-env",
+    "sync:xcode-dev": "pnpm sync:xcode-env",
     "sync:xcode-env": "[ -d ios ] && cp .xcode.env ios/.xcode.env || echo 'iOS project missing; run pnpm prebuild:ios first'",
     "pods": "pnpm sync:xcode-env && cd ios && pod install",
     "open:xcode": "open ios/*.xcworkspace",
