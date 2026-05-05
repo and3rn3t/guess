@@ -116,5 +116,30 @@ target 'Andernator' do
       end
       puts "[Andernator] Created React_RCTAppDelegate/ (underscore) for Expo prebuilt compatibility."
     end
+
+    # Xcode 26 + Expo SDK 55 + prebuilt RN: ExpoModulesJSI can fail to resolve
+    # <folly/dynamic.h> from React-performancetimeline headers because the
+    # ReactNativeDependencies header roots are not always in target search paths.
+    # Add them explicitly for affected pod targets.
+    installer.pods_project.targets.each do |target|
+      next unless ['ExpoModulesJSI', 'React-performancetimeline'].include?(target.name)
+
+      target.build_configurations.each do |build_config|
+        header_paths = build_config.build_settings['HEADER_SEARCH_PATHS'] || '$(inherited)'
+        header_paths = [header_paths] unless header_paths.is_a?(Array)
+
+        additional_paths = [
+          '$(PODS_ROOT)/Headers/Private/ReactNativeDependencies',
+          '$(PODS_ROOT)/ReactNativeDependencies/Headers',
+          '$(PODS_ROOT)/ReactNativeDependencies/framework/packages/react-native/ReactNativeDependencies.xcframework/Headers',
+        ]
+
+        additional_paths.each do |path|
+          header_paths << path unless header_paths.include?(path)
+        end
+
+        build_config.build_settings['HEADER_SEARCH_PATHS'] = header_paths
+      end
+    end
   end
 end
