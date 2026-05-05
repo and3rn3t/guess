@@ -74,6 +74,11 @@ export interface MobileServerGameState {
   isLoading: boolean
   error: string | null
   alertMessage: string | null
+  accessibilityCue: {
+    id: number
+    message: string
+    priority: 'low' | 'default' | 'high'
+  } | null
 }
 
 export interface MobileServerGameActions {
@@ -101,9 +106,15 @@ export const useMobileServerGame = (
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [alertMessage, setAlertMessage] = useState<string | null>(null)
+  const [accessibilityCue, setAccessibilityCue] = useState<{
+    id: number
+    message: string
+    priority: 'low' | 'default' | 'high'
+  } | null>(null)
 
   const sessionIdRef = useRef<string | null>(null)
   const lastRejectedCharIdRef = useRef<string | null>(null)
+  const cueIdRef = useRef(0)
 
 
   // ── Helpers ──────────────────────────────────────────────────────────────
@@ -117,6 +128,11 @@ export const useMobileServerGame = (
       }),
     [network],
   )
+
+  const emitCue = useCallback((message: string, priority: 'low' | 'default' | 'high' = 'default') => {
+    cueIdRef.current += 1
+    setAccessibilityCue({ id: cueIdRef.current, message, priority })
+  }, [])
 
   const applyBootstrapPlan = useCallback(
     (data: { question?: unknown; reasoning?: unknown; totalCharacters?: number }) => {
@@ -157,15 +173,17 @@ export const useMobileServerGame = (
       sessionIdRef.current = data.sessionId
       setSessionId(data.sessionId)
       applyBootstrapPlan(data)
+      emitCue(`Game started. ${data.question.text}`, 'default')
       void haptics.trigger('success')
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to start game'
       setError(message)
+      emitCue(`Error: ${message}`, 'high')
       void haptics.trigger('error')
     } finally {
       setIsLoading(false)
     }
-  }, [postJson, applyBootstrapPlan, haptics])
+  }, [postJson, applyBootstrapPlan, emitCue, haptics])
 
   const submitAnswer = useCallback(
     async (value: 'yes' | 'no' | 'unknown'): Promise<void> => {
@@ -193,22 +211,27 @@ export const useMobileServerGame = (
           } else if (step.type === 'set-question') {
             setQuestion(step.question)
             setReasoning(step.reasoning)
+            emitCue(`Next question. ${step.question.text}`, 'default')
           } else if (step.type === 'make-guess') {
             setGuessCharacter(step.character)
             phaseDispatch({ type: 'SHOW_GUESS' })
+            emitCue(`I think your character is ${step.character.name}.`, 'high')
             void haptics.trigger('medium')
           }
         }
 
         if (outcome.kind === 'contradiction') {
           setAlertMessage(outcome.message)
+          emitCue(outcome.message, 'high')
           void haptics.trigger('warning')
         } else if (outcome.kind === 'question' && outcome.remaining !== undefined) {
           setRemaining(outcome.remaining)
           void haptics.trigger('light')
           if (outcome.readiness?.blockedByRejectCooldown) {
             const cooldown = getRejectCooldownRemaining(outcome.readiness)
-            setAlertMessage(buildCollectingEvidenceMessage(cooldown))
+            const message = buildCollectingEvidenceMessage(cooldown)
+            setAlertMessage(message)
+            emitCue(message, 'high')
           }
         } else if (outcome.kind === 'guess' && outcome.remaining !== undefined) {
           setRemaining(outcome.remaining)
@@ -217,12 +240,13 @@ export const useMobileServerGame = (
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Failed to submit answer'
         setError(message)
+        emitCue(`Error: ${message}`, 'high')
         void haptics.trigger('error')
       } finally {
         setIsLoading(false)
       }
     },
-    [postJson, phaseDispatch, haptics],
+    [postJson, phaseDispatch, emitCue, haptics],
   )
 
   const skipQuestion = useCallback(async (): Promise<void> => {
@@ -236,12 +260,15 @@ export const useMobileServerGame = (
 
       for (const step of plan) {
         if (step.type === 'set-exhausted') {
-          setAlertMessage('No more questions to skip to!')
+          const message = 'No more questions to skip to!'
+          setAlertMessage(message)
+          emitCue(message, 'high')
           phaseDispatch({ type: 'END_GAME', exhausted: true })
           void haptics.trigger('warning')
         } else if (step.type === 'set-question') {
           setQuestion(step.question)
           setReasoning(step.reasoning)
+          emitCue(`Skipped. ${step.question.text}`, 'default')
           const remaining = (data as { remaining?: number }).remaining
           if (remaining !== undefined) setRemaining(remaining)
           void haptics.trigger('light')
@@ -250,11 +277,12 @@ export const useMobileServerGame = (
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to skip'
       setError(message)
+      emitCue(`Error: ${message}`, 'high')
       void haptics.trigger('error')
     } finally {
       setIsLoading(false)
     }
-  }, [postJson, phaseDispatch, haptics])
+  }, [postJson, phaseDispatch, emitCue, haptics])
 
   const rejectGuess = useCallback(
     async (characterId: string): Promise<void> => {
@@ -273,6 +301,7 @@ export const useMobileServerGame = (
         for (const step of plan) {
           if (step.type === 'set-exhausted') {
             phaseDispatch({ type: 'END_GAME', exhausted: true })
+            emitCue('No more guesses available. Game over.', 'high')
             void postJson(ENDPOINTS.result, { sessionId: sid, correct: false }).catch(() => {})
             void haptics.trigger('warning')
           } else if (step.type === 'set-question') {
@@ -283,7 +312,9 @@ export const useMobileServerGame = (
               (data as { rejectCooldownRemaining?: number }).rejectCooldownRemaining,
             )
             const cooldown = getRejectCooldownRemaining(snapshot)
-            setAlertMessage(buildRetryGuessMessage(cooldown))
+            const message = buildRetryGuessMessage(cooldown)
+            setAlertMessage(message)
+            emitCue(`${message} ${step.question.text}`, 'high')
             const remaining = (data as { remaining?: number }).remaining
             if (remaining !== undefined) setRemaining(remaining)
             void haptics.trigger('light')
@@ -296,12 +327,13 @@ export const useMobileServerGame = (
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Failed to reject guess'
         setError(message)
+        emitCue(`Error: ${message}`, 'high')
         void haptics.trigger('error')
       } finally {
         setIsLoading(false)
       }
     },
-    [postJson, phaseDispatch, haptics],
+    [postJson, phaseDispatch, emitCue, haptics],
   )
 
   const confirmCorrect = useCallback(async (): Promise<void> => {
@@ -311,8 +343,9 @@ export const useMobileServerGame = (
     sessionIdRef.current = null
     setSessionId(null)
     phaseDispatch({ type: 'END_GAME' })
+    emitCue('Nice! Your character was correct.', 'high')
     void haptics.trigger('success')
-  }, [postJson, phaseDispatch, haptics])
+  }, [postJson, phaseDispatch, emitCue, haptics])
 
   const clearError = useCallback(() => setError(null), [])
   const clearAlert = useCallback(() => setAlertMessage(null), [])
@@ -326,6 +359,7 @@ export const useMobileServerGame = (
     isLoading,
     error,
     alertMessage,
+    accessibilityCue,
     startGame,
     submitAnswer,
     skipQuestion,

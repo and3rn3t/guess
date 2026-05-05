@@ -19,10 +19,6 @@ export default function App(): ReactElement {
   const { state, dispatch, phaseTitle } = useCoreGameFlow()
   const { announce, announceScreenChange } = useVoiceOver()
   const lastAnnouncedPhase = useRef(state.phase)
-  const lastAnnouncedQuestion = useRef<string | null>(null)
-  const lastAnnouncedGuess = useRef<string | null>(null)
-  const lastAnnouncedAlert = useRef<string | null>(null)
-  const lastAnnouncedError = useRef<string | null>(null)
   const server = useMobileServerGame(
     dispatch,
     platformAdapters.network,
@@ -39,44 +35,13 @@ export default function App(): ReactElement {
   }, [announceScreenChange, phaseTitle, state.phase])
 
   useEffect(() => {
-    const text = server.question?.text?.trim() ?? null
-    if (!text || lastAnnouncedQuestion.current === text) {
+    const cue = server.accessibilityCue
+    if (!cue) {
       return
     }
 
-    lastAnnouncedQuestion.current = text
-    void announce(`New question: ${text}`, 'default')
-  }, [announce, server.question?.text])
-
-  useEffect(() => {
-    const name = server.guessCharacter?.name ?? null
-    if (!name || lastAnnouncedGuess.current === name) {
-      return
-    }
-
-    lastAnnouncedGuess.current = name
-    void announce(`I think your character is ${name}.`, 'high')
-  }, [announce, server.guessCharacter?.name])
-
-  useEffect(() => {
-    const message = server.alertMessage?.trim() ?? null
-    if (!message || lastAnnouncedAlert.current === message) {
-      return
-    }
-
-    lastAnnouncedAlert.current = message
-    void announce(message, 'high')
-  }, [announce, server.alertMessage])
-
-  useEffect(() => {
-    const message = server.error?.trim() ?? null
-    if (!message || lastAnnouncedError.current === message) {
-      return
-    }
-
-    lastAnnouncedError.current = message
-    void announce(`Error: ${message}`, 'high')
-  }, [announce, server.error])
+    void announce(cue.message, cue.priority)
+  }, [announce, server.accessibilityCue])
 
   const renderActions = (): ReactElement => {
     switch (state.phase) {
