@@ -216,6 +216,9 @@ importers:
 
   apps/mobile:
     dependencies:
+      '@babel/runtime':
+        specifier: ^7.29.2
+        version: 7.29.2
       '@guess/app-core':
         specifier: workspace:*
         version: link:../../packages/app-core
