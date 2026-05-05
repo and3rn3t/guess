@@ -1,189 +1,81 @@
-# Xcode Native Services - Implementation Status
+# iOS Native Services - Implementation Status
 
-## ✅ Completed Tasks
+Last updated: 2026-05-04
 
-### Swift Native Modules (100% Complete)
-- [x] **BridgeContract.swift** - Common protocols, error handling, and bridge utilities
-- [x] **HapticsService.swift** - Full haptic feedback implementation with all iOS styles
-- [x] **VoiceOverAnnouncer.swift** - VoiceOver announcements with priority control
-- [x] **ReduceMotionObserver.swift** - Real-time reduce motion observation with event emitter
-- [x] **LifecycleObserver.swift** - App/scene lifecycle tracking with event emitter
+This file tracks M.4 native verification pipeline completion.
 
-### TypeScript Integration (100% Complete)
-- [x] **NativeServices.ts** - Complete TypeScript definitions and module exports
-- [x] **useNativeServices.ts** - React hooks with graceful degradation
-  - `useHaptics()` - Haptic feedback hooks
-  - `useVoiceOver()` - VoiceOver announcement hooks
-  - `useReduceMotion()` - Reduce motion state hook
-  - `useLifecycle()` - Lifecycle state hook
-  - `useOnAppActive()`, `useOnAppBackground()` - Effect hooks
-  - `useLifecycleCallbacks()` - Combined lifecycle callbacks
-- [x] **NativeServicesExamples.tsx** - 7 complete example components
-- [x] **testNativeModules.ts** - Development test utilities
+## Current State
 
-### Documentation (100% Complete)
-- [x] **AppDelegate.swift** - Updated with comprehensive header comments
-- [x] **NativeServices-README.md** - Full module documentation
-- [x] **NATIVE_SERVICES_QUICK_REF.md** - Developer quick reference
-- [x] **XCODE_IMPLEMENTATION_HANDOFF.md** - Complete handoff documentation
-- [x] **XCODE_PROJECT_INTEGRATION.md** - Step-by-step integration guide
-- [x] **xcode-setup.md** - Updated with implementation notes and API surface
+### Completed in repository
 
-### Supporting Files (100% Complete)
-- [x] **Andernator-Bridging-Header.h** - Objective-C bridging header for React Native
-- [x] **Linting** - All TypeScript files pass ESLint validation
+- [x] Canonical native source-of-truth consolidation completed.
+  - Native bridge files live under `apps/mobile/ios/Andernator/NativeServices/`.
+  - Legacy duplicate tree under `apps/mobile/ios/mobile/` removed.
+- [x] Core gameplay screen decomposition completed in `apps/mobile/src/screens/`.
+- [x] Persistent storage adapter completed in `apps/mobile/src/platform/adapters.ts` using AsyncStorage with in-memory fallback.
+- [x] Xcode project cleanup completed to remove stale duplicate file references.
 
-### Xcode Configuration & Tooling (100% Complete)
-- [x] **XCODE_BUILD_SETTINGS.md** - Complete build settings reference
-- [x] **XCODE_SCHEME_CONFIG.md** - Scheme configuration for testing scenarios
-- [x] **INFO_PLIST_CONFIG.md** - Info.plist keys and Expo configuration
-- [x] **verify-native-modules.sh** - Build phase script for verification
-- [x] **NativeServicesDebugMenu.tsx** - Interactive debug UI for development
-- [x] **NativeServices-Swift-Interface.h** - Swift/Objective-C interface documentation
+### Verification completed in VS Code
 
-## 📋 Next Steps (In Xcode)
+- [x] `pnpm validate:fast` passed.
+- [x] `pnpm --filter @guess/mobile typecheck` passed.
+- [x] `pnpm validate` passed (2026-05-04).
+- [x] `pnpm build` passed (2026-05-04).
+- [x] `pnpm build:worker` passed (2026-05-04, dry-run deploy via Wrangler preview config).
+- [x] Expo/RN compatibility aligned for SDK 55.
+  - Set `apps/mobile` `react-native` to `0.83.6` (Expo recommended) and regenerated iOS artifacts (`prebuild:ios`, `pods`).
+- [x] Restored canonical native-source references after prebuild rewired missing paths.
+  - Updated `apps/mobile/ios/Andernator.xcodeproj/project.pbxproj` file references to `Andernator/NativeServices/*.swift`.
+- [x] Fixed Swift bridge compile issues surfaced by Xcode:
+  - Removed Objective-C selector collisions in `NativeServiceModule`.
+  - Replaced unsupported closure-type extensions for `RCTPromiseResolveBlock` / `RCTPromiseRejectBlock` with helper functions.
+- [x] Headless Xcode simulator build succeeded via:
+  - `xcodebuild -quiet -workspace Andernator.xcworkspace -scheme Andernator -configuration Debug -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' build CODE_SIGNING_ALLOWED=NO`
+  - Re-verified 2026-05-04 after updates in `apps/mobile/ios/Andernator.xcodeproj/project.pbxproj`.
 
-### 1. Add Files to Xcode Project
-**Status:** 🔶 Requires manual action in Xcode
+### Remaining for M.4
 
-**Steps:**
-1. Open Xcode project: `pnpm mobile:open:xcode`
-2. Create `NativeServices` group in project navigator
-3. Add all 5 Swift files to the group with target membership
-4. Configure bridging header in build settings
-5. Build project (Cmd+B) to verify compilation
+- [ ] Manual Xcode target membership and bridge registration verification.
+- [ ] Simulator and physical-device runtime verification for all native modules.
+- [ ] Mark M.4 shipped in roadmap after verification evidence is recorded.
 
-**Reference:** See `XCODE_PROJECT_INTEGRATION.md` for detailed instructions
+## M.4 Verification Checklist
 
-### 2. Move Files to Correct Locations
-**Status:** 🔶 Requires file system operations
+### 1. Project and target wiring (Xcode)
 
-```bash
-# Move Swift files
-mkdir -p apps/mobile/ios/Andernator/NativeServices
-mv *.swift apps/mobile/ios/Andernator/NativeServices/
-mv Andernator-Bridging-Header.h apps/mobile/ios/Andernator/
+- [ ] Open workspace with `pnpm mobile:open:xcode`.
+- [ ] Confirm `Andernator` target includes:
+  - [ ] `apps/mobile/ios/Andernator/NativeServices/BridgeContract.swift`
+  - [ ] `apps/mobile/ios/Andernator/NativeServices/HapticsService.swift`
+  - [ ] `apps/mobile/ios/Andernator/NativeServices/VoiceOverAnnouncer.swift`
+  - [ ] `apps/mobile/ios/Andernator/NativeServices/ReduceMotionObserver.swift`
+  - [ ] `apps/mobile/ios/Andernator/NativeServices/LifecycleObserver.swift`
+- [ ] Confirm bridging header path points to `apps/mobile/ios/Andernator/Andernator-Bridging-Header.h`.
 
-# Move TypeScript files
-mkdir -p apps/mobile/src/native
-mv NativeServices.ts useNativeServices.ts NativeServicesExamples.tsx testNativeModules.ts apps/mobile/src/native/
-mv NativeServices-README.md apps/mobile/src/native/README.md
-mv NATIVE_SERVICES_QUICK_REF.md apps/mobile/src/native/QUICK_REFERENCE.md
+### 2. Build verification
 
-# Move documentation
-mv XCODE_IMPLEMENTATION_HANDOFF.md docs/mobile/
-mv XCODE_PROJECT_INTEGRATION.md docs/mobile/
-```
+- [x] Build debug simulator target without bridge compile errors (verified via headless `xcodebuild`).
+- [ ] Build debug device target (Cmd+B) without bridge compile errors.
 
-### 3. Validation & Testing
-**Status:** ⏳ Pending file organization
+### 3. Runtime verification
 
-```bash
-# Run validation suite
-pnpm validate:fast
-pnpm --filter @guess/mobile typecheck
-pnpm mobile:guardrails
+- [ ] App launches without module registration errors.
+- [ ] Native services debug UI reports module availability.
+- [ ] Haptics behavior verified on physical device.
+- [ ] VoiceOver announce behavior verified with VoiceOver enabled.
+- [ ] Reduce-motion state and change events verified.
+- [ ] Lifecycle foreground/background transitions verified.
 
-# Test on simulator
-pnpm mobile:ios
+### 4. Evidence and close-out
 
-# In App.tsx (development only):
-import { testNativeModules } from '@/native/testNativeModules';
-if (__DEV__) testNativeModules();
-```
+- [ ] Capture verification notes in `apps/mobile/ios/XCODE_IMPLEMENTATION_HANDOFF.md`.
+- [ ] Update roadmap status for M.4 to shipped with date.
+- [ ] Move next mobile item to in-progress in roadmap block.
 
-### 4. Device Testing
-**Status:** ⏳ Pending build completion
+## Reference Files
 
-**Test Checklist:**
-- [ ] Build succeeds without errors
-- [ ] App launches and connects to bridge
-- [ ] All 4 modules show as available in test output
-- [ ] Haptics work on physical device (not simulator)
-- [ ] VoiceOver announcements work (enable VoiceOver)
-- [ ] Reduce motion detection works (toggle in Settings)
-- [ ] Lifecycle events fire correctly (background/foreground app)
-
-### 5. Game Screen Integration
-**Status:** ⏳ Pending successful device testing
-
-**Integration Targets (per native-product-contract.md):**
-- [ ] **Welcome Screen** - VoiceOver announcements, selection haptics
-- [ ] **Playing Screen** - Haptics for interactions, reduce motion animations
-- [ ] **Guessing Screen** - Success/error haptics, VoiceOver feedback
-- [ ] **Game Over Screen** - Multi-sensory feedback, screen announcements
-- [ ] **Challenge Entry** - Auto-save on background, lifecycle management
-
-**Use templates from:** `apps/mobile/src/native/NativeServicesExamples.tsx`
-
-### 6. Documentation Updates
-**Status:** ✅ xcode-setup.md updated, ⏳ other docs pending
-
-- [x] Update `docs/mobile/xcode-setup.md` with implementation notes
-- [ ] Document integration in game screens
-- [ ] Add screenshots/videos to PR for visual verification
-- [ ] Update `docs/mobile/native-product-contract.md` if needed
-
-### 7. Create Pull Request
-**Status:** ⏳ Pending integration completion
-
-**PR Requirements:**
-- [ ] Use handoff block template from `XCODE_IMPLEMENTATION_HANDOFF.md`
-- [ ] Include validation results
-- [ ] Add device testing evidence (screenshots/videos)
-- [ ] Document any Expo config changes
-- [ ] Link to native-product-contract.md for rationale
-
-## 📊 Progress Summary
-
-| Category | Status | Progress |
-|----------|--------|----------|
-| Swift Implementation | ✅ Complete | 5/5 files |
-| TypeScript Integration | ✅ Complete | 4/4 files |
-| Documentation | ✅ Complete | 6/6 files |
-| Xcode Integration | 🔶 Pending | Manual steps required |
-| Validation | ⏳ Pending | Awaiting file organization |
-| Device Testing | ⏳ Pending | Awaiting build |
-| Game Integration | ⏳ Pending | Awaiting testing |
-| PR Creation | ⏳ Pending | Final step |
-
-**Overall Progress:** 60% (Implementation) → 40% (Integration & Testing)
-
-## 🎯 Immediate Next Action
-
-**You should now:**
-
-1. **Move files to correct locations** (see commands in "Move Files" section above)
-2. **Open Xcode** and add Swift files to project
-3. **Build the project** to verify compilation
-4. **Run tests** to verify module registration
-
-Once those steps are complete, we can proceed with game screen integration!
-
-## 📚 Reference Documents
-
-- **Quick Start:** `XCODE_PROJECT_INTEGRATION.md`
-- **API Reference:** `apps/mobile/src/native/QUICK_REFERENCE.md`
-- **Examples:** `apps/mobile/src/native/NativeServicesExamples.tsx`
-- **Testing:** `apps/mobile/src/native/testNativeModules.ts`
-- **Handoff:** `docs/mobile/XCODE_IMPLEMENTATION_HANDOFF.md`
-
-## 🔧 Troubleshooting
-
-If you encounter issues, see `XCODE_PROJECT_INTEGRATION.md` "Troubleshooting" section for:
-- Module registration errors
-- Build failures
-- Bridging header issues
-- Runtime crashes
-
-## ✨ What You've Accomplished
-
-You now have:
-- ✅ **4 native iOS modules** providing capabilities beyond Expo defaults
-- ✅ **Complete TypeScript integration** with type safety and React hooks
-- ✅ **7 example components** showing real-world usage patterns
-- ✅ **Graceful degradation** on all platforms and scenarios
-- ✅ **Comprehensive documentation** for developers and AI handoff
-- ✅ **Full HIG compliance** for haptics, VoiceOver, and accessibility
-
-Ready for production use once integrated into Xcode project! 🚀
+- `docs/mobile/xcode-setup.md`
+- `docs/mobile/xcode-claude-memory-handoff.md`
+- `apps/mobile/ios/XCODE_PROJECT_INTEGRATION.md`
+- `apps/mobile/ios/XCODE_IMPLEMENTATION_HANDOFF.md`
+- `apps/mobile/ios/NativeServices-README.md`

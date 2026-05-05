@@ -1,38 +1,156 @@
+import Foundation
 import UIKit
+import React
 
-/// Native haptics entry point for iOS-specific feedback tuning.
-///
-/// TODO(ios-native): expose via a bridge method `triggerHaptic(style:)`.
-final class HapticsService {
-    static let shared = HapticsService()
+@objc(HapticsService)
+class HapticsService: NSObject, NativeServiceModule, RCTBridgeModule {
 
-    private let light = UIImpactFeedbackGenerator(style: .light)
-    private let medium = UIImpactFeedbackGenerator(style: .medium)
-    private let heavy = UIImpactFeedbackGenerator(style: .heavy)
-    private let notify = UINotificationFeedbackGenerator()
+    static var serviceName: String { "NativeHaptics" }
 
-    private init() {
-        [light, medium, heavy].forEach { $0.prepare() }
-        notify.prepare()
+    @objc
+    static func moduleName() -> String! {
+        return serviceName
     }
 
-    func trigger(_ style: String) {
-        switch style {
-        case "light":
-            light.impactOccurred(intensity: 0.7)
-        case "medium":
-            medium.impactOccurred(intensity: 0.9)
-        case "heavy":
-            heavy.impactOccurred(intensity: 1.0)
-        case "success":
-            notify.notificationOccurred(.success)
-        case "warning":
-            notify.notificationOccurred(.warning)
-        default:
-            notify.notificationOccurred(.error)
+    @objc
+    static func requiresMainQueueSetup() -> Bool {
+        return false
+    }
+
+    private var impactGenerators: [UIImpactFeedbackGenerator.FeedbackStyle: UIImpactFeedbackGenerator] = [:]
+    private var notificationGenerator: UINotificationFeedbackGenerator?
+    private var selectionGenerator: UISelectionFeedbackGenerator?
+
+    @objc
+    func trigger(_ style: String, resolver: @escaping RCTPromiseResolveBlock, rejecter: @escaping RCTPromiseRejectBlock) {
+        guard isHapticsAvailable else {
+            resolver(nil)
+            return
         }
 
-        [light, medium, heavy].forEach { $0.prepare() }
-        notify.prepare()
+        guard let feedbackStyle = mapStyleToFeedback(style) else {
+            rejectPromise(rejecter, with: .invalidParameters("Invalid haptic style: \(style)"))
+            return
+        }
+
+        DispatchQueue.main.async { [weak self] in
+            self?.performImpact(style: feedbackStyle)
+            resolver(nil)
+        }
+    }
+
+    @objc
+    func success(_ resolver: @escaping RCTPromiseResolveBlock, rejecter: @escaping RCTPromiseRejectBlock) {
+        guard isHapticsAvailable else {
+            resolver(nil)
+            return
+        }
+
+        DispatchQueue.main.async { [weak self] in
+            self?.performNotification(type: .success)
+            resolver(nil)
+        }
+    }
+
+    @objc
+    func warning(_ resolver: @escaping RCTPromiseResolveBlock, rejecter: @escaping RCTPromiseRejectBlock) {
+        guard isHapticsAvailable else {
+            resolver(nil)
+            return
+        }
+
+        DispatchQueue.main.async { [weak self] in
+            self?.performNotification(type: .warning)
+            resolver(nil)
+        }
+    }
+
+    @objc
+    func error(_ resolver: @escaping RCTPromiseResolveBlock, rejecter: @escaping RCTPromiseRejectBlock) {
+        guard isHapticsAvailable else {
+            resolver(nil)
+            return
+        }
+
+        DispatchQueue.main.async { [weak self] in
+            self?.performNotification(type: .error)
+            resolver(nil)
+        }
+    }
+
+    @objc
+    func selection(_ resolver: @escaping RCTPromiseResolveBlock, rejecter: @escaping RCTPromiseRejectBlock) {
+        guard isHapticsAvailable else {
+            resolver(nil)
+            return
+        }
+
+        DispatchQueue.main.async { [weak self] in
+            self?.performSelection()
+            resolver(nil)
+        }
+    }
+
+    private var isHapticsAvailable: Bool {
+        #if targetEnvironment(simulator)
+        return false
+        #else
+        return UIDevice.current.userInterfaceIdiom == .phone
+        #endif
+    }
+
+    private func mapStyleToFeedback(_ style: String) -> UIImpactFeedbackGenerator.FeedbackStyle? {
+        switch style.lowercased() {
+        case "light":
+            return .light
+        case "medium":
+            return .medium
+        case "heavy":
+            return .heavy
+        case "soft":
+            if #available(iOS 13.0, *) {
+                return .soft
+            }
+            return .light
+        case "rigid":
+            if #available(iOS 13.0, *) {
+                return .rigid
+            }
+            return .heavy
+        default:
+            return nil
+        }
+    }
+
+    private func performImpact(style: UIImpactFeedbackGenerator.FeedbackStyle) {
+        let generator: UIImpactFeedbackGenerator
+
+        if let existing = impactGenerators[style] {
+            generator = existing
+        } else {
+            generator = UIImpactFeedbackGenerator(style: style)
+            impactGenerators[style] = generator
+        }
+
+        generator.prepare()
+        generator.impactOccurred()
+    }
+
+    private func performNotification(type: UINotificationFeedbackGenerator.FeedbackType) {
+        if notificationGenerator == nil {
+            notificationGenerator = UINotificationFeedbackGenerator()
+        }
+
+        notificationGenerator?.prepare()
+        notificationGenerator?.notificationOccurred(type)
+    }
+
+    private func performSelection() {
+        if selectionGenerator == nil {
+            selectionGenerator = UISelectionFeedbackGenerator()
+        }
+
+        selectionGenerator?.prepare()
+        selectionGenerator?.selectionChanged()
     }
 }

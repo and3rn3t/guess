@@ -2,7 +2,6 @@ import { StatusBar } from 'expo-status-bar'
 import type { ReactElement } from 'react'
 import { useEffect, useMemo, useRef } from 'react'
 import {
-  Pressable,
   SafeAreaView,
   StyleSheet,
   Text,
@@ -10,6 +9,11 @@ import {
 } from 'react-native'
 import { createMobilePlatformAdapters } from './src/platform/adapters'
 import { NativeServicesDebugMenu } from './src/native/NativeServicesDebugMenu'
+import { ChallengeScreen } from './src/screens/ChallengeScreen'
+import { GameOverScreen } from './src/screens/GameOverScreen'
+import { GuessingScreen } from './src/screens/GuessingScreen'
+import { PlayingScreen } from './src/screens/PlayingScreen'
+import { WelcomeScreen } from './src/screens/WelcomeScreen'
 import { useVoiceOver } from './src/native/useNativeServices'
 import { useCoreGameFlow } from './src/state/useCoreGameFlow'
 import { useMobileServerGame } from './src/state/useMobileServerGame'
@@ -46,111 +50,15 @@ export default function App(): ReactElement {
   const renderActions = (): ReactElement => {
     switch (state.phase) {
       case 'welcome':
-        return (
-          <View style={styles.actionRow}>
-            <Pressable
-              accessibilityRole="button"
-              disabled={server.isLoading}
-              onPress={() => void server.startGame()}
-              style={styles.primaryButton}
-            >
-              <Text style={styles.primaryButtonText}>
-                {server.isLoading ? 'Starting…' : 'Start Game'}
-              </Text>
-            </Pressable>
-            <Pressable
-              accessibilityRole="button"
-              onPress={() => dispatch({ type: 'GO_TO_CHALLENGE' })}
-              style={styles.secondaryButton}
-            >
-              <Text style={styles.secondaryButtonText}>Challenge</Text>
-            </Pressable>
-          </View>
-        )
+        return <WelcomeScreen dispatch={dispatch} state={state} server={server} />
       case 'playing':
-        return (
-          <View style={styles.actionRow}>
-            <Pressable
-              accessibilityRole="button"
-              disabled={server.isLoading}
-              onPress={() => void server.submitAnswer('yes')}
-              style={styles.primaryButton}
-            >
-              <Text style={styles.primaryButtonText}>Yes</Text>
-            </Pressable>
-            <Pressable
-              accessibilityRole="button"
-              disabled={server.isLoading}
-              onPress={() => void server.submitAnswer('no')}
-              style={styles.secondaryButton}
-            >
-              <Text style={styles.secondaryButtonText}>No</Text>
-            </Pressable>
-            <Pressable
-              accessibilityRole="button"
-              disabled={server.isLoading}
-              onPress={() => void server.skipQuestion()}
-              style={styles.secondaryButton}
-            >
-              <Text style={styles.secondaryButtonText}>Skip</Text>
-            </Pressable>
-          </View>
-        )
+        return <PlayingScreen dispatch={dispatch} state={state} server={server} />
       case 'guessing':
-        return (
-          <View style={styles.actionRow}>
-            <Pressable
-              accessibilityRole="button"
-              disabled={server.isLoading}
-              onPress={() => void server.confirmCorrect()}
-              style={styles.primaryButton}
-            >
-              <Text style={styles.primaryButtonText}>Correct!</Text>
-            </Pressable>
-            {server.guessCharacter && (
-              <Pressable
-                accessibilityRole="button"
-                disabled={server.isLoading}
-                onPress={() => void server.rejectGuess(server.guessCharacter!.id)}
-                style={styles.secondaryButton}
-              >
-                <Text style={styles.secondaryButtonText}>Not This One</Text>
-              </Pressable>
-            )}
-          </View>
-        )
+        return <GuessingScreen dispatch={dispatch} state={state} server={server} />
       case 'gameOver':
-        return (
-          <View style={styles.actionRow}>
-            <Pressable
-              accessibilityRole="button"
-              onPress={() => dispatch({ type: 'BACK_TO_WELCOME' })}
-              style={styles.primaryButton}
-            >
-              <Text style={styles.primaryButtonText}>Play Again</Text>
-            </Pressable>
-          </View>
-        )
+        return <GameOverScreen dispatch={dispatch} state={state} server={server} />
       case 'challenge':
-        return (
-          <View style={styles.actionRow}>
-            <Pressable
-              accessibilityRole="button"
-              disabled={server.isLoading}
-              onPress={() => void server.startGame()}
-              style={styles.primaryButton}
-            >
-              <Text style={styles.primaryButtonText}>Start Challenge</Text>
-            </Pressable>
-            <Pressable
-              accessibilityRole="button"
-              onPress={() => dispatch({ type: 'BACK_TO_WELCOME' })}
-              style={styles.secondaryButton}
-            >
-              <Text style={styles.secondaryButtonText}>Cancel</Text>
-            </Pressable>
-          </View>
-        )
+        return <ChallengeScreen dispatch={dispatch} state={state} server={server} />
       default:
         return <View />
     }
@@ -238,34 +146,5 @@ const styles = StyleSheet.create({
     color: '#f87171',
     fontSize: 13,
     lineHeight: 18,
-  },
-  actionRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
-    marginTop: 8,
-  },
-  primaryButton: {
-    borderRadius: 14,
-    backgroundColor: '#3b82f6',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-  },
-  primaryButtonText: {
-    color: '#f8fafc',
-    fontSize: 14,
-    fontWeight: '700',
-  },
-  secondaryButton: {
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: '#3b82f6',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-  },
-  secondaryButtonText: {
-    color: '#93c5fd',
-    fontSize: 14,
-    fontWeight: '700',
   },
 })

@@ -5,6 +5,7 @@ import type {
   NetworkRequestOptions,
   PlatformAdapters,
 } from '@guess/app-core'
+import AsyncStorage from '@react-native-async-storage/async-storage'
 import * as Haptics from 'expo-haptics'
 import { AppState, type AppStateStatus, Share } from 'react-native'
 
@@ -16,16 +17,36 @@ const mapToLifecycleState = (state: AppStateStatus): LifecycleState => {
 }
 
 const createMobileStorageAdapter = () => {
-  // Intentional placeholder until secure persistent storage is selected.
-  const cache = new Map<string, string>()
+  const fallbackCache = new Map<string, string>()
 
   return {
-    getItem: async (key: string): Promise<string | null> => cache.get(key) ?? null,
+    getItem: async (key: string): Promise<string | null> => {
+      try {
+        const persisted = await AsyncStorage.getItem(key)
+        if (persisted !== null) {
+          fallbackCache.set(key, persisted)
+          return persisted
+        }
+      } catch {
+        // Ignore storage-layer failures and fall back to in-memory cache.
+      }
+      return fallbackCache.get(key) ?? null
+    },
     setItem: async (key: string, value: string): Promise<void> => {
-      cache.set(key, value)
+      fallbackCache.set(key, value)
+      try {
+        await AsyncStorage.setItem(key, value)
+      } catch {
+        // Ignore storage-layer failures and retain in-memory value.
+      }
     },
     removeItem: async (key: string): Promise<void> => {
-      cache.delete(key)
+      fallbackCache.delete(key)
+      try {
+        await AsyncStorage.removeItem(key)
+      } catch {
+        // Ignore storage-layer failures.
+      }
     },
   }
 }

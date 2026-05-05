@@ -58,6 +58,9 @@
   - [UI / UX](#ui--ux)
     - [Near-Term Polish (1–2 days each)](#near-term-polish-12-days-each)
     - [Medium-Term UX Projects (2–4 days each)](#medium-term-ux-projects-24-days-each)
+  - [Mobile (iOS App)](#mobile-ios-app)
+    - [Execution Sprint (1-2 weeks)](#execution-sprint-1-2-weeks)
+    - [Monthly Outlook (next 2-4 weeks)](#monthly-outlook-next-2-4-weeks)
   - [Modern Web Platform](#modern-web-platform)
     - [CSS \& Layout](#css--layout)
     - [Browser APIs](#browser-apis)
@@ -254,17 +257,11 @@ The active execution plan, sequenced by **priority × ease**. Pull items top-dow
 
 > **Maintain this block first.** It's the single answer to "what should I work on?" — agents and humans check it before scanning tables. Update in the same commit as the work it describes.
 
-- 🟡 **In progress:** [I.9](#i-9) AI Gateway semantic caching 7d cache-hit window (expected: 2026-05-07) · [DQ.33](#dq-33) deterministic null-closure queue · [DQ.36](#dq-36) manual curator closure queue · [DQ.37](#dq-37) risk-tiered revalidation cadence · [DQ.38](#dq-38) completeness burndown + weekly report
-- ▶ **Up next:** (none)
-- ✅ **Recently completed:** [DQ.35](#dq-35) image health completeness guardrail (2026-05-03) · [DQ.32](#dq-32) attribute completeness SLA matrix (2026-05-03) · [DQ.34](#dq-34) source-ID completeness guardrail (2026-05-03) · [P.7](#p-7) `/about` + `/credits` pages (2026-05-03) · [P.8](#p-8) light theme + 3-state toggle (system/dark/light) (2026-05-03) · [P.9](#p-9) daily challenge leaderboard foundation (2026-05-03) · [DX.4](#dx-4) MSW for API-dependent component tests (2026-05-02) · admin recommender + Data Hygiene + cost dashboard migrated to server endpoints with request-id/rate-limit/logging hardening (2026-05-02) · post-game reflection feedback capture + coverage tests (2026-05-02) · [EN.29](#en-29) trivia card on reveal (2026-05-02)
-- 🧫 **Blocked / waiting on:** _none_
-- 🎯 **Current wave focus:** Wave 4 complete. Next: Wave 5 — Polish & Depth (admin polish, DX leverage, data completeness push).
-- 🟡 **In progress:** [I.9](#i-9) AI Gateway semantic caching 7d cache-hit window (expected: 2026-05-07) · [DQ.33](#dq-33) deterministic null-closure queue · [DQ.36](#dq-36) manual curator closure queue · [DQ.37](#dq-37) risk-tiered revalidation cadence · [DQ.38](#dq-38) completeness burndown + weekly report
-- ▶ **Up next:** (none)
-- ✅ **Recently completed:** [DX.30](#dx-30) generated D1 types from schema (2026-05-03) · [DX.18](#dx-18) coverage diff PR comments (2026-05-03) · [AP.10](#ap-10) ⌘K command palette (2026-05-03) · [AP.14](#ap-14) CSV/JSON export component (2026-05-03) · [AP.22](#ap-22) /admin/about system metadata (2026-05-03) · [DQ.35](#dq-35) image health guardrail (2026-05-03) · [DQ.32](#dq-32) SLA matrix (2026-05-03) · [DQ.34](#dq-34) source-ID guardrail (2026-05-03) · [P.7](#p-7) /about + /credits pages (2026-05-03) · [P.8](#p-8) light theme toggle (2026-05-03) · [P.9](#p-9) daily challenge leaderboard (2026-05-03) · [DX.4](#dx-4) MSW for API tests (2026-05-02) · …more: admin recommender + Data Hygiene + cost dashboard server migration (2026-05-02), post-game feedback + coverage (2026-05-02), [EN.29](#en-29) trivia card (2026-05-02)
-- 🧫 **Blocked / waiting on:** _none_
-- 🎯 **Current wave focus:** Wave 5 admin polish complete (AP.10/14/22 ✅). Next: DX leverage (Phase 3, ~1-2 days).
-- ✅ **Recently shipped (last 5):** [EN.29](#en-29) trivia card on reveal (2026-05-02) · [AN.11](#an-11) aha moment detector (2026-05-01) · [AN.21](#an-21) catastrophic-failure replay queue (2026-05-01) · [B.4](#b-4) question dedup via embeddings (2026-05-01) · [C.6](#c-6) question quality feedback loop (2026-05-01) · …see [CHANGELOG.md](CHANGELOG.md) for the full list.
+- 🟡 **In progress:** [I.9](#i-9) AI Gateway semantic caching 7d cache-hit window (expected: 2026-05-07) · [M.4](#m-4) native verification pipeline completion · [M.5](#m-5) screen quality scorecard gate
+- ▶ **Up next:** [M.6](#m-6) lifecycle resilience matrix
+- ✅ **Recently completed:** [DQ.31](#dq-31) completeness release gate (2026-05-04) · [DQ.33](#dq-33) null-closure queue (2026-05-04) · [DQ.36](#dq-36) curator closure queue (2026-05-04) · [DQ.37](#dq-37) risk-tiered revalidation (2026-05-04) · [DQ.38](#dq-38) completeness burndown + weekly report (2026-05-04) · [M.1](#m-1) native bridge source-of-truth consolidation (2026-05-04) · [M.2](#m-2) core gameplay screen decomposition (2026-05-04) · [M.3](#m-3) persistent mobile storage adapter (2026-05-04)
+- 🧫 **Blocked / waiting on:** M.4 pending manual Xcode device build + runtime checks · M.5 pending device validation to clear scorecard weighted threshold
+- 🎯 **Current wave focus:** Wave 5 DQ completeness program ✅ complete; mobile track driving M.4 native verification and M.5 scorecard gate; M.6 lifecycle resilience matrix up next.
 
 ### Wave 1 — Foundation (start here, ~1 week of focused work)
 
@@ -343,14 +340,14 @@ Pull from these once the foundation is solid. Ordered by ease within each cluste
 
 | Status | Order | # | Item | Effort | Why now | Done when |
 |---|---|---|---|---|---|---|
-| 🟡 | 1 | [DQ.31](#dq-31) | Definition of complete + release gate | M | Establishes one acceptance bar for all closure work. | CI publishes score and enforces warn/fail thresholds exactly as defined in the canonical gate block. |
+| ✅ 2026-05-04 | 1 | [DQ.31](#dq-31) | Definition of complete + release gate | M | Establishes one acceptance bar for all closure work. | CI publishes score and enforces warn/fail thresholds exactly as defined in the canonical gate block. |
 | ✅ 2026-05-03 | 2 | [DQ.32](#dq-32) | Attribute completeness SLA matrix | M | Turns "complete" into explicit per-attribute/category targets. | `data/attribute-completeness-sla.json` is committed, validated in CI, and rendered in admin completeness views. |
-| 🟡 | 3 | [DQ.33](#dq-33) | Deterministic null-closure queue | M | Ensures high-impact NULLs are closed first, not random backlog slices. | Daily queue exists, is consumed by automation/manual workflows, and backlog burn rate improves week-over-week. |
+| ✅ 2026-05-04 | 3 | [DQ.33](#dq-33) | Deterministic null-closure queue | M | Ensures high-impact NULLs are closed first, not random backlog slices. | Daily queue exists, is consumed by automation/manual workflows, and backlog burn rate improves week-over-week. |
 | ✅ 2026-05-03 | 4 | [DQ.34](#dq-34) | Source-ID completeness guardrail | S | Broken source IDs silently degrade enrichment and evidence quality. | Daily source-health check runs; invalid IDs are queued and visible in admin with aging/count metrics. |
 | ✅ 2026-05-03 | 5 | [DQ.35](#dq-35) | Image health completeness guardrail | S | Portrait quality gaps degrade both playability and visual-attribute quality. | Image-health queue is generated daily; unusable portrait rate trends down and is visible in admin. |
-| 🟡 | 6 | [DQ.36](#dq-36) | Manual curator closure queue | M | Captures irreducible ambiguity and prevents retry loops. | Curator queue supports assign/resolve/lock and unresolved aging is tracked in completeness dashboards. |
-| 🟡 | 7 | [DQ.37](#dq-37) | Risk-tiered revalidation cadence | S | Keeps quality freshest where players feel it most. | Tiered schedules run automatically and coverage targets are met for daily/weekly/monthly tiers. |
-| 🟡 | 8 | [DQ.38](#dq-38) | Completeness burndown + weekly report | S | Makes closure velocity and blockers explicit for weekly planning. | Weekly report artifact is generated and the burndown view shows NULL/SLA/aging trends with no manual steps. |
+| ✅ 2026-05-04 | 6 | [DQ.36](#dq-36) | Manual curator closure queue | M | Captures irreducible ambiguity and prevents retry loops. | Curator queue supports assign/resolve/lock and unresolved aging is tracked in completeness dashboards. |
+| ✅ 2026-05-04 | 7 | [DQ.37](#dq-37) | Risk-tiered revalidation cadence | S | Keeps quality freshest where players feel it most. | Tiered schedules run automatically and coverage targets are met for daily/weekly/monthly tiers. |
+| ✅ 2026-05-04 | 8 | [DQ.38](#dq-38) | Completeness burndown + weekly report | S | Makes closure velocity and blockers explicit for weekly planning. | Weekly report artifact is generated and the burndown view shows NULL/SLA/aging trends with no manual steps. |
 
 **Player-facing portfolio gloss:** EN.29 trivia card on reveal · P.9 daily challenge leaderboard finish · S.1 challenge-a-friend (pairs with H.5 PWA share target)
 
@@ -571,6 +568,30 @@ Larger experimental items (View Transitions API, Document PiP, WebXR, ambient so
 - **Personalized difficulty adaptation** — read game history; suggest difficulty bumps after a win streak as a dismissible banner. `@starting-style` for entry. No backend changes — client-side from existing stored stats.
 - **Themed game modes with distinct visual identities** — `data-theme` attribute on `<html>` + 3 CSS variable overrides per theme. Easy / Hard / Anime / Villains / Speedrun each carry their own palette swap.
 - **Animated "confidence meter" ambient background** — subtle CSS radial gradient whose hue/saturation encodes AI confidence. Cool blue at 40 candidates → warm amber at 1–3. `requestAnimationFrame` updates a CSS custom property. `prefers-reduced-motion` snaps to the final color.
+
+---
+
+## Mobile (iOS App)
+
+iOS execution track for work split across VS Code and Xcode. Source-of-truth boundaries remain: product logic in `apps/mobile/src/**` + `packages/app-core/**`; generated native output in `apps/mobile/ios/**`; handoff protocol in `docs/mobile/xcode-claude-memory-handoff.md`.
+
+### Execution Sprint (1-2 weeks)
+
+| Status | # | Item | Effort | Notes |
+|---|---|---|---|---|
+| ✅ 2026-05-04 | <a id="m-1"></a>M.1 | **Native bridge source-of-truth consolidation** | M | Collapse duplicate native module trees (`apps/mobile/ios/Andernator/NativeServices/` vs `apps/mobile/ios/mobile/`) to one canonical implementation path; align docs and Xcode project references to match. |
+| ✅ 2026-05-04 | <a id="m-2"></a>M.2 | **Core gameplay screen decomposition** | M | Replace single preview shell in `apps/mobile/App.tsx` with contract-aligned screens (Welcome, Playing, Guessing, Game Over, Challenge) while preserving existing `useMobileServerGame` behavior. |
+| ✅ 2026-05-04 | <a id="m-3"></a>M.3 | **Persistent mobile storage adapter** | S | Replace in-memory `Map` adapter in `apps/mobile/src/platform/adapters.ts` with persistent mobile storage and define fallback/error behavior. |
+| 🟡 | <a id="m-4"></a>M.4 | **Native verification pipeline completion** | M | Complete Xcode target membership and bridge registration checks, run device validation, and update implementation status docs to shipped state. |
+
+### Monthly Outlook (next 2-4 weeks)
+
+| Status | # | Item | Effort | Notes |
+|---|---|---|---|---|
+| 🟡 | <a id="m-5"></a>M.5 | **Screen quality scorecard gate** | M | Require scorecard evidence for touched core screens and enforce threshold tracking from `docs/mobile/screen-quality-scorecard.md`. |
+| ⬜ | <a id="m-6"></a>M.6 | **Lifecycle resilience matrix** | M | Add explicit test matrix for background/foreground/re-entry and stale session recovery, validated against native lifecycle hooks. |
+| ⬜ | <a id="m-7"></a>M.7 | **Challenge/share path hardening** | S | Improve challenge entry/share behavior with native accessibility announcements and platform-consistent share flow. |
+| ⬜ | <a id="m-8"></a>M.8 | **Dual-IDE handoff runbook hardening** | S | Prune stale iOS docs, keep one canonical handoff checklist, and verify sync routine remains accurate after each native change. |
 
 ---
 
@@ -910,6 +931,7 @@ The shell ships 24 routes across three sidebar groups (Tools / Data / Pipeline).
 | 2026-05 | Data completeness elevated to explicit closure program | Roadmap editing pass re-centered data quality around completion outcomes, not just signal generation. Added DQ.31-DQ.38 covering definition-of-complete release gating, per-attribute SLA matrix, deterministic null-closure prioritization, source-id and image-health completeness guardrails, curator closure queueing, risk-tiered revalidation, and weekly completeness burndown artifacts. Wave 5 now explicitly prioritizes this completeness cluster as the next highest-leverage path after in-progress infra items. |
 | 2026-05 | Wave 5 pull-order override: DQ completeness before AP.10 | Execution moved from AP.10 to DQ.31 intentionally to establish measurable data-completeness gates before additional admin polish. Updated In Progress/Up Next accordingly and will return to AP.10 after DQ.31-DQ.33 foundational slices. |
 | 2026-05-03 | DQ.33 started once DQ.31/DQ.32 foundations were wired | Began the deterministic null-closure queue before formally shipping the full completeness program because the shared scorer, SLA source of truth, admin completeness payload, and warn-only CI gate were already in place. This keeps Wave 5 work on the same dependency chain without context-switching to unrelated polish. |
+| 2026-05-04 | iOS native services source of truth set to `apps/mobile/ios/Andernator/NativeServices/` | Two parallel native module trees existed (`apps/mobile/ios/Andernator/NativeServices/` scaffold path and `apps/mobile/ios/mobile/` bridge implementation path), which created handoff ambiguity across VS Code/Xcode and increased drift risk. Mobile roadmap track M.1 starts by consolidating to a single canonical location before further screen/integration work. |
 
 ---
 

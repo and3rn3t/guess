@@ -1,199 +1,119 @@
-# Xcode Native Services Implementation - Handoff Document
+# iOS Native Services - Xcode Handoff
 
-## Summary
+Last updated: 2026-05-04
 
-Implemented native iOS service modules to meet the native product contract requirements for iOS-quality game interactions and accessibility support.
+This document is the execution handoff for M.4 (native verification pipeline completion).
+It reflects the current state after Expo SDK 55 / React Native compatibility alignment and headless simulator build verification.
 
-## Files Created
+## Current Status
 
-### Swift Native Modules (5 files)
+### Completed in repo
 
-1. **BridgeContract.swift**
-   - Common protocols and error handling for React Native bridge
-   - Not directly exposed to TypeScript
-   - Provides `NativeServiceModule` protocol and `BridgeError` enum
+- Native source-of-truth is consolidated at:
+  - `apps/mobile/ios/Andernator/NativeServices/`
+- Duplicate legacy native tree was removed:
+  - `apps/mobile/ios/mobile/`
+- Mobile gameplay actions were decomposed into phase screens in:
+  - `apps/mobile/src/screens/`
+- Mobile storage adapter now persists via AsyncStorage with in-memory fallback in:
+  - `apps/mobile/src/platform/adapters.ts`
 
-2. **HapticsService.swift**
-   - Native haptic feedback with full UIFeedbackGenerator support
-   - Exposes `NativeHaptics` module to React Native
-   - Methods: `trigger()`, `success()`, `warning()`, `error()`, `selection()`
-   - Gracefully handles simulator/unavailable scenarios
+### Completed for M.4 technical unblockers
 
-3. **VoiceOverAnnouncer.swift**
-   - VoiceOver announcements with priority control
-   - Exposes `NativeVoiceOver` module to React Native
-   - Methods: `announce()`, `isVoiceOverRunning()`, `announceScreenChange()`, `announceLayoutChange()`
-   - No-op when VoiceOver is disabled
+- Expo/RN version alignment completed for SDK 55:
+  - `react-native` set to `0.83.6` in `apps/mobile/package.json`
+- iOS artifacts regenerated (`prebuild:ios`, `pods`), then project paths corrected:
+  - `apps/mobile/ios/Andernator.xcodeproj/project.pbxproj`
+- Swift bridge compile blockers fixed:
+  - Objective-C selector conflict removed from the `NativeServiceModule` contract
+  - invalid closure-type extensions replaced with helper functions in `BridgeContract.swift`
 
-4. **ReduceMotionObserver.swift**
-   - Real-time reduce motion setting observation
-   - Exposes `NativeReduceMotion` module + event emitter
-   - Methods: `isEnabled()`, `getMotionSettings()`
-   - Events: `reduceMotionChanged`
-   - Monitors UIAccessibility notifications
+### Verification completed in VS Code
 
-5. **LifecycleObserver.swift**
-   - App and scene lifecycle state tracking
-   - Exposes `NativeLifecycle` module + event emitter
-   - Methods: `getCurrentState()`
-   - Events: `lifecycleChanged`
-   - Supports iOS 13+ scene lifecycle
+- `pnpm --filter @guess/mobile typecheck` passed
+- `pnpm validate:fast` passed
+- `pnpm validate` passed (2026-05-04)
+- `pnpm build` passed (2026-05-04)
+- `pnpm build:worker` passed (2026-05-04, dry-run deploy using `tail-worker/wrangler.toml`)
+- Headless simulator build passed (re-verified 2026-05-04 after project file updates):
 
-### TypeScript Integration (3 files)
-
-6. **NativeServices.ts**
-   - TypeScript type definitions for all native modules
-   - Module exports with proper typing
-   - Event emitter setup for subscription-based modules
-
-7. **useNativeServices.ts**
-   - React hooks for convenient consumption
-   - Hooks: `useHaptics()`, `useVoiceOver()`, `useReduceMotion()`, `useLifecycle()`
-   - Effect hooks: `useOnAppActive()`, `useOnAppBackground()`, `useLifecycleCallbacks()`
-   - Platform checks and graceful degradation
-
-8. **NativeServicesExamples.tsx**
-   - Example React components demonstrating integration
-   - Covers all common use cases (guess submission, animations, auto-save, navigation)
-   - Accessibility-aware component patterns
-
-### Supporting Files (3 files)
-
-9. **Andernator-Bridging-Header.h**
-   - Objective-C bridging header for React Native imports
-
-10. **NativeServices-README.md**
-    - Comprehensive documentation for native services
-    - Module descriptions, TS contracts, fallback behavior
-    - Testing guidance and maintenance notes
-    - PR handoff template
-
-11. **AppDelegate.swift** (updated)
-    - Added header comments documenting native module registration
-    - Explains why native implementation was needed
-    - References TypeScript contract location
-
-## Why Native Implementation
-
-Per `docs/mobile/native-product-contract.md`:
-
-1. **Haptics:** Expo's default Haptics module doesn't provide fine-grained control over iOS feedback styles (soft, rigid, notification types) needed for native-quality game interactions.
-
-2. **VoiceOver:** React Native Accessibility APIs lack announcement priority and interruption control required for real-time game feedback to screen reader users.
-
-3. **Reduce Motion:** React Native's AccessibilityInfo doesn't expose event-based updates for reduce motion changes, preventing responsive animation adjustments during gameplay.
-
-4. **Lifecycle:** React Native's AppState lacks scene-level events needed for multi-window support and precise game state save timing.
-
-All implementations provide measurable user impact and include fallback paths.
-
-## TypeScript Caller Contract
-
-All modules are exposed via `NativeServices.ts` with promise-based APIs:
-
-```typescript
-import { NativeHaptics, NativeVoiceOver, NativeReduceMotion, NativeLifecycle } from './NativeServices';
-
-// Haptics
-await NativeHaptics.trigger('medium');
-await NativeHaptics.success();
-
-// VoiceOver
-await NativeVoiceOver.announce('Game started!', 'high');
-const isRunning = await NativeVoiceOver.isVoiceOverRunning();
-
-// Reduce Motion
-const isEnabled = await NativeReduceMotion.isEnabled();
-ReduceMotionEmitter.addListener('reduceMotionChanged', handler);
-
-// Lifecycle
-const state = await NativeLifecycle.getCurrentState();
-LifecycleEmitter.addListener('lifecycleChanged', handler);
+```bash
+xcodebuild -quiet \
+  -workspace Andernator.xcworkspace \
+  -scheme Andernator \
+  -configuration Debug \
+  -sdk iphonesimulator \
+  -destination 'generic/platform=iOS Simulator' \
+  build CODE_SIGNING_ALLOWED=NO
 ```
 
-## Fallback Behavior
+## Native Module Surface
 
-All modules implement graceful degradation:
+Native module names exposed to JS via `apps/mobile/src/native/NativeServices.ts`:
 
-- **Haptics:** Resolves without output on simulator or devices without Taptic Engine
-- **VoiceOver:** No-op when VoiceOver is disabled
-- **Reduce Motion:** Defaults to `false` if unavailable
-- **Lifecycle:** Falls back to React Native's AppState module
+- `NativeHaptics`
+- `NativeVoiceOver`
+- `NativeReduceMotion`
+- `NativeLifecycle`
 
-## React Integration
+Canonical Swift module files:
 
-Use provided hooks for easy consumption:
+- `apps/mobile/ios/Andernator/NativeServices/BridgeContract.swift`
+- `apps/mobile/ios/Andernator/NativeServices/HapticsService.swift`
+- `apps/mobile/ios/Andernator/NativeServices/VoiceOverAnnouncer.swift`
+- `apps/mobile/ios/Andernator/NativeServices/ReduceMotionObserver.swift`
+- `apps/mobile/ios/Andernator/NativeServices/LifecycleObserver.swift`
 
-```typescript
-import { useHaptics, useVoiceOver, useReduceMotion, useLifecycle } from './useNativeServices';
+Bridging header:
 
-function GameScreen() {
-  const haptics = useHaptics();
-  const { announce } = useVoiceOver();
-  const reduceMotion = useReduceMotion();
-  const lifecycleState = useLifecycle();
-  
-  // Use in component logic
-}
+- `apps/mobile/ios/Andernator/Andernator-Bridging-Header.h`
+
+## Remaining M.4 Checks (Manual Xcode/Device)
+
+### 1. Xcode target wiring
+
+- Open workspace: `pnpm mobile:open:xcode`
+- Confirm `Andernator` target membership includes all five Swift files above
+- Confirm build setting points to bridging header:
+  - `Andernator/Andernator-Bridging-Header.h`
+
+### 2. Device build and runtime
+
+- Build debug device target (Cmd+B) without bridge errors
+- Launch app and verify no native module registration errors
+- Confirm native debug UI reports module availability
+
+### 3. Physical-device behavior
+
+- Haptics produce expected feedback on device (simulator excluded)
+- VoiceOver announcements fire with VoiceOver enabled
+- Reduce-motion state and change events are observed
+- Lifecycle foreground/background transitions emit expected events
+
+## Close-out Requirements
+
+Before marking M.4 as shipped:
+
+- Record manual verification evidence in this file
+- Update `apps/mobile/ios/IMPLEMENTATION_STATUS.md` with final runtime evidence
+- Update `ROADMAP.md`:
+  - mark M.4 as shipped with date
+  - move M.5 to in-progress if started
+
+## Quick Commands
+
+Run from repo root:
+
+```bash
+pnpm validate:fast
+pnpm --filter @guess/mobile typecheck
+pnpm --filter @guess/mobile prebuild:ios
+pnpm --filter @guess/mobile pods
+pnpm mobile:open:xcode
 ```
 
-## Validation Checklist
+## Notes
 
-- [x] All Swift files include header comments explaining:
-  - Why native implementation was needed
-  - What TS caller contract they expose
-  - What fallback path exists
-- [x] TypeScript types defined in `NativeServices.ts`
-- [x] React hooks provided for convenient consumption
-- [x] Example usage documented in `NativeServicesExamples.tsx`
-- [x] README created with module descriptions and testing guidance
-- [x] AppDelegate updated with documentation
-
-## Next Steps for Integration
-
-1. **Add files to Xcode project:**
-   - Add all `.swift` files to `apps/mobile/ios/Andernator/` target
-   - Ensure target membership is set to `Andernator`
-   - Add bridging header to build settings if not already configured
-
-2. **Copy TypeScript files to mobile app:**
-   - Copy `NativeServices.ts`, `useNativeServices.ts`, `NativeServicesExamples.tsx`
-   - To: `apps/mobile/src/native/` or appropriate location
-   - Update import paths as needed
-
-3. **Run validation:**
-   ```bash
-   pnpm validate:fast
-   pnpm --filter @guess/mobile typecheck
-   pnpm mobile:guardrails
-   ```
-
-4. **Test on device:**
-   - Build and run on physical iOS device
-   - Test haptics in gameplay scenarios
-   - Enable VoiceOver and test announcements
-   - Toggle Reduce Motion and verify animation behavior
-   - Background app and verify lifecycle events
-
-5. **Integrate into game screens:**
-   - Use examples in `NativeServicesExamples.tsx` as templates
-   - Add haptics to guess submission, game over, navigation
-   - Add VoiceOver announcements for game state changes
-   - Make animations respect reduce motion setting
-   - Auto-save game state on background
-
-## Ownership
-
-- **Engineering:** Native module implementation and maintenance
-- **Design:** HIG alignment verification for haptics and feedback patterns
-- **Product:** User impact measurement and release promotion
-
-## Follow-up Tasks
-
-- [ ] Add Swift files to Xcode project target
-- [ ] Copy TypeScript files to mobile app source
-- [ ] Run validation suite
-- [ ] Test on physical device
-- [ ] Integrate into game screens per examples
-- [ ] Update `docs/mobile/xcode-setup.md` with implementation notes
-- [ ] Create PR with handoff block template
+- Treat `apps/mobile/ios/Pods/**` and most generated iOS churn as generated artifacts.
+- Keep native source-of-truth under `apps/mobile/ios/Andernator/NativeServices/`.
+- If prebuild rewires file references, re-verify `project.pbxproj` paths before validating builds.

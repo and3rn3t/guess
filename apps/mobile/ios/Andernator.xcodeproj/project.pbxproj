@@ -29,29 +29,17 @@
 		13B07F961A680F5B00A75B9A /* Andernator.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Andernator.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		13B07FB51A68108700A75B9A /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Images.xcassets; path = Andernator/Images.xcassets; sourceTree = "<group>"; };
 		13B07FB61A68108700A75B9A /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = Andernator/Info.plist; sourceTree = "<group>"; };
-		3D4015BF2FA963EA001ECF85 /* native-product-contract.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "native-product-contract.md"; sourceTree = "<group>"; };
-		3D4015C02FA963EA001ECF85 /* native-surface-policy.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "native-surface-policy.md"; sourceTree = "<group>"; };
-		3D4015C12FA963EA001ECF85 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
-		3D4015C22FA963EA001ECF85 /* screen-quality-scorecard.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "screen-quality-scorecard.md"; sourceTree = "<group>"; };
-		3D4015C32FA963EA001ECF85 /* xcode-claude-memory-handoff.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "xcode-claude-memory-handoff.md"; sourceTree = "<group>"; };
-		3D4015C42FA963EA001ECF85 /* xcode-setup.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "xcode-setup.md"; sourceTree = "<group>"; };
-		3D4015C62FA964AB001ECF85 /* BridgeContract.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BridgeContract.swift; sourceTree = "<group>"; };
-		3D4015C72FA964BF001ECF85 /* HapticsService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HapticsService.swift; sourceTree = "<group>"; };
-		3D4015C82FA964D1001ECF85 /* VoiceOverAnnouncer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceOverAnnouncer.swift; sourceTree = "<group>"; };
-		3D4015C92FA964E2001ECF85 /* ReduceMotionObserver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReduceMotionObserver.swift; sourceTree = "<group>"; };
-		3D4015CA2FA964F5001ECF85 /* LifecycleObserver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LifecycleObserver.swift; sourceTree = "<group>"; };
-		3D4015CC2FA9650E001ECF85 /* Andernator-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "Andernator-Bridging-Header.h"; sourceTree = "<group>"; };
 		3D4015CD2FA96540001ECF85 /* NativeServices-README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "NativeServices-README.md"; sourceTree = "<group>"; };
 		3D4015D12FA965A3001ECF85 /* XCODE_IMPLEMENTATION_HANDOFF.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = XCODE_IMPLEMENTATION_HANDOFF.md; sourceTree = "<group>"; };
 		3D4015D32FA965C3001ECF85 /* NATIVE_SERVICES_QUICK_REF.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = NATIVE_SERVICES_QUICK_REF.md; sourceTree = "<group>"; };
 		5246D7DCD9C5B40C89200DD1 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xml; name = PrivacyInfo.xcprivacy; path = Andernator/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		65E36108944858880C5EBF62 /* ExpoModulesProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ExpoModulesProvider.swift; path = "Pods/Target Support Files/Pods-Andernator/ExpoModulesProvider.swift"; sourceTree = "<group>"; };
 		9D393AA49A11A570B314416B /* Pods-Andernator.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Andernator.debug.xcconfig"; path = "Target Support Files/Pods-Andernator/Pods-Andernator.debug.xcconfig"; sourceTree = "<group>"; };
-		A1B2C3D40123456789ABC101 /* BridgeContract.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BridgeContract.swift; sourceTree = "<group>"; };
-		A1B2C3D40123456789ABC102 /* HapticsService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HapticsService.swift; sourceTree = "<group>"; };
-		A1B2C3D40123456789ABC103 /* LifecycleObserver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LifecycleObserver.swift; sourceTree = "<group>"; };
-		A1B2C3D40123456789ABC104 /* ReduceMotionObserver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReduceMotionObserver.swift; sourceTree = "<group>"; };
-		A1B2C3D40123456789ABC105 /* VoiceOverAnnouncer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceOverAnnouncer.swift; sourceTree = "<group>"; };
+			A1B2C3D40123456789ABC101 /* BridgeContract.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Andernator/NativeServices/BridgeContract.swift; sourceTree = SOURCE_ROOT; };
+			A1B2C3D40123456789ABC102 /* HapticsService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Andernator/NativeServices/HapticsService.swift; sourceTree = SOURCE_ROOT; };
+			A1B2C3D40123456789ABC103 /* LifecycleObserver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Andernator/NativeServices/LifecycleObserver.swift; sourceTree = SOURCE_ROOT; };
+			A1B2C3D40123456789ABC104 /* ReduceMotionObserver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Andernator/NativeServices/ReduceMotionObserver.swift; sourceTree = SOURCE_ROOT; };
+			A1B2C3D40123456789ABC105 /* VoiceOverAnnouncer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Andernator/NativeServices/VoiceOverAnnouncer.swift; sourceTree = SOURCE_ROOT; };
 		A68ABE5F8FC4C3978921E047 /* Pods-Andernator.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Andernator.release.xcconfig"; path = "Target Support Files/Pods-Andernator/Pods-Andernator.release.xcconfig"; sourceTree = "<group>"; };
 		AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = SplashScreen.storyboard; path = Andernator/SplashScreen.storyboard; sourceTree = "<group>"; };
 		BB2F792C24A3F905000567C9 /* Expo.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Expo.plist; sourceTree = "<group>"; };
@@ -99,25 +87,6 @@
 			name = Frameworks;
 			sourceTree = "<group>";
 		};
-		3D4015C52FA963EA001ECF85 /* mobile */ = {
-			isa = PBXGroup;
-			children = (
-				3D4015BF2FA963EA001ECF85 /* native-product-contract.md */,
-				3D4015C02FA963EA001ECF85 /* native-surface-policy.md */,
-				3D4015C12FA963EA001ECF85 /* README.md */,
-				3D4015C22FA963EA001ECF85 /* screen-quality-scorecard.md */,
-				3D4015C32FA963EA001ECF85 /* xcode-claude-memory-handoff.md */,
-				3D4015C42FA963EA001ECF85 /* xcode-setup.md */,
-				3D4015C62FA964AB001ECF85 /* BridgeContract.swift */,
-				3D4015C72FA964BF001ECF85 /* HapticsService.swift */,
-				3D4015C82FA964D1001ECF85 /* VoiceOverAnnouncer.swift */,
-				3D4015C92FA964E2001ECF85 /* ReduceMotionObserver.swift */,
-				3D4015CA2FA964F5001ECF85 /* LifecycleObserver.swift */,
-				3D4015CC2FA9650E001ECF85 /* Andernator-Bridging-Header.h */,
-			);
-			path = mobile;
-			sourceTree = "<group>";
-		};
 		70AABF3DAD96E9369FDDB718 /* Andernator */ = {
 			isa = PBXGroup;
 			children = (
@@ -136,7 +105,6 @@
 		83CBB9F61A601CBA00E9B192 = {
 			isa = PBXGroup;
 			children = (
-				3D4015C52FA963EA001ECF85 /* mobile */,
 				13B07FAE1A68108700A75B9A /* Andernator */,
 				832341AE1AAA6A7D00B99B32 /* Libraries */,
 				83CBBA001A601CBA00E9B192 /* Products */,
@@ -315,6 +283,7 @@
 			);
 			inputPaths = (
 				"${PODS_ROOT}/Target Support Files/Pods-Andernator/Pods-Andernator-resources.sh",
+				"${PODS_CONFIGURATION_BUILD_DIR}/AsyncStorage/AsyncStorage_resources.bundle",
 				"${PODS_CONFIGURATION_BUILD_DIR}/EXConstants/EXConstants.bundle",
 				"${PODS_CONFIGURATION_BUILD_DIR}/EXConstants/ExpoConstants_privacy.bundle",
 				"${PODS_CONFIGURATION_BUILD_DIR}/ExpoFileSystem/ExpoFileSystem_privacy.bundle",
@@ -323,6 +292,7 @@
 			);
 			name = "[CP] Copy Pods Resources";
 			outputPaths = (
+				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/AsyncStorage_resources.bundle",
 				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/EXConstants.bundle",
 				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/ExpoConstants_privacy.bundle",
 				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/ExpoFileSystem_privacy.bundle",
@@ -429,7 +399,7 @@
 					"-lc++",
 				);
 				OTHER_SWIFT_FLAGS = "$(inherited) -D EXPO_CONFIGURATION_DEBUG";
-				PRODUCT_BUNDLE_IDENTIFIER = dev.andernet.andernator;
+				PRODUCT_BUNDLE_IDENTIFIER = com.andernator.app;
 				PRODUCT_NAME = Andernator;
 				SWIFT_OBJC_BRIDGING_HEADER = "Andernator/Andernator-Bridging-Header.h";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
@@ -463,7 +433,7 @@
 					"-lc++",
 				);
 				OTHER_SWIFT_FLAGS = "$(inherited) -D EXPO_CONFIGURATION_RELEASE";
-				PRODUCT_BUNDLE_IDENTIFIER = dev.andernet.andernator;
+				PRODUCT_BUNDLE_IDENTIFIER = com.andernator.app;
 				PRODUCT_NAME = Andernator;
 				SWIFT_OBJC_BRIDGING_HEADER = "Andernator/Andernator-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
@@ -527,15 +497,9 @@
 				LIBRARY_SEARCH_PATHS = "$(SDKROOT)/usr/lib/swift\"$(inherited)\"";
 				MTL_ENABLE_DEBUG_INFO = YES;
 				ONLY_ACTIVE_ARCH = YES;
-				OTHER_CFLAGS = (
-					"$(inherited)",
-					"-DRCT_REMOVE_LEGACY_ARCH=1",
-				);
-				OTHER_CPLUSPLUSFLAGS = (
-					"$(inherited)",
-					"-DRCT_REMOVE_LEGACY_ARCH=1",
-				);
-				REACT_NATIVE_PATH = "${PODS_ROOT}/../../../../node_modules/.pnpm/react-native@0.85.2_@babel+core@7.29.0_@types+react@19.2.14_react@19.2.5/node_modules/react-native";
+				OTHER_CFLAGS = "$(inherited)";
+				OTHER_CPLUSPLUSFLAGS = "$(inherited)";
+				REACT_NATIVE_PATH = "${PODS_ROOT}/../../../../node_modules/.pnpm/react-native@0.83.6_@babel+core@7.29.0_@types+react@19.2.14_react@19.2.5/node_modules/react-native";
 				SDKROOT = iphoneos;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited) DEBUG";
 				SWIFT_ENABLE_EXPLICIT_MODULES = NO;
@@ -590,15 +554,9 @@
 				);
 				LIBRARY_SEARCH_PATHS = "$(SDKROOT)/usr/lib/swift\"$(inherited)\"";
 				MTL_ENABLE_DEBUG_INFO = NO;
-				OTHER_CFLAGS = (
-					"$(inherited)",
-					"-DRCT_REMOVE_LEGACY_ARCH=1",
-				);
-				OTHER_CPLUSPLUSFLAGS = (
-					"$(inherited)",
-					"-DRCT_REMOVE_LEGACY_ARCH=1",
-				);
-				REACT_NATIVE_PATH = "${PODS_ROOT}/../../../../node_modules/.pnpm/react-native@0.85.2_@babel+core@7.29.0_@types+react@19.2.14_react@19.2.5/node_modules/react-native";
+				OTHER_CFLAGS = "$(inherited)";
+				OTHER_CPLUSPLUSFLAGS = "$(inherited)";
+				REACT_NATIVE_PATH = "${PODS_ROOT}/../../../../node_modules/.pnpm/react-native@0.83.6_@babel+core@7.29.0_@types+react@19.2.14_react@19.2.5/node_modules/react-native";
 				SDKROOT = iphoneos;
 				SWIFT_ENABLE_EXPLICIT_MODULES = NO;
 				USE_HERMES = true;
