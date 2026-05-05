@@ -10,6 +10,8 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- **Xcode warning-noise cleanup pass (iOS mobile)** — hardened iOS build settings to reduce third-party Pod warning spam without editing vendored sources. Added `inhibit_all_warnings!`, normalized Pod `IPHONEOS_DEPLOYMENT_TARGET` to app minimum, suppressed Pod no-symbol libtool noise, disabled app-target nullability-completeness warnings from imported Pod headers, fixed malformed project `LIBRARY_SEARCH_PATHS`, and excluded missing `${TOOLCHAIN_DIR}/usr/lib/swift/${PLATFORM_NAME}` from app link search paths. Simulator build remains green (`EXIT:0`).
+
 - **Xcode pods compile unblock for ExpoModulesJSI** — patched `apps/mobile/ios/Podfile` `post_install` to inject `ReactNativeDependencies` header roots into `ExpoModulesJSI` and `React-performancetimeline` target `HEADER_SEARCH_PATHS`, resolving `folly/dynamic.h file not found` on Xcode 26 simulator builds.
 
 - **MB.5 verification baseline groundwork** — added a canonical physical-device evidence log in `docs/mobile/device-validation-checklist.md` and linked it from mobile docs and scorecard guidance. `scripts/mobile/check-screen-scorecard.ts` now requires top-level `deviceValidationChecklist` metadata in `docs/mobile/screen-quality-scores.json` (checklist file path + `lastUpdated`) and prints checklist status in the scorecard report.
