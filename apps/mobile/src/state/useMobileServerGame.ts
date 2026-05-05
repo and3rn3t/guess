@@ -24,6 +24,7 @@ import {
   type HapticsAdapter,
   type NetworkAdapter,
 } from "@guess/app-core";
+import Constants from "expo-constants";
 import type { Dispatch } from "react";
 import { useCallback, useRef, useState } from "react";
 import { NativeModules } from "react-native";
@@ -47,17 +48,54 @@ const resolveApiBase = (): string => {
   }
 
   if (__DEV__) {
-    const scriptURL = (NativeModules as { SourceCode?: { scriptURL?: string } })
-      .SourceCode?.scriptURL;
-    if (typeof scriptURL === "string" && scriptURL.length > 0) {
+    const hostFromValue = (value: string | undefined): string | null => {
+      if (!value || value.length === 0) {
+        return null;
+      }
+      const trimmed = value.trim();
+
       try {
-        const metroHost = new URL(scriptURL).hostname;
-        if (metroHost.length > 0) {
-          return `http://${metroHost}:8788`;
+        const host = new URL(trimmed).hostname;
+        if (host.length > 0) {
+          return host;
         }
       } catch {
-        // Ignore parse failures and fall back to empty base.
+        // Some Expo host strings are host:port without URL scheme.
       }
+
+      const [hostWithMaybePath] = trimmed.split("/");
+      const [host] = hostWithMaybePath.split(":");
+      return host.length > 0 ? host : null;
+    };
+
+    const scriptURL = (NativeModules as { SourceCode?: { scriptURL?: string } })
+      .SourceCode?.scriptURL;
+
+    const expoHostUri =
+      (Constants.expoConfig as { hostUri?: string } | null)?.hostUri;
+
+    const manifestDebuggerHost =
+      (Constants as {
+        manifest?: { debuggerHost?: string };
+      }).manifest?.debuggerHost;
+
+    const manifest2DebuggerHost =
+      (Constants as {
+        manifest2?: {
+          extra?: {
+            expoGo?: { debuggerHost?: string };
+          };
+        };
+      }).manifest2?.extra?.expoGo?.debuggerHost;
+
+    const metroHost =
+      hostFromValue(scriptURL) ??
+      hostFromValue(expoHostUri) ??
+      hostFromValue(manifestDebuggerHost) ??
+      hostFromValue(manifest2DebuggerHost);
+
+    if (metroHost) {
+      return `http://${metroHost}:8788`;
     }
   }
 
