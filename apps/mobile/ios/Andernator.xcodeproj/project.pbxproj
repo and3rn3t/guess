@@ -40,11 +40,8 @@
 		3D4015C82FA964D1001ECF85 /* VoiceOverAnnouncer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceOverAnnouncer.swift; sourceTree = "<group>"; };
 		3D4015C92FA964E2001ECF85 /* ReduceMotionObserver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReduceMotionObserver.swift; sourceTree = "<group>"; };
 		3D4015CA2FA964F5001ECF85 /* LifecycleObserver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LifecycleObserver.swift; sourceTree = "<group>"; };
-		3D4015CB2FA96509001ECF85 /* NativeServices.ts */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.typescript; path = NativeServices.ts; sourceTree = "<group>"; };
 		3D4015CC2FA9650E001ECF85 /* Andernator-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "Andernator-Bridging-Header.h"; sourceTree = "<group>"; };
 		3D4015CD2FA96540001ECF85 /* NativeServices-README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "NativeServices-README.md"; sourceTree = "<group>"; };
-		3D4015CF2FA9655B001ECF85 /* useNativeServices.ts */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.typescript; path = useNativeServices.ts; sourceTree = "<group>"; };
-		3D4015D02FA96579001ECF85 /* NativeServicesExamples.tsx */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.typescript; path = NativeServicesExamples.tsx; sourceTree = "<group>"; };
 		3D4015D12FA965A3001ECF85 /* XCODE_IMPLEMENTATION_HANDOFF.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = XCODE_IMPLEMENTATION_HANDOFF.md; sourceTree = "<group>"; };
 		3D4015D32FA965C3001ECF85 /* NATIVE_SERVICES_QUICK_REF.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = NATIVE_SERVICES_QUICK_REF.md; sourceTree = "<group>"; };
 		5246D7DCD9C5B40C89200DD1 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xml; name = PrivacyInfo.xcprivacy; path = Andernator/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
@@ -87,8 +84,6 @@
 				AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */,
 				5246D7DCD9C5B40C89200DD1 /* PrivacyInfo.xcprivacy */,
 				3D4015CD2FA96540001ECF85 /* NativeServices-README.md */,
-				3D4015CF2FA9655B001ECF85 /* useNativeServices.ts */,
-				3D4015D02FA96579001ECF85 /* NativeServicesExamples.tsx */,
 				3D4015D12FA965A3001ECF85 /* XCODE_IMPLEMENTATION_HANDOFF.md */,
 				3D4015D32FA965C3001ECF85 /* NATIVE_SERVICES_QUICK_REF.md */,
 			);
@@ -118,7 +113,6 @@
 				3D4015C82FA964D1001ECF85 /* VoiceOverAnnouncer.swift */,
 				3D4015C92FA964E2001ECF85 /* ReduceMotionObserver.swift */,
 				3D4015CA2FA964F5001ECF85 /* LifecycleObserver.swift */,
-				3D4015CB2FA96509001ECF85 /* NativeServices.ts */,
 				3D4015CC2FA9650E001ECF85 /* Andernator-Bridging-Header.h */,
 			);
 			path = mobile;

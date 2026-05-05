@@ -11,9 +11,6 @@
       location = "group:XCODE_PROJECT_INTEGRATION.md">
    </FileRef>
    <FileRef
-      location = "group:testNativeModules.ts">
-   </FileRef>
-   <FileRef
       location = "group:IMPLEMENTATION_STATUS.md">
    </FileRef>
    <FileRef
@@ -30,9 +27,6 @@
    </FileRef>
    <FileRef
       location = "group:INFO_PLIST_CONFIG.md">
-   </FileRef>
-   <FileRef
-      location = "group:NativeServicesDebugMenu.tsx">
    </FileRef>
    <FileRef
       location = "group:FILE_INDEX.md">
