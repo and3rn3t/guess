@@ -1,0 +1,79 @@
+name: Mobile CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/mobile/**'
+      - 'packages/app-core/**'
+      - 'packages/game-engine/**'
+      - '.github/workflows/mobile-ci.yml'
+  pull_request:
+    paths:
+      - 'apps/mobile/**'
+      - 'packages/app-core/**'
+      - 'packages/game-engine/**'
+      - '.github/workflows/mobile-ci.yml'
+
+concurrency:
+  group: mobile-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    name: Type-check + guardrails
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+
+      - uses: ./.github/actions/setup
+
+      - name: Mobile typecheck
+        run: |
+          set -o pipefail
+          mkdir -p .ci-artifacts/mobile-ci
+          pnpm --filter @guess/mobile typecheck 2>&1 | tee .ci-artifacts/mobile-ci/typecheck.log
+
+      - name: Mobile guardrails
+        run: |
+          set -o pipefail
+          pnpm mobile:guardrails 2>&1 | tee .ci-artifacts/mobile-ci/guardrails.log
+
+      - name: Upload CI artifacts
+        if: always()
+        uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b # v4
+        with:
+          name: mobile-ci-${{ github.run_id }}
+          path: .ci-artifacts/mobile-ci/
+          if-no-files-found: ignore
+
+      - name: Step summary
+        if: always()
+        run: |
+          echo "## Mobile CI" >> $GITHUB_STEP_SUMMARY
+          echo "- typecheck.log" >> $GITHUB_STEP_SUMMARY
+          echo "- guardrails.log" >> $GITHUB_STEP_SUMMARY
+
+  eas-build:
+    name: EAS Build (preview)
+    runs-on: ubuntu-latest
+    needs: checks
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+
+      - uses: ./.github/actions/setup
+
+      - name: Setup Expo + EAS CLI
+        run: pnpm add -g eas-cli@latest
+
+      - name: EAS Build — iOS preview
+        working-directory: apps/mobile
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: |
+          eas build \
+            --platform ios \
+            --profile preview \
+            --non-interactive \
+            --no-wait

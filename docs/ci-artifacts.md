@@ -50,6 +50,26 @@ Source: .github/workflows/ci.yml
   - css-asset-sizes-kb.txt
 - Use when: production build or bundle-size budget checks fail.
 
+## Mobile CI workflow
+
+Source: .github/workflows/mobile-ci.yml
+
+### checks job
+
+- Artifact: mobile-ci-{run_id}
+- Contents:
+  - typecheck.log — mobile TypeScript typecheck output
+  - guardrails.log — boundary violation scan + scorecard gate output
+- Use when: mobile typecheck or boundary guardrails fail on mobile-touching PRs.
+- Triggered by: changes to `apps/mobile/**`, `packages/app-core/**`, or `packages/game-engine/**`.
+
+### eas-build job
+
+- Runs on `main` merges only (after `checks` passes).
+- Submits an iOS `preview` build to EAS Build.
+- Uses `EXPO_TOKEN` secret. Set in repo settings before enabling.
+- Build profile: `preview` in `apps/mobile/eas.json` (`credentialsSource: local`).
+
 ## Docs link workflow
 
 Source: .github/workflows/docs-links.yml
