@@ -10,6 +10,8 @@ Canonical iOS planning:
 ## Commands
 
 - pnpm --filter @guess/mobile dev
+- pnpm --filter @guess/mobile dev:device
+- pnpm --filter @guess/mobile dev:tunnel
 - pnpm --filter @guess/mobile ios
 - pnpm --filter @guess/mobile typecheck
 - pnpm --filter @guess/mobile prebuild:ios
@@ -29,6 +31,16 @@ Canonical iOS planning:
 One-command bootstrap:
 
 - pnpm --filter @guess/mobile setup:xcode
+
+## Physical iPhone Launch
+
+If Xcode launches to a black screen with the red React Native error header, Metro is not reachable.
+
+1. Start Metro for device mode:
+   - pnpm --filter @guess/mobile dev:device
+2. Keep that terminal running and launch from Xcode.
+3. If LAN fails, use tunnel mode:
+   - pnpm --filter @guess/mobile dev:tunnel
 
 Environment files:
 

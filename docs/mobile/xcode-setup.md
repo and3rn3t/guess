@@ -28,6 +28,33 @@ Or run all three:
 
 - `pnpm mobile:setup:xcode`
 
+## Physical Device Run (Red Header / Black Screen Recovery)
+
+If you see a black screen with a red header and actions like `Dismiss`, `Reload JS`, and `Copy`, the app is running but Metro is unreachable.
+
+Run this flow from repo root before launching from Xcode on iPhone:
+
+1. Start Metro for physical-device dev client:
+   - `pnpm mobile:dev:device`
+2. Keep Metro running, then launch from Xcode.
+3. Verify iPhone and Mac are on the same Wi-Fi network.
+4. If your Mac firewall blocks incoming Node/Terminal traffic, allow it.
+
+If the device still cannot connect to Metro:
+
+1. Create local override file:
+   - `cp apps/mobile/.xcode.env.local.example apps/mobile/ios/.xcode.env.local`
+2. Set your Mac LAN IP in `apps/mobile/ios/.xcode.env.local`:
+   - `export RCT_METRO_HOST=<your-mac-lan-ip>`
+3. Re-run:
+   - `pnpm --filter @guess/mobile sync:xcode-env`
+   - `pnpm mobile:dev:device`
+4. Clean build folder in Xcode and relaunch.
+
+Fallback when local LAN is constrained:
+
+- `pnpm mobile:dev:tunnel`
+
 ## Environment config
 
 - Shared config file: `apps/mobile/.xcode.env`

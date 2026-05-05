@@ -109,6 +109,8 @@
     "mobile:guardrails": "tsx scripts/mobile/check-mobile-boundaries.ts && tsx scripts/mobile/check-screen-scorecard.ts",
     "mobile:scorecard": "tsx scripts/mobile/check-screen-scorecard.ts",
     "mobile:dev": "pnpm --filter @guess/mobile dev",
+    "mobile:dev:device": "pnpm --filter @guess/mobile dev:device",
+    "mobile:dev:tunnel": "pnpm --filter @guess/mobile dev:tunnel",
     "mobile:ios": "pnpm --filter @guess/mobile ios",
     "mobile:typecheck": "pnpm --filter @guess/mobile typecheck",
     "mobile:prebuild:ios": "pnpm --filter @guess/mobile prebuild:ios",

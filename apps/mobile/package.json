@@ -5,6 +5,8 @@
   "main": "index.js",
   "scripts": {
     "dev": "expo start --clear",
+    "dev:device": "expo start --dev-client --host lan --port 8081 --clear",
+    "dev:tunnel": "expo start --dev-client --host tunnel --port 8081 --clear",
     "ios": "expo run:ios",
     "typecheck": "tsc --noEmit",
     "prebuild:ios": "expo prebuild --platform ios && pnpm sync:xcode-env",
