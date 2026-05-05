@@ -239,7 +239,7 @@ function ReduceMotionTestSection({ onResult }: { onResult: (msg: string) => void
 
   useEffect(() => {
     onResult(`Reduce Motion: ${reduceMotion ? 'Enabled' : 'Disabled'}`);
-  }, [reduceMotion]);
+  }, [onResult, reduceMotion]);
 
   return (
     <View style={styles.section}>
@@ -273,7 +273,7 @@ function LifecycleTestSection({ onResult }: { onResult: (msg: string) => void })
 
   useEffect(() => {
     onResult(`Lifecycle State: ${lifecycleState}`);
-  }, [lifecycleState]);
+  }, [lifecycleState, onResult]);
 
   return (
     <View style={styles.section}>

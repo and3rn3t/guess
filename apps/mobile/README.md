@@ -46,6 +46,7 @@ Use this when handing work between IDEs or AI agents.
 Source-of-truth boundaries:
 
 - Product logic lives in `apps/mobile/src/**` and `packages/app-core/**`.
+- Native bridge runtime (TS/hooks/debug): `apps/mobile/src/native/**`.
 - `apps/mobile/ios/**` is generated native output from Expo prebuild.
 - Shared iOS env source is `apps/mobile/.xcode.env` (sync into `ios/.xcode.env`).
 

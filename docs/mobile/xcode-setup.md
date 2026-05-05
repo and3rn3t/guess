@@ -43,6 +43,7 @@ Use this checklist to keep both IDE workflows aligned for AI-assisted changes.
 ### Source-of-truth boundaries
 
 - Product logic and orchestration: `apps/mobile/src/**` and `packages/app-core/**`.
+- Native bridge runtime (TS/hooks/debug tooling): `apps/mobile/src/native/**`.
 - Generated native output: `apps/mobile/ios/**` from Expo prebuild.
 - Shared iOS environment: `apps/mobile/.xcode.env` (sync via `pnpm --filter @guess/mobile sync:xcode-env`).
 

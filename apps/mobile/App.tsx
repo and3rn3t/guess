@@ -1,6 +1,6 @@
 import { StatusBar } from 'expo-status-bar'
 import type { ReactElement } from 'react'
-import { useMemo } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import {
   Pressable,
   SafeAreaView,
@@ -9,17 +9,74 @@ import {
   View,
 } from 'react-native'
 import { createMobilePlatformAdapters } from './src/platform/adapters'
+import { NativeServicesDebugMenu } from './src/native/NativeServicesDebugMenu'
+import { useVoiceOver } from './src/native/useNativeServices'
 import { useCoreGameFlow } from './src/state/useCoreGameFlow'
 import { useMobileServerGame } from './src/state/useMobileServerGame'
 
 export default function App(): ReactElement {
   const platformAdapters = useMemo(() => createMobilePlatformAdapters(), [])
   const { state, dispatch, phaseTitle } = useCoreGameFlow()
+  const { announce, announceScreenChange } = useVoiceOver()
+  const lastAnnouncedPhase = useRef(state.phase)
+  const lastAnnouncedQuestion = useRef<string | null>(null)
+  const lastAnnouncedGuess = useRef<string | null>(null)
+  const lastAnnouncedAlert = useRef<string | null>(null)
+  const lastAnnouncedError = useRef<string | null>(null)
   const server = useMobileServerGame(
     dispatch,
     platformAdapters.network,
     platformAdapters.haptics,
   )
+
+  useEffect(() => {
+    if (lastAnnouncedPhase.current === state.phase) {
+      return
+    }
+
+    lastAnnouncedPhase.current = state.phase
+    void announceScreenChange(phaseTitle)
+  }, [announceScreenChange, phaseTitle, state.phase])
+
+  useEffect(() => {
+    const text = server.question?.text?.trim() ?? null
+    if (!text || lastAnnouncedQuestion.current === text) {
+      return
+    }
+
+    lastAnnouncedQuestion.current = text
+    void announce(`New question: ${text}`, 'default')
+  }, [announce, server.question?.text])
+
+  useEffect(() => {
+    const name = server.guessCharacter?.name ?? null
+    if (!name || lastAnnouncedGuess.current === name) {
+      return
+    }
+
+    lastAnnouncedGuess.current = name
+    void announce(`I think your character is ${name}.`, 'high')
+  }, [announce, server.guessCharacter?.name])
+
+  useEffect(() => {
+    const message = server.alertMessage?.trim() ?? null
+    if (!message || lastAnnouncedAlert.current === message) {
+      return
+    }
+
+    lastAnnouncedAlert.current = message
+    void announce(message, 'high')
+  }, [announce, server.alertMessage])
+
+  useEffect(() => {
+    const message = server.error?.trim() ?? null
+    if (!message || lastAnnouncedError.current === message) {
+      return
+    }
+
+    lastAnnouncedError.current = message
+    void announce(`Error: ${message}`, 'high')
+  }, [announce, server.error])
 
   const renderActions = (): ReactElement => {
     switch (state.phase) {
@@ -164,6 +221,7 @@ export default function App(): ReactElement {
         )}
         {renderActions()}
       </View>
+      <NativeServicesDebugMenu />
     </SafeAreaView>
   )
 }
