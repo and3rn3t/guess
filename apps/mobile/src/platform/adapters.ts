@@ -71,7 +71,26 @@ const createMobileNetworkAdapter = (): NetworkAdapter => ({
       throw new Error(`Request failed for ${url} with status ${response.status}`)
     }
 
-    return (await response.json()) as T
+    const contentType = response.headers.get('content-type') ?? ''
+    const text = await response.text()
+
+    if (!contentType.toLowerCase().includes('application/json')) {
+      const preview = text.trim().slice(0, 120)
+      throw new Error(
+        `Expected JSON from ${url} but received content-type '${contentType || 'unknown'}'. ` +
+          `Response starts with: ${preview}`,
+      )
+    }
+
+    try {
+      return JSON.parse(text) as T
+    } catch (err) {
+      const preview = text.trim().slice(0, 120)
+      throw new Error(
+        `Invalid JSON from ${url}. Response starts with: ${preview}`,
+        { cause: err },
+      )
+    }
   },
 })
 
