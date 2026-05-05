@@ -7,4 +7,37 @@
    <FileRef
       location = "group:Pods/Pods.xcodeproj">
    </FileRef>
+   <FileRef
+      location = "group:XCODE_PROJECT_INTEGRATION.md">
+   </FileRef>
+   <FileRef
+      location = "group:testNativeModules.ts">
+   </FileRef>
+   <FileRef
+      location = "group:IMPLEMENTATION_STATUS.md">
+   </FileRef>
+   <FileRef
+      location = "group:NativeServices-Swift-Interface.h">
+   </FileRef>
+   <FileRef
+      location = "group:verify-native-modules.sh">
+   </FileRef>
+   <FileRef
+      location = "group:XCODE_BUILD_SETTINGS.md">
+   </FileRef>
+   <FileRef
+      location = "group:XCODE_SCHEME_CONFIG.md">
+   </FileRef>
+   <FileRef
+      location = "group:INFO_PLIST_CONFIG.md">
+   </FileRef>
+   <FileRef
+      location = "group:NativeServicesDebugMenu.tsx">
+   </FileRef>
+   <FileRef
+      location = "group:FILE_INDEX.md">
+   </FileRef>
+   <FileRef
+      location = "group:organize-native-services.sh">
+   </FileRef>
 </Workspace>
