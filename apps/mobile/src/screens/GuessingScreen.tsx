@@ -16,7 +16,9 @@ export function GuessingScreen({
       contentContainerStyle={styles.container}
       keyboardShouldPersistTaps="handled"
     >
-      <Text style={styles.eyebrow}>My guess is…</Text>
+      <Text style={styles.eyebrow} maxFontSizeMultiplier={1.5}>
+        My guess is…
+      </Text>
 
       <View style={styles.characterCard}>
         {char?.imageUrl ? (
@@ -28,15 +30,21 @@ export function GuessingScreen({
           />
         ) : (
           <View style={[styles.portrait, styles.portraitPlaceholder]}>
-            <Text style={styles.portraitPlaceholderText}>?</Text>
+            <Text style={styles.portraitPlaceholderText} maxFontSizeMultiplier={1.2}>
+              ?
+            </Text>
           </View>
         )}
 
         <View style={styles.characterInfo}>
-          <Text style={styles.characterName}>{char?.name ?? "…"}</Text>
+          <Text style={styles.characterName} maxFontSizeMultiplier={1.6}>
+            {char?.name ?? "…"}
+          </Text>
           {char?.category ? (
             <View style={styles.categoryChip}>
-              <Text style={styles.categoryChipText}>{char.category}</Text>
+              <Text style={styles.categoryChipText} maxFontSizeMultiplier={1.4}>
+                {char.category}
+              </Text>
             </View>
           ) : null}
         </View>
@@ -45,8 +53,12 @@ export function GuessingScreen({
           <View style={styles.triviaList}>
             {char.trivia.slice(0, 3).map((fact, i) => (
               <View key={i} style={styles.triviaRow}>
-                <Text style={styles.triviaBullet}>•</Text>
-                <Text style={styles.triviaText}>{fact}</Text>
+                <Text style={styles.triviaBullet} maxFontSizeMultiplier={1.4}>
+                  •
+                </Text>
+                <Text style={styles.triviaText} maxFontSizeMultiplier={1.5}>
+                  {fact}
+                </Text>
               </View>
             ))}
           </View>
@@ -69,7 +81,9 @@ export function GuessingScreen({
             pressed && styles.primaryButtonPressed,
           ]}
         >
-          <Text style={styles.primaryButtonText}>Correct! 🎉</Text>
+          <Text style={styles.primaryButtonText} maxFontSizeMultiplier={1.4}>
+            Correct! 🎉
+          </Text>
         </Pressable>
 
         {char ? (
@@ -88,7 +102,9 @@ export function GuessingScreen({
               pressed && styles.secondaryButtonPressed,
             ]}
           >
-            <Text style={styles.secondaryButtonText}>Not This One</Text>
+            <Text style={styles.secondaryButtonText} maxFontSizeMultiplier={1.4}>
+              Not This One
+            </Text>
           </Pressable>
         ) : null}
       </View>
@@ -99,7 +115,9 @@ export function GuessingScreen({
           onPress={server.clearAlert}
           style={styles.alert}
         >
-          <Text style={styles.alertText}>{server.alertMessage}</Text>
+          <Text style={styles.alertText} maxFontSizeMultiplier={1.5}>
+            {server.alertMessage}
+          </Text>
         </Pressable>
       ) : null}
     </ScrollView>
@@ -140,9 +158,8 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   portraitPlaceholderText: {
-    ...typography.largeTitle,
+    ...typography.title1,
     color: colors.secondaryLabel as never,
-    fontSize: 60,
   },
   characterInfo: {
     paddingHorizontal: spacing.screenH,
@@ -176,12 +193,10 @@ const styles = StyleSheet.create({
   triviaBullet: {
     ...typography.callout,
     color: colors.secondaryLabel as never,
-    lineHeight: 22,
   },
   triviaText: {
     ...typography.callout,
     color: colors.secondaryLabel as never,
-    lineHeight: 22,
     flex: 1,
   },
   actions: {

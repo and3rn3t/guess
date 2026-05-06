@@ -34,11 +34,13 @@ export function GameOverScreen({
       keyboardShouldPersistTaps="handled"
     >
       <View style={styles.resultBadge}>
-        <Text style={styles.resultEmoji}>{aiWon ? "🤖" : "🏆"}</Text>
-        <Text style={styles.resultHeadline}>
+        <Text style={styles.resultEmoji} maxFontSizeMultiplier={1.2}>
+          {aiWon ? "🤖" : "🏆"}
+        </Text>
+        <Text style={styles.resultHeadline} maxFontSizeMultiplier={1.6}>
           {aiWon ? "The AI got it!" : "You win!"}
         </Text>
-        <Text style={styles.resultSubheadline}>
+        <Text style={styles.resultSubheadline} maxFontSizeMultiplier={1.5}>
           {aiWon
             ? `Figured it out in ${state.guessCount} question${state.guessCount === 1 ? "" : "s"}.`
             : state.surrendered
@@ -58,14 +60,20 @@ export function GameOverScreen({
             />
           ) : (
             <View style={[styles.portrait, styles.portraitPlaceholder]}>
-              <Text style={styles.portraitPlaceholderText}>?</Text>
+              <Text style={styles.portraitPlaceholderText} maxFontSizeMultiplier={1.2}>
+                ?
+              </Text>
             </View>
           )}
           <View style={styles.characterInfo}>
-            <Text style={styles.characterName}>{char.name}</Text>
+            <Text style={styles.characterName} maxFontSizeMultiplier={1.6}>
+              {char.name}
+            </Text>
             {char.category ? (
               <View style={styles.categoryChip}>
-                <Text style={styles.categoryChipText}>{char.category}</Text>
+                <Text style={styles.categoryChipText} maxFontSizeMultiplier={1.4}>
+                  {char.category}
+                </Text>
               </View>
             ) : null}
           </View>
@@ -82,7 +90,9 @@ export function GameOverScreen({
             pressed && styles.secondaryButtonPressed,
           ]}
         >
-          <Text style={styles.secondaryButtonText}>Share Result</Text>
+          <Text style={styles.secondaryButtonText} maxFontSizeMultiplier={1.4}>
+            Share Result
+          </Text>
         </Pressable>
 
         <Pressable
@@ -97,7 +107,9 @@ export function GameOverScreen({
             pressed && styles.primaryButtonPressed,
           ]}
         >
-          <Text style={styles.primaryButtonText}>Play Again</Text>
+          <Text style={styles.primaryButtonText} maxFontSizeMultiplier={1.4}>
+            Play Again
+          </Text>
         </Pressable>
       </View>
     </ScrollView>
@@ -122,8 +134,7 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sectionGap,
   },
   resultEmoji: {
-    fontSize: 56,
-    lineHeight: 64,
+    ...typography.largeTitle,
   },
   resultHeadline: {
     ...typography.title1,
@@ -150,7 +161,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   portraitPlaceholderText: {
-    fontSize: 60,
+    ...typography.title1,
     color: colors.secondaryLabel as never,
   },
   characterInfo: {

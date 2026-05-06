@@ -54,6 +54,7 @@ export function PlayingScreen({
         </Text>
         <Text
           style={styles.questionText}
+          maxFontSizeMultiplier={1.6}
           accessibilityRole="header"
           accessibilityLabel={`Question: ${server.question?.text ?? "Loading…"}`}
         >
@@ -77,9 +78,11 @@ export function PlayingScreen({
 
       {reasoningExpanded && server.reasoning?.explanation ? (
         <View style={styles.reasoningCard}>
-          <Text style={styles.reasoningText}>{server.reasoning.explanation}</Text>
+          <Text style={styles.reasoningText} maxFontSizeMultiplier={1.5}>
+            {server.reasoning.explanation}
+          </Text>
           {server.reasoning.confidence !== undefined ? (
-            <Text style={styles.confidenceText}>
+            <Text style={styles.confidenceText} maxFontSizeMultiplier={1.4}>
               Confidence: {Math.round(server.reasoning.confidence * 100)}%
             </Text>
           ) : null}
@@ -102,7 +105,9 @@ export function PlayingScreen({
             pressed && styles.primaryButtonPressed,
           ]}
         >
-          <Text style={styles.primaryButtonText}>Yes</Text>
+          <Text style={styles.primaryButtonText} maxFontSizeMultiplier={1.4}>
+            Yes
+          </Text>
         </Pressable>
 
         <Pressable
@@ -120,7 +125,9 @@ export function PlayingScreen({
             pressed && styles.secondaryButtonPressed,
           ]}
         >
-          <Text style={styles.secondaryButtonText}>No</Text>
+          <Text style={styles.secondaryButtonText} maxFontSizeMultiplier={1.4}>
+            No
+          </Text>
         </Pressable>
 
         <Pressable
@@ -137,7 +144,9 @@ export function PlayingScreen({
             pressed && styles.tertiaryButtonPressed,
           ]}
         >
-          <Text style={styles.tertiaryButtonText}>Skip</Text>
+          <Text style={styles.tertiaryButtonText} maxFontSizeMultiplier={1.4}>
+            Skip
+          </Text>
         </Pressable>
       </View>
 
@@ -147,7 +156,9 @@ export function PlayingScreen({
           onPress={server.clearAlert}
           style={styles.alert}
         >
-          <Text style={styles.alertText}>{server.alertMessage}</Text>
+          <Text style={styles.alertText} maxFontSizeMultiplier={1.5}>
+            {server.alertMessage}
+          </Text>
         </Pressable>
       ) : null}
     </ScrollView>
@@ -181,7 +192,6 @@ const styles = StyleSheet.create({
   questionText: {
     ...typography.title2,
     color: colors.label as never,
-    lineHeight: 30,
   },
   reasoningToggle: {
     paddingVertical: 6,
@@ -201,7 +211,6 @@ const styles = StyleSheet.create({
   reasoningText: {
     ...typography.callout,
     color: colors.secondaryLabel as never,
-    lineHeight: 22,
   },
   confidenceText: {
     ...typography.footnote,

@@ -32,8 +32,10 @@ export function WelcomeScreen({
         <Text style={styles.eyebrow} accessibilityRole="header">
           Andernator
         </Text>
-        <Text style={styles.title}>Think of a{"\n"}character.</Text>
-        <Text style={styles.subtitle}>
+        <Text style={styles.title} maxFontSizeMultiplier={1.6}>
+          Think of a{"\n"}character.
+        </Text>
+        <Text style={styles.subtitle} maxFontSizeMultiplier={1.6}>
           The AI will ask yes/no questions to figure out who you're thinking of.
         </Text>
       </Animated.View>
@@ -53,7 +55,7 @@ export function WelcomeScreen({
             pressed && styles.primaryButtonPressed,
           ]}
         >
-          <Text style={styles.primaryButtonText}>
+          <Text style={styles.primaryButtonText} maxFontSizeMultiplier={1.4}>
             {server.isLoading ? "Starting…" : "Start Game"}
           </Text>
         </Pressable>
@@ -70,7 +72,9 @@ export function WelcomeScreen({
             pressed && styles.secondaryButtonPressed,
           ]}
         >
-          <Text style={styles.secondaryButtonText}>Daily Challenge</Text>
+          <Text style={styles.secondaryButtonText} maxFontSizeMultiplier={1.4}>
+            Daily Challenge
+          </Text>
         </Pressable>
       </View>
 
@@ -83,7 +87,9 @@ export function WelcomeScreen({
           }}
           style={styles.alert}
         >
-          <Text style={styles.alertText}>{server.alertMessage ?? server.error}</Text>
+          <Text style={styles.alertText} maxFontSizeMultiplier={1.5}>
+            {server.alertMessage ?? server.error}
+          </Text>
         </Pressable>
       ) : null}
     </ScrollView>
@@ -119,7 +125,6 @@ const styles = StyleSheet.create({
   subtitle: {
     ...typography.body,
     color: colors.secondaryLabel as never,
-    lineHeight: 24,
   },
   actions: {
     gap: spacing.rowGap,

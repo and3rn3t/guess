@@ -28,16 +28,22 @@ export function ChallengeScreen({
         <Text style={styles.eyebrow} accessibilityRole="header">
           Daily Challenge
         </Text>
-        <Text style={styles.title}>Today's{"\n"}Puzzle</Text>
+        <Text style={styles.title} maxFontSizeMultiplier={1.6}>
+          Today's{"\n"}Puzzle
+        </Text>
         <View style={styles.metaRow}>
           <View style={styles.metaBadge}>
-            <Text style={styles.metaBadgeText}>📅 {getTodayLabel()}</Text>
+            <Text style={styles.metaBadgeText} maxFontSizeMultiplier={1.4}>
+              📅 {getTodayLabel()}
+            </Text>
           </View>
           <View style={styles.metaBadge}>
-            <Text style={styles.metaBadgeText}>🤖 AI vs You</Text>
+            <Text style={styles.metaBadgeText} maxFontSizeMultiplier={1.4}>
+              🤖 AI vs You
+            </Text>
           </View>
         </View>
-        <Text style={styles.description}>
+        <Text style={styles.description} maxFontSizeMultiplier={1.6}>
           Everyone plays with the same character today. Think of it, then see if the AI can figure it out!
         </Text>
       </View>
@@ -57,7 +63,7 @@ export function ChallengeScreen({
             pressed && styles.primaryButtonPressed,
           ]}
         >
-          <Text style={styles.primaryButtonText}>
+          <Text style={styles.primaryButtonText} maxFontSizeMultiplier={1.4}>
             {server.isLoading ? "Starting…" : "Start Challenge"}
           </Text>
         </Pressable>
@@ -74,7 +80,9 @@ export function ChallengeScreen({
             pressed && styles.tertiaryButtonPressed,
           ]}
         >
-          <Text style={styles.tertiaryButtonText}>Cancel</Text>
+          <Text style={styles.tertiaryButtonText} maxFontSizeMultiplier={1.4}>
+            Cancel
+          </Text>
         </Pressable>
       </View>
     </ScrollView>
@@ -125,7 +133,6 @@ const styles = StyleSheet.create({
   description: {
     ...typography.body,
     color: colors.secondaryLabel as never,
-    lineHeight: 24,
   },
   actions: {
     gap: spacing.rowGap,
