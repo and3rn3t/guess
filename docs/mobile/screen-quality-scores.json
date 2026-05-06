@@ -30,7 +30,7 @@
         "platformBehaviorIntegrity": 90,
         "contentClarityAndCognitiveLoad": 92
       },
-      "notes": "Physical-device pass confirmed on 2026-05-05 with Dynamic Type polish applied on 2026-05-05. Design tokens replace hardcoded hex values. Native haptics wired via useHaptics: success() on Start Game, light trigger on Challenge. Loading state text and accessibilityState verified; updated text scaling behavior improved visual fit and readability at larger text sizes."
+      "notes": "Physical-device pass confirmed on 2026-05-05 with Dynamic Type polish applied on 2026-05-05. Design tokens replace hardcoded hex values. Native haptics wired via useHaptics: success() on Start Game, light trigger on Challenge. Loading state text and accessibilityState verified; updated text scaling behavior improved visual fit and readability at larger text sizes. Added native ScrollView inset/keyboard behavior tuning and root-layout VoiceOver phase/resume announcements with reduce-motion-aware navigation transitions."
     },
     "PlayingScreen": {
       "file": "apps/mobile/src/screens/PlayingScreen.tsx",
@@ -44,7 +44,7 @@
         "platformBehaviorIntegrity": 90,
         "contentClarityAndCognitiveLoad": 90
       },
-      "notes": "Physical-device pass confirmed on 2026-05-05 with Dynamic Type polish applied on 2026-05-05. All three Pressables have haptics: success() on Yes, light trigger on No/Skip. Tokens applied, accessibilityState propagated on all controls, and expanded-text readability improved while preserving gameplay responsiveness."
+      "notes": "Physical-device pass confirmed on 2026-05-05 with Dynamic Type polish applied on 2026-05-05. All three Pressables have haptics: success() on Yes, light trigger on No/Skip. Tokens applied, accessibilityState propagated on all controls, and expanded-text readability improved while preserving gameplay responsiveness. Added native ScrollView inset/keyboard behavior tuning and root-layout VoiceOver phase/resume announcements with reduce-motion-aware navigation transitions."
     },
     "GuessingScreen": {
       "file": "apps/mobile/src/screens/GuessingScreen.tsx",
@@ -58,7 +58,7 @@
         "platformBehaviorIntegrity": 90,
         "contentClarityAndCognitiveLoad": 90
       },
-      "notes": "Physical-device pass confirmed on 2026-05-05 with Dynamic Type polish applied on 2026-05-05. success() on Correct, light trigger on Not This One. Conditional button guards on guessId behave correctly. Tokens applied, accessibilityState validated on both Pressables, and typography scaling updated for improved native visual fit."
+      "notes": "Physical-device pass confirmed on 2026-05-05 with Dynamic Type polish applied on 2026-05-05. success() on Correct, light trigger on Not This One. Conditional button guards on guessId behave correctly. Tokens applied, accessibilityState validated on both Pressables, and typography scaling updated for improved native visual fit. Added native ScrollView inset/keyboard behavior tuning and root-layout VoiceOver phase/resume announcements with reduce-motion-aware navigation transitions."
     },
     "GameOverScreen": {
       "file": "apps/mobile/src/screens/GameOverScreen.tsx",
@@ -72,7 +72,7 @@
         "platformBehaviorIntegrity": 88,
         "contentClarityAndCognitiveLoad": 92
       },
-      "notes": "Physical-device pass confirmed on 2026-05-05 with Dynamic Type polish applied on 2026-05-05. medium trigger on Play Again gives clear restart feedback. Accessibility remains strongest on this screen with low cognitive load, and typography scaling updates improved consistency with native text behavior."
+      "notes": "Physical-device pass confirmed on 2026-05-05 with Dynamic Type polish applied on 2026-05-05. medium trigger on Play Again gives clear restart feedback. Accessibility remains strongest on this screen with low cognitive load, and typography scaling updates improved consistency with native text behavior. Added native ScrollView inset/keyboard behavior tuning and root-layout VoiceOver phase/resume announcements with reduce-motion-aware navigation transitions."
     },
     "ChallengeScreen": {
       "file": "apps/mobile/src/screens/ChallengeScreen.tsx",
@@ -86,7 +86,7 @@
         "platformBehaviorIntegrity": 90,
         "contentClarityAndCognitiveLoad": 91
       },
-      "notes": "Physical-device pass confirmed on 2026-05-05 with Dynamic Type polish applied on 2026-05-05. success() on Start Challenge and light trigger on Cancel are consistent with platform feel. Tokens applied, control states remain coherent during challenge flow, and larger-text rendering now better matches native expectations."
+      "notes": "Physical-device pass confirmed on 2026-05-05 with Dynamic Type polish applied on 2026-05-05. success() on Start Challenge and light trigger on Cancel are consistent with platform feel. Tokens applied, control states remain coherent during challenge flow, and larger-text rendering now better matches native expectations. Added native ScrollView inset/keyboard behavior tuning and root-layout VoiceOver phase/resume announcements with reduce-motion-aware navigation transitions."
     }
   }
 }

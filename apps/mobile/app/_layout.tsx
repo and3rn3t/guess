@@ -26,18 +26,17 @@ function PhaseNavigator(): ReactElement {
   const { announce, announceScreenChange } = useVoiceOver()
   const reduceMotion = useReduceMotion()
   const lifecycle = useLifecycle()
-  const lastPhase = useRef(state.phase)
+  const lastPhase = useRef<keyof typeof PHASE_ROUTES | null>(null)
   const lastLifecycle = useRef(lifecycle)
 
   useEffect(() => {
-    void announceScreenChange(phaseTitle)
-  }, [announceScreenChange, phaseTitle])
-
-  useEffect(() => {
     if (lastPhase.current === state.phase) return
+    const previousPhase = lastPhase.current
     lastPhase.current = state.phase
-    const route = PHASE_ROUTES[state.phase]
-    router.replace(route as Parameters<typeof router.replace>[0])
+    if (previousPhase !== null) {
+      const route = PHASE_ROUTES[state.phase]
+      router.replace(route as Parameters<typeof router.replace>[0])
+    }
     void announceScreenChange(phaseTitle)
   }, [state.phase, phaseTitle, router, announceScreenChange])
 
