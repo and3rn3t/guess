@@ -3,6 +3,23 @@
 import { act, renderHook } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import type { HapticsAdapter, NetworkAdapter } from '@guess/app-core'
+
+vi.mock('expo-constants', () => ({
+  default: {
+    expoConfig: {
+      extra: {
+        apiBaseUrl: 'http://localhost:8788',
+      },
+    },
+  },
+}))
+
+vi.mock('react-native', () => ({
+  NativeModules: {
+    SourceCode: {},
+  },
+}))
+
 import { useMobileServerGame } from './useMobileServerGame'
 
 const createNetworkAdapter = (responses: Array<Record<string, unknown>>): NetworkAdapter => ({

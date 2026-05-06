@@ -16,6 +16,12 @@ const mapToLifecycleState = (state: AppStateStatus): LifecycleState => {
   return 'unknown'
 }
 
+const createErrorWithCause = (message: string, cause: unknown): Error => {
+  const error = new Error(message) as Error & { cause?: unknown }
+  error.cause = cause
+  return error
+}
+
 const createMobileStorageAdapter = () => {
   const fallbackCache = new Map<string, string>()
 
@@ -62,9 +68,7 @@ const createMobileNetworkAdapter = (): NetworkAdapter => ({
       })
     } catch (err) {
       const detail = err instanceof Error ? err.message : 'Unknown network error'
-      throw new Error(`Network request failed for ${url}: ${detail}`, {
-        cause: err,
-      })
+      throw createErrorWithCause(`Network request failed for ${url}: ${detail}`, err)
     }
 
     if (!response.ok) {
@@ -86,9 +90,9 @@ const createMobileNetworkAdapter = (): NetworkAdapter => ({
       return JSON.parse(text) as T
     } catch (err) {
       const preview = text.trim().slice(0, 120)
-      throw new Error(
+      throw createErrorWithCause(
         `Invalid JSON from ${url}. Response starts with: ${preview}`,
-        { cause: err },
+        err,
       )
     }
   },
