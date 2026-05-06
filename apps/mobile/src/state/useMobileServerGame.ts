@@ -47,6 +47,22 @@ const resolveApiBase = (): string => {
     return explicitBase;
   }
 
+  const runtimeConfigBase =
+    (Constants.expoConfig as { extra?: { apiBaseUrl?: string } } | null)?.extra
+      ?.apiBaseUrl ??
+    (Constants as {
+      manifest?: { extra?: { apiBaseUrl?: string } };
+      manifest2?: { extra?: { apiBaseUrl?: string } };
+    }).manifest?.extra?.apiBaseUrl ??
+    (Constants as {
+      manifest2?: { extra?: { apiBaseUrl?: string } };
+    }).manifest2?.extra?.apiBaseUrl ??
+    "";
+
+  if (runtimeConfigBase.trim().length > 0) {
+    return runtimeConfigBase.trim();
+  }
+
   if (__DEV__) {
     const hostFromValue = (value: string | undefined): string | null => {
       if (!value || value.length === 0) {
