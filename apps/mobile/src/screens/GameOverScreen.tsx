@@ -1,4 +1,5 @@
 import type { ReactElement } from "react";
+import { useState } from "react";
 import { Animated, Image, Pressable, ScrollView, Share, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { colors, radii, spacing, typography } from "./tokens";
@@ -12,12 +13,17 @@ export function GameOverScreen({
   server,
 }: MobilePhaseScreenProps): ReactElement {
   const { trigger } = useHaptics();
+  const [isSharing, setIsSharing] = useState(false);
   const char = server.guessCharacter;
   const aiWon = !state.exhausted && !state.surrendered;
   const resultEntrance = useScreenEntranceMotion(0);
   const detailsEntrance = useScreenEntranceMotion(80);
 
   const handleShare = async () => {
+    if (isSharing) {
+      return;
+    }
+    setIsSharing(true);
     const characterName = char?.name ?? "the character";
     const outcome = aiWon
       ? `The AI guessed ${characterName} in ${state.guessCount} question(s)! 🤖`
@@ -28,6 +34,8 @@ export function GameOverScreen({
       });
     } catch {
       // dismissed
+    } finally {
+      setIsSharing(false);
     }
   };
 
@@ -92,21 +100,26 @@ export function GameOverScreen({
         <Animated.View style={[styles.actions, detailsEntrance]}>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Share result"
+          accessibilityLabel={isSharing ? "Sharing result" : "Share result"}
+          accessibilityHint="Opens the iOS share sheet for your game outcome"
+          accessibilityState={{ disabled: isSharing, busy: isSharing }}
+          disabled={isSharing}
           onPress={() => void handleShare()}
           style={({ pressed }) => [
             styles.secondaryButton,
+            isSharing && styles.buttonDisabled,
             pressed && styles.secondaryButtonPressed,
           ]}
         >
           <Text style={styles.secondaryButtonText} maxFontSizeMultiplier={1.4}>
-            Share Result
+            {isSharing ? "Sharing…" : "Share Result"}
           </Text>
         </Pressable>
 
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Play again"
+          accessibilityHint="Returns to the welcome screen to start another game"
           onPress={() => {
             void trigger("medium");
             dispatch({ type: "BACK_TO_WELCOME" });
@@ -229,6 +242,9 @@ const styles = StyleSheet.create({
   },
   secondaryButtonPressed: {
     backgroundColor: colors.fill as never,
+  },
+  buttonDisabled: {
+    opacity: 0.55,
   },
   secondaryButtonText: {
     ...typography.button,

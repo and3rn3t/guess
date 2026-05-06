@@ -10,6 +10,8 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- **MB.5 Welcome/GameOver interaction-state polish** — improved action semantics on the two lowest-weighted screens by adding explicit busy/disabled and accessibility hints: Welcome now locks Daily Challenge while Start Game is loading, and Game Over share now exposes a proper busy state (`Sharing…`) to prevent duplicate taps while the share sheet is launching.
+
 - **MB.5 core-screen safe-area pass** — Welcome, Playing, Guessing, Game Over, and Challenge screens are now wrapped in `SafeAreaView` containers (`left/right/bottom`) to improve notch/home-indicator edge behavior while preserving existing ScrollView inset tuning and interaction layout.
 
 - **MB.5 VoiceOver phase-announcement dedupe + evidence refresh** — phase navigation announcements in the mobile root layout are now emitted exactly once per phase transition (including initial mount) to avoid duplicate VoiceOver output. Score evidence notes were refreshed in `docs/mobile/screen-quality-scores.json` to capture recent native ScrollView behavior and resume-announcement accessibility refinements.
