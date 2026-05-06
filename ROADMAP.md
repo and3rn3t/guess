@@ -256,11 +256,11 @@ The active execution plan, sequenced by **priority × ease**. Pull items top-dow
 
 > **Maintain this block first.** It's the single answer to "what should I work on?" — agents and humans check it before scanning tables. Update in the same commit as the work it describes.
 
-- 🟡 **In progress:** [I.9](#i-9) AI Gateway semantic caching 7d cache-hit window (expected: 2026-05-07) · [MB.1](#mb-1) toolchain and local run reliability baseline
-- ▶ **Up next:** [MB.2](#mb-2) architecture boundaries and shared-core contract lock
-- ✅ **Recently completed:** [DQ.31](#dq-31) completeness release gate (2026-05-04) · [DQ.33](#dq-33) null-closure queue (2026-05-04) · [DQ.36](#dq-36) curator closure queue (2026-05-04) · [DQ.37](#dq-37) risk-tiered revalidation (2026-05-04) · [DQ.38](#dq-38) completeness burndown + weekly report (2026-05-04)
+- 🟡 **In progress:** [I.9](#i-9) AI Gateway semantic caching 7d cache-hit window (expected: 2026-05-07) · [MB.5](#mb-5) verification baseline and quality gates
+- ▶ **Up next:** [MB.3](#mb-3) core gameplay shell/state-flow baseline evidence closeout
+- ✅ **Recently completed:** [MB.1](#mb-1) toolchain baseline (2026-05-05) · [MB.2](#mb-2) architecture boundaries (2026-05-05) · [MB.4](#mb-4) native bridge baseline reliability (2026-05-05) · [DQ.31](#dq-31) completeness release gate (2026-05-04) · [DQ.33](#dq-33) null-closure queue (2026-05-04) · [DQ.36](#dq-36) curator closure queue (2026-05-04) · [DQ.37](#dq-37) risk-tiered revalidation (2026-05-04) · [DQ.38](#dq-38) completeness burndown + weekly report (2026-05-04)
 - 🧫 **Blocked / waiting on:** none
-- 🎯 **Current wave focus:** Wave 5 DQ completeness program ✅ complete; mobile track reset to foundations-first execution (MB.1 -> MB.5).
+- 🎯 **Current wave focus:** Wave 5 DQ completeness program ✅ complete; mobile foundations progression (MB.1 ✅, MB.2 ✅, MB.4 ✅, MB.5 🟡).
 
 ### Wave 1 — Foundation (start here, ~1 week of focused work)
 
@@ -363,11 +363,11 @@ Everything in the sections below is real work, just not in the current execution
 | # | Item | Files | Notes |
 > **Maintain this block first.** It's the single answer to "what should I work on?" — agents and humans check it before scanning tables. Update in the same commit as the work it describes.
 |---|------|-------|-------|
-- 🟡 **In progress:** [I.9](#i-9) AI Gateway semantic caching 7d cache-hit window (expected: 2026-05-07) · [MB.3](#mb-3) core gameplay shell/state-flow baseline · [MB.4](#mb-4) native bridge baseline reliability
-- ▶ **Up next:** [MB.5](#mb-5) verification baseline and quality gates
-- ✅ **Recently completed:** [MB.1](#mb-1) toolchain baseline (2026-05-05) · [MB.2](#mb-2) architecture boundaries (2026-05-05) · [DQ.31](#dq-31) completeness release gate (2026-05-04) · [DQ.33](#dq-33) null-closure queue (2026-05-04) · [DQ.36](#dq-36) curator closure queue (2026-05-04) · [DQ.37](#dq-37) risk-tiered revalidation (2026-05-04) · [DQ.38](#dq-38) completeness burndown + weekly report (2026-05-04)
-- 🧫 **Blocked / waiting on:** MB.3, MB.4 device-only runtime tests require physical iPhone
-- 🎯 **Current wave focus:** Wave 5 DQ completeness program ✅ complete; mobile foundations execution (MB.1 ✅, MB.2 ✅, MB.3/MB.4 🟡 pending device testing).
+- 🟡 **In progress:** [I.9](#i-9) AI Gateway semantic caching 7d cache-hit window (expected: 2026-05-07) · [MB.5](#mb-5) verification baseline and quality gates
+- ▶ **Up next:** [MB.3](#mb-3) core gameplay shell/state-flow baseline evidence closeout
+- ✅ **Recently completed:** [MB.1](#mb-1) toolchain baseline (2026-05-05) · [MB.2](#mb-2) architecture boundaries (2026-05-05) · [MB.4](#mb-4) native bridge baseline reliability (2026-05-05) · [DQ.31](#dq-31) completeness release gate (2026-05-04) · [DQ.33](#dq-33) null-closure queue (2026-05-04) · [DQ.36](#dq-36) curator closure queue (2026-05-04) · [DQ.37](#dq-37) risk-tiered revalidation (2026-05-04) · [DQ.38](#dq-38) completeness burndown + weekly report (2026-05-04)
+- 🧫 **Blocked / waiting on:** none
+- 🎯 **Current wave focus:** Wave 5 DQ completeness program ✅ complete; mobile foundations progression (MB.1 ✅, MB.2 ✅, MB.4 ✅, MB.5 🟡).
 | <a id="i-1"></a>I.1 | **Separate AI Gateway for preview** | `wrangler.toml` | `env.production` and `env.preview` share the same `CLOUDFLARE_AI_GATEWAY` URL. Preview LLM calls pollute production cost dashboards and share rate limits. Create a dedicated preview gateway in the CF dashboard and reference it in `[env.preview.vars]`. |
 | <a id="i-2"></a>I.2 | **Workers Analytics Engine for LLM costs** | `functions/api/llm.ts` | Replace the `costs:{userId}:{date}` KV pattern with Workers Analytics Engine (columnar, time-series, free up to 100K data points/day). Aggregate by model/user/date in the CF dashboard without enumerating KV keys. |
 | I.3 | **Enrichment pipeline SSE endpoint** | `functions/api/admin/` | `GET /api/admin/enrich/stream` pushes `{ character, status, tokensUsed, costSoFar, eta }` events. Pairs with `POST /api/admin/enrich/start` (KV flag + Cron/Queue dispatch) so the live enrichment dashboard works fully from the browser. |
@@ -586,15 +586,15 @@ Mobile planning ownership split:
 
 | Status | # | Item | Effort | Notes |
 |---|---|---|---|---|
-| 🟡 | <a id="mb-1"></a>MB.1 | **Toolchain and local run reliability baseline** | S | Verify prebuild/pods/open-xcode flow and synchronize shared environment routine with one canonical setup path. |
-| ⬜ | <a id="mb-2"></a>MB.2 | **Architecture boundaries and shared-core contract lock** | S | Enforce native boundary policy and confirm guardrail checks are green in local and CI workflows. |
-| ⬜ | <a id="mb-3"></a>MB.3 | **Core gameplay shell/state-flow baseline** | M | Validate Welcome/Playing/Guessing/Game Over/Challenge phase flow and document transition evidence for handoff continuity. |
-| ⬜ | <a id="mb-4"></a>MB.4 | **Native bridge baseline reliability** | M | Complete Xcode target/runtime verification and device checks for haptics, VoiceOver, reduce-motion, and lifecycle modules. |
 | ✅ 2026-05-05 | <a id="mb-1"></a>MB.1 | **Toolchain and local run reliability baseline** | S | Verify prebuild/pods/open-xcode flow and synchronize shared environment routine with one canonical setup path. |
 | ✅ 2026-05-05 | <a id="mb-2"></a>MB.2 | **Architecture boundaries and shared-core contract lock** | S | Enforce native boundary policy and confirm guardrail checks are green in local and CI workflows. |
 | 🟡 | <a id="mb-3"></a>MB.3 | **Core gameplay shell/state-flow baseline** | M | Validate Welcome/Playing/Guessing/Game Over/Challenge phase flow and document transition evidence for handoff continuity. |
-| 🟡 | <a id="mb-4"></a>MB.4 | **Native bridge baseline reliability** | M | Complete Xcode target/runtime verification and device checks for haptics, VoiceOver, reduce-motion, and lifecycle modules. |
-| ⬜ | <a id="mb-5"></a>MB.5 | **Verification baseline and quality gates** | M | Require scorecard evidence + device checklist usage and keep mobile guardrails blocking on missing required evidence. |
+| ✅ 2026-05-05 | <a id="mb-4"></a>MB.4 | **Native bridge baseline reliability** | M | Complete Xcode target/runtime verification and device checks for haptics, VoiceOver, reduce-motion, and lifecycle modules. |
+| ✅ 2026-05-05 | <a id="mb-1"></a>MB.1 | **Toolchain and local run reliability baseline** | S | Verify prebuild/pods/open-xcode flow and synchronize shared environment routine with one canonical setup path. |
+| ✅ 2026-05-05 | <a id="mb-2"></a>MB.2 | **Architecture boundaries and shared-core contract lock** | S | Enforce native boundary policy and confirm guardrail checks are green in local and CI workflows. |
+| 🟡 | <a id="mb-3"></a>MB.3 | **Core gameplay shell/state-flow baseline** | M | Validate Welcome/Playing/Guessing/Game Over/Challenge phase flow and document transition evidence for handoff continuity. |
+| ✅ 2026-05-05 | <a id="mb-4"></a>MB.4 | **Native bridge baseline reliability** | M | Complete Xcode target/runtime verification and device checks for haptics, VoiceOver, reduce-motion, and lifecycle modules. |
+| 🟡 | <a id="mb-5"></a>MB.5 | **Verification baseline and quality gates** | M | Require scorecard evidence + device checklist usage and keep mobile guardrails blocking on missing required evidence. |
 
 ---
 

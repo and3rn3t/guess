@@ -10,6 +10,8 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- **MB.4 native bridge reliability shipped; MB.5 kicked off** — physical-device validation checklist now records a full pass for core screens, native service modules (haptics, VoiceOver, reduce motion, lifecycle), and interaction performance checks. MB.4 status is closed as shipped in roadmap/iOS handoff docs, and MB.5 (verification baseline and quality gates) is now tracked as in progress.
+
 - **Mobile device Metro launcher injects API base automatically** — `pnpm mobile:dev:device` now runs through `scripts/mobile/start-expo-device-dev.mjs`, which detects the Mac LAN IPv4 address and exports `EXPO_PUBLIC_API_BASE_URL=http://<lan-ip>:8788` before starting Expo dev-client Metro. This removes the dependency on brittle in-app host inference for local device sessions.
 
 - **Mobile runtime connectivity hardening (device dev-client)** — added explicit device Metro commands (`mobile:dev:device`, `mobile:dev:tunnel`) and documented black-screen red-header recovery flow for Xcode physical-device launches. Added optional `RCT_METRO_HOST` override support in `AppDelegate.swift` for debug bundle URL resolution when LAN host detection is unreliable.

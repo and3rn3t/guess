@@ -46,42 +46,48 @@ This file tracks MB.4 native bridge baseline reliability evidence.
 
 ### Remaining for MB.4
 
-- [ ] Complete one physical-device evidence pass using `docs/mobile/device-validation-checklist.md` pasteback block.
-
-- [ ] Manual Xcode target membership and bridge registration verification.
-- [ ] Simulator and physical-device runtime verification for all native modules.
-- [ ] Mark MB.4 shipped in roadmap after verification evidence is recorded.
-- [ ] Complete and update `docs/mobile/device-validation-checklist.md` with physical-device evidence.
+- [x] Complete one physical-device evidence pass using `docs/mobile/device-validation-checklist.md`.
+- [x] Manual Xcode target membership and bridge registration verification.
+- [x] Simulator and physical-device runtime verification for all native modules.
+- [x] Complete and update `docs/mobile/device-validation-checklist.md` with physical-device evidence.
+- [x] Mark MB.4 shipped in roadmap after verification evidence is recorded.
 ### 1. Project and target wiring (Xcode)
 
-- [ ] Open workspace with `pnpm mobile:open:xcode`.
-- [ ] Confirm `Andernator` target includes:
-  - [ ] `apps/mobile/ios/Andernator/NativeServices/BridgeContract.swift`
-  - [ ] `apps/mobile/ios/Andernator/NativeServices/HapticsService.swift`
-  - [ ] `apps/mobile/ios/Andernator/NativeServices/VoiceOverAnnouncer.swift`
-  - [ ] `apps/mobile/ios/Andernator/NativeServices/ReduceMotionObserver.swift`
-  - [ ] `apps/mobile/ios/Andernator/NativeServices/LifecycleObserver.swift`
-- [ ] Confirm bridging header path points to `apps/mobile/ios/Andernator/Andernator-Bridging-Header.h`.
+- [x] Open workspace with `pnpm mobile:open:xcode`.
+- [x] Confirm `Andernator` target includes:
+  - [x] `apps/mobile/ios/Andernator/NativeServices/BridgeContract.swift`
+  - [x] `apps/mobile/ios/Andernator/NativeServices/HapticsService.swift`
+  - [x] `apps/mobile/ios/Andernator/NativeServices/VoiceOverAnnouncer.swift`
+  - [x] `apps/mobile/ios/Andernator/NativeServices/ReduceMotionObserver.swift`
+  - [x] `apps/mobile/ios/Andernator/NativeServices/LifecycleObserver.swift`
+- [x] Confirm bridging header path points to `apps/mobile/ios/Andernator/Andernator-Bridging-Header.h`.
 
 ### 2. Build verification
 
 - [x] Build debug simulator target without bridge compile errors (verified via headless `xcodebuild`).
-- [ ] Build debug device target (Cmd+B) without bridge compile errors.
+- [x] Build debug device target (Cmd+B) without bridge compile errors.
 
 ### 3. Runtime verification
 
-- [ ] App launches without module registration errors.
-- [ ] Native services debug UI reports module availability.
-- [ ] Haptics behavior verified on physical device.
-- [ ] VoiceOver announce behavior verified with VoiceOver enabled.
-- [ ] Reduce-motion state and change events verified.
-- [ ] Lifecycle foreground/background transitions verified.
+- [x] App launches without module registration errors.
+- [x] Native services debug UI reports module availability.
+- [x] Haptics behavior verified on physical device.
+- [x] VoiceOver announce behavior verified with VoiceOver enabled.
+- [x] Reduce-motion state and change events verified.
+- [x] Lifecycle foreground/background transitions verified.
 
 ### 4. Evidence and close-out
 
-- [ ] Capture verification notes in `apps/mobile/ios/XCODE_IMPLEMENTATION_HANDOFF.md`.
-- [ ] Update roadmap status for MB.4 to shipped with date.
-- [ ] Move next mobile item to in-progress in roadmap block.
+- [x] Capture verification notes in `apps/mobile/ios/XCODE_IMPLEMENTATION_HANDOFF.md`.
+- [x] Update roadmap status for MB.4 to shipped with date.
+- [x] Move next mobile item to in-progress in roadmap block.
+
+### Physical-device evidence summary (2026-05-05)
+
+- User-confirmed in chat: all MB.4 device checklist checks passed.
+- Core screens passed: Welcome, Playing, Guessing, GameOver, Challenge.
+- Native modules passed: Haptics, VoiceOver, Reduce Motion, Lifecycle.
+- Performance checks passed: tap-to-feedback <100 ms, transition start <150 ms, no visible stutter.
 
 ## Reference Files
 

@@ -7,18 +7,18 @@ Update this file in the same commit as score changes in docs/mobile/screen-quali
 ## Run Record
 
 - Last run date: 2026-05-05
-- Last run owner: pending
-- Device: pending
-- iOS version: pending
+- Last run owner: andernet
+- Device: physical iPhone (model not captured in chat)
+- iOS version: verified on-device (version not captured in chat)
 - Build: Debug
-- Status: pending physical-device execution (DEV diagnostics panel is available in-app)
+- Status: pass (user-confirmed in chat)
 
 ## Preconditions
 
-- [ ] Install latest app build on physical device.
-- [ ] Enable VoiceOver availability check.
-- [ ] Confirm Reduce Motion setting can be toggled in iOS Accessibility settings.
-- [ ] Confirm haptics are enabled on the device.
+- [x] Install latest app build on physical device.
+- [x] Enable VoiceOver availability check.
+- [x] Confirm Reduce Motion setting can be toggled in iOS Accessibility settings.
+- [x] Confirm haptics are enabled on the device.
 
 ## One-Pass Execution Order
 
@@ -78,26 +78,27 @@ Ready to mark:
 
 ## Core Screens
 
-- [ ] WelcomeScreen
-- [ ] PlayingScreen
-- [ ] GuessingScreen
-- [ ] GameOverScreen
-- [ ] ChallengeScreen
+- [x] WelcomeScreen
+- [x] PlayingScreen
+- [x] GuessingScreen
+- [x] GameOverScreen
+- [x] ChallengeScreen
 
 ## Native Modules
 
-- [ ] NativeHaptics: expected feedback patterns fire for core actions.
-- [ ] NativeVoiceOver: announcements fire when expected.
-- [ ] NativeReduceMotion: current state is readable and change events propagate.
-- [ ] NativeLifecycle: foreground/background transitions emit expected events.
+- [x] NativeHaptics: expected feedback patterns fire for core actions.
+- [x] NativeVoiceOver: announcements fire when expected.
+- [x] NativeReduceMotion: current state is readable and change events propagate.
+- [x] NativeLifecycle: foreground/background transitions emit expected events.
 
 ## Performance / Interaction Checks
 
-- [ ] P95 tap-to-feedback latency observed under 100 ms.
-- [ ] P95 transition start observed under 150 ms.
-- [ ] No visible stutter in end-to-end gameplay flow.
+- [x] P95 tap-to-feedback latency observed under 100 ms.
+- [x] P95 transition start observed under 150 ms.
+- [x] No visible stutter in end-to-end gameplay flow.
 
 ## Notes
 
 - Use this record as the source for scorecard updates in docs/mobile/screen-quality-scores.json.
 - If a check fails, include mitigation details in the relevant screen notes.
+- 2026-05-05: all checklist checks confirmed passed by user in chat after physical-device run.

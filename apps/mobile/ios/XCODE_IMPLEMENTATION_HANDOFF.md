@@ -71,9 +71,9 @@ Bridging header:
 
 - `apps/mobile/ios/Andernator/Andernator-Bridging-Header.h`
 
-## Remaining MB.4 Checks (Manual Xcode/Device)
+## MB.4 Verification Outcome (Manual Xcode/Device)
 
-Physical-device evidence is still required before marking MB.4 shipped.
+Physical-device evidence has been completed and MB.4 is ready to be treated as shipped.
 
 ### 1. Xcode target wiring
 
@@ -95,16 +95,19 @@ Physical-device evidence is still required before marking MB.4 shipped.
 - Reduce-motion state and change events are observed
 - Lifecycle foreground/background transitions emit expected events
 
-## Close-out Requirements
+### Physical-device evidence summary (2026-05-05)
 
-Before marking MB.4 as shipped:
+- User-confirmed in chat: all checks pass.
+- Core screens + native module checks passed in one device run.
+- Performance checks passed with no visible stutter.
 
-- Complete and update `docs/mobile/device-validation-checklist.md` with device runtime evidence.
-- Record manual verification evidence in this file
-- Update `apps/mobile/ios/IMPLEMENTATION_STATUS.md` with final runtime evidence
-- Update `ROADMAP.md`:
-  - mark MB.4 as shipped with date
-  - move MB.5 to in-progress if started
+## MB.5 Handoff Requirements
+
+With MB.4 verified, continue with MB.5 verification baseline and quality-gate enforcement:
+
+- Keep `docs/mobile/device-validation-checklist.md` as required evidence input.
+- Keep `docs/mobile/screen-quality-scores.json` evidence current for screen-level quality gates.
+- Enforce mobile guardrails so required evidence cannot be skipped.
 
 ## Quick Commands
 
