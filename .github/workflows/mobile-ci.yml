@@ -45,6 +45,17 @@ jobs:
           set -o pipefail
           pnpm mobile:scorecard:milestone 2>&1 | tee .ci-artifacts/mobile-ci/scorecard-milestone.log
 
+      - name: Mobile scorecard production gate telemetry (main, warn-only)
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        run: |
+          set -o pipefail
+          if pnpm mobile:scorecard:production 2>&1 | tee .ci-artifacts/mobile-ci/scorecard-production.log; then
+            echo "production gate: pass" > .ci-artifacts/mobile-ci/scorecard-production-status.txt
+          else
+            echo "production gate: fail (warn-only rollout)" > .ci-artifacts/mobile-ci/scorecard-production-status.txt
+            echo "::warning::Mobile production scorecard gate did not pass (warn-only rollout). See scorecard-production.log"
+          fi
+
       - name: Upload CI artifacts
         if: always()
         uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b # v4
@@ -60,6 +71,8 @@ jobs:
           echo "- typecheck.log" >> $GITHUB_STEP_SUMMARY
           echo "- guardrails.log" >> $GITHUB_STEP_SUMMARY
           echo "- scorecard-milestone.log (main pushes only)" >> $GITHUB_STEP_SUMMARY
+          echo "- scorecard-production.log (main pushes only, warn-only)" >> $GITHUB_STEP_SUMMARY
+          echo "- scorecard-production-status.txt" >> $GITHUB_STEP_SUMMARY
 
   eas-build:
     name: EAS Build (preview)

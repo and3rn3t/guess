@@ -61,6 +61,8 @@ Source: .github/workflows/mobile-ci.yml
   - typecheck.log — mobile TypeScript typecheck output
   - guardrails.log — boundary violation scan + scorecard gate output
   - scorecard-milestone.log — milestone gate result on `main` push events
+  - scorecard-production.log — production gate result on `main` push events (warn-only rollout)
+  - scorecard-production-status.txt — one-line pass/fail status for production gate telemetry
 - Use when: mobile typecheck or boundary guardrails fail on mobile-touching PRs.
 - Triggered by: changes to `apps/mobile/**`, `packages/app-core/**`, or `packages/game-engine/**`.
 
