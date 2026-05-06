@@ -28,7 +28,7 @@
     "expo-status-bar": "^3.0.8",
     "expo-system-ui": "^55.0.17",
     "react": "^19.0.0",
-    "react-native": "^0.83.6",
+    "react-native": "^0.85.0",
     "react-native-safe-area-context": "^5.7.0",
     "react-native-screens": "^4.24.0"
   },
