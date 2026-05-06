@@ -24,13 +24,13 @@
       "deviceValidationPending": false,
       "categories": {
         "nativeInteractionFidelity": 90,
-        "visualNativeFit": 86,
+        "visualNativeFit": 90,
         "accessibilityAndInclusivity": 90,
         "performanceFeel": 89,
-        "platformBehaviorIntegrity": 88,
-        "contentClarityAndCognitiveLoad": 91
+        "platformBehaviorIntegrity": 90,
+        "contentClarityAndCognitiveLoad": 92
       },
-      "notes": "Physical-device pass confirmed on 2026-05-05. Design tokens replace hardcoded hex values. Native haptics wired via useHaptics: success() on Start Game, light trigger on Challenge. Loading state text and accessibilityState verified; device run reported responsive interactions with no visible stutter."
+      "notes": "Physical-device pass confirmed on 2026-05-05 with Dynamic Type polish applied on 2026-05-05. Design tokens replace hardcoded hex values. Native haptics wired via useHaptics: success() on Start Game, light trigger on Challenge. Loading state text and accessibilityState verified; updated text scaling behavior improved visual fit and readability at larger text sizes."
     },
     "PlayingScreen": {
       "file": "apps/mobile/src/screens/PlayingScreen.tsx",
@@ -38,55 +38,55 @@
       "deviceValidationPending": false,
       "categories": {
         "nativeInteractionFidelity": 90,
-        "visualNativeFit": 86,
+        "visualNativeFit": 90,
         "accessibilityAndInclusivity": 90,
-        "performanceFeel": 89,
-        "platformBehaviorIntegrity": 88,
+        "performanceFeel": 91,
+        "platformBehaviorIntegrity": 90,
         "contentClarityAndCognitiveLoad": 90
       },
-      "notes": "Physical-device pass confirmed on 2026-05-05. All three Pressables have haptics: success() on Yes, light trigger on No/Skip. Tokens applied. accessibilityState propagated on all controls and runtime gameplay path validated through full session flow."
+      "notes": "Physical-device pass confirmed on 2026-05-05 with Dynamic Type polish applied on 2026-05-05. All three Pressables have haptics: success() on Yes, light trigger on No/Skip. Tokens applied, accessibilityState propagated on all controls, and expanded-text readability improved while preserving gameplay responsiveness."
     },
     "GuessingScreen": {
       "file": "apps/mobile/src/screens/GuessingScreen.tsx",
       "evaluatedAt": "2026-05-05",
       "deviceValidationPending": false,
       "categories": {
-        "nativeInteractionFidelity": 89,
-        "visualNativeFit": 86,
-        "accessibilityAndInclusivity": 90,
-        "performanceFeel": 88,
-        "platformBehaviorIntegrity": 88,
-        "contentClarityAndCognitiveLoad": 89
+        "nativeInteractionFidelity": 90,
+        "visualNativeFit": 90,
+        "accessibilityAndInclusivity": 91,
+        "performanceFeel": 90,
+        "platformBehaviorIntegrity": 90,
+        "contentClarityAndCognitiveLoad": 90
       },
-      "notes": "Physical-device pass confirmed on 2026-05-05. success() on Correct, light trigger on Not This One. Conditional button guards on guessId behave correctly. Tokens applied and accessibilityState validated on both Pressables."
+      "notes": "Physical-device pass confirmed on 2026-05-05 with Dynamic Type polish applied on 2026-05-05. success() on Correct, light trigger on Not This One. Conditional button guards on guessId behave correctly. Tokens applied, accessibilityState validated on both Pressables, and typography scaling updated for improved native visual fit."
     },
     "GameOverScreen": {
       "file": "apps/mobile/src/screens/GameOverScreen.tsx",
       "evaluatedAt": "2026-05-05",
       "deviceValidationPending": false,
       "categories": {
-        "nativeInteractionFidelity": 88,
-        "visualNativeFit": 86,
+        "nativeInteractionFidelity": 90,
+        "visualNativeFit": 88,
         "accessibilityAndInclusivity": 92,
         "performanceFeel": 90,
         "platformBehaviorIntegrity": 88,
         "contentClarityAndCognitiveLoad": 92
       },
-      "notes": "Physical-device pass confirmed on 2026-05-05. medium trigger on Play Again gives clear restart feedback. Accessibility remains strongest on this screen with low cognitive load and verified responsive transitions on device."
+      "notes": "Physical-device pass confirmed on 2026-05-05 with Dynamic Type polish applied on 2026-05-05. medium trigger on Play Again gives clear restart feedback. Accessibility remains strongest on this screen with low cognitive load, and typography scaling updates improved consistency with native text behavior."
     },
     "ChallengeScreen": {
       "file": "apps/mobile/src/screens/ChallengeScreen.tsx",
       "evaluatedAt": "2026-05-05",
       "deviceValidationPending": false,
       "categories": {
-        "nativeInteractionFidelity": 89,
-        "visualNativeFit": 86,
+        "nativeInteractionFidelity": 90,
+        "visualNativeFit": 90,
         "accessibilityAndInclusivity": 90,
-        "performanceFeel": 88,
-        "platformBehaviorIntegrity": 88,
-        "contentClarityAndCognitiveLoad": 90
+        "performanceFeel": 90,
+        "platformBehaviorIntegrity": 90,
+        "contentClarityAndCognitiveLoad": 91
       },
-      "notes": "Physical-device pass confirmed on 2026-05-05. success() on Start Challenge and light trigger on Cancel are consistent with platform feel. Tokens applied and control states remain coherent during challenge flow."
+      "notes": "Physical-device pass confirmed on 2026-05-05 with Dynamic Type polish applied on 2026-05-05. success() on Start Challenge and light trigger on Cancel are consistent with platform feel. Tokens applied, control states remain coherent during challenge flow, and larger-text rendering now better matches native expectations."
     }
   }
 }

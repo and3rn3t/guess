@@ -108,6 +108,8 @@
     "doctor": "tsx scripts/doctor.ts",
     "mobile:guardrails": "tsx scripts/mobile/check-mobile-boundaries.ts && tsx scripts/mobile/check-screen-scorecard.ts",
     "mobile:scorecard": "tsx scripts/mobile/check-screen-scorecard.ts",
+    "mobile:scorecard:prMerge": "tsx scripts/mobile/check-screen-scorecard.ts --gate=prMerge",
+    "mobile:scorecard:milestone": "tsx scripts/mobile/check-screen-scorecard.ts --gate=milestone",
     "mobile:dev": "pnpm --filter @guess/mobile dev",
     "mobile:dev:device": "node scripts/mobile/start-expo-device-dev.mjs",
     "mobile:dev:tunnel": "pnpm --filter @guess/mobile dev:tunnel",

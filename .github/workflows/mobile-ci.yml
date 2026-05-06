@@ -39,6 +39,12 @@ jobs:
           set -o pipefail
           pnpm mobile:guardrails 2>&1 | tee .ci-artifacts/mobile-ci/guardrails.log
 
+      - name: Mobile scorecard milestone gate (main)
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        run: |
+          set -o pipefail
+          pnpm mobile:scorecard:milestone 2>&1 | tee .ci-artifacts/mobile-ci/scorecard-milestone.log
+
       - name: Upload CI artifacts
         if: always()
         uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b # v4
@@ -53,6 +59,7 @@ jobs:
           echo "## Mobile CI" >> $GITHUB_STEP_SUMMARY
           echo "- typecheck.log" >> $GITHUB_STEP_SUMMARY
           echo "- guardrails.log" >> $GITHUB_STEP_SUMMARY
+          echo "- scorecard-milestone.log (main pushes only)" >> $GITHUB_STEP_SUMMARY
 
   eas-build:
     name: EAS Build (preview)

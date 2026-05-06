@@ -12,6 +12,8 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 - **MB.5 Dynamic Type uplift across core mobile screens** — improved text scaling behavior in Welcome, Playing, Guessing, Game Over, and Challenge screens by removing rigid large-font overrides and fixed line-height constraints where they limited scaling, and by adding explicit `maxFontSizeMultiplier` guardrails to headings, body copy, alerts, and button labels. This improves accessibility/readability at larger text sizes while preserving layout stability for milestone-gate polish.
 
+- **MB.5 staged verification-gate enforcement (milestone on main)** — added explicit scorecard scripts for gate tiers (`mobile:scorecard:prMerge`, `mobile:scorecard:milestone`), wired Mobile CI to run the milestone scorecard gate on `main` pushes (`scorecard-milestone.log` artifact), and refreshed core-screen score evidence to milestone-level pass values (all five screens now pass both prMerge and milestone thresholds).
+
 - **MB.4 native bridge reliability shipped; MB.5 kicked off** — physical-device validation checklist now records a full pass for core screens, native service modules (haptics, VoiceOver, reduce motion, lifecycle), and interaction performance checks. MB.4 status is closed as shipped in roadmap/iOS handoff docs, and MB.5 (verification baseline and quality gates) is now tracked as in progress.
 
 - **Mobile device Metro launcher injects API base automatically** — `pnpm mobile:dev:device` now runs through `scripts/mobile/start-expo-device-dev.mjs`, which detects the Mac LAN IPv4 address and exports `EXPO_PUBLIC_API_BASE_URL=http://<lan-ip>:8788` before starting Expo dev-client Metro. This removes the dependency on brittle in-app host inference for local device sessions.
