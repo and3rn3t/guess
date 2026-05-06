@@ -1,5 +1,5 @@
 import type { ReactElement } from "react";
-import { Animated, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Animated, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { colors, radii, spacing, typography } from "./tokens";
 import { useHaptics } from "./useHaptics";
@@ -66,9 +66,18 @@ export function WelcomeScreen({
               pressed && styles.primaryButtonPressed,
             ]}
           >
-            <Text style={styles.primaryButtonText} maxFontSizeMultiplier={1.4}>
-              {server.isLoading ? "Starting…" : "Start Game"}
-            </Text>
+            {server.isLoading ? (
+              <View style={styles.loadingRow}>
+                <ActivityIndicator color={colors.primaryFg} size="small" />
+                <Text style={styles.primaryButtonText} maxFontSizeMultiplier={1.4}>
+                  Starting...
+                </Text>
+              </View>
+            ) : (
+              <Text style={styles.primaryButtonText} maxFontSizeMultiplier={1.4}>
+                Start Game
+              </Text>
+            )}
           </Pressable>
 
           <Pressable
@@ -92,6 +101,15 @@ export function WelcomeScreen({
             </Text>
           </Pressable>
         </Animated.View>
+
+        <View style={styles.tipCard}>
+          <Text style={styles.tipTitle} maxFontSizeMultiplier={1.4}>
+            Pro tip
+          </Text>
+          <Text style={styles.tipText} maxFontSizeMultiplier={1.5}>
+            Pick someone specific and answer quickly for the smoothest iOS gameplay flow.
+          </Text>
+        </View>
 
         {server.alertMessage || server.error ? (
           <Pressable
@@ -183,6 +201,11 @@ const styles = StyleSheet.create({
     ...typography.button,
     color: colors.primaryFg,
   },
+  loadingRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.rowGap / 2,
+  },
   secondaryButton: {
     borderRadius: radii.button,
     borderWidth: StyleSheet.hairlineWidth,
@@ -199,6 +222,22 @@ const styles = StyleSheet.create({
   secondaryButtonText: {
     ...typography.button,
     color: colors.primaryBg as never,
+  },
+  tipCard: {
+    backgroundColor: colors.cardBackground as never,
+    borderRadius: radii.card,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.secondaryBorder as never,
+    padding: spacing.screenH,
+    gap: spacing.rowGap / 2,
+  },
+  tipTitle: {
+    ...typography.headline,
+    color: colors.label as never,
+  },
+  tipText: {
+    ...typography.callout,
+    color: colors.secondaryLabel as never,
   },
   alert: {
     backgroundColor: colors.fill as never,

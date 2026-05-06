@@ -69,6 +69,18 @@ export function GameOverScreen({
                 ? "The AI gave up."
                 : "The AI ran out of questions."}
           </Text>
+          <View style={styles.metaRow}>
+            <View style={styles.metaChip}>
+              <Text style={styles.metaChipText} maxFontSizeMultiplier={1.3}>
+                {state.guessCount} Qs
+              </Text>
+            </View>
+            <View style={styles.metaChip}>
+              <Text style={styles.metaChipText} maxFontSizeMultiplier={1.3}>
+                {aiWon ? "AI Solved" : "Player Win"}
+              </Text>
+            </View>
+          </View>
         </Animated.View>
 
         {char ? (
@@ -107,7 +119,7 @@ export function GameOverScreen({
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={isSharing ? "Sharing result" : "Share result"}
-          accessibilityHint="Opens the iOS share sheet for your game outcome"
+          accessibilityHint={isSharing ? "Share sheet is opening" : "Opens the iOS share sheet for your game outcome"}
           accessibilityState={{ disabled: isSharing, busy: isSharing }}
           disabled={isSharing}
           onPress={() => void handleShare()}
@@ -178,6 +190,23 @@ const styles = StyleSheet.create({
     ...typography.body,
     color: colors.secondaryLabel as never,
     textAlign: "center",
+  },
+  metaRow: {
+    flexDirection: "row",
+    gap: spacing.rowGap,
+    flexWrap: "wrap",
+    justifyContent: "center",
+    marginTop: spacing.rowGap / 2,
+  },
+  metaChip: {
+    backgroundColor: colors.fill as never,
+    borderRadius: radii.chip,
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+  },
+  metaChipText: {
+    ...typography.footnote,
+    color: colors.secondaryLabel as never,
   },
   characterCard: {
     backgroundColor: colors.cardBackground as never,

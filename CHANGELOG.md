@@ -10,6 +10,8 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- **MB.5 Welcome/GameOver responsiveness + result clarity pass** — Welcome start action now shows an inline native loading spinner and compact tip card for better pre-game guidance, while Game Over now surfaces outcome metadata chips (question count + result) and clearer busy-state share hints to improve post-game scanability and platform feedback consistency.
+
 - **MB.5 Welcome/GameOver visual-platform polish** — improved native visual continuity on two production-gap screens: Welcome now includes concise metadata badges for pre-game scanability, while Game Over now has resilient portrait fallback behavior (`onError` to placeholder) and subtle card border separation for cleaner iOS grouped-surface presentation when remote images fail.
 
 - **MB.5 Playing/Challenge interaction-state polish** — improved mid-flow action semantics by adding explicit busy/disabled signaling and assistive hints during loading: Playing now surfaces `Submitting...` feedback and busy accessibility state for Yes/No/Skip, while Challenge now locks Cancel during challenge start and adds clearer action hints.
