@@ -9,7 +9,7 @@ import { Stack, useRouter } from 'expo-router'
 import type { ReactElement } from 'react'
 import { useEffect, useRef } from 'react'
 import { NativeServicesDebugMenu } from '../src/native/NativeServicesDebugMenu'
-import { useVoiceOver } from '../src/native/useNativeServices'
+import { useLifecycle, useReduceMotion, useVoiceOver } from '../src/native/useNativeServices'
 import { GameProvider, useGame } from '../src/state/GameContext'
 
 const PHASE_ROUTES = {
@@ -24,7 +24,14 @@ function PhaseNavigator(): ReactElement {
   const router = useRouter()
   const { state, phaseTitle, server } = useGame()
   const { announce, announceScreenChange } = useVoiceOver()
+  const reduceMotion = useReduceMotion()
+  const lifecycle = useLifecycle()
   const lastPhase = useRef(state.phase)
+  const lastLifecycle = useRef(lifecycle)
+
+  useEffect(() => {
+    void announceScreenChange(phaseTitle)
+  }, [announceScreenChange, phaseTitle])
 
   useEffect(() => {
     if (lastPhase.current === state.phase) return
@@ -40,11 +47,21 @@ function PhaseNavigator(): ReactElement {
     void announce(cue.message, cue.priority)
   }, [announce, server.accessibilityCue])
 
+  useEffect(() => {
+    const wasBackgrounded =
+      lastLifecycle.current === 'background' || lastLifecycle.current === 'inactive'
+    lastLifecycle.current = lifecycle
+    if (!wasBackgrounded || lifecycle !== 'active') {
+      return
+    }
+    void announce(`Resumed. ${phaseTitle}.`, 'high')
+  }, [announce, lifecycle, phaseTitle])
+
   return (
     <Stack
       screenOptions={{
         headerShown: false,
-        animation: 'slide_from_right',
+        animation: reduceMotion ? 'none' : 'slide_from_right',
         contentStyle: { backgroundColor: 'transparent' },
       }}
     />

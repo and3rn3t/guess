@@ -10,6 +10,8 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- **MB.5 VoiceOver resume cues + reduced-motion navigation transitions** — mobile root layout now announces the active phase on initial screen mount and issues a high-priority VoiceOver cue when the app returns from background/inactive state (`Resumed. <phase>.`). Stack navigation transitions now respect the iOS reduce-motion setting by switching from slide transitions to no-animation when motion reduction is enabled.
+
 - **MB.5 mobile platform-behavior polish pass** — core iOS gameplay screens now use native ScrollView behavior tuning (`contentInsetAdjustmentBehavior=automatic`, `automaticallyAdjustKeyboardInsets`, `keyboardDismissMode=on-drag`, hidden vertical indicators) and stronger disabled-state affordances on loading actions. This improves native interaction clarity and safe-area/keyboard resilience while keeping reduced-motion entrance transitions in place.
 
 - **MB.5 Dynamic Type uplift across core mobile screens** — improved text scaling behavior in Welcome, Playing, Guessing, Game Over, and Challenge screens by removing rigid large-font overrides and fixed line-height constraints where they limited scaling, and by adding explicit `maxFontSizeMultiplier` guardrails to headings, body copy, alerts, and button labels. This improves accessibility/readability at larger text sizes while preserving layout stability for milestone-gate polish.
