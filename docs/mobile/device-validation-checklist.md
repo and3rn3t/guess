@@ -29,11 +29,14 @@ Update this file in the same commit as score changes in docs/mobile/screen-quali
 	- VoiceOver announcements trigger at expected moments.
 	- Reduce Motion state is readable and updates when changed.
 	- Lifecycle events appear on app foreground/background transitions.
-4. Run quick performance pass:
+4. Open the in-app `DEV` Native Debug panel and capture module state evidence:
+	- Verify live labels for VoiceOver, Reduce Motion, and Lifecycle.
+	- Trigger at least one haptic action and one VoiceOver announcement from the panel.
+5. Run quick performance pass:
 	- Tap-to-feedback perceived under 100 ms.
 	- Transition start perceived under 150 ms.
 	- No visible stutter.
-5. Update Run Record + checkboxes, then update score evidence in docs/mobile/screen-quality-scores.json.
+6. Update Run Record + checkboxes, then update score evidence in docs/mobile/screen-quality-scores.json.
 
 ## Pasteback Template (for chat handoff)
 

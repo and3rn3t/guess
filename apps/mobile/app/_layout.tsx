@@ -8,6 +8,7 @@
 import { Stack, useRouter } from 'expo-router'
 import type { ReactElement } from 'react'
 import { useEffect, useRef } from 'react'
+import { NativeServicesDebugMenu } from '../src/native/NativeServicesDebugMenu'
 import { useVoiceOver } from '../src/native/useNativeServices'
 import { GameProvider, useGame } from '../src/state/GameContext'
 
@@ -54,6 +55,7 @@ export default function RootLayout(): ReactElement {
   return (
     <GameProvider>
       <PhaseNavigator />
+      <NativeServicesDebugMenu />
     </GameProvider>
   )
 }
