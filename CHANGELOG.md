@@ -10,6 +10,8 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- **MB.5 Welcome/GameOver visual-platform polish** — improved native visual continuity on two production-gap screens: Welcome now includes concise metadata badges for pre-game scanability, while Game Over now has resilient portrait fallback behavior (`onError` to placeholder) and subtle card border separation for cleaner iOS grouped-surface presentation when remote images fail.
+
 - **MB.5 Playing/Challenge interaction-state polish** — improved mid-flow action semantics by adding explicit busy/disabled signaling and assistive hints during loading: Playing now surfaces `Submitting...` feedback and busy accessibility state for Yes/No/Skip, while Challenge now locks Cancel during challenge start and adds clearer action hints.
 
 - **MB.5 Welcome/GameOver interaction-state polish** — improved action semantics on the two lowest-weighted screens by adding explicit busy/disabled and accessibility hints: Welcome now locks Daily Challenge while Start Game is loading, and Game Over share now exposes a proper busy state (`Sharing…`) to prevent duplicate taps while the share sheet is launching.

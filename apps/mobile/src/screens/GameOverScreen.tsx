@@ -1,5 +1,5 @@
 import type { ReactElement } from "react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Animated, Image, Pressable, ScrollView, Share, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { colors, radii, spacing, typography } from "./tokens";
@@ -14,10 +14,15 @@ export function GameOverScreen({
 }: MobilePhaseScreenProps): ReactElement {
   const { trigger } = useHaptics();
   const [isSharing, setIsSharing] = useState(false);
+  const [imageFailed, setImageFailed] = useState(false);
   const char = server.guessCharacter;
   const aiWon = !state.exhausted && !state.surrendered;
   const resultEntrance = useScreenEntranceMotion(0);
   const detailsEntrance = useScreenEntranceMotion(80);
+
+  useEffect(() => {
+    setImageFailed(false);
+  }, [char?.id]);
 
   const handleShare = async () => {
     if (isSharing) {
@@ -68,12 +73,13 @@ export function GameOverScreen({
 
         {char ? (
           <Animated.View style={[styles.characterCard, detailsEntrance]}>
-          {char.imageUrl ? (
+          {char.imageUrl && !imageFailed ? (
             <Image
               source={{ uri: char.imageUrl }}
               style={styles.portrait}
               accessibilityLabel={`Portrait of ${char.name}`}
               resizeMode="cover"
+              onError={() => setImageFailed(true)}
             />
           ) : (
             <View style={[styles.portrait, styles.portraitPlaceholder]}>
@@ -177,6 +183,9 @@ const styles = StyleSheet.create({
     backgroundColor: colors.cardBackground as never,
     borderRadius: radii.card,
     overflow: "hidden",
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.secondaryBorder as never,
+    gap: spacing.sectionGap,
   },
   portrait: {
     width: "100%",
@@ -192,7 +201,8 @@ const styles = StyleSheet.create({
     color: colors.secondaryLabel as never,
   },
   characterInfo: {
-    padding: spacing.screenH,
+    paddingHorizontal: spacing.screenH,
+    paddingBottom: spacing.screenH,
     gap: spacing.rowGap / 2,
   },
   characterName: {

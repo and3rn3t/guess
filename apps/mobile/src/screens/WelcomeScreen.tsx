@@ -1,5 +1,5 @@
 import type { ReactElement } from "react";
-import { Animated, Pressable, ScrollView, StyleSheet, Text } from "react-native";
+import { Animated, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { colors, radii, spacing, typography } from "./tokens";
 import { useHaptics } from "./useHaptics";
@@ -32,6 +32,18 @@ export function WelcomeScreen({
           <Text style={styles.title} maxFontSizeMultiplier={1.6}>
             Think of a{"\n"}character.
           </Text>
+          <View style={styles.metaRow}>
+            <View style={styles.metaBadge}>
+              <Text style={styles.metaBadgeText} maxFontSizeMultiplier={1.4}>
+                20 Questions Max
+              </Text>
+            </View>
+            <View style={styles.metaBadge}>
+              <Text style={styles.metaBadgeText} maxFontSizeMultiplier={1.4}>
+                Yes / No / Skip
+              </Text>
+            </View>
+          </View>
           <Text style={styles.subtitle} maxFontSizeMultiplier={1.6}>
             The AI will ask yes/no questions to figure out who you're thinking of.
           </Text>
@@ -132,6 +144,21 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     ...typography.body,
+    color: colors.secondaryLabel as never,
+  },
+  metaRow: {
+    flexDirection: "row",
+    gap: spacing.rowGap,
+    flexWrap: "wrap",
+  },
+  metaBadge: {
+    backgroundColor: colors.fill as never,
+    borderRadius: radii.chip,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+  },
+  metaBadgeText: {
+    ...typography.footnote,
     color: colors.secondaryLabel as never,
   },
   actions: {
