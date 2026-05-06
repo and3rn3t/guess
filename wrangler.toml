@@ -10,6 +10,45 @@ enabled = true
 [placement]
 mode = "smart"
 
+# Local Pages development reads only top-level bindings. Mirror preview here so
+# `wrangler pages dev` can serve the mobile app against non-production data.
+[vars]
+CLOUDFLARE_AI_GATEWAY = "https://gateway.ai.cloudflare.com/v1/362c458c58efc6b65b7005148383403d/andernet-ai-preview/openai/chat/completions"
+AUTO_CAPTURE_DQ_SNAPSHOT = "true"
+AUTO_DUPLICATES_BACKFILL = "true"
+AUTO_DUPLICATES_LIMIT = "40"
+AUTO_ENRICH_ONE = "true"
+AUTO_RETIRE_ENABLED = "false"
+AUTO_RETIRE_LIMIT = "3"
+AUTO_RETIRE_MIN_SCORE = "0.9"
+AUTO_RETIRE_MIN_SHOWN = "20"
+AUTO_RETIRE_WINDOW_DAYS = "30"
+
+[[kv_namespaces]]
+binding = "GUESS_KV"
+id = "96c1143288174dd5891e344a46e565c6"
+
+[[d1_databases]]
+binding = "GUESS_DB"
+database_name = "guess-db-preview"
+database_id = "a02a0492-36d2-4513-8270-82a3467914de"
+migrations_dir = "migrations"
+
+[[r2_buckets]]
+binding = "GUESS_IMAGES"
+bucket_name = "guess-images"
+
+[[analytics_engine_datasets]]
+binding = "LLM_COSTS"
+dataset = "llm_costs_preview"
+
+[[analytics_engine_datasets]]
+binding = "WORKER_TAIL"
+dataset = "worker_tail_preview"
+
+[ai]
+binding = "AI"
+
 # Custom domain: andernator.com (configured in Cloudflare Pages dashboard)
 # DNS: CNAME andernator.com → guess.pages.dev
 

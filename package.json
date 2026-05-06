@@ -10,7 +10,7 @@
     "build": "pnpm typecheck && vite build",
     "build:fast": "tsc -b --noCheck && vite build",
     "preview": "vite preview",
-    "cf:dev": "pnpm build:fast && wrangler pages dev dist --ip 0.0.0.0",
+    "cf:dev": "export COOKIE_SECRET=${COOKIE_SECRET:-local-dev-cookie-secret} && pnpm build:fast && printf 'y\n' | wrangler d1 migrations apply guess-db-preview --local && wrangler pages dev dist --ip 0.0.0.0",
     "typecheck": "tsc -b --noEmit",
     "typecheck:all": "tsc -p tsconfig.full.json --noEmit",
     "lint": "eslint . --cache --cache-location node_modules/.cache/eslint",

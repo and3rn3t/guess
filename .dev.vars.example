@@ -12,6 +12,9 @@
 # and all LLM-backed API endpoints during local dev.
 OPENAI_API_KEY=sk-...
 
+# Cookie signing secret used by game/session endpoints during local dev.
+COOKIE_SECRET=local-dev-cookie-secret
+
 # Admin panel HTTP Basic Auth password.
 # The KV key `admin:basic-auth` stores the live value (rotatable without deploy);
 # this var is used as the fallback when KV is unavailable locally.
