@@ -11,7 +11,7 @@ Update this file in the same commit as score changes in docs/mobile/screen-quali
 - Device: pending
 - iOS version: pending
 - Build: Debug
-- Status: pending device execution
+- Status: pending physical-device execution (DEV diagnostics panel is available in-app)
 
 ## Preconditions
 

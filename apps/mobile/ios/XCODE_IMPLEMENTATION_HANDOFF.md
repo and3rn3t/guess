@@ -1,6 +1,6 @@
 # iOS Native Services - Xcode Handoff
 
-Last updated: 2026-05-04
+Last updated: 2026-05-05
 
 This document is the execution handoff for MB.4 (native bridge baseline reliability).
 It reflects the current state after Expo SDK 55 / React Native compatibility alignment and headless simulator build verification.
@@ -27,6 +27,9 @@ It reflects the current state after Expo SDK 55 / React Native compatibility ali
 - Swift bridge compile blockers fixed:
   - Objective-C selector conflict removed from the `NativeServiceModule` contract
   - invalid closure-type extensions replaced with helper functions in `BridgeContract.swift`
+- In-app diagnostics panel is now mounted for device verification:
+  - `apps/mobile/src/native/NativeServicesDebugMenu.tsx` is rendered from `apps/mobile/app/_layout.tsx` in dev.
+  - `docs/mobile/device-validation-checklist.md` execution order now includes DEV-panel evidence capture.
 
 ### Verification completed in VS Code
 
@@ -69,6 +72,8 @@ Bridging header:
 - `apps/mobile/ios/Andernator/Andernator-Bridging-Header.h`
 
 ## Remaining MB.4 Checks (Manual Xcode/Device)
+
+Physical-device evidence is still required before marking MB.4 shipped.
 
 ### 1. Xcode target wiring
 

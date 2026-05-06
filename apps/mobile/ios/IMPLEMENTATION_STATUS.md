@@ -1,6 +1,5 @@
 # iOS Native Services - Implementation Status
 
-Last updated: 2026-05-04
 Last updated: 2026-05-05
 
 This file tracks MB.4 native bridge baseline reliability evidence.
@@ -15,6 +14,8 @@ This file tracks MB.4 native bridge baseline reliability evidence.
 - [x] Core gameplay screen decomposition completed in `apps/mobile/src/screens/`.
 - [x] Persistent storage adapter completed in `apps/mobile/src/platform/adapters.ts` using AsyncStorage with in-memory fallback.
 - [x] Xcode project cleanup completed to remove stale duplicate file references.
+- [x] In-app DEV diagnostics panel is mounted in root layout for MB.4 verification workflow.
+  - `apps/mobile/src/native/NativeServicesDebugMenu.tsx` now rendered from `apps/mobile/app/_layout.tsx` in dev.
 
 ### Verification completed in VS Code
 
@@ -34,8 +35,6 @@ This file tracks MB.4 native bridge baseline reliability evidence.
   - `xcodebuild -quiet -workspace Andernator.xcworkspace -scheme Andernator -configuration Debug -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' build CODE_SIGNING_ALLOWED=NO`
   - Re-verified 2026-05-04 after updates in `apps/mobile/ios/Andernator.xcodeproj/project.pbxproj`.
 
-### Remaining for MB.4
-
 ### Verified in VS Code (2026-05-05)
 
 - [x] Expo prebuilt + Xcode 26 (year-based, `iPhoneSimulator26.4.sdk`) header fix applied via `Podfile` `post_install` hook.
@@ -44,7 +43,10 @@ This file tracks MB.4 native bridge baseline reliability evidence.
   - `pod install` confirms: `[Andernator] Created React_RCTAppDelegate/ (underscore) for Expo prebuilt compatibility.`
 - [x] Headless simulator build re-verified (2026-05-05): `xcodebuild ... -sdk iphonesimulator build CODE_SIGNING_ALLOWED=NO` → `EXIT: 0`.
 ## MB.4 Verification Checklist
+
 ### Remaining for MB.4
+
+- [ ] Complete one physical-device evidence pass using `docs/mobile/device-validation-checklist.md` pasteback block.
 
 - [ ] Manual Xcode target membership and bridge registration verification.
 - [ ] Simulator and physical-device runtime verification for all native modules.
