@@ -61,6 +61,7 @@ export function ChallengeScreen({
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={server.isLoading ? "Starting challenge" : "Start today's challenge"}
+            accessibilityHint="Begins today's shared challenge game"
             accessibilityState={{ disabled: server.isLoading, busy: server.isLoading }}
             disabled={server.isLoading}
             onPress={() => {
@@ -81,12 +82,16 @@ export function ChallengeScreen({
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Cancel and return to home"
+            accessibilityHint="Return to the welcome screen without starting a challenge"
+            accessibilityState={{ disabled: server.isLoading }}
+            disabled={server.isLoading}
             onPress={() => {
               void trigger("light");
               dispatch({ type: "BACK_TO_WELCOME" });
             }}
             style={({ pressed }) => [
               styles.tertiaryButton,
+              server.isLoading && styles.buttonDisabled,
               pressed && styles.tertiaryButtonPressed,
             ]}
           >

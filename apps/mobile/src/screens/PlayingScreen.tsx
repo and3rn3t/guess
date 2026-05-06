@@ -75,6 +75,7 @@ export function PlayingScreen({
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={reasoningExpanded ? "Hide AI reasoning" : "Show AI reasoning"}
+          accessibilityHint="Toggles the AI reasoning details for the current question"
           accessibilityState={{ expanded: reasoningExpanded }}
           onPress={() => setReasoningExpanded((v) => !v)}
           style={styles.reasoningToggle}
@@ -101,9 +102,9 @@ export function PlayingScreen({
       <Animated.View style={[styles.actions, actionsEntrance]}>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Yes"
+          accessibilityLabel={server.isLoading ? "Submitting yes" : "Yes"}
           accessibilityHint="The answer to this question is yes"
-          accessibilityState={{ disabled: server.isLoading }}
+          accessibilityState={{ disabled: server.isLoading, busy: server.isLoading }}
           disabled={server.isLoading}
           onPress={() => {
             void success();
@@ -116,15 +117,15 @@ export function PlayingScreen({
           ]}
         >
           <Text style={styles.primaryButtonText} maxFontSizeMultiplier={1.4}>
-            Yes
+            {server.isLoading ? "Submitting..." : "Yes"}
           </Text>
         </Pressable>
 
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="No"
+          accessibilityLabel={server.isLoading ? "Submitting no" : "No"}
           accessibilityHint="The answer to this question is no"
-          accessibilityState={{ disabled: server.isLoading }}
+          accessibilityState={{ disabled: server.isLoading, busy: server.isLoading }}
           disabled={server.isLoading}
           onPress={() => {
             void trigger("light");
@@ -137,14 +138,15 @@ export function PlayingScreen({
           ]}
         >
           <Text style={styles.secondaryButtonText} maxFontSizeMultiplier={1.4}>
-            No
+            {server.isLoading ? "Submitting..." : "No"}
           </Text>
         </Pressable>
 
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Skip question"
-          accessibilityState={{ disabled: server.isLoading }}
+          accessibilityLabel={server.isLoading ? "Skipping question" : "Skip question"}
+          accessibilityHint="Move to the next question without answering this one"
+          accessibilityState={{ disabled: server.isLoading, busy: server.isLoading }}
           disabled={server.isLoading}
           onPress={() => {
             void trigger("light");
@@ -157,7 +159,7 @@ export function PlayingScreen({
           ]}
         >
           <Text style={styles.tertiaryButtonText} maxFontSizeMultiplier={1.4}>
-            Skip
+            {server.isLoading ? "Submitting..." : "Skip"}
           </Text>
         </Pressable>
       </Animated.View>
