@@ -1,6 +1,7 @@
 import type { ReactElement } from "react";
 import { useState } from "react";
 import { Animated, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { colors, radii, spacing, typography } from "./tokens";
 import { useHaptics } from "./useHaptics";
 import { useScreenEntranceMotion } from "./useScreenEntranceMotion";
@@ -44,16 +45,17 @@ export function PlayingScreen({
   const TOTAL_QUESTIONS = 20;
 
   return (
-    <ScrollView
-      style={styles.scroll}
-      contentContainerStyle={styles.container}
-      contentInsetAdjustmentBehavior="automatic"
-      automaticallyAdjustKeyboardInsets
-      keyboardShouldPersistTaps="handled"
-      keyboardDismissMode="on-drag"
-      showsVerticalScrollIndicator={false}
-    >
-      <ProgressBar total={TOTAL_QUESTIONS} remaining={server.remaining} />
+    <SafeAreaView style={styles.safeArea} edges={["left", "right", "bottom"]}>
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.container}
+        contentInsetAdjustmentBehavior="automatic"
+        automaticallyAdjustKeyboardInsets
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+        showsVerticalScrollIndicator={false}
+      >
+        <ProgressBar total={TOTAL_QUESTIONS} remaining={server.remaining} />
 
       <Animated.View style={[styles.questionCard, cardEntrance]}>
         <Text style={styles.questionMeta} accessibilityElementsHidden>
@@ -160,22 +162,27 @@ export function PlayingScreen({
         </Pressable>
       </Animated.View>
 
-      {server.alertMessage ? (
-        <Pressable
-          accessibilityRole="alert"
-          onPress={server.clearAlert}
-          style={styles.alert}
-        >
-          <Text style={styles.alertText} maxFontSizeMultiplier={1.5}>
-            {server.alertMessage}
-          </Text>
-        </Pressable>
-      ) : null}
-    </ScrollView>
+        {server.alertMessage ? (
+          <Pressable
+            accessibilityRole="alert"
+            onPress={server.clearAlert}
+            style={styles.alert}
+          >
+            <Text style={styles.alertText} maxFontSizeMultiplier={1.5}>
+              {server.alertMessage}
+            </Text>
+          </Pressable>
+        ) : null}
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: colors.background as never,
+  },
   scroll: {
     flex: 1,
     backgroundColor: colors.background as never,

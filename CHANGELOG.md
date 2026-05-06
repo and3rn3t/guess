@@ -10,6 +10,8 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- **MB.5 core-screen safe-area pass** — Welcome, Playing, Guessing, Game Over, and Challenge screens are now wrapped in `SafeAreaView` containers (`left/right/bottom`) to improve notch/home-indicator edge behavior while preserving existing ScrollView inset tuning and interaction layout.
+
 - **MB.5 VoiceOver phase-announcement dedupe + evidence refresh** — phase navigation announcements in the mobile root layout are now emitted exactly once per phase transition (including initial mount) to avoid duplicate VoiceOver output. Score evidence notes were refreshed in `docs/mobile/screen-quality-scores.json` to capture recent native ScrollView behavior and resume-announcement accessibility refinements.
 
 - **MB.5 VoiceOver resume cues + reduced-motion navigation transitions** — mobile root layout now announces the active phase on initial screen mount and issues a high-priority VoiceOver cue when the app returns from background/inactive state (`Resumed. <phase>.`). Stack navigation transitions now respect the iOS reduce-motion setting by switching from slide transitions to no-animation when motion reduction is enabled.

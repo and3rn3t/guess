@@ -1,5 +1,6 @@
 import type { ReactElement } from "react";
 import { Animated, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { colors, radii, spacing, typography } from "./tokens";
 import { useHaptics } from "./useHaptics";
 import { useScreenEntranceMotion } from "./useScreenEntranceMotion";
@@ -22,82 +23,88 @@ export function ChallengeScreen({
   const actionsEntrance = useScreenEntranceMotion(80);
 
   return (
-    <ScrollView
-      style={styles.scroll}
-      contentContainerStyle={styles.container}
-      contentInsetAdjustmentBehavior="automatic"
-      automaticallyAdjustKeyboardInsets
-      keyboardShouldPersistTaps="handled"
-      keyboardDismissMode="on-drag"
-      showsVerticalScrollIndicator={false}
-    >
-      <Animated.View style={[styles.hero, heroEntrance]}>
-        <Text style={styles.eyebrow} accessibilityRole="header">
-          Daily Challenge
-        </Text>
-        <Text style={styles.title} maxFontSizeMultiplier={1.6}>
-          Today's{"\n"}Puzzle
-        </Text>
-        <View style={styles.metaRow}>
-          <View style={styles.metaBadge}>
-            <Text style={styles.metaBadgeText} maxFontSizeMultiplier={1.4}>
-              📅 {getTodayLabel()}
-            </Text>
-          </View>
-          <View style={styles.metaBadge}>
-            <Text style={styles.metaBadgeText} maxFontSizeMultiplier={1.4}>
-              🤖 AI vs You
-            </Text>
-          </View>
-        </View>
-        <Text style={styles.description} maxFontSizeMultiplier={1.6}>
-          Everyone plays with the same character today. Think of it, then see if the AI can figure it out!
-        </Text>
-      </Animated.View>
-
-      <Animated.View style={[styles.actions, actionsEntrance]}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={server.isLoading ? "Starting challenge" : "Start today's challenge"}
-          accessibilityState={{ disabled: server.isLoading, busy: server.isLoading }}
-          disabled={server.isLoading}
-          onPress={() => {
-            void success();
-            void server.startGame();
-          }}
-          style={({ pressed }) => [
-            styles.primaryButton,
-            server.isLoading && styles.buttonDisabled,
-            pressed && styles.primaryButtonPressed,
-          ]}
-        >
-          <Text style={styles.primaryButtonText} maxFontSizeMultiplier={1.4}>
-            {server.isLoading ? "Starting…" : "Start Challenge"}
+    <SafeAreaView style={styles.safeArea} edges={["left", "right", "bottom"]}>
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.container}
+        contentInsetAdjustmentBehavior="automatic"
+        automaticallyAdjustKeyboardInsets
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+        showsVerticalScrollIndicator={false}
+      >
+        <Animated.View style={[styles.hero, heroEntrance]}>
+          <Text style={styles.eyebrow} accessibilityRole="header">
+            Daily Challenge
           </Text>
-        </Pressable>
-
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Cancel and return to home"
-          onPress={() => {
-            void trigger("light");
-            dispatch({ type: "BACK_TO_WELCOME" });
-          }}
-          style={({ pressed }) => [
-            styles.tertiaryButton,
-            pressed && styles.tertiaryButtonPressed,
-          ]}
-        >
-          <Text style={styles.tertiaryButtonText} maxFontSizeMultiplier={1.4}>
-            Cancel
+          <Text style={styles.title} maxFontSizeMultiplier={1.6}>
+            Today's{"\n"}Puzzle
           </Text>
-        </Pressable>
-      </Animated.View>
-    </ScrollView>
+          <View style={styles.metaRow}>
+            <View style={styles.metaBadge}>
+              <Text style={styles.metaBadgeText} maxFontSizeMultiplier={1.4}>
+                📅 {getTodayLabel()}
+              </Text>
+            </View>
+            <View style={styles.metaBadge}>
+              <Text style={styles.metaBadgeText} maxFontSizeMultiplier={1.4}>
+                🤖 AI vs You
+              </Text>
+            </View>
+          </View>
+          <Text style={styles.description} maxFontSizeMultiplier={1.6}>
+            Everyone plays with the same character today. Think of it, then see if the AI can figure it out!
+          </Text>
+        </Animated.View>
+
+        <Animated.View style={[styles.actions, actionsEntrance]}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={server.isLoading ? "Starting challenge" : "Start today's challenge"}
+            accessibilityState={{ disabled: server.isLoading, busy: server.isLoading }}
+            disabled={server.isLoading}
+            onPress={() => {
+              void success();
+              void server.startGame();
+            }}
+            style={({ pressed }) => [
+              styles.primaryButton,
+              server.isLoading && styles.buttonDisabled,
+              pressed && styles.primaryButtonPressed,
+            ]}
+          >
+            <Text style={styles.primaryButtonText} maxFontSizeMultiplier={1.4}>
+              {server.isLoading ? "Starting…" : "Start Challenge"}
+            </Text>
+          </Pressable>
+
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Cancel and return to home"
+            onPress={() => {
+              void trigger("light");
+              dispatch({ type: "BACK_TO_WELCOME" });
+            }}
+            style={({ pressed }) => [
+              styles.tertiaryButton,
+              pressed && styles.tertiaryButtonPressed,
+            ]}
+          >
+            <Text style={styles.tertiaryButtonText} maxFontSizeMultiplier={1.4}>
+              Cancel
+            </Text>
+          </Pressable>
+        </Animated.View>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: colors.background as never,
+  },
   scroll: {
     flex: 1,
     backgroundColor: colors.background as never,

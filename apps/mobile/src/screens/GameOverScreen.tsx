@@ -1,5 +1,6 @@
 import type { ReactElement } from "react";
 import { Animated, Image, Pressable, ScrollView, Share, StyleSheet, Text, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { colors, radii, spacing, typography } from "./tokens";
 import { useHaptics } from "./useHaptics";
 import { useScreenEntranceMotion } from "./useScreenEntranceMotion";
@@ -31,33 +32,34 @@ export function GameOverScreen({
   };
 
   return (
-    <ScrollView
-      style={styles.scroll}
-      contentContainerStyle={styles.container}
-      contentInsetAdjustmentBehavior="automatic"
-      automaticallyAdjustKeyboardInsets
-      keyboardShouldPersistTaps="handled"
-      keyboardDismissMode="on-drag"
-      showsVerticalScrollIndicator={false}
-    >
-      <Animated.View style={[styles.resultBadge, resultEntrance]}>
-        <Text style={styles.resultEmoji} maxFontSizeMultiplier={1.2}>
-          {aiWon ? "🤖" : "🏆"}
-        </Text>
-        <Text style={styles.resultHeadline} maxFontSizeMultiplier={1.6}>
-          {aiWon ? "The AI got it!" : "You win!"}
-        </Text>
-        <Text style={styles.resultSubheadline} maxFontSizeMultiplier={1.5}>
-          {aiWon
-            ? `Figured it out in ${state.guessCount} question${state.guessCount === 1 ? "" : "s"}.`
-            : state.surrendered
-              ? "The AI gave up."
-              : "The AI ran out of questions."}
-        </Text>
-      </Animated.View>
+    <SafeAreaView style={styles.safeArea} edges={["left", "right", "bottom"]}>
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.container}
+        contentInsetAdjustmentBehavior="automatic"
+        automaticallyAdjustKeyboardInsets
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+        showsVerticalScrollIndicator={false}
+      >
+        <Animated.View style={[styles.resultBadge, resultEntrance]}>
+          <Text style={styles.resultEmoji} maxFontSizeMultiplier={1.2}>
+            {aiWon ? "🤖" : "🏆"}
+          </Text>
+          <Text style={styles.resultHeadline} maxFontSizeMultiplier={1.6}>
+            {aiWon ? "The AI got it!" : "You win!"}
+          </Text>
+          <Text style={styles.resultSubheadline} maxFontSizeMultiplier={1.5}>
+            {aiWon
+              ? `Figured it out in ${state.guessCount} question${state.guessCount === 1 ? "" : "s"}.`
+              : state.surrendered
+                ? "The AI gave up."
+                : "The AI ran out of questions."}
+          </Text>
+        </Animated.View>
 
-      {char ? (
-        <Animated.View style={[styles.characterCard, detailsEntrance]}>
+        {char ? (
+          <Animated.View style={[styles.characterCard, detailsEntrance]}>
           {char.imageUrl ? (
             <Image
               source={{ uri: char.imageUrl }}
@@ -84,10 +86,10 @@ export function GameOverScreen({
               </View>
             ) : null}
           </View>
-        </Animated.View>
-      ) : null}
+          </Animated.View>
+        ) : null}
 
-      <Animated.View style={[styles.actions, detailsEntrance]}>
+        <Animated.View style={[styles.actions, detailsEntrance]}>
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Share result"
@@ -118,12 +120,17 @@ export function GameOverScreen({
             Play Again
           </Text>
         </Pressable>
-      </Animated.View>
-    </ScrollView>
+        </Animated.View>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: colors.background as never,
+  },
   scroll: {
     flex: 1,
     backgroundColor: colors.background as never,

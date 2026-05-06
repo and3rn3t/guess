@@ -1,5 +1,6 @@
 import type { ReactElement } from "react";
 import { Animated, Pressable, ScrollView, StyleSheet, Text } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { colors, radii, spacing, typography } from "./tokens";
 import { useHaptics } from "./useHaptics";
 import { useScreenEntranceMotion } from "./useScreenEntranceMotion";
@@ -14,85 +15,91 @@ export function WelcomeScreen({
   const actionsEntrance = useScreenEntranceMotion(80);
 
   return (
-    <ScrollView
-      style={styles.scroll}
-      contentContainerStyle={styles.container}
-      contentInsetAdjustmentBehavior="automatic"
-      automaticallyAdjustKeyboardInsets
-      keyboardShouldPersistTaps="handled"
-      keyboardDismissMode="on-drag"
-      showsVerticalScrollIndicator={false}
-    >
-      <Animated.View style={[styles.hero, heroEntrance]}>
-        <Text style={styles.eyebrow} accessibilityRole="header">
-          Andernator
-        </Text>
-        <Text style={styles.title} maxFontSizeMultiplier={1.6}>
-          Think of a{"\n"}character.
-        </Text>
-        <Text style={styles.subtitle} maxFontSizeMultiplier={1.6}>
-          The AI will ask yes/no questions to figure out who you're thinking of.
-        </Text>
-      </Animated.View>
-
-      <Animated.View style={[styles.actions, actionsEntrance]}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={server.isLoading ? "Starting game" : "Start game"}
-          accessibilityState={{ disabled: server.isLoading, busy: server.isLoading }}
-          disabled={server.isLoading}
-          onPress={() => {
-            void success();
-            void server.startGame();
-          }}
-          style={({ pressed }) => [
-            styles.primaryButton,
-            server.isLoading && styles.buttonDisabled,
-            pressed && styles.primaryButtonPressed,
-          ]}
-        >
-          <Text style={styles.primaryButtonText} maxFontSizeMultiplier={1.4}>
-            {server.isLoading ? "Starting…" : "Start Game"}
+    <SafeAreaView style={styles.safeArea} edges={["left", "right", "bottom"]}>
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.container}
+        contentInsetAdjustmentBehavior="automatic"
+        automaticallyAdjustKeyboardInsets
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+        showsVerticalScrollIndicator={false}
+      >
+        <Animated.View style={[styles.hero, heroEntrance]}>
+          <Text style={styles.eyebrow} accessibilityRole="header">
+            Andernator
           </Text>
-        </Pressable>
-
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Daily challenge"
-          onPress={() => {
-            void trigger("light");
-            dispatch({ type: "GO_TO_CHALLENGE" });
-          }}
-          style={({ pressed }) => [
-            styles.secondaryButton,
-            pressed && styles.secondaryButtonPressed,
-          ]}
-        >
-          <Text style={styles.secondaryButtonText} maxFontSizeMultiplier={1.4}>
-            Daily Challenge
+          <Text style={styles.title} maxFontSizeMultiplier={1.6}>
+            Think of a{"\n"}character.
           </Text>
-        </Pressable>
-      </Animated.View>
-
-      {server.alertMessage || server.error ? (
-        <Pressable
-          accessibilityRole="alert"
-          onPress={() => {
-            server.clearAlert();
-            server.clearError();
-          }}
-          style={styles.alert}
-        >
-          <Text style={styles.alertText} maxFontSizeMultiplier={1.5}>
-            {server.alertMessage ?? server.error}
+          <Text style={styles.subtitle} maxFontSizeMultiplier={1.6}>
+            The AI will ask yes/no questions to figure out who you're thinking of.
           </Text>
-        </Pressable>
-      ) : null}
-    </ScrollView>
+        </Animated.View>
+
+        <Animated.View style={[styles.actions, actionsEntrance]}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={server.isLoading ? "Starting game" : "Start game"}
+            accessibilityState={{ disabled: server.isLoading, busy: server.isLoading }}
+            disabled={server.isLoading}
+            onPress={() => {
+              void success();
+              void server.startGame();
+            }}
+            style={({ pressed }) => [
+              styles.primaryButton,
+              server.isLoading && styles.buttonDisabled,
+              pressed && styles.primaryButtonPressed,
+            ]}
+          >
+            <Text style={styles.primaryButtonText} maxFontSizeMultiplier={1.4}>
+              {server.isLoading ? "Starting…" : "Start Game"}
+            </Text>
+          </Pressable>
+
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Daily challenge"
+            onPress={() => {
+              void trigger("light");
+              dispatch({ type: "GO_TO_CHALLENGE" });
+            }}
+            style={({ pressed }) => [
+              styles.secondaryButton,
+              pressed && styles.secondaryButtonPressed,
+            ]}
+          >
+            <Text style={styles.secondaryButtonText} maxFontSizeMultiplier={1.4}>
+              Daily Challenge
+            </Text>
+          </Pressable>
+        </Animated.View>
+
+        {server.alertMessage || server.error ? (
+          <Pressable
+            accessibilityRole="alert"
+            onPress={() => {
+              server.clearAlert();
+              server.clearError();
+            }}
+            style={styles.alert}
+          >
+            <Text style={styles.alertText} maxFontSizeMultiplier={1.5}>
+              {server.alertMessage ?? server.error}
+            </Text>
+          </Pressable>
+        ) : null}
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: colors.background as never,
+  },
   scroll: {
     flex: 1,
     backgroundColor: colors.background as never,
