@@ -10,6 +10,8 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- **Mobile device Metro launcher injects API base automatically** — `pnpm mobile:dev:device` now runs through `scripts/mobile/start-expo-device-dev.mjs`, which detects the Mac LAN IPv4 address and exports `EXPO_PUBLIC_API_BASE_URL=http://<lan-ip>:8788` before starting Expo dev-client Metro. This removes the dependency on brittle in-app host inference for local device sessions.
+
 - **Mobile runtime connectivity hardening (device dev-client)** — added explicit device Metro commands (`mobile:dev:device`, `mobile:dev:tunnel`) and documented black-screen red-header recovery flow for Xcode physical-device launches. Added optional `RCT_METRO_HOST` override support in `AppDelegate.swift` for debug bundle URL resolution when LAN host detection is unreliable.
 
 - **Xcode warning-noise cleanup pass (iOS mobile)** — hardened iOS build settings to reduce third-party Pod warning spam without editing vendored sources. Added `inhibit_all_warnings!`, normalized Pod `IPHONEOS_DEPLOYMENT_TARGET` to app minimum, suppressed Pod no-symbol libtool noise, disabled app-target nullability-completeness warnings from imported Pod headers, fixed malformed project `LIBRARY_SEARCH_PATHS`, and excluded missing `${TOOLCHAIN_DIR}/usr/lib/swift/${PLATFORM_NAME}` from app link search paths. Simulator build remains green (`EXIT:0`).

@@ -116,7 +116,7 @@ pnpm dev
 | Command | Description |
 |---|---|
 | `pnpm mobile:dev` | Start Expo dev server for apps/mobile |
-| `pnpm mobile:dev:device` | Start Expo dev server for physical iOS device (LAN, dev-client) |
+| `pnpm mobile:dev:device` | Start Expo dev server for physical iOS device (LAN, dev-client) with EXPO_PUBLIC_API_BASE_URL auto-set to the Mac LAN IP |
 | `pnpm mobile:dev:tunnel` | Start Expo dev server in tunnel mode for constrained LANs |
 | `pnpm mobile:ios` | Build and run apps/mobile on iOS simulator/device |
 | `pnpm mobile:typecheck` | Type-check the mobile app workspace |

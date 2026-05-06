@@ -109,7 +109,7 @@
     "mobile:guardrails": "tsx scripts/mobile/check-mobile-boundaries.ts && tsx scripts/mobile/check-screen-scorecard.ts",
     "mobile:scorecard": "tsx scripts/mobile/check-screen-scorecard.ts",
     "mobile:dev": "pnpm --filter @guess/mobile dev",
-    "mobile:dev:device": "pnpm --filter @guess/mobile dev:device",
+    "mobile:dev:device": "node scripts/mobile/start-expo-device-dev.mjs",
     "mobile:dev:tunnel": "pnpm --filter @guess/mobile dev:tunnel",
     "mobile:ios": "pnpm --filter @guess/mobile ios",
     "mobile:typecheck": "pnpm --filter @guess/mobile typecheck",
