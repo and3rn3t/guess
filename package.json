@@ -10,7 +10,7 @@
     "build": "pnpm typecheck && vite build",
     "build:fast": "tsc -b --noCheck && vite build",
     "preview": "vite preview",
-    "cf:dev": "pnpm build:fast && wrangler pages dev dist",
+    "cf:dev": "pnpm build:fast && wrangler pages dev dist --ip 0.0.0.0",
     "typecheck": "tsc -b --noEmit",
     "typecheck:all": "tsc -p tsconfig.full.json --noEmit",
     "lint": "eslint . --cache --cache-location node_modules/.cache/eslint",
