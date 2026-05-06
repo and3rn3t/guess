@@ -291,7 +291,7 @@ export const useMobileServerGame = (
           endpoint("/api/v2/game/answer"),
           {
             sessionId: sid,
-            answer: value,
+            value,
           },
         );
         const outcome = buildServerAnswerOutcome<
