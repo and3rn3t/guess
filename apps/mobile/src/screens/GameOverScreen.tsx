@@ -34,7 +34,11 @@ export function GameOverScreen({
     <ScrollView
       style={styles.scroll}
       contentContainerStyle={styles.container}
+      contentInsetAdjustmentBehavior="automatic"
+      automaticallyAdjustKeyboardInsets
       keyboardShouldPersistTaps="handled"
+      keyboardDismissMode="on-drag"
+      showsVerticalScrollIndicator={false}
     >
       <Animated.View style={[styles.resultBadge, resultEntrance]}>
         <Text style={styles.resultEmoji} maxFontSizeMultiplier={1.2}>

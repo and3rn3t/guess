@@ -10,6 +10,8 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- **MB.5 mobile platform-behavior polish pass** — core iOS gameplay screens now use native ScrollView behavior tuning (`contentInsetAdjustmentBehavior=automatic`, `automaticallyAdjustKeyboardInsets`, `keyboardDismissMode=on-drag`, hidden vertical indicators) and stronger disabled-state affordances on loading actions. This improves native interaction clarity and safe-area/keyboard resilience while keeping reduced-motion entrance transitions in place.
+
 - **MB.5 Dynamic Type uplift across core mobile screens** — improved text scaling behavior in Welcome, Playing, Guessing, Game Over, and Challenge screens by removing rigid large-font overrides and fixed line-height constraints where they limited scaling, and by adding explicit `maxFontSizeMultiplier` guardrails to headings, body copy, alerts, and button labels. This improves accessibility/readability at larger text sizes while preserving layout stability for milestone-gate polish.
 
 - **MB.5 staged verification-gate enforcement (milestone on main)** — added explicit scorecard scripts for gate tiers (`mobile:scorecard:prMerge`, `mobile:scorecard:milestone`), wired Mobile CI to run the milestone scorecard gate on `main` pushes (`scorecard-milestone.log` artifact), and refreshed core-screen score evidence to milestone-level pass values (all five screens now pass both prMerge and milestone thresholds).

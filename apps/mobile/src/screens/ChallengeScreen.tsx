@@ -25,7 +25,11 @@ export function ChallengeScreen({
     <ScrollView
       style={styles.scroll}
       contentContainerStyle={styles.container}
+      contentInsetAdjustmentBehavior="automatic"
+      automaticallyAdjustKeyboardInsets
       keyboardShouldPersistTaps="handled"
+      keyboardDismissMode="on-drag"
+      showsVerticalScrollIndicator={false}
     >
       <Animated.View style={[styles.hero, heroEntrance]}>
         <Text style={styles.eyebrow} accessibilityRole="header">
@@ -63,6 +67,7 @@ export function ChallengeScreen({
           }}
           style={({ pressed }) => [
             styles.primaryButton,
+            server.isLoading && styles.buttonDisabled,
             pressed && styles.primaryButtonPressed,
           ]}
         >
@@ -151,6 +156,9 @@ const styles = StyleSheet.create({
   },
   primaryButtonPressed: {
     opacity: 0.85,
+  },
+  buttonDisabled: {
+    opacity: 0.55,
   },
   primaryButtonText: {
     ...typography.button,

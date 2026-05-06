@@ -47,7 +47,11 @@ export function PlayingScreen({
     <ScrollView
       style={styles.scroll}
       contentContainerStyle={styles.container}
+      contentInsetAdjustmentBehavior="automatic"
+      automaticallyAdjustKeyboardInsets
       keyboardShouldPersistTaps="handled"
+      keyboardDismissMode="on-drag"
+      showsVerticalScrollIndicator={false}
     >
       <ProgressBar total={TOTAL_QUESTIONS} remaining={server.remaining} />
 
@@ -105,6 +109,7 @@ export function PlayingScreen({
           }}
           style={({ pressed }) => [
             styles.primaryButton,
+            server.isLoading && styles.buttonDisabled,
             pressed && styles.primaryButtonPressed,
           ]}
         >
@@ -125,6 +130,7 @@ export function PlayingScreen({
           }}
           style={({ pressed }) => [
             styles.secondaryButton,
+            server.isLoading && styles.buttonDisabled,
             pressed && styles.secondaryButtonPressed,
           ]}
         >
@@ -144,6 +150,7 @@ export function PlayingScreen({
           }}
           style={({ pressed }) => [
             styles.tertiaryButton,
+            server.isLoading && styles.buttonDisabled,
             pressed && styles.tertiaryButtonPressed,
           ]}
         >
@@ -234,6 +241,9 @@ const styles = StyleSheet.create({
   },
   primaryButtonPressed: {
     opacity: 0.85,
+  },
+  buttonDisabled: {
+    opacity: 0.55,
   },
   primaryButtonText: {
     ...typography.button,
