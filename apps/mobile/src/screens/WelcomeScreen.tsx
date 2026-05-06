@@ -1,9 +1,8 @@
 import type { ReactElement } from "react";
-import { Animated, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import { useEffect, useRef } from "react";
+import { Animated, Pressable, ScrollView, StyleSheet, Text } from "react-native";
 import { colors, radii, spacing, typography } from "./tokens";
 import { useHaptics } from "./useHaptics";
-import { useReduceMotion } from "../native/useNativeServices";
+import { useScreenEntranceMotion } from "./useScreenEntranceMotion";
 import type { MobilePhaseScreenProps } from "./types";
 
 export function WelcomeScreen({
@@ -11,16 +10,8 @@ export function WelcomeScreen({
   server,
 }: MobilePhaseScreenProps): ReactElement {
   const { trigger, success } = useHaptics();
-  const reduceMotion = useReduceMotion();
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    Animated.timing(fadeAnim, {
-      toValue: 1,
-      duration: reduceMotion ? 0 : 400,
-      useNativeDriver: true,
-    }).start();
-  }, [fadeAnim, reduceMotion]);
+  const heroEntrance = useScreenEntranceMotion(0);
+  const actionsEntrance = useScreenEntranceMotion(80);
 
   return (
     <ScrollView
@@ -28,7 +19,7 @@ export function WelcomeScreen({
       contentContainerStyle={styles.container}
       keyboardShouldPersistTaps="handled"
     >
-      <Animated.View style={[styles.hero, { opacity: fadeAnim }]}>
+      <Animated.View style={[styles.hero, heroEntrance]}>
         <Text style={styles.eyebrow} accessibilityRole="header">
           Andernator
         </Text>
@@ -40,7 +31,7 @@ export function WelcomeScreen({
         </Text>
       </Animated.View>
 
-      <View style={styles.actions}>
+      <Animated.View style={[styles.actions, actionsEntrance]}>
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={server.isLoading ? "Starting game" : "Start game"}
@@ -76,7 +67,7 @@ export function WelcomeScreen({
             Daily Challenge
           </Text>
         </Pressable>
-      </View>
+      </Animated.View>
 
       {server.alertMessage || server.error ? (
         <Pressable

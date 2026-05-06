@@ -1,7 +1,8 @@
 import type { ReactElement } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Animated, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { colors, radii, spacing, typography } from "./tokens";
 import { useHaptics } from "./useHaptics";
+import { useScreenEntranceMotion } from "./useScreenEntranceMotion";
 import type { MobilePhaseScreenProps } from "./types";
 
 function getTodayLabel(): string {
@@ -17,6 +18,8 @@ export function ChallengeScreen({
   server,
 }: MobilePhaseScreenProps): ReactElement {
   const { trigger, success } = useHaptics();
+  const heroEntrance = useScreenEntranceMotion(0);
+  const actionsEntrance = useScreenEntranceMotion(80);
 
   return (
     <ScrollView
@@ -24,7 +27,7 @@ export function ChallengeScreen({
       contentContainerStyle={styles.container}
       keyboardShouldPersistTaps="handled"
     >
-      <View style={styles.hero}>
+      <Animated.View style={[styles.hero, heroEntrance]}>
         <Text style={styles.eyebrow} accessibilityRole="header">
           Daily Challenge
         </Text>
@@ -46,9 +49,9 @@ export function ChallengeScreen({
         <Text style={styles.description} maxFontSizeMultiplier={1.6}>
           Everyone plays with the same character today. Think of it, then see if the AI can figure it out!
         </Text>
-      </View>
+      </Animated.View>
 
-      <View style={styles.actions}>
+      <Animated.View style={[styles.actions, actionsEntrance]}>
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={server.isLoading ? "Starting challenge" : "Start today's challenge"}
@@ -84,7 +87,7 @@ export function ChallengeScreen({
             Cancel
           </Text>
         </Pressable>
-      </View>
+      </Animated.View>
     </ScrollView>
   );
 }

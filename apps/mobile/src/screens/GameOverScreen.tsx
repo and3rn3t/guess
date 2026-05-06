@@ -1,7 +1,8 @@
 import type { ReactElement } from "react";
-import { Image, Pressable, ScrollView, Share, StyleSheet, Text, View } from "react-native";
+import { Animated, Image, Pressable, ScrollView, Share, StyleSheet, Text, View } from "react-native";
 import { colors, radii, spacing, typography } from "./tokens";
 import { useHaptics } from "./useHaptics";
+import { useScreenEntranceMotion } from "./useScreenEntranceMotion";
 import type { MobilePhaseScreenProps } from "./types";
 
 export function GameOverScreen({
@@ -12,6 +13,8 @@ export function GameOverScreen({
   const { trigger } = useHaptics();
   const char = server.guessCharacter;
   const aiWon = !state.exhausted && !state.surrendered;
+  const resultEntrance = useScreenEntranceMotion(0);
+  const detailsEntrance = useScreenEntranceMotion(80);
 
   const handleShare = async () => {
     const characterName = char?.name ?? "the character";
@@ -33,7 +36,7 @@ export function GameOverScreen({
       contentContainerStyle={styles.container}
       keyboardShouldPersistTaps="handled"
     >
-      <View style={styles.resultBadge}>
+      <Animated.View style={[styles.resultBadge, resultEntrance]}>
         <Text style={styles.resultEmoji} maxFontSizeMultiplier={1.2}>
           {aiWon ? "🤖" : "🏆"}
         </Text>
@@ -47,10 +50,10 @@ export function GameOverScreen({
               ? "The AI gave up."
               : "The AI ran out of questions."}
         </Text>
-      </View>
+      </Animated.View>
 
       {char ? (
-        <View style={styles.characterCard}>
+        <Animated.View style={[styles.characterCard, detailsEntrance]}>
           {char.imageUrl ? (
             <Image
               source={{ uri: char.imageUrl }}
@@ -77,10 +80,10 @@ export function GameOverScreen({
               </View>
             ) : null}
           </View>
-        </View>
+        </Animated.View>
       ) : null}
 
-      <View style={styles.actions}>
+      <Animated.View style={[styles.actions, detailsEntrance]}>
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Share result"
@@ -111,7 +114,7 @@ export function GameOverScreen({
             Play Again
           </Text>
         </Pressable>
-      </View>
+      </Animated.View>
     </ScrollView>
   );
 }

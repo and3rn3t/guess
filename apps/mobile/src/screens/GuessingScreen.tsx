@@ -1,7 +1,8 @@
 import type { ReactElement } from "react";
-import { Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Animated, Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { colors, radii, spacing, typography } from "./tokens";
 import { useHaptics } from "./useHaptics";
+import { useScreenEntranceMotion } from "./useScreenEntranceMotion";
 import type { MobilePhaseScreenProps } from "./types";
 
 export function GuessingScreen({
@@ -9,6 +10,8 @@ export function GuessingScreen({
 }: MobilePhaseScreenProps): ReactElement {
   const { trigger, success } = useHaptics();
   const char = server.guessCharacter;
+  const cardEntrance = useScreenEntranceMotion(0);
+  const actionsEntrance = useScreenEntranceMotion(80);
 
   return (
     <ScrollView
@@ -20,7 +23,7 @@ export function GuessingScreen({
         My guess is…
       </Text>
 
-      <View style={styles.characterCard}>
+      <Animated.View style={[styles.characterCard, cardEntrance]}>
         {char?.imageUrl ? (
           <Image
             source={{ uri: char.imageUrl }}
@@ -63,9 +66,9 @@ export function GuessingScreen({
             ))}
           </View>
         ) : null}
-      </View>
+      </Animated.View>
 
-      <View style={styles.actions}>
+      <Animated.View style={[styles.actions, actionsEntrance]}>
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Yes, that's correct"
@@ -107,7 +110,7 @@ export function GuessingScreen({
             </Text>
           </Pressable>
         ) : null}
-      </View>
+      </Animated.View>
 
       {server.alertMessage ? (
         <Pressable

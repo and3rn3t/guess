@@ -1,8 +1,9 @@
 import type { ReactElement } from "react";
 import { useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Animated, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { colors, radii, spacing, typography } from "./tokens";
 import { useHaptics } from "./useHaptics";
+import { useScreenEntranceMotion } from "./useScreenEntranceMotion";
 import type { MobilePhaseScreenProps } from "./types";
 
 function ProgressBar({ total, remaining }: { total: number; remaining: number }): ReactElement {
@@ -36,6 +37,8 @@ export function PlayingScreen({
 }: MobilePhaseScreenProps): ReactElement {
   const { trigger, success } = useHaptics();
   const [reasoningExpanded, setReasoningExpanded] = useState(false);
+  const cardEntrance = useScreenEntranceMotion(0);
+  const actionsEntrance = useScreenEntranceMotion(80);
 
   // Total questions heuristic: 20 questions max — show progress relative to remaining
   const TOTAL_QUESTIONS = 20;
@@ -48,7 +51,7 @@ export function PlayingScreen({
     >
       <ProgressBar total={TOTAL_QUESTIONS} remaining={server.remaining} />
 
-      <View style={styles.questionCard}>
+      <Animated.View style={[styles.questionCard, cardEntrance]}>
         <Text style={styles.questionMeta} accessibilityElementsHidden>
           Question {Math.max(1, TOTAL_QUESTIONS - server.remaining)} of {TOTAL_QUESTIONS}
         </Text>
@@ -60,7 +63,7 @@ export function PlayingScreen({
         >
           {server.question?.text ?? "Loading…"}
         </Text>
-      </View>
+      </Animated.View>
 
       {server.reasoning?.explanation ? (
         <Pressable
@@ -89,7 +92,7 @@ export function PlayingScreen({
         </View>
       ) : null}
 
-      <View style={styles.actions}>
+      <Animated.View style={[styles.actions, actionsEntrance]}>
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Yes"
@@ -148,7 +151,7 @@ export function PlayingScreen({
             Skip
           </Text>
         </Pressable>
-      </View>
+      </Animated.View>
 
       {server.alertMessage ? (
         <Pressable
