@@ -111,6 +111,17 @@ export function WelcomeScreen({
           </Text>
         </View>
 
+        {server.isLoading ? (
+          <View style={styles.statusCard} accessible accessibilityLabel="Preparing your match. Syncing your first question and reasoning context.">
+            <Text style={styles.statusTitle} maxFontSizeMultiplier={1.4}>
+              Preparing your match
+            </Text>
+            <Text style={styles.statusText} maxFontSizeMultiplier={1.5}>
+              Syncing your first question and reasoning context.
+            </Text>
+          </View>
+        ) : null}
+
         {server.alertMessage || server.error ? (
           <Pressable
             accessibilityRole="alert"
@@ -236,6 +247,22 @@ const styles = StyleSheet.create({
     color: colors.label as never,
   },
   tipText: {
+    ...typography.callout,
+    color: colors.secondaryLabel as never,
+  },
+  statusCard: {
+    backgroundColor: colors.fill as never,
+    borderRadius: radii.card,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.secondaryBorder as never,
+    padding: spacing.screenH,
+    gap: spacing.rowGap / 2,
+  },
+  statusTitle: {
+    ...typography.headline,
+    color: colors.label as never,
+  },
+  statusText: {
     ...typography.callout,
     color: colors.secondaryLabel as never,
   },

@@ -115,6 +115,38 @@ export function GameOverScreen({
           </Animated.View>
         ) : null}
 
+        <Animated.View style={[styles.summaryCard, detailsEntrance]}>
+          <Text style={styles.summaryTitle} maxFontSizeMultiplier={1.4}>
+            Session Summary
+          </Text>
+          <View style={styles.summaryRow}>
+            <Text style={styles.summaryLabel} maxFontSizeMultiplier={1.3}>
+              Outcome
+            </Text>
+            <Text style={styles.summaryValue} maxFontSizeMultiplier={1.3}>
+              {aiWon ? "AI guessed correctly" : "Player stumped AI"}
+            </Text>
+          </View>
+          <View style={styles.summaryRow}>
+            <Text style={styles.summaryLabel} maxFontSizeMultiplier={1.3}>
+              Questions used
+            </Text>
+            <Text style={styles.summaryValue} maxFontSizeMultiplier={1.3}>
+              {state.guessCount}
+            </Text>
+          </View>
+          {char?.category ? (
+            <View style={styles.summaryRow}>
+              <Text style={styles.summaryLabel} maxFontSizeMultiplier={1.3}>
+                Category
+              </Text>
+              <Text style={styles.summaryValue} maxFontSizeMultiplier={1.3}>
+                {char.category}
+              </Text>
+            </View>
+          ) : null}
+        </Animated.View>
+
         <Animated.View style={[styles.actions, detailsEntrance]}>
         <Pressable
           accessibilityRole="button"
@@ -251,6 +283,35 @@ const styles = StyleSheet.create({
   },
   actions: {
     gap: spacing.rowGap,
+  },
+  summaryCard: {
+    backgroundColor: colors.cardBackground as never,
+    borderRadius: radii.card,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.secondaryBorder as never,
+    padding: spacing.screenH,
+    gap: spacing.rowGap / 2,
+  },
+  summaryTitle: {
+    ...typography.headline,
+    color: colors.label as never,
+    marginBottom: spacing.rowGap / 4,
+  },
+  summaryRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: spacing.rowGap,
+  },
+  summaryLabel: {
+    ...typography.footnote,
+    color: colors.secondaryLabel as never,
+  },
+  summaryValue: {
+    ...typography.callout,
+    color: colors.label as never,
+    flexShrink: 1,
+    textAlign: "right",
   },
   primaryButton: {
     backgroundColor: colors.primaryBg as never,

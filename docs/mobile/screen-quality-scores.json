@@ -23,14 +23,14 @@
       "evaluatedAt": "2026-05-05",
       "deviceValidationPending": false,
       "categories": {
-        "nativeInteractionFidelity": 91,
-        "visualNativeFit": 91,
-        "accessibilityAndInclusivity": 91,
-        "performanceFeel": 90,
-        "platformBehaviorIntegrity": 91,
+        "nativeInteractionFidelity": 92,
+        "visualNativeFit": 92,
+        "accessibilityAndInclusivity": 92,
+        "performanceFeel": 92,
+        "platformBehaviorIntegrity": 92,
         "contentClarityAndCognitiveLoad": 92
       },
-      "notes": "Physical-device pass confirmed on 2026-05-05 with Dynamic Type polish applied on 2026-05-05. Design tokens replace hardcoded hex values. Native haptics wired via useHaptics: success() on Start Game, light trigger on Challenge. Loading state text and accessibilityState verified; updated text scaling behavior improved visual fit and readability at larger text sizes. Added native ScrollView inset/keyboard behavior tuning, safe-area wrappers across core screens, and root-layout VoiceOver phase/resume announcements with reduce-motion-aware navigation transitions. Welcome actions now include stronger hints and loading lock semantics (Daily Challenge disabled while Start Game is busy), plus native metadata badges, in-button loading spinner feedback, and a compact gameplay tip card to improve first-screen clarity and perceived responsiveness."
+      "notes": "Physical-device pass confirmed on 2026-05-05 with Dynamic Type polish applied on 2026-05-05. Design tokens replace hardcoded hex values. Native haptics wired via useHaptics: success() on Start Game, light trigger on Challenge. Loading state text and accessibilityState verified; updated text scaling behavior improved visual fit and readability at larger text sizes. Added native ScrollView inset/keyboard behavior tuning, safe-area wrappers across core screens, and root-layout VoiceOver phase/resume announcements with reduce-motion-aware navigation transitions. Welcome actions now include stronger hints and loading lock semantics (Daily Challenge disabled while Start Game is busy), plus native metadata badges, in-button loading spinner feedback, a compact gameplay tip card, and an explicit status panel while game bootstrap is in progress."
     },
     "PlayingScreen": {
       "file": "apps/mobile/src/screens/PlayingScreen.tsx",
@@ -65,14 +65,14 @@
       "evaluatedAt": "2026-05-05",
       "deviceValidationPending": false,
       "categories": {
-        "nativeInteractionFidelity": 91,
-        "visualNativeFit": 90,
+        "nativeInteractionFidelity": 92,
+        "visualNativeFit": 92,
         "accessibilityAndInclusivity": 92,
-        "performanceFeel": 91,
-        "platformBehaviorIntegrity": 89,
+        "performanceFeel": 92,
+        "platformBehaviorIntegrity": 92,
         "contentClarityAndCognitiveLoad": 92
       },
-      "notes": "Physical-device pass confirmed on 2026-05-05 with Dynamic Type polish applied on 2026-05-05. medium trigger on Play Again gives clear restart feedback. Accessibility remains strongest on this screen with low cognitive load, and typography scaling updates improved consistency with native text behavior. Added native ScrollView inset/keyboard behavior tuning, safe-area wrappers across core screens, and root-layout VoiceOver phase/resume announcements with reduce-motion-aware navigation transitions. Share action now exposes busy/disabled state with explicit assistive hints to avoid duplicate submissions while share sheet is opening. Character card now includes resilient image-fallback handling and subtle native border separation for better visual continuity when remote artwork fails. Result metadata chips now summarize questions/outcome at a glance for faster post-game scanning."
+      "notes": "Physical-device pass confirmed on 2026-05-05 with Dynamic Type polish applied on 2026-05-05. medium trigger on Play Again gives clear restart feedback. Accessibility remains strongest on this screen with low cognitive load, and typography scaling updates improved consistency with native text behavior. Added native ScrollView inset/keyboard behavior tuning, safe-area wrappers across core screens, and root-layout VoiceOver phase/resume announcements with reduce-motion-aware navigation transitions. Share action now exposes busy/disabled state with explicit assistive hints to avoid duplicate submissions while share sheet is opening. Character card now includes resilient image-fallback handling and subtle native border separation for better visual continuity when remote artwork fails. Result metadata chips plus a structured session-summary card now improve post-game clarity and native information hierarchy."
     },
     "ChallengeScreen": {
       "file": "apps/mobile/src/screens/ChallengeScreen.tsx",
