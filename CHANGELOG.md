@@ -10,7 +10,23 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
-- **MB.5 Welcome/GameOver production-threshold status pass** — Welcome now presents an explicit in-flight status surface during game bootstrap (beyond button-only feedback), and Game Over now includes a structured Session Summary card to improve post-game information hierarchy and native scanability.
+- **MP.2 Navigation shell & phase router expansion** — iOS app now includes 7 new player-facing screens shipped at L1 (functional MVP): Teaching Mode (interactive 2-lesson walkthrough), Stats (session overview with streak/game count/avg questions/win rate), Game History (past games with filter + outcome), Player Compare (relative rank vs peers + category breakdowns), Session Resume (resume/start-over prompt), Player Preferences (difficulty/category/accessibility toggles), and Post-Game Feedback (emoji reaction + difficulty rating). All screens follow native iOS design patterns with proper safe area handling, ScrollView tuning, and accessibility support. New routes: `/stats`, `/history`, `/compare`, `/preferences`, `/teaching`, `/feedback`, `/resume`. Parity matrix updated to reflect L1 shipped status for all 7 features. ROADMAP.md migrated MP.2 status from 🟡 to ✅ 2026-05-07.
+
+- **MP.2 ScreenRouter component** — new `ScreenRouter.tsx` component provides phase-based routing logic for core gameplay (welcome → playing → guessing → gameOver → challenge). Includes reference implementation for future `ExtendedPhaseRouter` to merge supplementary phases into CorePhaseState routing once state architecture is unified.
+
+- **iOS parity planning stack migration (MP series)** — migrated mobile execution from MB foundations series to MP feature-parity milestones (MP.1-MP.7). New canonical docs: ios-feature-parity-plan.md (parity sequencing + quality gates) and parity-matrix.md (living feature-level status + exception register). Updated ROADMAP.md mobile queue to MP.* series, locked MB.1-MB.5 prerequisites as complete, and established MP.1 (foundation closeout + parity matrix seed) as active.
+
+### Changed
+
+- **MP.2 Parity matrix v1.1** — updated 8 feature rows to mark as ✅ Shipped L1 (Stats, History, Compare, SessionResume, Preferences, Teaching, PostGameFeedback) with owner assignments and evidence references (screen-quality-scores.json MVP entries). Removed Teaching Mode from deferred features. Updated header to show MP.2 Status: ✅ Closed (2026-05-07).
+
+- **ROADMAP.md mobile section refactored** — reorganized mobile planning into Feature Parity Queue (MP.1-MP.7, canonical source) and Foundations Reference (MB.1-MB.5, context only). Removed duplicate MB rows. Updated "In Progress / Up Next" block to reflect MP.2 completion and MP.3 start.
+
+### Removed
+
+- **Superseded mobile docs** — marked `docs/mobile/roadmap-foundations.md` as superseded (effective 2026-05-07) with replacement link to ios-feature-parity-plan.md. Updated all doc ownership pointers (README, xcode-setup, apps/mobile README, ARCHITECTURE) to point to canonical parity stack.
+
+- **Added MB.5 core-screen safe-area pass** — Welcome, Playing, Guessing, Game Over, and Challenge screens are now wrapped in `SafeAreaView` containers (`left/right/bottom`) to improve notch/home-indicator edge behavior while preserving existing ScrollView inset tuning and interaction layout.
 
 - **MB.5 Welcome/GameOver responsiveness + result clarity pass** — Welcome start action now shows an inline native loading spinner and compact tip card for better pre-game guidance, while Game Over now surfaces outcome metadata chips (question count + result) and clearer busy-state share hints to improve post-game scanability and platform feedback consistency.
 
