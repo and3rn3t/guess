@@ -237,7 +237,7 @@ jobs:
         run: |
           set -o pipefail
           MAX_KB=600
-          LARGEST=$(find dist/assets -name '*.js' -exec du -k {} + | sort -rn | head -1 | awk '{print $1}')
+          LARGEST=$(find dist/assets -name '*.js' -exec du -k {} + | awk 'BEGIN { max = 0 } { if ($1 > max) max = $1 } END { print max }')
           echo "Largest JS chunk: ${LARGEST}KB (limit: ${MAX_KB}KB)"
           echo "Largest JS chunk: ${LARGEST}KB (limit: ${MAX_KB}KB)" > .ci-artifacts/build/bundle-size.log
           if [ "$LARGEST" -gt "$MAX_KB" ]; then
