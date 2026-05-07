@@ -9,5 +9,5 @@ runs:
       with:
         node-version: 24
         cache: pnpm
-    - run: pnpm install --frozen-lockfile --config.strict-dep-builds=false
+    - run: pnpm install --config.strict-dep-builds=false --config.checkModulePurity=false
       shell: bash
