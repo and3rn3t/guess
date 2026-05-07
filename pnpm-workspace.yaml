@@ -2,5 +2,11 @@ packages:
   - 'apps/*'
   - 'packages/*'
 
-ignoredBuiltDependencies:
+onlyBuiltDependencies:
+  - '@scarf/scarf'
+  - '@swc/core'
   - better-sqlite3
+  - esbuild
+  - msw
+  - sharp
+  - workerd

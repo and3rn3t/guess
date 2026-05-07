@@ -226,9 +226,6 @@
     }
   ],
   "pnpm": {
-    "onlyBuiltDependencies": [
-      "better-sqlite3"
-    ],
     "overrides": {
       "fast-xml-parser": ">=5.7.0"
     }
