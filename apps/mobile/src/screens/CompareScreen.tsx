@@ -11,7 +11,7 @@ import type { MobilePhaseScreenProps } from './types'
  * Compare player stats to leaderboard/peers. MP.2 placeholder (L1 functional).
  * Shows relative standing and category breakdowns.
  */
-export function CompareScreen({ _dispatch, _state, _server }: MobilePhaseScreenProps): ReactElement {
+export function CompareScreen(_props: MobilePhaseScreenProps): ReactElement {
   const headerEntrance = useScreenEntranceMotion(0)
 
   return (

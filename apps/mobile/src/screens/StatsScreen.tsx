@@ -11,7 +11,7 @@ import type { MobilePhaseScreenProps } from './types'
  * Player stats and session history. MP.2 placeholder (L1 functional).
  * Displays session streaks, session count, and quick stats overview.
  */
-export function StatsScreen({ _dispatch, _state, _server }: MobilePhaseScreenProps): ReactElement {
+export function StatsScreen(_props: MobilePhaseScreenProps): ReactElement {
   const headerEntrance = useScreenEntranceMotion(0)
 
   return (

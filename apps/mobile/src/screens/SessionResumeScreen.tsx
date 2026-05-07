@@ -11,7 +11,7 @@ import type { MobilePhaseScreenProps } from './types'
  * Resume an interrupted session. MP.2 placeholder (L1 functional).
  * Allows player to continue where they left off or start fresh.
  */
-export function SessionResumeScreen({ _dispatch, _state, _server }: MobilePhaseScreenProps): ReactElement {
+export function SessionResumeScreen(_props: MobilePhaseScreenProps): ReactElement {
   const headerEntrance = useScreenEntranceMotion(0)
   const contentEntrance = useScreenEntranceMotion(80)
 

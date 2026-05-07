@@ -11,7 +11,7 @@ import type { MobilePhaseScreenProps } from './types'
  * Collect post-game feedback. MP.2 placeholder (L1 functional).
  * Quick reaction, difficulty rating, and optional comment.
  */
-export function PostGameFeedbackScreen({ _dispatch, _state, _server }: MobilePhaseScreenProps): ReactElement {
+export function PostGameFeedbackScreen(_props: MobilePhaseScreenProps): ReactElement {
   const headerEntrance = useScreenEntranceMotion(0)
   const contentEntrance = useScreenEntranceMotion(80)
 

@@ -35,6 +35,16 @@ export const colors = {
   fill: PlatformColor('tertiarySystemFill'),
   /** Positive confirmation — systemGreen */
   positiveBg: PlatformColor('systemGreen'),
+  /** Alias used by placeholder screen styles */
+  accent: PlatformColor('systemBlue'),
+  /** Alias used by placeholder screen styles */
+  surface: PlatformColor('secondarySystemGroupedBackground'),
+  /** Alias used by placeholder screen styles */
+  border: PlatformColor('separator'),
+  /** Alias used by placeholder screen styles */
+  text: PlatformColor('label'),
+  /** Alias used by placeholder screen styles */
+  textSecondary: PlatformColor('secondaryLabel'),
 } as const
 
 // ── Radii ─────────────────────────────────────────────────────────────────────
@@ -46,6 +56,10 @@ export const radii = {
   card: 16,
   /** Small chip / badge */
   chip: 8,
+  /** Alias used by placeholder screen styles */
+  md: 16,
+  /** Alias used by placeholder screen styles */
+  full: 999,
 } as const
 
 // ── Spacing ───────────────────────────────────────────────────────────────────
@@ -54,6 +68,14 @@ export const radii = {
 const MIN_TOUCH = 44
 
 export const spacing = {
+  /** Alias used by placeholder screen styles */
+  xs: 4,
+  /** Alias used by placeholder screen styles */
+  sm: 8,
+  /** Alias used by placeholder screen styles */
+  md: 16,
+  /** Alias used by placeholder screen styles */
+  lg: 24,
   /** Vertical padding that brings standard button to ≥44pt touch target */
   buttonV: 13,
   buttonH: 20,
@@ -76,6 +98,10 @@ export const spacing = {
 // is the RN default so no explicit prop needed on most Text components.
 
 export const typography = {
+  /** Alias used by placeholder screen styles */
+  heading1: { fontSize: 28, fontWeight: '700' as const, letterSpacing: 0.36 },
+  /** Alias used by placeholder screen styles */
+  heading2: { fontSize: 22, fontWeight: '700' as const, letterSpacing: 0.35 },
   /** Large Title — welcome headings */
   largeTitle: { fontSize: 34, fontWeight: '700' as const, letterSpacing: 0.37 },
   /** Title 1 — screen headings */
@@ -90,6 +116,8 @@ export const typography = {
   callout: { fontSize: 16, fontWeight: '400' as const, letterSpacing: -0.32 },
   /** Subhead */
   subhead: { fontSize: 15, fontWeight: '400' as const, letterSpacing: -0.24 },
+  /** Alias used by placeholder screen styles */
+  subheading: { fontSize: 15, fontWeight: '400' as const, letterSpacing: -0.24 },
   /** Footnote — captions */
   footnote: { fontSize: 13, fontWeight: '400' as const, letterSpacing: -0.08 },
   /** Caption — labels and chips */

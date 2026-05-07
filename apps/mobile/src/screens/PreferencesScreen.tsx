@@ -11,7 +11,7 @@ import type { MobilePhaseScreenProps } from './types'
  * Player preferences and settings. MP.2 placeholder (L1 functional).
  * Difficulty, category filters, haptics, accessibility options.
  */
-export function PreferencesScreen({ _dispatch, _state, _server }: MobilePhaseScreenProps): ReactElement {
+export function PreferencesScreen(_props: MobilePhaseScreenProps): ReactElement {
   const headerEntrance = useScreenEntranceMotion(0)
 
   return (

@@ -11,7 +11,7 @@ import type { MobilePhaseScreenProps } from './types'
  * Detailed game history and session replay. MP.2 placeholder (L1 functional).
  * Lists past games with difficulty, outcome, and question count.
  */
-export function HistoryScreen({ _dispatch, _state, _server }: MobilePhaseScreenProps): ReactElement {
+export function HistoryScreen(_props: MobilePhaseScreenProps): ReactElement {
   const headerEntrance = useScreenEntranceMotion(0)
 
   return (

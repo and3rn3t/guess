@@ -1,7 +1,7 @@
 import type { ReactElement } from 'react'
 import { Animated, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { colors, spacing, typography } from './tokens'
+import { colors, radii, spacing, typography } from './tokens'
 import { useHaptics } from './useHaptics'
 import { useScreenEntranceMotion } from './useScreenEntranceMotion'
 import type { MobilePhaseScreenProps } from './types'
@@ -12,7 +12,7 @@ import type { MobilePhaseScreenProps } from './types'
  * Teaching mode walkthrough. MP.2 placeholder (L1 functional).
  * Interactive tutorial showing how to ask good questions.
  */
-export function TeachingScreen({ _dispatch, _state, _server }: MobilePhaseScreenProps): ReactElement {
+export function TeachingScreen(_props: MobilePhaseScreenProps): ReactElement {
   const { success } = useHaptics()
   const heroEntrance = useScreenEntranceMotion(0)
   const contentEntrance = useScreenEntranceMotion(80)
