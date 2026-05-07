@@ -226,6 +226,15 @@
     }
   ],
   "pnpm": {
+    "onlyBuiltDependencies": [
+      "@scarf/scarf",
+      "@swc/core",
+      "better-sqlite3",
+      "esbuild",
+      "msw",
+      "sharp",
+      "workerd"
+    ],
     "overrides": {
       "fast-xml-parser": ">=5.7.0"
     }
