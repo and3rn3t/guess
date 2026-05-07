@@ -87,6 +87,118 @@
         "contentClarityAndCognitiveLoad": 91
       },
       "notes": "Physical-device pass confirmed on 2026-05-05 with Dynamic Type polish applied on 2026-05-05. success() on Start Challenge and light trigger on Cancel are consistent with platform feel. Tokens applied, control states remain coherent during challenge flow, and larger-text rendering now better matches native expectations. Added native ScrollView inset/keyboard behavior tuning, safe-area wrappers across core screens, and root-layout VoiceOver phase/resume announcements with reduce-motion-aware navigation transitions. Challenge actions now include clearer hints plus loading lock semantics on Cancel to prevent conflicting taps during challenge start."
+    },
+    "CompareScreen": {
+      "file": "apps/mobile/src/screens/CompareScreen.tsx",
+      "evaluatedAt": "2026-05-07",
+      "deviceValidationPending": true,
+      "categories": {
+        "nativeInteractionFidelity": 88,
+        "visualNativeFit": 88,
+        "accessibilityAndInclusivity": 88,
+        "performanceFeel": 88,
+        "platformBehaviorIntegrity": 88,
+        "contentClarityAndCognitiveLoad": 89
+      },
+      "notes": "MP.2 placeholder compare surface added with shared mobile tokens and safe-area/ScrollView behavior aligned to the rest of the app. Awaiting device validation and richer leaderboard data before milestone scoring."
+    },
+    "HistoryScreen": {
+      "file": "apps/mobile/src/screens/HistoryScreen.tsx",
+      "evaluatedAt": "2026-05-07",
+      "deviceValidationPending": true,
+      "categories": {
+        "nativeInteractionFidelity": 88,
+        "visualNativeFit": 88,
+        "accessibilityAndInclusivity": 88,
+        "performanceFeel": 88,
+        "platformBehaviorIntegrity": 88,
+        "contentClarityAndCognitiveLoad": 89
+      },
+      "notes": "MP.2 placeholder history surface added with tokenized controls, safe-area handling, and scroll behavior consistent with the core mobile screens. Awaiting device validation and real session data wiring."
+    },
+    "PostGameFeedbackScreen": {
+      "file": "apps/mobile/src/screens/PostGameFeedbackScreen.tsx",
+      "evaluatedAt": "2026-05-07",
+      "deviceValidationPending": true,
+      "categories": {
+        "nativeInteractionFidelity": 88,
+        "visualNativeFit": 88,
+        "accessibilityAndInclusivity": 88,
+        "performanceFeel": 88,
+        "platformBehaviorIntegrity": 88,
+        "contentClarityAndCognitiveLoad": 89
+      },
+      "notes": "MP.2 placeholder feedback flow added with tokenized rating and difficulty affordances plus safe-area/ScrollView defaults. Awaiting device validation and real feedback submission wiring."
+    },
+    "PreferencesScreen": {
+      "file": "apps/mobile/src/screens/PreferencesScreen.tsx",
+      "evaluatedAt": "2026-05-07",
+      "deviceValidationPending": true,
+      "categories": {
+        "nativeInteractionFidelity": 88,
+        "visualNativeFit": 88,
+        "accessibilityAndInclusivity": 88,
+        "performanceFeel": 88,
+        "platformBehaviorIntegrity": 88,
+        "contentClarityAndCognitiveLoad": 89
+      },
+      "notes": "MP.2 placeholder settings surface added with tokenized rows and accessibility-oriented switch layout. Awaiting device validation and final settings persistence wiring."
+    },
+    "ScreenRouter": {
+      "file": "apps/mobile/src/screens/ScreenRouter.tsx",
+      "evaluatedAt": "2026-05-07",
+      "deviceValidationPending": true,
+      "categories": {
+        "nativeInteractionFidelity": 88,
+        "visualNativeFit": 88,
+        "accessibilityAndInclusivity": 88,
+        "performanceFeel": 89,
+        "platformBehaviorIntegrity": 89,
+        "contentClarityAndCognitiveLoad": 88
+      },
+      "notes": "MP.2 router expansion now covers the additional placeholder screens and keeps phase transitions aligned with the mobile navigation shell. Awaiting device validation across deep-link and resume paths."
+    },
+    "SessionResumeScreen": {
+      "file": "apps/mobile/src/screens/SessionResumeScreen.tsx",
+      "evaluatedAt": "2026-05-07",
+      "deviceValidationPending": true,
+      "categories": {
+        "nativeInteractionFidelity": 88,
+        "visualNativeFit": 88,
+        "accessibilityAndInclusivity": 88,
+        "performanceFeel": 88,
+        "platformBehaviorIntegrity": 89,
+        "contentClarityAndCognitiveLoad": 89
+      },
+      "notes": "MP.2 placeholder resume flow added with tokenized cards, progress affordances, and safe-area behavior consistent with other mobile screens. Awaiting device validation and live resume-state integration."
+    },
+    "StatsScreen": {
+      "file": "apps/mobile/src/screens/StatsScreen.tsx",
+      "evaluatedAt": "2026-05-07",
+      "deviceValidationPending": true,
+      "categories": {
+        "nativeInteractionFidelity": 88,
+        "visualNativeFit": 88,
+        "accessibilityAndInclusivity": 88,
+        "performanceFeel": 88,
+        "platformBehaviorIntegrity": 88,
+        "contentClarityAndCognitiveLoad": 89
+      },
+      "notes": "MP.2 placeholder stats surface added with tokenized cards and section hierarchy that matches the core mobile layout system. Awaiting device validation and final analytics data plumbing."
+    },
+    "TeachingScreen": {
+      "file": "apps/mobile/src/screens/TeachingScreen.tsx",
+      "evaluatedAt": "2026-05-07",
+      "deviceValidationPending": true,
+      "categories": {
+        "nativeInteractionFidelity": 89,
+        "visualNativeFit": 88,
+        "accessibilityAndInclusivity": 88,
+        "performanceFeel": 88,
+        "platformBehaviorIntegrity": 88,
+        "contentClarityAndCognitiveLoad": 89
+      },
+      "notes": "MP.2 placeholder teaching flow added with tokenized lesson cards, progression cues, and haptic onboarding affordances. Awaiting device validation and expanded tutorial content."
     }
   }
 }
