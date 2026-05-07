@@ -2,6 +2,15 @@ packages:
   - 'apps/*'
   - 'packages/*'
 
+allowBuilds:
+  '@scarf/scarf': true
+  '@swc/core': true
+  better-sqlite3: true
+  esbuild: true
+  msw: true
+  sharp: true
+  workerd: true
+
 onlyBuiltDependencies:
   - '@scarf/scarf'
   - '@swc/core'

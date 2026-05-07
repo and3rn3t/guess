@@ -256,11 +256,11 @@ The active execution plan, sequenced by **priority × ease**. Pull items top-dow
 
 > **Maintain this block first.** It's the single answer to "what should I work on?" — agents and humans check it before scanning tables. Update in the same commit as the work it describes.
 
-- 🟡 **In progress:** [I.9](#i-9) AI Gateway semantic caching 7d cache-hit window (expected: 2026-05-07) · [MB.5](#mb-5) verification baseline and quality gates
-- ▶ **Up next:** [MB.3](#mb-3) core gameplay shell/state-flow baseline evidence closeout
-- ✅ **Recently completed:** [MB.1](#mb-1) toolchain baseline (2026-05-05) · [MB.2](#mb-2) architecture boundaries (2026-05-05) · [MB.4](#mb-4) native bridge baseline reliability (2026-05-05) · [DQ.31](#dq-31) completeness release gate (2026-05-04) · [DQ.33](#dq-33) null-closure queue (2026-05-04) · [DQ.36](#dq-36) curator closure queue (2026-05-04) · [DQ.37](#dq-37) risk-tiered revalidation (2026-05-04) · [DQ.38](#dq-38) completeness burndown + weekly report (2026-05-04)
+- 🟡 **In progress:** [I.9](#i-9) AI Gateway semantic caching 7d cache-hit window (expected: 2026-05-07) · [MP.3](#mp-3) player insights & personalization (I)
+- ▶ **Up next:** [MP.4](#mp-4) gameplay depth & personalization (II)
+- ✅ **Recently completed:** [MP.2](#mp-2) navigation shell & phase router expansion (2026-05-07) · [MP.1](#mp-1) foundation closeout & parity matrix seed (2026-05-07) · [MB.1](#mb-1) toolchain baseline (2026-05-05) · [MB.2](#mb-2) architecture boundaries (2026-05-05) · [MB.4](#mb-4) native bridge baseline (2026-05-05) · [MB.3](#mb-3) core gameplay baseline (2026-05-05) · [MB.5](#mb-5) verification baseline (2026-05-05) · [DQ.31](#dq-31) completeness release gate (2026-05-04) · [DQ.33](#dq-33) null-closure queue (2026-05-04) · [DQ.36](#dq-36) curator closure queue (2026-05-04) · [DQ.37](#dq-37) risk-tiered revalidation (2026-05-04) · [DQ.38](#dq-38) completeness burndown + weekly report (2026-05-04)
 - 🧫 **Blocked / waiting on:** none
-- 🎯 **Current wave focus:** Wave 5 DQ completeness program ✅ complete; mobile foundations progression (MB.1 ✅, MB.2 ✅, MB.4 ✅, MB.5 🟡).
+- 🎯 **Current wave focus:** Wave 5 DQ completeness program ✅ complete; mobile parity execution (MP.1 ✅ 2026-05-07; MP.2 ✅ 2026-05-07; MP.3 🟡 starting; MP.4-MP.7 queued).
 
 ### Wave 1 — Foundation (start here, ~1 week of focused work)
 
@@ -578,23 +578,36 @@ iOS execution track for work split across VS Code and Xcode. Source-of-truth bou
 
 Mobile planning ownership split:
 
-- Queue and status live here in `ROADMAP.md`.
-- Foundations detail and acceptance criteria live in `docs/mobile/roadmap-foundations.md`.
-- Legacy strategy content is archived at `docs/mobile/archive/2026-05-04-ios-master-plan.md`.
+- **Parity planning** (strategy, sequencing, quality gates, dependencies): `docs/mobile/ios-feature-parity-plan.md` (canonical).
+- **Feature-level status & exceptions**: `docs/mobile/parity-matrix.md` (living registry).
+- **Queue and status**: ROADMAP.md (this file) — MP.* series (parity milestones).
+- **Foundations detail** (legacy, superseded): `docs/mobile/roadmap-foundations.md` (retained for context; not active planning source).
 
-### Foundations Queue (start here)
+### Feature Parity Queue (start here)
 
-| Status | # | Item | Effort | Notes |
-|---|---|---|---|---|
-| ✅ 2026-05-05 | <a id="mb-1"></a>MB.1 | **Toolchain and local run reliability baseline** | S | Verify prebuild/pods/open-xcode flow and synchronize shared environment routine with one canonical setup path. |
-| ✅ 2026-05-05 | <a id="mb-2"></a>MB.2 | **Architecture boundaries and shared-core contract lock** | S | Enforce native boundary policy and confirm guardrail checks are green in local and CI workflows. |
-| 🟡 | <a id="mb-3"></a>MB.3 | **Core gameplay shell/state-flow baseline** | M | Validate Welcome/Playing/Guessing/Game Over/Challenge phase flow and document transition evidence for handoff continuity. |
-| ✅ 2026-05-05 | <a id="mb-4"></a>MB.4 | **Native bridge baseline reliability** | M | Complete Xcode target/runtime verification and device checks for haptics, VoiceOver, reduce-motion, and lifecycle modules. |
-| ✅ 2026-05-05 | <a id="mb-1"></a>MB.1 | **Toolchain and local run reliability baseline** | S | Verify prebuild/pods/open-xcode flow and synchronize shared environment routine with one canonical setup path. |
-| ✅ 2026-05-05 | <a id="mb-2"></a>MB.2 | **Architecture boundaries and shared-core contract lock** | S | Enforce native boundary policy and confirm guardrail checks are green in local and CI workflows. |
-| 🟡 | <a id="mb-3"></a>MB.3 | **Core gameplay shell/state-flow baseline** | M | Validate Welcome/Playing/Guessing/Game Over/Challenge phase flow and document transition evidence for handoff continuity. |
-| ✅ 2026-05-05 | <a id="mb-4"></a>MB.4 | **Native bridge baseline reliability** | M | Complete Xcode target/runtime verification and device checks for haptics, VoiceOver, reduce-motion, and lifecycle modules. |
-| 🟡 | <a id="mb-5"></a>MB.5 | **Verification baseline and quality gates** | M | Require scorecard evidence + device checklist usage and keep mobile guardrails blocking on missing required evidence. |
+Milestones MP.1-MP.7 tracked in `ios-feature-parity-plan.md`. This table shows status and effort estimates.
+
+| Status | # | Item | Effort | Target | Notes |
+|---|---|---|---|---|---|
+| ✅ 2026-05-07 | <a id="mp-1"></a>MP.1 | **Foundation closeout & parity matrix seed** | M | L1 | Lock MB prerequisite evidence, finalize parity-matrix feature registry, prepare for feature work. Enables MP.2+ start. |
+| ✅ 2026-05-07 | <a id="mp-2"></a>MP.2 | **Navigation shell & phase router expansion** | L | L1→L2 | Implement 7 missing player-facing phase routes (Teaching, Stats, History, Compare, SessionResume, PostGameFeedback, Preferences). All shipped at L1. |
+| 🟡 | <a id="mp-3"></a>MP.3 | **Player insights & personalization (I)** | L | L2 | Streak counter, achievement badges, question difficulty heatmaps, success rates per category. Depends on MP.2 complete. |
+| ⬜ | <a id="mp-4"></a>MP.4 | **Gameplay depth & personalization (II)** | M | L1→L2 | Player preferences, session resume, post-game feedback, persona selector. Depends on MP.3 complete. |
+| ⬜ | <a id="mp-5"></a>MP.5 | **Daily challenge & seasonal depth** | M | L2 | Challenge surface (summary-first), seasonal leaderboard (top 10), multi-guess mode. Intentional divergence from web (perf). |
+| ⬜ | <a id="mp-6"></a>MP.6 | **Reliability & performance gate** | M | L3 | All 10+ features meet <100ms tap-to-feedback, <150ms transition start, offline-first UX, network resilience. |
+| ⬜ | <a id="mp-7"></a>MP.7 | **Release & handoff gate** | S | L2+ | Final parity validation, documentation handoff to Xcode team, appstore submission prep. |
+
+### Foundations Reference (MB Series — Superseded)
+
+Legacy mobile foundations (MB.1-MB.5) were completed 2026-05-05 and superseded by Feature Parity milestones (MP.1-MP.7) effective 2026-05-07. Retained below for context.
+
+| Status | # | Item | Notes |
+|---|---|---|---|
+| ✅ 2026-05-05 | <a id="mb-1"></a>MB.1 | **Toolchain baseline** | Completed: prebuild/pods/open-xcode flow verified and synchronized. Prerequisite for MP.1. |
+| ✅ 2026-05-05 | <a id="mb-2"></a>MB.2 | **Architecture boundaries** | Completed: native boundary policy enforced, guardrail checks green in local and CI. Prerequisite for MP.1. |
+| ✅ 2026-05-05 | <a id="mb-3"></a>MB.3 | **Core gameplay baseline** | Completed: Welcome/Playing/Guessing/GameOver/Challenge phase transitions verified and documented. Prerequisite for MP.1. |
+| ✅ 2026-05-05 | <a id="mb-4"></a>MB.4 | **Native bridge baseline** | Completed: Xcode target/runtime verified, device checks pass for haptics/VoiceOver/reduce-motion/lifecycle. Prerequisite for MP.1. |
+| ✅ 2026-05-05 | <a id="mb-5"></a>MB.5 | **Verification baseline & quality gates** | Completed: scorecard evidence finalized, device checklist signed off, mobile guardrails blocking enforced. Prerequisite for MP.1. |
 
 ---
 
