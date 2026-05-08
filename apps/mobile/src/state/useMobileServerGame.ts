@@ -81,7 +81,7 @@ export const useMobileServerGame = (
   phaseDispatch: Dispatch<CorePhaseAction>,
   network: NetworkAdapter,
   haptics: HapticsAdapter,
-  onGameRecorded?: () => void,
+  onGameRecorded?: () => void | Promise<void>,
 ): MobileServerGameState & MobileServerGameActions => {
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [completedSessionId, setCompletedSessionId] = useState<string | null>(null);
@@ -331,7 +331,7 @@ export const useMobileServerGame = (
             })
               .then(() => {
                 setCompletedSessionId(sid);
-                onGameRecorded?.()
+                void onGameRecorded?.()
               })
               .catch(() => {});
             void haptics.trigger("warning");
@@ -373,13 +373,13 @@ export const useMobileServerGame = (
   const confirmCorrect = useCallback(async (): Promise<void> => {
     const sid = sessionIdRef.current;
     if (!sid) return;
+    setCompletedSessionId(sid);
     void postJson(endpoint("/api/v2/game/result"), {
       sessionId: sid,
       correct: true,
     })
       .then(() => {
-        setCompletedSessionId(sid);
-        onGameRecorded?.()
+        void onGameRecorded?.()
       })
       .catch(() => {});
     sessionIdRef.current = null;

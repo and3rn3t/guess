@@ -145,7 +145,9 @@ export const deriveDailyStreak = (
   }
 
   const today = toLocalDate(now)
-  const yesterday = toLocalDate(now - 86_400_000)
+  const yesterdayDate = new Date(now)
+  yesterdayDate.setDate(yesterdayDate.getDate() - 1)
+  const yesterday = toLocalDate(yesterdayDate.getTime())
   if (!winningDays.has(today) && !winningDays.has(yesterday)) {
     return 0
   }
@@ -154,7 +156,9 @@ export const deriveDailyStreak = (
   let cursor = winningDays.has(today) ? today : yesterday
   while (winningDays.has(cursor)) {
     streak += 1
-    cursor = toLocalDate(parseDate(cursor) - 86_400_000)
+    const previous = parseDate(cursor)
+    previous.setDate(previous.getDate() - 1)
+    cursor = toLocalDate(previous.getTime())
   }
 
   return streak
@@ -359,7 +363,7 @@ const toLocalDate = (timestamp: number): string => {
   return `${year}-${month}-${day}`
 }
 
-const parseDate = (value: string): number => {
+const parseDate = (value: string): Date => {
   const [year, month, day] = value.split('-').map(Number)
-  return new Date(year, month - 1, day).getTime()
+  return new Date(year, month - 1, day)
 }

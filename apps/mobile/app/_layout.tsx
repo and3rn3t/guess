@@ -90,11 +90,12 @@ class DiagnosticErrorBoundary extends Component<
 
   render() {
     if (this.state.error) {
+      const message = __DEV__
+        ? `[DiagnosticErrorBoundary]\n${this.state.error.message}\n\n${this.state.error.stack ?? ''}`
+        : 'Something went wrong. Please restart the app.'
       return (
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 }}>
-          <Text style={{ fontSize: 14, color: 'red', textAlign: 'center' }}>
-            {`[DiagnosticErrorBoundary]\n${this.state.error.message}\n\n${this.state.error.stack ?? ''}`}
-          </Text>
+          <Text style={{ fontSize: 14, color: 'red', textAlign: 'center' }}>{message}</Text>
         </View>
       )
     }
@@ -120,11 +121,12 @@ export default function RootLayout(): ReactElement {
 export function ErrorBoundary({ error }: { error: Error }) {
   console.error('[ExpoRouter ErrorBoundary] message:', error.message)
   console.error('[ExpoRouter ErrorBoundary] stack:', error.stack ?? '(no stack)')
+  const message = __DEV__
+    ? `[ExpoRouter ErrorBoundary]\n${error.message}\n\n${error.stack ?? ''}`
+    : 'Something went wrong. Please restart the app.'
   return (
     <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 }}>
-      <Text style={{ fontSize: 14, color: 'red', textAlign: 'center' }}>
-        {`[ExpoRouter ErrorBoundary]\n${error.message}\n\n${error.stack ?? ''}`}
-      </Text>
+      <Text style={{ fontSize: 14, color: 'red', textAlign: 'center' }}>{message}</Text>
     </View>
   )
 }

@@ -162,7 +162,7 @@ export function PostGameFeedbackScreen(_props: MobilePhaseScreenProps): ReactEle
               maxLength={400}
               multiline
               placeholder="What worked well? What felt off?"
-              placeholderTextColor={String(colors.textSecondary)}
+              placeholderTextColor={colors.textSecondary}
             />
           </View>
 
