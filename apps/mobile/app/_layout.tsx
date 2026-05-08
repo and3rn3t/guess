@@ -6,8 +6,9 @@
  * Handles VoiceOver screen-change announcements at the layout level.
  */
 import { Stack, useRouter } from 'expo-router'
-import type { ReactElement } from 'react'
-import { useEffect, useRef } from 'react'
+import type { ErrorInfo, ReactElement, ReactNode } from 'react'
+import { Component, useEffect, useRef } from 'react'
+import { Text, View } from 'react-native'
 import { NativeServicesDebugMenu } from '../src/native/NativeServicesDebugMenu'
 import { useLifecycle, useReduceMotion, useVoiceOver } from '../src/native/useNativeServices'
 import { GameProvider, useGame } from '../src/state/GameContext'
@@ -67,11 +68,63 @@ function PhaseNavigator(): ReactElement {
   )
 }
 
+class DiagnosticErrorBoundary extends Component<
+  { children: ReactNode },
+  { error: Error | null }
+> {
+  constructor(props: { children: ReactNode }) {
+    super(props)
+    this.state = { error: null }
+  }
+
+  static getDerivedStateFromError(error: Error) {
+    return { error }
+  }
+
+  componentDidCatch(error: Error, info: ErrorInfo) {
+    // Log full details to the native console so they appear in Xcode's device log.
+    console.error('[DiagnosticErrorBoundary] caught error:', error.message)
+    console.error('[DiagnosticErrorBoundary] stack:', error.stack ?? '(no stack)')
+    console.error('[DiagnosticErrorBoundary] component stack:', info.componentStack ?? '(none)')
+  }
+
+  render() {
+    if (this.state.error) {
+      return (
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 }}>
+          <Text style={{ fontSize: 14, color: 'red', textAlign: 'center' }}>
+            {`[DiagnosticErrorBoundary]\n${this.state.error.message}\n\n${this.state.error.stack ?? ''}`}
+          </Text>
+        </View>
+      )
+    }
+    return this.props.children
+  }
+}
+
 export default function RootLayout(): ReactElement {
   return (
-    <GameProvider>
-      <PhaseNavigator />
-      <NativeServicesDebugMenu />
-    </GameProvider>
+    <DiagnosticErrorBoundary>
+      <GameProvider>
+        <PhaseNavigator />
+        <NativeServicesDebugMenu />
+      </GameProvider>
+    </DiagnosticErrorBoundary>
+  )
+}
+
+/**
+ * Expo Router ErrorBoundary — called when the root layout itself throws
+ * before React can mount. Logs details to the native console.
+ */
+export function ErrorBoundary({ error }: { error: Error }) {
+  console.error('[ExpoRouter ErrorBoundary] message:', error.message)
+  console.error('[ExpoRouter ErrorBoundary] stack:', error.stack ?? '(no stack)')
+  return (
+    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 }}>
+      <Text style={{ fontSize: 14, color: 'red', textAlign: 'center' }}>
+        {`[ExpoRouter ErrorBoundary]\n${error.message}\n\n${error.stack ?? ''}`}
+      </Text>
+    </View>
   )
 }

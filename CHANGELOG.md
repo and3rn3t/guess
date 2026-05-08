@@ -10,6 +10,14 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- **MP.3 mobile player insights foundation** — iOS Stats and History screens now consume live `/api/v2/stats` and `/api/v2/history` data through a shared mobile insights hook instead of placeholder copy. Added derived daily streaks, achievement badges, difficulty win-rate summaries, question-load heatmap buckets, recent-session summaries, and history filtering sized for mobile screens. Game-result recording now triggers an insights refresh so newly completed sessions flow into the analytics surfaces without restarting the app.
+
+- **MP.3 Compare insights upgrade** — iOS Compare screen now uses live player insights (estimated percentile band, difficulty-by-difficulty win-rate deltas, and top attribute signals from recent answer history) instead of static placeholder rank rows.
+
+- **MP.3 preferences persistence** — iOS Preferences now persists difficulty and accessibility toggles (haptics, reduce motion, large text) locally via AsyncStorage so settings survive app restarts.
+
+- **MP.3 post-game feedback API wiring** — iOS Post-Game Feedback now submits rating and optional text comment to `POST /api/v2/game/feedback` against the latest completed game session, with disabled/error/success states and haptic confirmation.
+
 - **MP.2 Navigation shell & phase router expansion** — iOS app now includes 7 new player-facing screens shipped at L1 (functional MVP): Teaching Mode (interactive 2-lesson walkthrough), Stats (session overview with streak/game count/avg questions/win rate), Game History (past games with filter + outcome), Player Compare (relative rank vs peers + category breakdowns), Session Resume (resume/start-over prompt), Player Preferences (difficulty/category/accessibility toggles), and Post-Game Feedback (emoji reaction + difficulty rating). All screens follow native iOS design patterns with proper safe area handling, ScrollView tuning, and accessibility support. New routes: `/stats`, `/history`, `/compare`, `/preferences`, `/teaching`, `/feedback`, `/resume`. Parity matrix updated to reflect L1 shipped status for all 7 features. ROADMAP.md migrated MP.2 status from 🟡 to ✅ 2026-05-07.
 
 - **MP.2 ScreenRouter component** — new `ScreenRouter.tsx` component provides phase-based routing logic for core gameplay (welcome → playing → guessing → gameOver → challenge). Includes reference implementation for future `ExtendedPhaseRouter` to merge supplementary phases into CorePhaseState routing once state architecture is unified.

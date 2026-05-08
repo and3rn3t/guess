@@ -24,111 +24,9 @@ import {
   type HapticsAdapter,
   type NetworkAdapter,
 } from "@guess/app-core";
-import Constants from "expo-constants";
 import type { Dispatch } from "react";
 import { useCallback, useRef, useState } from "react";
-import { NativeModules } from "react-native";
-
-// ── Constants ────────────────────────────────────────────────────────────────
-
-/**
- * Base URL for the server API.
- * In production, set EXPO_PUBLIC_API_BASE_URL to the deployed Cloudflare Pages domain.
- * During development, set to your local `pnpm cf:dev` URL.
- */
-const resolveApiBase = (): string => {
-  const explicitBase =
-    typeof process !== "undefined" &&
-    typeof process.env.EXPO_PUBLIC_API_BASE_URL === "string"
-      ? process.env.EXPO_PUBLIC_API_BASE_URL.trim()
-      : "";
-
-  if (explicitBase.length > 0) {
-    return explicitBase;
-  }
-
-  const runtimeConfigBase =
-    (Constants.expoConfig as { extra?: { apiBaseUrl?: string } } | null)?.extra
-      ?.apiBaseUrl ??
-    (Constants as {
-      manifest?: { extra?: { apiBaseUrl?: string } };
-      manifest2?: { extra?: { apiBaseUrl?: string } };
-    }).manifest?.extra?.apiBaseUrl ??
-    (Constants as {
-      manifest2?: { extra?: { apiBaseUrl?: string } };
-    }).manifest2?.extra?.apiBaseUrl ??
-    "";
-
-  if (runtimeConfigBase.trim().length > 0) {
-    return runtimeConfigBase.trim();
-  }
-
-  if (__DEV__) {
-    const hostFromValue = (value: string | undefined): string | null => {
-      if (!value || value.length === 0) {
-        return null;
-      }
-      const trimmed = value.trim();
-
-      try {
-        const host = new URL(trimmed).hostname;
-        if (host.length > 0) {
-          return host;
-        }
-      } catch {
-        // Some Expo host strings are host:port without URL scheme.
-      }
-
-      const [hostWithMaybePath] = trimmed.split("/");
-      const [host] = hostWithMaybePath.split(":");
-      return host.length > 0 ? host : null;
-    };
-
-    const scriptURL = (NativeModules as { SourceCode?: { scriptURL?: string } })
-      .SourceCode?.scriptURL;
-
-    const expoHostUri =
-      (Constants.expoConfig as { hostUri?: string } | null)?.hostUri;
-
-    const manifestDebuggerHost =
-      (Constants as {
-        manifest?: { debuggerHost?: string };
-      }).manifest?.debuggerHost;
-
-    const manifest2DebuggerHost =
-      (Constants as {
-        manifest2?: {
-          extra?: {
-            expoGo?: { debuggerHost?: string };
-          };
-        };
-      }).manifest2?.extra?.expoGo?.debuggerHost;
-
-    const metroHost =
-      hostFromValue(scriptURL) ??
-      hostFromValue(expoHostUri) ??
-      hostFromValue(manifestDebuggerHost) ??
-      hostFromValue(manifest2DebuggerHost);
-
-    if (metroHost) {
-      return `http://${metroHost}:8788`;
-    }
-  }
-
-  return "";
-};
-
-const requireApiBase = (): string => {
-  const base = resolveApiBase();
-  if (base.length > 0) {
-    return base;
-  }
-  throw new Error(
-    "API base URL is unavailable. Set EXPO_PUBLIC_API_BASE_URL or ensure Metro host resolution is available in debug.",
-  );
-};
-
-const endpoint = (path: string): string => `${requireApiBase()}${path}`;
+import { endpoint } from './apiBase'
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -152,6 +50,7 @@ export interface MobileGuessCharacter {
 
 export interface MobileServerGameState {
   sessionId: string | null;
+  completedSessionId: string | null;
   question: MobileQuestion | null;
   reasoning: MobileReasoning | null;
   remaining: number;
@@ -182,8 +81,10 @@ export const useMobileServerGame = (
   phaseDispatch: Dispatch<CorePhaseAction>,
   network: NetworkAdapter,
   haptics: HapticsAdapter,
+  onGameRecorded?: () => void,
 ): MobileServerGameState & MobileServerGameActions => {
   const [sessionId, setSessionId] = useState<string | null>(null);
+  const [completedSessionId, setCompletedSessionId] = useState<string | null>(null);
   const [question, setQuestion] = useState<MobileQuestion | null>(null);
   const [reasoning, setReasoning] = useState<MobileReasoning | null>(null);
   const [remaining, setRemaining] = useState(0);
@@ -264,6 +165,7 @@ export const useMobileServerGame = (
 
       sessionIdRef.current = data.sessionId;
       setSessionId(data.sessionId);
+      setCompletedSessionId(null);
       applyBootstrapPlan(data);
       emitCue(`Game started. ${data.question.text}`, "default");
       void haptics.trigger("success");
@@ -426,7 +328,12 @@ export const useMobileServerGame = (
             void postJson(endpoint("/api/v2/game/result"), {
               sessionId: sid,
               correct: false,
-            }).catch(() => {});
+            })
+              .then(() => {
+                setCompletedSessionId(sid);
+                onGameRecorded?.()
+              })
+              .catch(() => {});
             void haptics.trigger("warning");
           } else if (step.type === "set-question") {
             setQuestion(step.question);
@@ -460,7 +367,7 @@ export const useMobileServerGame = (
         setIsLoading(false);
       }
     },
-    [postJson, phaseDispatch, emitCue, haptics],
+    [postJson, phaseDispatch, emitCue, haptics, onGameRecorded],
   );
 
   const confirmCorrect = useCallback(async (): Promise<void> => {
@@ -469,19 +376,25 @@ export const useMobileServerGame = (
     void postJson(endpoint("/api/v2/game/result"), {
       sessionId: sid,
       correct: true,
-    }).catch(() => {});
+    })
+      .then(() => {
+        setCompletedSessionId(sid);
+        onGameRecorded?.()
+      })
+      .catch(() => {});
     sessionIdRef.current = null;
     setSessionId(null);
     phaseDispatch({ type: "END_GAME" });
     emitCue("Nice! Your character was correct.", "high");
     void haptics.trigger("success");
-  }, [postJson, phaseDispatch, emitCue, haptics]);
+  }, [postJson, phaseDispatch, emitCue, haptics, onGameRecorded]);
 
   const clearError = useCallback(() => setError(null), []);
   const clearAlert = useCallback(() => setAlertMessage(null), []);
 
   return {
     sessionId,
+    completedSessionId,
     question,
     reasoning,
     remaining,
