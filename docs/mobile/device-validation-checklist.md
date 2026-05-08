@@ -102,3 +102,20 @@ Ready to mark:
 - Use this record as the source for scorecard updates in docs/mobile/screen-quality-scores.json.
 - If a check fails, include mitigation details in the relevant screen notes.
 - 2026-05-05: all checklist checks confirmed passed by user in chat after physical-device run.
+
+## MP.3 Addendum (Pending Run)
+
+Run this focused pass for screens upgraded after the 2026-05-05 baseline:
+
+- [ ] StatsScreen (live insights + achievement progress cards)
+- [ ] HistoryScreen (live history filters + summary metrics)
+- [ ] CompareScreen (insights-driven percentile/difficulty/category comparisons)
+- [ ] PreferencesScreen (AsyncStorage persistence after relaunch)
+- [ ] PostGameFeedbackScreen (POST /api/v2/game/feedback end-to-end)
+
+MP.3-specific checks:
+
+- [ ] Verify VoiceOver reading order for new cards, progress bars, and status text.
+- [ ] Verify tap-to-feedback and transition timing remain within scorecard thresholds.
+- [ ] Verify feedback submission succeeds and handles offline/error states gracefully.
+- [ ] Verify preferences persist after app restart on physical device.

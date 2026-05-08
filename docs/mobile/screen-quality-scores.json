@@ -100,7 +100,7 @@
         "platformBehaviorIntegrity": 88,
         "contentClarityAndCognitiveLoad": 89
       },
-      "notes": "MP.2 placeholder compare surface added with shared mobile tokens and safe-area/ScrollView behavior aligned to the rest of the app. Awaiting device validation and richer leaderboard data before milestone scoring."
+      "notes": "MP.3 compare surface now uses live mobile insights data (estimated percentile band, difficulty win-rate deltas, top attribute signals) with tokenized cards and safe-area/ScrollView behavior aligned to core screens. Device validation pending for interaction timing and VoiceOver pass."
     },
     "HistoryScreen": {
       "file": "apps/mobile/src/screens/HistoryScreen.tsx",
@@ -114,7 +114,7 @@
         "platformBehaviorIntegrity": 88,
         "contentClarityAndCognitiveLoad": 89
       },
-      "notes": "MP.2 placeholder history surface added with tokenized controls, safe-area handling, and scroll behavior consistent with the core mobile screens. Awaiting device validation and real session data wiring."
+      "notes": "MP.3 history surface now renders live session history with timeframe filtering, summary metrics, and outcome/detail rows from shared insights state. Device validation pending for scroll performance and screen-reader traversal."
     },
     "PostGameFeedbackScreen": {
       "file": "apps/mobile/src/screens/PostGameFeedbackScreen.tsx",
@@ -128,7 +128,7 @@
         "platformBehaviorIntegrity": 88,
         "contentClarityAndCognitiveLoad": 89
       },
-      "notes": "MP.2 placeholder feedback flow added with tokenized rating and difficulty affordances plus safe-area/ScrollView defaults. Awaiting device validation and real feedback submission wiring."
+      "notes": "MP.3 feedback flow now posts rating/comment to /api/v2/game/feedback using latest completed session context, with submit/disabled/success/error states and haptic feedback. Device validation pending for full end-to-end submit and VoiceOver announcements."
     },
     "PreferencesScreen": {
       "file": "apps/mobile/src/screens/PreferencesScreen.tsx",
@@ -142,7 +142,7 @@
         "platformBehaviorIntegrity": 88,
         "contentClarityAndCognitiveLoad": 89
       },
-      "notes": "MP.2 placeholder settings surface added with tokenized rows and accessibility-oriented switch layout. Awaiting device validation and final settings persistence wiring."
+      "notes": "MP.3 preferences surface now persists difficulty and accessibility toggles to local AsyncStorage with saved/loading state feedback and tokenized segmented controls/switches. Device validation pending for persistence verification after relaunch."
     },
     "ScreenRouter": {
       "file": "apps/mobile/src/screens/ScreenRouter.tsx",
@@ -184,7 +184,7 @@
         "platformBehaviorIntegrity": 88,
         "contentClarityAndCognitiveLoad": 89
       },
-      "notes": "MP.2 placeholder stats surface added with tokenized cards and section hierarchy that matches the core mobile layout system. Awaiting device validation and final analytics data plumbing."
+      "notes": "MP.3 stats surface now renders live insights (streaks, unlocked/locked achievement progress, difficulty win-rates, question-load heatmap, recent sessions) from shared mobile insights state. Device validation pending for render timing and Dynamic Type/VoiceOver review."
     },
     "TeachingScreen": {
       "file": "apps/mobile/src/screens/TeachingScreen.tsx",

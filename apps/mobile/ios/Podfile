@@ -118,6 +118,53 @@ target 'Andernator' do
       puts "[Andernator] Created React_RCTAppDelegate/ (underscore) for Expo prebuilt compatibility."
     end
 
+    # RN 0.85 prebuilt headers mark `devMenuConfiguration` as nonnull in
+    # RCTRootViewFactory, while current Expo AppDelegate integration passes an
+    # optional value. Patch generated public headers to keep Swift import
+    # compatible until upstream versions converge.
+    [
+      "#{installer.sandbox.root}/Headers/Public/React-RCTAppDelegate/RCTRootViewFactory.h",
+      "#{installer.sandbox.root}/Headers/Public/React_RCTAppDelegate/RCTRootViewFactory.h",
+    ].each do |header_path|
+      next unless File.exist?(header_path)
+
+      content = File.read(header_path)
+      patched = content.gsub(
+        'devMenuConfiguration:(RCTDevMenuConfiguration *)devMenuConfiguration;',
+        'devMenuConfiguration:(RCTDevMenuConfiguration *_Nullable)devMenuConfiguration;',
+      )
+      if patched != content
+        File.write(header_path, patched)
+      end
+    end
+
+    expo_swift_glob = "#{installer.sandbox.root}/../../../../node_modules/.pnpm/expo@*/node_modules/expo/ios/AppDelegates/ExpoReactNativeFactory.swift"
+    Dir.glob(expo_swift_glob).each do |swift_path|
+      swift_source = File.read(swift_path)
+      swift_patched = swift_source.gsub(
+        "launchOptions: launchOptions,\n        devMenuConfiguration: self.devMenuConfiguration",
+        "launchOptions: launchOptions,\n        bundleConfiguration: self.bundleConfiguration,\n        devMenuConfiguration: self.devMenuConfiguration",
+      )
+      if swift_patched != swift_source
+        File.write(swift_path, swift_patched)
+        puts "[Andernator] Patched ExpoReactNativeFactory.swift for RN 0.85 bundleConfiguration compatibility."
+      end
+    end
+
+    expo_mm_glob = "#{installer.sandbox.root}/../../../../node_modules/.pnpm/expo@*/node_modules/expo/ios/AppDelegates/EXReactRootViewFactory.mm"
+    Dir.glob(expo_mm_glob).each do |mm_path|
+      mm_source = File.read(mm_path)
+      mm_patched = mm_source
+        .gsub(
+          "return [super viewWithModuleName:moduleName initialProperties:initialProperties launchOptions:launchOptions devMenuConfiguration:devMenuConfiguration];",
+          "return [super viewWithModuleName:moduleName initialProperties:initialProperties launchOptions:launchOptions bundleConfiguration:[RCTBundleConfiguration defaultConfiguration] devMenuConfiguration:devMenuConfiguration];",
+        )
+      if mm_patched != mm_source
+        File.write(mm_path, mm_patched)
+        puts "[Andernator] Patched EXReactRootViewFactory.mm for RN 0.85 bundleConfiguration compatibility."
+      end
+    end
+
     # Xcode 26 + Expo SDK 55 + prebuilt RN: ExpoModulesJSI can fail to resolve
     # <folly/dynamic.h> from React-performancetimeline headers because the
     # ReactNativeDependencies header roots are not always in target search paths.

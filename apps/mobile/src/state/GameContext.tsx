@@ -12,6 +12,7 @@ import type { Dispatch, ReactElement, ReactNode } from 'react'
 import { createContext, useContext, useMemo } from 'react'
 import { createMobilePlatformAdapters } from '../platform/adapters'
 import { useCoreGameFlow } from './useCoreGameFlow'
+import { useMobilePlayerInsights, type MobilePlayerInsightsActions, type MobilePlayerInsightsState } from './useMobilePlayerInsights'
 import { useMobileServerGame, type MobileServerGameActions, type MobileServerGameState } from './useMobileServerGame'
 
 interface GameContextValue {
@@ -20,6 +21,7 @@ interface GameContextValue {
   phaseTitle: string
   phaseSubtitle: string
   server: MobileServerGameState & MobileServerGameActions
+  insights: MobilePlayerInsightsState & MobilePlayerInsightsActions
 }
 
 const GameContext = createContext<GameContextValue | null>(null)
@@ -27,15 +29,17 @@ const GameContext = createContext<GameContextValue | null>(null)
 export function GameProvider({ children }: { children: ReactNode }): ReactElement {
   const platformAdapters = useMemo(() => createMobilePlatformAdapters(), [])
   const { state, dispatch, phaseTitle, phaseSubtitle } = useCoreGameFlow()
+  const insights = useMobilePlayerInsights(platformAdapters.network)
   const server = useMobileServerGame(
     dispatch,
     platformAdapters.network,
     platformAdapters.haptics,
+    insights.refresh,
   )
 
   const value = useMemo(
-    () => ({ state, dispatch, phaseTitle, phaseSubtitle, server }),
-    [state, dispatch, phaseTitle, phaseSubtitle, server],
+    () => ({ state, dispatch, phaseTitle, phaseSubtitle, server, insights }),
+    [state, dispatch, phaseTitle, phaseSubtitle, server, insights],
   )
 
   return <GameContext.Provider value={value}>{children}</GameContext.Provider>

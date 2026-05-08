@@ -17,8 +17,19 @@ const mapToLifecycleState = (state: AppStateStatus): LifecycleState => {
 }
 
 const createErrorWithCause = (message: string, cause: unknown): Error => {
-  const error = new Error(message) as Error & { cause?: unknown }
-  error.cause = cause
+  // Some Hermes/runtime builds expose Error.cause as non-writable on Error instances.
+  // Prefer constructor options when available, and never mutate built-in fields.
+  const error = new Error(message)
+  try {
+    Object.defineProperty(error, 'cause', {
+      value: cause,
+      configurable: true,
+      enumerable: false,
+      writable: true,
+    })
+  } catch {
+    // Ignore environments that disallow defining this property.
+  }
   return error
 }
 
