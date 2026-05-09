@@ -15,7 +15,7 @@
     "@guess/app-core": "workspace:*",
     "expo": "^55.0.0",
     "expo-router": "~55.0.14",
-    "react": "19.2.0",
+    "react": "19.2.6",
     "react-native": "0.83.6",
     "react-native-safe-area-context": "~5.6.2"
   },
