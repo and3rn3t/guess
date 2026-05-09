@@ -1,6 +1,6 @@
 # iOS Feature Parity Matrix
 
-**Last Updated**: 2026-05-09 | **Version**: 1.2 | **MP.1 Status**: ✅ Closed (2026-05-07) | **MP.2 Status**: ✅ Closed (2026-05-07) | **Reality Reset**: Applied for current branch
+**Last Updated**: 2026-05-09 | **Version**: 1.3 | **MP.1 Status**: ✅ Closed (2026-05-07) | **MP.2 Status**: ✅ Closed (2026-05-07) | **MP.3 Status**: ✅ Closed (2026-05-09) | **Reality Reset**: Applied for current branch
 
 Living registry of feature parity state across web and iOS. Updated with every mobile PR that touches a parity feature (add owner initials + evidence link to the row's Evidence column).
 
@@ -17,13 +17,13 @@ This matrix reflects the active branch truth. If a feature is not implemented in
 | **Guessing Phase** | GamePhaseRouter → GuessReveal | `SwiftUI/GuessingView` | ⬜ Missing | L2 | — | None planned | mobile | 2026-05-09 | Branch reset baseline: `apps/mobile/app/index.tsx` |
 | **Game Over Screen** | GamePhaseRouter → GameOver | `SwiftUI/GameOverView` | ⬜ Missing | L2 | — | Native share planned | mobile | 2026-05-09 | Branch reset baseline: `apps/mobile/app/index.tsx` |
 | **Challenge Screen** | GamePhaseRouter → ChallengeView | `SwiftUI/ChallengeView` | ⬜ Missing | L2 | — | Summary-first leaderboard retained | mobile | 2026-05-09 | Branch reset baseline: `apps/mobile/app/index.tsx` |
-| **Stats & Streaks** | GamePhaseRouter → StatsRoute | `SwiftUI/StatsView` | ⬜ Missing | L2 | — | Mobile-first chart simplification planned | mobile | 2026-05-09 | Branch reset baseline: `apps/mobile/app/index.tsx` |
-| **Game History** | GamePhaseRouter → HistoryRoute | `SwiftUI/HistoryView` | ⬜ Missing | L2 | — | Mobile-first list design planned | mobile | 2026-05-09 | Branch reset baseline: `apps/mobile/app/index.tsx` |
+| **Stats & Streaks** | GamePhaseRouter → StatsRoute | `screens/StatsScreen.tsx` | ✅ Shipped | L2 | L2 | Mobile-first: simplified charts, derived streak from history (no dedicated endpoint) | andernet | 2026-05-09 | MP.3 commit 6db3f51; live `/api/v2/stats` + `/api/v2/history`; streak, achievements, difficulty breakdown |
+| **Game History** | GamePhaseRouter → HistoryRoute | `screens/HistoryScreen.tsx` | ✅ Shipped | L2 | L2 | Mobile-first list (8 recent games; full board deferred) | andernet | 2026-05-09 | MP.3 commit 6db3f51; live `/api/v2/history`; outcome colour-coded, difficulty badge |
 | **Player Compare** | GamePhaseRouter → CompareRoute | `SwiftUI/CompareView` | ⬜ Missing | L1→L2 | — | Insight density reduced on small screens | mobile | 2026-05-09 | Branch reset baseline: `apps/mobile/app/index.tsx` |
-| **Session Resume** | Session state hook | `SwiftUI/SessionResumeView` | ⬜ Missing | L1→L2 | — | Resume prompt UX may diverge | mobile | 2026-05-09 | Branch reset baseline: `apps/mobile/app/index.tsx` |
-| **Player Preferences** | GamePhaseRouter → PreferencesRoute | `SwiftUI/PreferencesView` | ⬜ Missing | L1→L2 | — | Native settings patterns planned | mobile | 2026-05-09 | Branch reset baseline: `apps/mobile/app/index.tsx` |
+| **Session Resume** | Session state hook | `screens/ResumeScreen.tsx` | ✅ Shipped | L1 | L1 | Resume prompt on welcome; no auto-save banner yet | andernet | 2026-05-09 | MP.3 commit 6db3f51; wired to `resumeGame` API |
+| **Player Preferences** | GamePhaseRouter → PreferencesRoute | `screens/PreferencesScreen.tsx` | ✅ Shipped | L1 | L1 | Difficulty selector (easy/medium/hard); persists in React state; wired to `startGame` | andernet | 2026-05-09 | MP.3 commit 6db3f51; difficulty applied to POST /api/v2/game/start |
 | **Teaching Mode** | GamePhaseRouter → TeachingRoute | `SwiftUI/TeachingView` | ⬜ Missing | L1→L2 | — | Guided-card onboarding style planned | mobile | 2026-05-09 | Branch reset baseline: `apps/mobile/app/index.tsx` |
-| **Post-Game Feedback** | GamePhaseRouter → PostGameFeedbackRoute | `SwiftUI/PostGameFeedbackView` | ⬜ Missing | L1→L2 | — | Native sheet presentation planned | mobile | 2026-05-09 | Branch reset baseline: `apps/mobile/app/index.tsx` |
+| **Post-Game Feedback** | GamePhaseRouter → PostGameFeedbackRoute | `screens/FeedbackScreen.tsx` | ✅ Shipped | L1 | L1 | 1–5 star rating + notes; POST to `/api/v2/game/feedback` | andernet | 2026-05-09 | MP.3 commit 6db3f51; success/error states wired |
 
 ---
 
