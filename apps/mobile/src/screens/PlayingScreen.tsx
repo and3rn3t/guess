@@ -1,11 +1,14 @@
 import type { ReactElement } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import type { AnswerValue } from '../network/mobileGameApi';
+import { SyncStatusBadge } from './SyncStatusBadge';
 
 interface PlayingScreenProps {
   questionText: string;
   reasoningText: string | null;
   confidence: number | null;
+  guessCount: number;
+  rejectCooldownRemaining: number | null;
   isBusy: boolean;
   errorMessage: string | null;
   onAnswer: (value: AnswerValue) => void;
@@ -17,6 +20,8 @@ export function PlayingScreen({
   questionText,
   reasoningText,
   confidence,
+  guessCount,
+  rejectCooldownRemaining,
   isBusy,
   errorMessage,
   onAnswer,
@@ -34,6 +39,11 @@ export function PlayingScreen({
     <View style={styles.root}>
       <View style={styles.headerBlock}>
         <Text style={styles.phasePill}>PLAYING</Text>
+        {guessCount > 0 && (
+          <View style={styles.attemptBadge}>
+            <Text style={styles.attemptBadgeText}>Guess attempt #{guessCount + 1}</Text>
+          </View>
+        )}
         <Text style={styles.title}>Ask The Next Best Question</Text>
         <Text style={styles.subtitle}>Answer quickly and keep the deduction loop moving.</Text>
       </View>
@@ -43,9 +53,19 @@ export function PlayingScreen({
         <Text style={styles.questionText}>{questionText}</Text>
         {reasoningText ? <Text style={styles.reasoningText}>{reasoningText}</Text> : null}
         <Text style={styles.metaText}>Confidence: {confidence ?? 'n/a'}</Text>
+            {rejectCooldownRemaining !== null && rejectCooldownRemaining > 0 && (
+              <View style={styles.cooldownCard}>
+                <Text style={styles.cooldownText}>
+                  Next guess available in {rejectCooldownRemaining} more {rejectCooldownRemaining === 1 ? 'question' : 'questions'}
+                </Text>
+              </View>
+            )}
+
       </View>
 
       {errorMessage ? <Text style={styles.errorText}>{errorMessage}</Text> : null}
+
+  <SyncStatusBadge />
 
       <View style={styles.answerGrid}>
         {answerButtons.map((entry) => {
@@ -115,6 +135,18 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: 999
   },
+  attemptBadge: {
+    alignSelf: 'flex-start',
+    backgroundColor: '#7c3aed',
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 3
+  },
+  attemptBadgeText: {
+    color: '#ede9fe',
+    fontSize: 11,
+    fontWeight: '700'
+  },
   title: {
     color: '#f8fafc',
     fontSize: 28,
@@ -133,6 +165,19 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     gap: 8,
     backgroundColor: '#0b1c44'
+  },
+  cooldownCard: {
+    borderRadius: 10,
+    backgroundColor: '#1c1917',
+    borderWidth: 1,
+    borderColor: '#44403c',
+    paddingHorizontal: 14,
+    paddingVertical: 10
+  },
+  cooldownText: {
+    color: '#a8a29e',
+    fontSize: 13,
+    lineHeight: 18
   },
   questionLabel: {
     color: '#bfdbfe',

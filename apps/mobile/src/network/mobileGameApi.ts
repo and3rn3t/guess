@@ -1,3 +1,12 @@
+import {
+  drainMobileQueuedActions,
+  enqueueMobileQueuedFeedbackAction,
+  enqueueMobileQueuedResultAction,
+  getMobileQueuedActionCount,
+  onMobileQueuedActionCountChange,
+  replaceMobileQueuedActions
+} from './mobileOfflineQueue';
+
 export type Difficulty = 'easy' | 'medium' | 'hard';
 export type AnswerValue = 'yes' | 'no' | 'maybe' | 'unknown';
 
@@ -127,6 +136,47 @@ const ENDPOINTS = {
 } as const;
 
 const DEFAULT_TIMEOUT_MS = 10_000;
+const TRANSPORT_RETRY_COUNT = 1;
+const TRANSPORT_RETRY_DELAY_MS = 250;
+
+export type MobileSyncStatus = 'synced' | 'pending' | 'offline' | 'error';
+
+let syncStatus: MobileSyncStatus = 'synced';
+let activeRequestCount = 0;
+const syncStatusListeners = new Set<(status: MobileSyncStatus) => void>();
+
+function emitSyncStatus(status: MobileSyncStatus): void {
+  syncStatus = status;
+  for (const listener of syncStatusListeners) {
+    listener(status);
+  }
+}
+
+function beginSyncRequest(): void {
+  activeRequestCount += 1;
+  emitSyncStatus('pending');
+}
+
+function settleSyncRequest(status: Exclude<MobileSyncStatus, 'pending'>): void {
+  activeRequestCount = Math.max(0, activeRequestCount - 1);
+  if (activeRequestCount > 0) {
+    emitSyncStatus('pending');
+    return;
+  }
+
+  emitSyncStatus(status);
+}
+
+export function getMobileSyncStatus(): MobileSyncStatus {
+  return syncStatus;
+}
+
+export function onMobileSyncStatusChange(listener: (status: MobileSyncStatus) => void): () => void {
+  syncStatusListeners.add(listener);
+  return () => {
+    syncStatusListeners.delete(listener);
+  };
+}
 
 export class MobileApiError extends Error {
   constructor(
@@ -181,6 +231,35 @@ function asNumber(value: unknown): number | null {
 
 function asString(value: unknown): string | null {
   return typeof value === 'string' ? value : null;
+}
+
+function isTransportError(error: unknown): error is MobileApiError {
+  return error instanceof MobileApiError && error.kind === 'transport';
+}
+
+async function sleep(durationMs: number): Promise<void> {
+  await new Promise<void>((resolve) => {
+    setTimeout(resolve, durationMs);
+  });
+}
+
+async function withTransportRetry<T>(operation: () => Promise<T>): Promise<T> {
+  let attempt = 0;
+
+  while (attempt <= TRANSPORT_RETRY_COUNT) {
+    try {
+      return await operation();
+    } catch (error) {
+      attempt += 1;
+      if (!isTransportError(error) || attempt > TRANSPORT_RETRY_COUNT) {
+        throw error;
+      }
+
+      await sleep(TRANSPORT_RETRY_DELAY_MS);
+    }
+  }
+
+  throw new MobileApiError('Network request failed', 'transport');
 }
 
 function parseQuestion(value: unknown): MobileQuestion {
@@ -301,11 +380,13 @@ async function getJson(path: string): Promise<unknown> {
 }
 
 async function postRaw(path: string, body: Record<string, unknown>): Promise<Response> {
+  beginSyncRequest();
+
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), DEFAULT_TIMEOUT_MS);
 
   try {
-    return await fetch(toUrl(path), {
+    const response = await fetch(toUrl(path), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -313,10 +394,15 @@ async function postRaw(path: string, body: Record<string, unknown>): Promise<Res
       body: JSON.stringify(body),
       signal: controller.signal
     });
+    settleSyncRequest('synced');
+    return response;
   } catch (error) {
     if (error instanceof MobileApiError) {
+      settleSyncRequest(error.kind === 'transport' ? 'offline' : 'error');
       throw error;
     }
+
+    settleSyncRequest('offline');
     throw new MobileApiError('Network request failed', 'transport');
   } finally {
     clearTimeout(timeout);
@@ -324,24 +410,40 @@ async function postRaw(path: string, body: Record<string, unknown>): Promise<Res
 }
 
 async function getRaw(path: string): Promise<Response> {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), DEFAULT_TIMEOUT_MS);
+  beginSyncRequest();
 
   try {
-    return await fetch(toUrl(path), {
-      method: 'GET',
-      headers: {
-        Accept: 'application/json'
-      },
-      signal: controller.signal
+    const response = await withTransportRetry(async () => {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), DEFAULT_TIMEOUT_MS);
+
+      try {
+        return await fetch(toUrl(path), {
+          method: 'GET',
+          headers: {
+            Accept: 'application/json'
+          },
+          signal: controller.signal
+        });
+      } catch (error) {
+        if (error instanceof MobileApiError) {
+          throw error;
+        }
+        throw new MobileApiError('Network request failed', 'transport');
+      } finally {
+        clearTimeout(timeout);
+      }
     });
+    settleSyncRequest('synced');
+    return response;
   } catch (error) {
     if (error instanceof MobileApiError) {
+      settleSyncRequest(error.kind === 'transport' ? 'offline' : 'error');
       throw error;
     }
-    throw new MobileApiError('Network request failed', 'transport');
-  } finally {
-    clearTimeout(timeout);
+
+    settleSyncRequest('error');
+    throw error;
   }
 }
 
@@ -624,10 +726,23 @@ export async function rejectGuess(
   throw new MobileApiError('Unknown reject response type', 'validation');
 }
 
-export async function submitResult(sessionId: string, correct: boolean): Promise<void> {
+async function sendResult(sessionId: string, correct: boolean): Promise<void> {
   const response = await postRaw(ENDPOINTS.result, { sessionId, correct });
   if (!response.ok) {
     throw new MobileApiError(`Result request failed (${response.status})`, 'server', response.status);
+  }
+}
+
+export async function submitResult(sessionId: string, correct: boolean): Promise<void> {
+  try {
+    await sendResult(sessionId, correct);
+  } catch (error) {
+    if (error instanceof MobileApiError && error.kind === 'transport') {
+      await enqueueMobileQueuedResultAction({ sessionId, correct });
+      return;
+    }
+
+    throw error;
   }
 }
 
@@ -665,10 +780,57 @@ export async function submitFeedback(
   rating: number,
   feedbackText?: string
 ): Promise<void> {
+  const cleanFeedbackText = feedbackText?.trim() || '';
+
+  try {
+    await sendFeedback(sessionId, rating, cleanFeedbackText);
+  } catch (error) {
+    if (error instanceof MobileApiError && error.kind === 'transport') {
+      await enqueueMobileQueuedFeedbackAction({
+        sessionId,
+        rating,
+        feedbackText: cleanFeedbackText
+      });
+      return;
+    }
+
+    throw error;
+  }
+}
+
+export async function flushMobileQueuedActions(): Promise<number> {
+  const queuedActions = await drainMobileQueuedActions();
+  if (!queuedActions.length) {
+    return 0;
+  }
+
+  let flushedCount = 0;
+
+  for (let index = 0; index < queuedActions.length; index += 1) {
+    const action = queuedActions[index];
+    try {
+      if (action.kind === 'result') {
+        await sendResult(action.sessionId, action.correct);
+      } else {
+        await sendFeedback(action.sessionId, action.rating, action.feedbackText);
+      }
+      flushedCount += 1;
+    } catch {
+      await replaceMobileQueuedActions(queuedActions.slice(index));
+      break;
+    }
+  }
+
+  return flushedCount;
+}
+
+export { getMobileQueuedActionCount, onMobileQueuedActionCountChange };
+
+async function sendFeedback(sessionId: string, rating: number, feedbackText: string): Promise<void> {
   const payload = await postJson(ENDPOINTS.feedback, {
     sessionId,
     rating,
-    feedbackText: feedbackText?.trim() || undefined
+    feedbackText: feedbackText || undefined
   });
 
   if (!isRecord(payload) || payload.success !== true) {

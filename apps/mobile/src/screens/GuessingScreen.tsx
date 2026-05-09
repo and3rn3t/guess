@@ -5,6 +5,7 @@ interface GuessingScreenProps {
   characterName: string;
   characterCategory: string;
   confidence: number | null;
+  guessCount: number;
   isBusy: boolean;
   errorMessage: string | null;
   onConfirm: () => void;
@@ -16,6 +17,7 @@ export function GuessingScreen({
   characterName,
   characterCategory,
   confidence,
+  guessCount,
   isBusy,
   errorMessage,
   onConfirm,
@@ -26,12 +28,14 @@ export function GuessingScreen({
     <View style={styles.root}>
       <View style={styles.headerBlock}>
         <Text style={styles.phasePill}>GUESSING</Text>
-        <Text style={styles.title}>Final Candidate Ready</Text>
+        <Text style={styles.title}>
+          {guessCount > 0 ? `Guess #${guessCount + 1}` : 'Final Candidate Ready'}
+        </Text>
         <Text style={styles.subtitle}>Confirm if this is correct, or reject and keep searching.</Text>
       </View>
 
       <View style={styles.guessCard}>
-        <Text style={styles.guessLabel}>Current Guess</Text>
+        <Text style={styles.guessLabel}>{guessCount > 0 ? `Attempt ${guessCount + 1}` : 'Current Guess'}</Text>
         <Text style={styles.guessName}>{characterName}</Text>
         <Text style={styles.guessMeta}>Category: {characterCategory}</Text>
         <Text style={styles.guessMeta}>Confidence: {confidence ?? 'n/a'}</Text>

@@ -10,11 +10,12 @@ import { FeedbackScreen } from '../src/screens/FeedbackScreen';
 import { GameOverScreen } from '../src/screens/GameOverScreen';
 import { GuessingScreen } from '../src/screens/GuessingScreen';
 import { HistoryScreen } from '../src/screens/HistoryScreen';
-import { PreferencesScreen, type Difficulty } from '../src/screens/PreferencesScreen';
+import { LowBandwidthWarningModal } from '../src/screens/LowBandwidthWarningModal';
+import { type Difficulty } from '../src/screens/PreferencesScreen';
 import { PlayingScreen } from '../src/screens/PlayingScreen';
 import { ResumeScreen } from '../src/screens/ResumeScreen';
 import { StatsScreen } from '../src/screens/StatsScreen';
-import { TeachingScreen } from '../src/screens/TeachingScreen';
+import { ConnectionStatusBanner } from '../src/screens/ConnectionStatusBanner';
 import { WelcomeScreen } from '../src/screens/WelcomeScreen';
 import { useMobileGame } from '../src/state/useMobileGame';
 import {
@@ -104,7 +105,7 @@ export default function HomeScreen(): ReactElement {
 function MobileShell(): ReactElement {
   const { state, dispatch } = useMobileGame();
   const meta = PHASE_META[state.phase];
-  const [difficulty, setDifficulty] = useState<Difficulty>('medium');
+  const [difficulty] = useState<Difficulty>('medium');
   const [statsOverview, setStatsOverview] = useState<MobileStatsOverview | null>(null);
   const [historyGames, setHistoryGames] = useState<MobileHistoryGame[]>([]);
   const [statsLoading, setStatsLoading] = useState(false);
@@ -440,36 +441,6 @@ function MobileShell(): ReactElement {
       );
     }
 
-    if (state.phase === 'playing') {
-      return (
-        <PlayingScreen
-          questionText={state.currentQuestion?.displayText ?? state.currentQuestion?.text ?? 'Loading question...'}
-          reasoningText={state.reasoning?.why ?? null}
-          confidence={state.reasoning?.confidence ?? null}
-          isBusy={state.isBusy}
-          errorMessage={state.lastError}
-          onAnswer={onAnswer}
-          onSkip={onSkip}
-          onEndGame={() => dispatch({ type: 'END_GAME' })}
-        />
-      );
-    }
-
-    if (state.phase === 'guessing') {
-      return (
-        <GuessingScreen
-          characterName={state.finalGuess?.name ?? 'Unknown character'}
-          characterCategory={state.finalGuess?.category ?? 'unknown'}
-          confidence={state.guessConfidence}
-          isBusy={state.isBusy}
-          errorMessage={state.lastError}
-          onConfirm={() => onSubmitResult(true)}
-          onReject={onRejectGuess}
-          onSurrender={() => onSubmitResult(false)}
-        />
-      );
-    }
-
     if (state.phase === 'gameOver') {
       return (
         <GameOverScreen
@@ -561,23 +532,35 @@ function MobileShell(): ReactElement {
       );
     }
 
-    if (state.phase === 'preferences') {
+    if (state.phase === 'playing') {
       return (
-        <PreferencesScreen
-          difficulty={difficulty}
-          onSaveDifficulty={setDifficulty}
-          onOpenTeaching={() => dispatch({ type: 'OPEN_PHASE', phase: 'teaching' })}
-          onBackToWelcome={() => dispatch({ type: 'BACK_TO_WELCOME' })}
+        <PlayingScreen
+          questionText={state.currentQuestion?.displayText ?? state.currentQuestion?.text ?? 'Loading question...'}
+          reasoningText={state.reasoning?.why ?? null}
+          confidence={state.reasoning?.confidence ?? null}
+          guessCount={state.guessCount}
+          rejectCooldownRemaining={state.rejectCooldownRemaining}
+          isBusy={state.isBusy}
+          errorMessage={state.lastError}
+          onAnswer={onAnswer}
+          onSkip={onSkip}
+          onEndGame={() => dispatch({ type: 'END_GAME' })}
         />
       );
     }
 
-    if (state.phase === 'teaching') {
+    if (state.phase === 'guessing') {
       return (
-        <TeachingScreen
-          state={state}
-          onOpenFeedback={() => dispatch({ type: 'OPEN_PHASE', phase: 'feedback' })}
-          onBackToWelcome={() => dispatch({ type: 'BACK_TO_WELCOME' })}
+        <GuessingScreen
+          characterName={state.finalGuess?.name ?? 'Unknown character'}
+          characterCategory={state.finalGuess?.category ?? 'unknown'}
+          confidence={state.guessConfidence}
+          guessCount={state.guessCount}
+          isBusy={state.isBusy}
+          errorMessage={state.lastError}
+          onConfirm={() => onSubmitResult(true)}
+          onReject={onRejectGuess}
+          onSurrender={() => onSubmitResult(false)}
         />
       );
     }
@@ -589,8 +572,10 @@ function MobileShell(): ReactElement {
 
   return (
     <SafeAreaView style={styles.safeArea}>
+      <LowBandwidthWarningModal />
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.container}>
+          <ConnectionStatusBanner />
           {primaryPhase ?? (
             <PhaseScaffold
               phase={state.phase}
@@ -613,6 +598,7 @@ function MobileShell(): ReactElement {
     </SafeAreaView>
   );
 }
+
 
 interface PhaseActionHandlers {
   onStartGame: () => void;

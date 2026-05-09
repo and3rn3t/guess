@@ -256,11 +256,11 @@ The active execution plan, sequenced by **priority × ease**. Pull items top-dow
 
 > **Maintain this block first.** It's the single answer to "what should I work on?" — agents and humans check it before scanning tables. Update in the same commit as the work it describes.
 
-- 🟡 **In progress:** [I.9](#i-9) AI Gateway semantic caching 7d cache-hit window (expected: 2026-05-07) · [MP.5](#mp-5) daily challenge & seasonal depth
-- ▶ **Up next:** [MP.6](#mp-6) reliability & performance gate
-- ✅ **Recently completed:** [MP.4](#mp-4) gameplay depth & personalization (II) (2026-05-09) · [MP.3](#mp-3) player insights & personalization (I) (2026-05-09) · [MP.2](#mp-2) navigation shell & phase router expansion (2026-05-07) · [MP.1](#mp-1) foundation closeout & parity matrix seed (2026-05-07) · [MB.1](#mb-1) toolchain baseline (2026-05-05) · [MB.2](#mb-2) architecture boundaries (2026-05-05) · [MB.4](#mb-4) native bridge baseline (2026-05-05) · [MB.3](#mb-3) core gameplay baseline (2026-05-05) · [MB.5](#mb-5) verification baseline (2026-05-05) · [DQ.31](#dq-31) completeness release gate (2026-05-04) · [DQ.33](#dq-33) null-closure queue (2026-05-04) · [DQ.36](#dq-36) curator closure queue (2026-05-04) · [DQ.37](#dq-37) risk-tiered revalidation (2026-05-04) · [DQ.38](#dq-38) completeness burndown + weekly report (2026-05-04)
+- 🟡 **In progress:** [I.9](#i-9) AI Gateway semantic caching 7d cache-hit window (expected: 2026-05-07) · [MP.6](#mp-6) reliability & performance gate
+- ▶ **Up next:** [MP.7](#mp-7) release & handoff gate
+- ✅ **Recently completed:** [MP.5](#mp-5) daily challenge & seasonal depth (2026-05-09) · [MP.4](#mp-4) gameplay depth & personalization (II) (2026-05-09) · [MP.3](#mp-3) player insights & personalization (I) (2026-05-09) · [MP.2](#mp-2) navigation shell & phase router expansion (2026-05-07) · [MP.1](#mp-1) foundation closeout & parity matrix seed (2026-05-07) · [MB.1](#mb-1) toolchain baseline (2026-05-05) · [MB.2](#mb-2) architecture boundaries (2026-05-05) · [MB.4](#mb-4) native bridge baseline (2026-05-05) · [MB.3](#mb-3) core gameplay baseline (2026-05-05) · [MB.5](#mb-5) verification baseline (2026-05-05) · [DQ.31](#dq-31) completeness release gate (2026-05-04) · [DQ.33](#dq-33) null-closure queue (2026-05-04) · [DQ.36](#dq-36) curator closure queue (2026-05-04) · [DQ.37](#dq-37) risk-tiered revalidation (2026-05-04) · [DQ.38](#dq-38) completeness burndown + weekly report (2026-05-04)
 - 🧫 **Blocked / waiting on:** none
-- 🎯 **Current wave focus:** Wave 5 DQ completeness program ✅ complete; mobile parity execution (MP.1 ✅ 2026-05-07; MP.2 ✅ 2026-05-07; MP.3 ✅ 2026-05-09; MP.4 ✅ 2026-05-09; MP.5 🟡 in progress; MP.6-MP.7 queued).
+- 🎯 **Current wave focus:** Wave 5 DQ completeness program ✅ complete; mobile parity execution (MP.1 ✅ 2026-05-07; MP.2 ✅ 2026-05-07; MP.3 ✅ 2026-05-09; MP.4 ✅ 2026-05-09; MP.5 ✅ 2026-05-09; MP.6 🟡 in progress; MP.7 queued).
 
 ### Wave 1 — Foundation (start here, ~1 week of focused work)
 
@@ -594,8 +594,8 @@ Milestones MP.1-MP.7 tracked in `ios-feature-parity-plan.md`. This table shows s
 | ✅ 2026-05-07 | <a id="mp-2"></a>MP.2 | **Navigation shell & phase router expansion** | L | L1→L2 | Implement 7 missing player-facing phase routes (Teaching, Stats, History, Compare, SessionResume, PostGameFeedback, Preferences). All shipped at L1. |
 | ✅ 2026-05-09 | <a id="mp-3"></a>MP.3 | **Player insights & personalization (I)** | L | L2 | Streak counter, achievement badges, question difficulty heatmaps, success rates per category. Depends on MP.2 complete. |
 | ✅ 2026-05-09 | <a id="mp-4"></a>MP.4 | **Gameplay depth & personalization (II)** | M | L1→L2 | Player preferences, session resume, post-game feedback, persona selector. Depends on MP.3 complete. |
-| 🟡 | <a id="mp-5"></a>MP.5 | **Daily challenge & seasonal depth** | M | L2 | Challenge surface (summary-first), seasonal leaderboard (top 10), multi-guess mode. Intentional divergence from web (perf). |
-| ⬜ | <a id="mp-6"></a>MP.6 | **Reliability & performance gate** | M | L3 | All 10+ features meet <100ms tap-to-feedback, <150ms transition start, offline-first UX, network resilience. |
+| ✅ 2026-05-09 | <a id="mp-5"></a>MP.5 | **Daily challenge & seasonal depth** | M | L2 | Challenge surface (summary-first), seasonal leaderboard (top 10), multi-guess mode. Intentional divergence from web (perf). Seasonal leaderboard deferred (no server endpoint; daily top-10 shown). |
+| 🟡 | <a id="mp-6"></a>MP.6 | **Reliability & performance gate** | M | L3 | All 10+ features meet <100ms tap-to-feedback, <150ms transition start, offline-first UX, network resilience. |
 | ⬜ | <a id="mp-7"></a>MP.7 | **Release & handoff gate** | S | L2+ | Final parity validation, documentation handoff to Xcode team, appstore submission prep. |
 
 ### Foundations Reference (MB Series — Superseded)

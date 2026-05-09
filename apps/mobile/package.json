@@ -13,7 +13,9 @@
   },
   "dependencies": {
     "@guess/app-core": "workspace:*",
+    "@react-native-async-storage/async-storage": "^3.0.2",
     "expo": "^55.0.0",
+    "expo-network": "^55.0.13",
     "expo-router": "~55.0.14",
     "react": "19.2.6",
     "react-native": "0.85.3",

@@ -277,9 +277,26 @@ For feature-level status and exception tracking, see `parity-matrix.md`. For que
 
 - [ ] Performance profiling complete (all features meet <100ms, <150ms gates).
 - [ ] Offline mode tested on device (enable airplane mode, verify no crashes, state persists).
-- [ ] Background sync queue handles 50+ pending answers without data loss.
+- [x] Background sync queue handles 50+ pending answers without data loss. *(covered by `apps/mobile/src/network/mobileOfflineQueue.test.ts` with 55 queued submissions)*
 - [ ] Network resilience layer integrated into all 10 feature routes.
 - [ ] `parity-matrix.md` updated: All features marked "shipped L3" with performance + offline evidence.
+
+**Route Integration Status (Current Branch)**:
+
+| Route / Surface | Status | Resilience Coverage |
+|---|---|---|
+| Welcome (start game) | ✅ | Sync status + connection banner + low-bandwidth modal active globally. |
+| Playing (answer/skip/end) | ✅ | Sync badge, transport error handling, connection/offline signaling, queue-aware status. |
+| Guessing (confirm/reject/surrender) | ✅ | Sync status transitions and transport resilience for submit/reject flows. |
+| Game Over (submit result) | ✅ | Offline queue + replay for result submissions. |
+| Feedback (submit feedback) | ✅ | Offline queue + replay for feedback submissions + sync badge. |
+| Stats | ✅ | GET transport retry + global connection/sync status surfaces. |
+| History | ✅ | GET transport retry + global connection/sync status surfaces. |
+| Challenge | 🟡 | Global connection/sync surfaces active; endpoint-specific resilience audit still pending. |
+| Compare | ⬜ | Feature not shipped in current branch. |
+| Resume | ✅ | Resume API path covered by sync status + connection state handling. |
+| Preferences | ✅ | Global connection/sync resilience surfaces active. |
+| Teaching | ⬜ | Feature not shipped in current branch. |
 
 **Evidence Artifacts**:
 

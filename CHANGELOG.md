@@ -10,6 +10,8 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- **MP.6 mobile reliability hardening (in progress)** — added a production mobile resilience layer across the RN app: connection status monitoring (`online|limited|offline`) via `expo-network`, a global top-of-screen `ConnectionStatusBanner`, a cellular `LowBandwidthWarningModal`, sync-state broadcasting (`synced|pending|offline|error`), GET transport retry, and an AsyncStorage-backed offline mutation queue (result + feedback) with reconnect replay. Added focused tests for GET retry/sync transitions and queue durability/replay (`mobileGameApi.test.ts`, `mobileOfflineQueue.test.ts`).
+
 - **MP.3 mobile player insights foundation** — iOS Stats and History screens now consume live `/api/v2/stats` and `/api/v2/history` data through a shared mobile insights hook instead of placeholder copy. Added derived daily streaks, achievement badges, difficulty win-rate summaries, question-load heatmap buckets, recent-session summaries, and history filtering sized for mobile screens. Game-result recording now triggers an insights refresh so newly completed sessions flow into the analytics surfaces without restarting the app.
 
 - **MP.3 Compare insights upgrade** — iOS Compare screen now uses live player insights (estimated percentile band, difficulty-by-difficulty win-rate deltas, and top attribute signals from recent answer history) instead of static placeholder rank rows.
@@ -25,6 +27,8 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **iOS parity planning stack migration (MP series)** — migrated mobile execution from MB foundations series to MP feature-parity milestones (MP.1-MP.7). New canonical docs: ios-feature-parity-plan.md (parity sequencing + quality gates) and parity-matrix.md (living feature-level status + exception register). Updated ROADMAP.md mobile queue to MP.* series, locked MB.1-MB.5 prerequisites as complete, and established MP.1 (foundation closeout + parity matrix seed) as active.
 
 ### Changed
+
+- **Mobile offline queue auto-flush correctness** — fixed `useMobileOfflineQueue` so reconnect flushes no longer overwrite queue state with the number of flushed actions, and guarded against overlapping flush calls.
 
 - **MP.2 Parity matrix v1.1** — updated 8 feature rows to mark as ✅ Shipped L1 (Stats, History, Compare, SessionResume, Preferences, Teaching, PostGameFeedback) with owner assignments and evidence references (screen-quality-scores.json MVP entries). Removed Teaching Mode from deferred features. Updated header to show MP.2 Status: ✅ Closed (2026-05-07).
 

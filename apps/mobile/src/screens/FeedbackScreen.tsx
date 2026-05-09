@@ -1,5 +1,6 @@
 import { useState, type ReactElement } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { SyncStatusBadge } from './SyncStatusBadge';
 
 interface FeedbackScreenProps {
   sessionId: string | null;
@@ -86,6 +87,8 @@ export function FeedbackScreen({
         style={styles.textInput}
         value={feedbackText}
       />
+
+      <SyncStatusBadge />
 
       <Pressable
         accessibilityRole="button"
