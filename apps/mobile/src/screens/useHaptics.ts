@@ -11,17 +11,20 @@ import type { HapticStyle } from '../native/NativeServices'
 export function useHaptics() {
   const trigger = useCallback(
     (style: HapticStyle = 'light') => {
-      void NativeHaptics?.trigger(style)
+      if (!NativeHaptics || typeof NativeHaptics.trigger !== 'function') return
+      void NativeHaptics.trigger(style)
     },
     [],
   )
 
   const success = useCallback(() => {
-    void NativeHaptics?.success()
+    if (!NativeHaptics || typeof NativeHaptics.success !== 'function') return
+    void NativeHaptics.success()
   }, [])
 
   const warning = useCallback(() => {
-    void NativeHaptics?.warning()
+    if (!NativeHaptics || typeof NativeHaptics.warning !== 'function') return
+    void NativeHaptics.warning()
   }, [])
 
   return { trigger, success, warning }

@@ -28,6 +28,12 @@ Canonical iOS planning:
 3. Open the generated workspace in Xcode:
    - pnpm --filter @guess/mobile open:xcode
 
+SweetPad / VS Code setup is available from the repo root as well:
+
+- Open the repo root in VS Code.
+- Use the SweetPad Build panel to build and run `apps/mobile/ios/Andernator.xcworkspace`.
+- Press `F5` to attach the debugger with the SweetPad launch profile.
+
 One-command bootstrap:
 
 - pnpm --filter @guess/mobile setup:xcode
@@ -39,7 +45,7 @@ If Xcode launches to a black screen with the red React Native error header, Metr
 1. Start Metro for device mode:
    - pnpm --filter @guess/mobile dev:device
 2. Keep that terminal running and launch from Xcode.
-3. If LAN fails, use tunnel mode:
+3. If you want to force tunnel explicitly, use:
    - pnpm --filter @guess/mobile dev:tunnel
 
 Environment files:

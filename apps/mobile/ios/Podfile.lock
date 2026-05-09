@@ -110,9 +110,9 @@ PODS:
   - ExpoSystemUI (55.0.17):
     - ExpoModulesCore
   - FBLazyVector (0.85.3)
-  - hermes-engine (250829098.0.10):
-    - hermes-engine/Pre-built (= 250829098.0.10)
-  - hermes-engine/Pre-built (250829098.0.10)
+  - hermes-engine (0.16.0):
+    - hermes-engine/Pre-built (= 0.16.0)
+  - hermes-engine/Pre-built (0.16.0)
   - libavif/core (1.0.0)
   - libavif/libdav1d (1.0.0):
     - libavif/core
@@ -2191,7 +2191,7 @@ EXTERNAL SOURCES:
     :path: "../../../node_modules/.pnpm/react-native@0.85.3_@babel+core@7.29.0_@types+react@19.2.14_react@19.2.6/node_modules/react-native/Libraries/FBLazyVector"
   hermes-engine:
     :podspec: "../../../node_modules/.pnpm/react-native@0.85.3_@babel+core@7.29.0_@types+react@19.2.14_react@19.2.6/node_modules/react-native/sdks/hermes-engine/hermes-engine.podspec"
-    :tag: hermes-v250829098.0.10
+    :tag: hermes-v0.16.0
   RCTDeprecation:
     :path: "../../../node_modules/.pnpm/react-native@0.85.3_@babel+core@7.29.0_@types+react@19.2.14_react@19.2.6/node_modules/react-native/ReactApple/Libraries/RCTFoundation/RCTDeprecation"
   RCTRequired:
@@ -2361,7 +2361,7 @@ SPEC CHECKSUMS:
   ExpoSymbols: 446a0835f3fb505214891d72baf5edf1de2ee4e7
   ExpoSystemUI: 580f7a0e688715502a690817789c95a59c72840f
   FBLazyVector: 24e62c765683b8d89006a88a2c8f5cf019f0074d
-  hermes-engine: 6c2513a35d8a36bd686c3a40b9914345d7524b0b
+  hermes-engine: 58da398137ec6ce22fb1af0b98b333986d20755b
   libavif: 5f8e715bea24debec477006f21ef9e95432e254d
   libdav1d: 23581a4d8ec811ff171ed5e2e05cd27bad64c39f
   libwebp: 02b23773aedb6ff1fd38cec7a77b81414c6842a8
@@ -2444,6 +2444,6 @@ SPEC CHECKSUMS:
   SDWebImageWebPCoder: e38c0a70396191361d60c092933e22c20d5b1380
   Yoga: 77dfa8673de2874e1855002ae59c68b8be9b007b
 
-PODFILE CHECKSUM: 9e48b05de2a4eaf2cc351ed8dba580f7b356b53b
+PODFILE CHECKSUM: d30e3d02a19e307709d34e59ef51b624bd73e33d
 
 COCOAPODS: 1.16.2

@@ -52,10 +52,17 @@ export const NativeVoiceOver = NativeModules.NativeVoiceOver as NativeVoiceOverM
 export const NativeReduceMotion = NativeModules.NativeReduceMotion as NativeReduceMotionModule | undefined
 export const NativeLifecycle = NativeModules.NativeLifecycle as NativeLifecycleModule | undefined
 
-export const ReduceMotionEmitter = NativeReduceMotion
-  ? new NativeEventEmitter(NativeReduceMotion)
-  : null
+const createEmitterSafely = (
+  module: NativeReduceMotionModule | NativeLifecycleModule | undefined,
+): NativeEventEmitter | null => {
+  if (!module) return null
+  try {
+    return new NativeEventEmitter(module)
+  } catch {
+    return null
+  }
+}
 
-export const LifecycleEmitter = NativeLifecycle
-  ? new NativeEventEmitter(NativeLifecycle)
-  : null
+export const ReduceMotionEmitter = createEmitterSafely(NativeReduceMotion)
+
+export const LifecycleEmitter = createEmitterSafely(NativeLifecycle)

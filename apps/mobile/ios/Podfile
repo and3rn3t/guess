@@ -17,7 +17,8 @@ end
 ENV['EX_DEV_CLIENT_NETWORK_INSPECTOR'] ||= podfile_properties['EX_DEV_CLIENT_NETWORK_INSPECTOR']
 ENV['RCT_USE_RN_DEP'] ||= '1' if podfile_properties['ios.buildReactNativeFromSource'] != 'true'
 ENV['RCT_USE_PREBUILT_RNCORE'] ||= '1' if podfile_properties['ios.buildReactNativeFromSource'] != 'true'
-ENV['RCT_HERMES_V1_ENABLED'] ||= '1' if podfile_properties['expo.useHermesV1'] == 'true'
+# Disable Hermes V1 to fix "[runtime not ready]: TypeError: property is not writable"
+ENV['RCT_HERMES_V1_ENABLED'] = '0'
 platform :ios, podfile_properties['ios.deploymentTarget'] || '15.1'
 inhibit_all_warnings!
 
@@ -49,7 +50,7 @@ target 'Andernator' do
 
   use_react_native!(
     :path => config[:reactNativePath],
-    :hermes_enabled => podfile_properties['expo.jsEngine'] == nil || podfile_properties['expo.jsEngine'] == 'hermes',
+    :hermes_enabled => false, # Force disable Hermes to fix runtime errors
     # An absolute path to your application root.
     :app_path => "#{Pod::Config.instance.installation_root}/..",
     :privacy_file_aggregation_enabled => podfile_properties['apple.privacyManifestAggregationEnabled'] != 'false',
@@ -203,6 +204,32 @@ target 'Andernator' do
         no_symbols_flag = '-no_warning_for_no_symbols'
         libtool_flags << no_symbols_flag unless libtool_flags.include?(no_symbols_flag)
         build_config.build_settings['OTHER_LIBTOOLFLAGS'] = libtool_flags
+      end
+    end
+
+    # Reduce recurring Xcode warning noise in generated Pods project.
+    installer.pods_project.root_object.attributes['LastUpgradeCheck'] = '1640'
+
+    # Hermes pod's replace script is generated without outputs, which triggers
+    # the "will be run during every build" warning. Add a stamp output and
+    # touch it at script end so Xcode has an explicit dependency artifact.
+    installer.pods_project.targets.each do |target|
+      next unless target.name == 'hermes-engine'
+
+      target.shell_script_build_phases.each do |phase|
+        next unless phase.name&.include?('[Hermes] Replace Hermes for the right configuration, if needed')
+
+        stamp_path = '$(DERIVED_FILE_DIR)/hermes-engine-replace-hermes.stamp'
+        phase.output_paths = [stamp_path]
+
+        unless phase.shell_script.include?('hermes-engine-replace-hermes.stamp')
+          phase.shell_script = <<~SCRIPT
+            #{phase.shell_script}
+
+            mkdir -p "${DERIVED_FILE_DIR}"
+            /usr/bin/touch "${DERIVED_FILE_DIR}/hermes-engine-replace-hermes.stamp"
+          SCRIPT
+        end
       end
     end
   end

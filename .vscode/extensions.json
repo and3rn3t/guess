@@ -22,6 +22,8 @@
     "mikestead.dotenv",
     "tamasfe.even-better-toml",
     // Code quality / readability
-    "aaron-bond.better-comments"
+    "aaron-bond.better-comments",
+    // Mobile iOS development
+    "sweetpad.sweetpad"
   ]
 }

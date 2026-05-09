@@ -28,6 +28,16 @@ Or run all three:
 
 - `pnpm mobile:setup:xcode`
 
+## SweetPad in VS Code
+
+SweetPad is configured at the repo root for the mobile workspace.
+
+1. Open the repo root in VS Code.
+2. Use the SweetPad Build panel to build and run `Andernator.xcworkspace`.
+3. Press `F5` to attach with the preconfigured CodeLLDB launch profile.
+
+The workspace settings point SweetPad at `apps/mobile/ios/Andernator.xcworkspace`, and the project already ships with `buildServer.json` for autocomplete.
+
 ## Physical Device Run (Red Header / Black Screen Recovery)
 
 If you see a black screen with a red header and actions like `Dismiss`, `Reload JS`, and `Copy`, the app is running but Metro is unreachable.
@@ -37,8 +47,8 @@ Run this flow from repo root before launching from Xcode on iPhone:
 1. Start Metro for physical-device dev client:
    - `pnpm mobile:dev:device`
 2. Keep Metro running, then launch from Xcode.
-3. Verify iPhone and Mac are on the same Wi-Fi network.
-4. If your Mac firewall blocks incoming Node/Terminal traffic, allow it.
+3. The default device launcher uses tunnel, so it does not depend on the iPhone reaching the Mac over LAN.
+4. If you need a direct LAN session, use `pnpm mobile:dev:device -- --host lan`.
 
 If the device still cannot connect to Metro:
 
@@ -51,7 +61,7 @@ If the device still cannot connect to Metro:
    - `pnpm mobile:dev:device`
 4. Clean build folder in Xcode and relaunch.
 
-Fallback when local LAN is constrained:
+Fallback when local LAN is constrained or tunnel is unavailable:
 
 - `pnpm mobile:dev:tunnel`
 
