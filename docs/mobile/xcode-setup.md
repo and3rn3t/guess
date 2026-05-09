@@ -1,11 +1,12 @@
 # Xcode Setup (apps/mobile)
 
-This project uses Expo + React Native. The Xcode workspace is generated from Expo config and should be treated as a native output surface.
+This project currently uses Expo + React Native as a reset baseline. The active delivery direction is SwiftUI-first for iOS parity, with Expo artifacts treated as transitional scaffolding.
 
 Planning references:
 
-- `ROADMAP.md` for active mobile queue/status (`MB.*`).
-- `docs/mobile/roadmap-foundations.md` for foundational sequencing and acceptance criteria.
+- `ROADMAP.md` for active mobile queue/status (`MP.*`).
+- `docs/mobile/ios-feature-parity-plan.md` for parity sequencing and quality gates.
+- `docs/mobile/ios-architecture-map.md` for state/navigation/networking boundaries.
 
 ## Prerequisites
 
@@ -19,64 +20,40 @@ From repo root:
 
 1. Generate iOS project:
    - `pnpm mobile:prebuild:ios`
-2. Install pods:
-   - `pnpm mobile:pods`
-3. Open workspace:
-   - `pnpm mobile:open:xcode`
+2. Open the generated workspace in Xcode:
+   - `open apps/mobile/ios/*.xcworkspace`
+3. Build/run from Xcode or use:
+   - `pnpm mobile:ios`
 
-Or run all three:
+## VS Code Mobile Loop
 
-- `pnpm mobile:setup:xcode`
+From repo root:
 
-## SweetPad in VS Code
+1. Start Expo dev server:
+   - `pnpm mobile:dev`
+2. Use tunnel mode if LAN/networking is restricted:
+   - `pnpm mobile:dev:tunnel`
+3. Typecheck mobile workspace:
+   - `pnpm mobile:typecheck`
 
-SweetPad is configured at the repo root for the mobile workspace.
+## Physical Device Notes
 
-1. Open the repo root in VS Code.
-2. Use the SweetPad Build panel to build and run `Andernator.xcworkspace`.
-3. Press `F5` to attach with the preconfigured CodeLLDB launch profile.
-
-The workspace settings point SweetPad at `apps/mobile/ios/Andernator.xcworkspace`, and the project already ships with `buildServer.json` for autocomplete.
-
-## Physical Device Run (Red Header / Black Screen Recovery)
-
-If you see a black screen with a red header and actions like `Dismiss`, `Reload JS`, and `Copy`, the app is running but Metro is unreachable.
-
-Run this flow from repo root before launching from Xcode on iPhone:
-
-1. Start Metro for physical-device dev client:
-   - `pnpm mobile:dev:device`
-2. Keep Metro running, then launch from Xcode.
-3. The default device launcher uses tunnel, so it does not depend on the iPhone reaching the Mac over LAN.
-4. If you need a direct LAN session, use `pnpm mobile:dev:device -- --host lan`.
-
-If the device still cannot connect to Metro:
-
-1. Create local override file:
-   - `cp apps/mobile/.xcode.env.local.example apps/mobile/ios/.xcode.env.local`
-2. Set your Mac LAN IP in `apps/mobile/ios/.xcode.env.local`:
-   - `export RCT_METRO_HOST=<your-mac-lan-ip>`
-3. Re-run:
-   - `pnpm --filter @guess/mobile sync:xcode-env`
-   - `pnpm mobile:dev:device`
-4. Clean build folder in Xcode and relaunch.
-
-Fallback when local LAN is constrained or tunnel is unavailable:
-
-- `pnpm mobile:dev:tunnel`
+- Keep Metro running (`pnpm mobile:dev` or `pnpm mobile:dev:tunnel`) before launching from Xcode.
+- If the device cannot reach Metro over LAN, prefer tunnel mode.
+- If you see stale bundles, clean build folder in Xcode and restart Metro.
 
 ## Environment config
 
-- Shared config file: `apps/mobile/.xcode.env`
-- Local overrides template: `apps/mobile/.xcode.env.local.example`
-- Sync into generated iOS folder: `pnpm --filter @guess/mobile sync:xcode-env`
+- Keep environment/config assumptions documented in `docs/mobile/xcode-claude-memory-handoff.md`.
+- If new native env sync tooling is added, update this runbook and root scripts in the same commit.
 
 ## Notes
 
 - Do not import web UI modules into mobile code. Guardrails are enforced by `pnpm mobile:guardrails`.
-- Treat `apps/mobile/ios/Pods` and build outputs as generated artifacts.
+- Treat `apps/mobile/ios/**` generated content and build outputs as artifacts unless explicitly editing native implementation files.
 - If Expo config changes, regenerate native files with `pnpm mobile:prebuild:ios`.
 - For AI context handoff limitations between IDEs, use `docs/mobile/xcode-claude-memory-handoff.md`.
+- For architecture intent, use `docs/mobile/ios-architecture-map.md`.
 
 ## VS Code + Xcode AI Sync Contract
 
@@ -84,17 +61,16 @@ Use this checklist to keep both IDE workflows aligned for AI-assisted changes.
 
 ### Source-of-truth boundaries
 
-- Product logic and orchestration: `apps/mobile/src/**` and `packages/app-core/**`.
-- Native bridge runtime (TS/hooks/debug tooling): `apps/mobile/src/native/**`.
-- Generated native output: `apps/mobile/ios/**` from Expo prebuild.
-- Shared iOS environment: `apps/mobile/.xcode.env` (sync via `pnpm --filter @guess/mobile sync:xcode-env`).
+- Product logic and orchestration: mobile app state + API adapters + shared package boundaries.
+- Active architecture source: `docs/mobile/ios-architecture-map.md`.
+- Generated native output: `apps/mobile/ios/**` from Expo prebuild (when using Expo flows).
+- Native implementation details and handoff notes: `docs/mobile/xcode-claude-memory-handoff.md`.
 
 ### Safe edit policy
 
 - Prefer editing TypeScript and Expo config in VS Code.
 - Regenerate iOS output after relevant config/dependency changes:
-   - `pnpm mobile:prebuild:ios`
-   - `pnpm mobile:pods`
+  - `pnpm mobile:prebuild:ios`
 - Avoid committing accidental generated churn from `apps/mobile/ios/**` unless intentionally updating native project files.
 
 ### AI session handoff routine
@@ -102,8 +78,8 @@ Use this checklist to keep both IDE workflows aligned for AI-assisted changes.
 Before switching IDEs (or AI agents), run from repo root:
 
 1. `pnpm validate:fast`
-2. `pnpm --filter @guess/mobile typecheck`
-3. `pnpm --filter @guess/mobile sync:xcode-env`
+2. `pnpm mobile:typecheck`
+3. `pnpm mobile:guardrails`
 
 This keeps code health, mobile type safety, and Xcode env parity in sync.
 
@@ -112,13 +88,7 @@ This keeps code health, mobile type safety, and Xcode env parity in sync.
 - If a change is made directly in Xcode-native files, mirror intent back into docs and mobile TS entry points so future AI work in VS Code has context.
 - When introducing native module behavior, document why Expo-level APIs were insufficient in `docs/mobile/native-product-contract.md`.
 
-### Swift scaffold entry points
+### Native scaffold entry points
 
-- Starter Swift files are scaffolded at `apps/mobile/ios/Andernator/NativeServices/`.
-- In Xcode, ensure each file is added to the project and has target membership for `Andernator`.
-- Start implementation from:
-   - `HapticsService.swift`
-   - `VoiceOverAnnouncer.swift`
-   - `ReduceMotionObserver.swift`
-   - `LifecycleObserver.swift`
-   - `BridgeContract.swift`
+- Reference native service intent and ownership in `docs/mobile/ios-architecture-map.md`.
+- When adding/updating Swift modules, document why platform-level behavior is needed and how fallbacks behave.

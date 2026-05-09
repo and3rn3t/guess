@@ -580,6 +580,7 @@ Mobile planning ownership split:
 
 - **Parity planning** (strategy, sequencing, quality gates, dependencies): `docs/mobile/ios-feature-parity-plan.md` (canonical).
 - **Feature-level status & exceptions**: `docs/mobile/parity-matrix.md` (living registry).
+- **Documentation program** (doc backlog, ownership, and acceptance gates): `docs/mobile/ios-documentation-program.md`.
 - **Queue and status**: ROADMAP.md (this file) — MP.* series (parity milestones).
 - **Foundations detail** (legacy, superseded): `docs/mobile/roadmap-foundations.md` (retained for context; not active planning source).
 
@@ -949,6 +950,7 @@ The shell ships 24 routes across three sidebar groups (Tools / Data / Pipeline).
 | 2026-05-03 | DQ.33 started once DQ.31/DQ.32 foundations were wired | Began the deterministic null-closure queue before formally shipping the full completeness program because the shared scorer, SLA source of truth, admin completeness payload, and warn-only CI gate were already in place. This keeps Wave 5 work on the same dependency chain without context-switching to unrelated polish. |
 | 2026-05-04 | iOS native services source of truth set to `apps/mobile/ios/Andernator/NativeServices/` | Two parallel native module trees existed (`apps/mobile/ios/Andernator/NativeServices/` scaffold path and `apps/mobile/ios/mobile/` bridge implementation path), which created handoff ambiguity across VS Code/Xcode and increased drift risk. Mobile roadmap track M.1 starts by consolidating to a single canonical location before further screen/integration work. |
 | 2026-05-04 | Mobile roadmap reset to MB-series foundations | Mobile planning had become too distributed across roadmap and docs, which slowed foundational execution. Active queue migrated from `M.*` to `MB.*` in `ROADMAP.md`, legacy strategy plan archived at `docs/mobile/archive/2026-05-04-ios-master-plan.md`, and active foundations detail moved to `docs/mobile/roadmap-foundations.md` with strict non-overlapping doc ownership. |
+| 2026-05-09 | Mobile parity reality reset + SwiftUI-first documentation track | Active branch state no longer matched previously recorded iOS shipped statuses (current `apps/mobile/app/**` is a minimal reset scaffold). To prevent false parity signals, mobile docs were reset to branch-truth (`parity-matrix.md` rows back to missing), planning ownership moved to MP-era docs, and a dedicated documentation program (`docs/mobile/ios-documentation-program.md`) plus architecture map (`docs/mobile/ios-architecture-map.md`) were added. Archive-first policy remains in effect for superseded notes. |
 
 ---
 

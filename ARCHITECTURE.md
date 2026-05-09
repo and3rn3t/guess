@@ -36,6 +36,8 @@
 
 **Tech stack**: React 19 · TypeScript (strict) · Vite 7 · Tailwind CSS v4 · shadcn/ui · Framer Motion · Cloudflare Pages/Workers/D1/KV/R2
 
+Mobile iOS track: SwiftUI-first parity delivery with shared backend contracts and shared game semantics. See `docs/mobile/ios-architecture-map.md` and `docs/mobile/ios-feature-parity-plan.md`.
+
 ---
 
 ## Project Structure
@@ -185,6 +187,24 @@ migrations/                    # D1 SQLite migrations
 ├── 0030_question_difficulty.sql     # difficulty column on questions (easy/medium/hard)
 └── chunks/                    # Split data imports (chunk_001–053.sql)
 ```
+
+---
+
+## Mobile Architecture (iOS)
+
+The active iOS direction is SwiftUI-first.
+
+- Use native presentation and interaction patterns for player-facing screens.
+- Reuse backend/API contracts and shared game semantics, not web UI primitives.
+- Keep architecture boundaries aligned with `docs/mobile/native-surface-policy.md`.
+
+Primary references:
+
+- `docs/mobile/ios-architecture-map.md` for layers, boundaries, and implementation sequence.
+- `docs/mobile/ios-feature-parity-plan.md` for MP milestone gates.
+- `docs/mobile/parity-matrix.md` for feature-level parity truth and evidence links.
+
+Generated Expo iOS artifacts may still exist during transition, but parity status is tracked against active branch implementation and validated through the mobile docs program.
 
 ---
 

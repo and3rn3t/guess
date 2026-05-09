@@ -2,10 +2,13 @@
 
 **Effective**: 2026-05-07 | **Supersedes**: `roadmap-foundations.md` (detail) and `ios-master-plan.md` (strategy)
 
+**Implementation direction (2026-05-09 update)**: SwiftUI-first app shell with shared backend contracts and shared domain semantics. React Native/Expo artifacts in `apps/mobile/app/**` are treated as reset baseline references, not proof of parity completion.
+
 This document is the canonical source for iOS feature parity execution. It defines:
 - **Parity scope**: core gameplay + player-facing features (exclude power-user/admin initially)
 - **Parity levels**: L1 (functional), L2 (UX-quality), L3 (operational/polished)
 - **Milestones**: MP.1-MP.7 with sequencing guardrails and evidence requirements
+- **Documentation program**: docs-as-deliverable requirements that run in parallel to feature delivery
 - **Quality gates**: scorecard evidence + device validation required for each milestone
 
 For feature-level status and exception tracking, see `parity-matrix.md`. For queue/status, see `ROADMAP.md` (MP.* series).
@@ -80,7 +83,7 @@ For feature-level status and exception tracking, see `parity-matrix.md`. For que
 - `GET /api/v2/characters/{id1}/compare/{id2}` (character compare, if needed)
 - `POST /api/v2/player/teaching-mode/{id}` (teaching mode entry)
 
-**Surfaces**: 7 new Expo Router screens + state wiring in GameContext.
+**Surfaces**: 7 new SwiftUI routes/screens + state wiring in the native app state model.
 
 **Quality Gates**:
 - ✅ Screen-quality-scorecard: Teaching/Stats/History/Compare ≥88 (prMerge) and target ≥90 (milestone).
@@ -301,6 +304,32 @@ For feature-level status and exception tracking, see `parity-matrix.md`. For que
 **Risks / Rollback**:
 - **Risk**: AppStore review rejects due to privacy/compliance issue. *Mitigation*: Pre-submission review with privacy/legal; test in TestFlight for 1+ week.
 - **Risk**: Last-minute blocker (e.g., iOS 18 incompatibility). *Mitigation*: Maintain `1.x-lts` branch for prior iOS versions if needed; communicate timeline to stakeholders.
+
+---
+
+## Documentation Program (Required, Parallel Track)
+
+Documentation is a mandatory deliverable for every parity slice, not end-of-project cleanup.
+
+### Required Deliverables
+
+- Update `ROADMAP.md` queue/status in the same commit as milestone state changes.
+- Update `parity-matrix.md` state/evidence rows in the same commit as feature changes.
+- Keep `docs/mobile/README.md` ownership and read order current when doc ownership changes.
+- Maintain `xcode-setup.md` and `xcode-claude-memory-handoff.md` as operational runbooks.
+- Link QA evidence (`screen-quality-scores.json`, `device-validation-checklist.md`, performance traces) before marking a milestone done.
+
+### Quality Gates
+
+- No contradictory status across `ROADMAP.md`, `ios-feature-parity-plan.md`, and `parity-matrix.md`.
+- No stale references to superseded MB-series execution as active work.
+- Archive-first rule enforced for replaced planning notes (`docs/mobile/archive/` + pointer stubs).
+
+### Done When
+
+- Every MP milestone has matching documentation evidence links.
+- Handoff docs are current enough for a new contributor to run setup, validate, and ship without oral context.
+- Release notes in `CHANGELOG.md` summarize shipped mobile scope and notable divergences.
 
 ---
 

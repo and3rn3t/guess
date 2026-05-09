@@ -1,27 +1,29 @@
 # iOS Feature Parity Matrix
 
-**Last Updated**: 2026-05-07 | **Version**: 1.1 | **MP.1 Status**: ✅ Closed (2026-05-07) | **MP.2 Status**: ✅ Closed (2026-05-07)
+**Last Updated**: 2026-05-09 | **Version**: 1.2 | **MP.1 Status**: ✅ Closed (2026-05-07) | **MP.2 Status**: ✅ Closed (2026-05-07) | **Reality Reset**: Applied for current branch
 
 Living registry of feature parity state across web and iOS. Updated with every mobile PR that touches a parity feature (add owner initials + evidence link to the row's Evidence column).
+
+This matrix reflects the active branch truth. If a feature is not implemented in the current tree, it remains `⬜ Missing` regardless of historic status in archived plans.
 
 ---
 
 ## Core Features (In Scope for MP.1-MP.7)
 
-| Feature Area | Web Source | iOS Surface | State | Target Level | Parity | Divergence | Owner | Last Verified | Evidence |
+| Feature Area | Web Source | iOS Surface (Target) | State | Target Level | Parity | Divergence | Owner | Last Verified | Evidence |
 |---|---|---|---|---|---|---|---|---|---|
-| **Welcome Screen** | GamePhaseRouter → WelcomeScreen | `screens/WelcomeScreen.tsx` | ✅ Shipped | L2 | L2 | None (identical flow) | mobile | 2026-05-05 | `screen-quality-scores.json` (Welcome-L2-production) |
-| **Playing Screen** | GamePhaseRouter → PlayingScreen | `screens/PlayingScreen.tsx` | ✅ Shipped | L2 | L2 | Native haptics on answer; web shows confetti only | mobile | 2026-05-05 | `screen-quality-scores.json` (Playing-L2-production), `device-validation-checklist.md` (haptics ✓, VoiceOver ✓, reduce-motion ✓) |
-| **Guessing Phase** | GamePhaseRouter → GuessReveal | `screens/GuessingScreen.tsx` | ✅ Shipped | L2 | L2 | None (identical reveal flow) | mobile | 2026-05-05 | `screen-quality-scores.json` (Guessing-L2-production) |
-| **Game Over Screen** | GamePhaseRouter → GameOver | `screens/GameOverScreen.tsx` | ✅ Shipped | L2 | L2 | Native share via RN Share API | mobile | 2026-05-05 | `screen-quality-scores.json` (GameOver-L2-production) |
-| **Challenge Screen** | GamePhaseRouter → ChallengeView | `screens/ChallengeScreen.tsx` | 🟡 Partial | L2 | L1 | Leaderboard summary-first (perf); web shows full board | mobile | 2026-05-04 | `screen-quality-scores.json` (Challenge-L1-partial) |
-| **Stats & Streaks** | GamePhaseRouter → StatsRoute | `screens/StatsScreen.tsx` → `/stats` route | ✅ Shipped | L1 | L1 | MVP: streak counter, session count, avg questions, win rate | mobile | 2026-05-07 | `screen-quality-scores.json` (Stats-L1-mvp) |
-| **Game History** | GamePhaseRouter → HistoryRoute | `screens/HistoryScreen.tsx` → `/history` route | ✅ Shipped | L1 | L1 | MVP: past game list, filter by timeframe, outcome + questions | mobile | 2026-05-07 | `screen-quality-scores.json` (History-L1-mvp) |
-| **Player Compare** | GamePhaseRouter → CompareRoute | `screens/CompareScreen.tsx` → `/compare` route | ✅ Shipped | L1 | L1+ | Insights-backed: percentile band, difficulty win-rate deltas, top attribute signals | mobile | 2026-05-07 | `screen-quality-scores.json` (Compare-L1-mvp), `mobileInsights.ts` derivation tests |
-| **Session Resume** | Session state hook | `screens/SessionResumeScreen.tsx` → `/resume` route | ✅ Shipped | L1 | L1 | MVP: resume/start-over prompt with progress bar | mobile | 2026-05-07 | `screen-quality-scores.json` (SessionResume-L1-mvp) |
-| **Player Preferences** | GamePhaseRouter → PreferencesRoute | `screens/PreferencesScreen.tsx` → `/preferences` route | ✅ Shipped | L1 | L1+ | Persisted locally via AsyncStorage (difficulty + accessibility toggles) | mobile | 2026-05-07 | `screen-quality-scores.json` (Preferences-L1-mvp), device local persistence check |
-| **Teaching Mode** | GamePhaseRouter → TeachingRoute | `screens/TeachingScreen.tsx` → `/teaching` route | ✅ Shipped | L1 | L1 | MVP: 2-lesson walkthrough (yes/no questions, narrowing strategy) | mobile | 2026-05-07 | `screen-quality-scores.json` (Teaching-L1-mvp) |
-| **Post-Game Feedback** | GamePhaseRouter → PostGameFeedbackRoute | `screens/PostGameFeedbackScreen.tsx` → `/feedback` route | ✅ Shipped | L1 | L1+ | Posts to `/api/v2/game/feedback` with rating + optional comment | mobile | 2026-05-07 | `screen-quality-scores.json` (PostGameFeedback-L1-mvp), feedback API integration |
+| **Welcome Screen** | GamePhaseRouter → WelcomeScreen | `SwiftUI/WelcomeView` | ⬜ Missing | L2 | — | None planned | mobile | 2026-05-09 | Branch reset baseline: `apps/mobile/app/index.tsx` |
+| **Playing Screen** | GamePhaseRouter → PlayingScreen | `SwiftUI/PlayingView` | ⬜ Missing | L2 | — | Native haptics planned | mobile | 2026-05-09 | Branch reset baseline: `apps/mobile/app/index.tsx` |
+| **Guessing Phase** | GamePhaseRouter → GuessReveal | `SwiftUI/GuessingView` | ⬜ Missing | L2 | — | None planned | mobile | 2026-05-09 | Branch reset baseline: `apps/mobile/app/index.tsx` |
+| **Game Over Screen** | GamePhaseRouter → GameOver | `SwiftUI/GameOverView` | ⬜ Missing | L2 | — | Native share planned | mobile | 2026-05-09 | Branch reset baseline: `apps/mobile/app/index.tsx` |
+| **Challenge Screen** | GamePhaseRouter → ChallengeView | `SwiftUI/ChallengeView` | ⬜ Missing | L2 | — | Summary-first leaderboard retained | mobile | 2026-05-09 | Branch reset baseline: `apps/mobile/app/index.tsx` |
+| **Stats & Streaks** | GamePhaseRouter → StatsRoute | `SwiftUI/StatsView` | ⬜ Missing | L2 | — | Mobile-first chart simplification planned | mobile | 2026-05-09 | Branch reset baseline: `apps/mobile/app/index.tsx` |
+| **Game History** | GamePhaseRouter → HistoryRoute | `SwiftUI/HistoryView` | ⬜ Missing | L2 | — | Mobile-first list design planned | mobile | 2026-05-09 | Branch reset baseline: `apps/mobile/app/index.tsx` |
+| **Player Compare** | GamePhaseRouter → CompareRoute | `SwiftUI/CompareView` | ⬜ Missing | L1→L2 | — | Insight density reduced on small screens | mobile | 2026-05-09 | Branch reset baseline: `apps/mobile/app/index.tsx` |
+| **Session Resume** | Session state hook | `SwiftUI/SessionResumeView` | ⬜ Missing | L1→L2 | — | Resume prompt UX may diverge | mobile | 2026-05-09 | Branch reset baseline: `apps/mobile/app/index.tsx` |
+| **Player Preferences** | GamePhaseRouter → PreferencesRoute | `SwiftUI/PreferencesView` | ⬜ Missing | L1→L2 | — | Native settings patterns planned | mobile | 2026-05-09 | Branch reset baseline: `apps/mobile/app/index.tsx` |
+| **Teaching Mode** | GamePhaseRouter → TeachingRoute | `SwiftUI/TeachingView` | ⬜ Missing | L1→L2 | — | Guided-card onboarding style planned | mobile | 2026-05-09 | Branch reset baseline: `apps/mobile/app/index.tsx` |
+| **Post-Game Feedback** | GamePhaseRouter → PostGameFeedbackRoute | `SwiftUI/PostGameFeedbackView` | ⬜ Missing | L1→L2 | — | Native sheet presentation planned | mobile | 2026-05-09 | Branch reset baseline: `apps/mobile/app/index.tsx` |
 
 ---
 
@@ -38,7 +40,7 @@ Living registry of feature parity state across web and iOS. Updated with every m
 
 | Feature | Exception | Rationale | Decision Date | Status |
 |---|---|---|---|---|
-| **Challenge Leaderboard** | Summary-first design (top 10 only, not full board) | Perf/payload optimization for 5–6" screens; full board causes scroll jank. Web shows 100-entry board; mobile shows summary card. | 2026-05-07 | Approved for MP.5 (documented in `ios-feature-parity-plan.md` MP.5 section) |
+| **Challenge Leaderboard** | Summary-first design (top 10 only, not full board) | Perf/payload optimization for 5–6" screens; full board causes scroll jank. Web shows 100-entry board; mobile shows summary card. | 2026-05-07 | Planned for MP.5 |
 
 ---
 
