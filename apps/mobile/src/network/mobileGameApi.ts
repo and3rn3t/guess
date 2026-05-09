@@ -75,13 +75,53 @@ export type MobileRejectGuessResponse =
       message?: string;
     };
 
+export interface MobileStatsByDifficulty {
+  difficulty: string;
+  games: number;
+  wins: number;
+  winRate: number;
+  avgQuestions: number;
+}
+
+export interface MobileRecentGame {
+  won: boolean;
+  difficulty: string;
+  questionsAsked: number;
+  poolSize: number;
+  timestamp: number;
+}
+
+export interface MobileStatsOverview {
+  totalGames: number;
+  wins: number;
+  winRate: number;
+  avgQuestions: number;
+  avgPoolSize: number;
+  byDifficulty: MobileStatsByDifficulty[];
+  recentGames: MobileRecentGame[];
+}
+
+export interface MobileHistoryGame {
+  id: string;
+  characterId: string;
+  characterName: string;
+  won: boolean;
+  difficulty: string;
+  questionsAsked: number;
+  poolSize: number;
+  timestamp: number;
+}
+
 const ENDPOINTS = {
   start: '/api/v2/game/start',
   answer: '/api/v2/game/answer',
   skip: '/api/v2/game/skip',
   rejectGuess: '/api/v2/game/reject-guess',
   result: '/api/v2/game/result',
-  resume: '/api/v2/game/resume'
+  resume: '/api/v2/game/resume',
+  feedback: '/api/v2/game/feedback',
+  stats: '/api/v2/stats',
+  history: '/api/v2/history'
 } as const;
 
 const DEFAULT_TIMEOUT_MS = 10_000;
@@ -104,7 +144,8 @@ interface StartGameInput {
 }
 
 function getApiBaseUrl(): string {
-  const raw = process.env.EXPO_PUBLIC_API_BASE_URL?.trim() ?? '';
+  const env = (globalThis as { process?: { env?: Record<string, string | undefined> } }).process?.env;
+  const raw = env?.EXPO_PUBLIC_API_BASE_URL?.trim() ?? '';
   if (raw.length > 0) {
     return raw.endsWith('/') ? raw.slice(0, -1) : raw;
   }
@@ -130,6 +171,14 @@ function toUrl(path: string): string {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
+}
+
+function asNumber(value: unknown): number | null {
+  return typeof value === 'number' && Number.isFinite(value) ? value : null;
+}
+
+function asString(value: unknown): string | null {
+  return typeof value === 'string' ? value : null;
 }
 
 function parseQuestion(value: unknown): MobileQuestion {
@@ -210,7 +259,31 @@ async function postJson(path: string, body: Record<string, unknown>): Promise<un
 
   const contentType = response.headers.get('content-type') ?? '';
   if (!contentType.toLowerCase().includes('application/json')) {
-    const preview = (await response.text()).slice(0, 140).replace(/\s+/g, ' ').trim();
+    const preview = (await response.text()).slice(0, 140).replaceAll(/\s+/g, ' ').trim();
+    throw new MobileApiError(
+      `Server returned non-JSON response for ${response.url}: ${preview || 'empty response'}`,
+      'validation',
+      response.status
+    );
+  }
+
+  try {
+    return (await response.json()) as unknown;
+  } catch {
+    throw new MobileApiError(`Server returned invalid JSON for ${response.url}`, 'validation', response.status);
+  }
+}
+
+async function getJson(path: string): Promise<unknown> {
+  const response = await getRaw(path);
+
+  if (!response.ok) {
+    throw new MobileApiError(`Server request failed (${response.status})`, 'server', response.status);
+  }
+
+  const contentType = response.headers.get('content-type') ?? '';
+  if (!contentType.toLowerCase().includes('application/json')) {
+    const preview = (await response.text()).slice(0, 140).replaceAll(/\s+/g, ' ').trim();
     throw new MobileApiError(
       `Server returned non-JSON response for ${response.url}: ${preview || 'empty response'}`,
       'validation',
@@ -246,6 +319,170 @@ async function postRaw(path: string, body: Record<string, unknown>): Promise<Res
   } finally {
     clearTimeout(timeout);
   }
+}
+
+async function getRaw(path: string): Promise<Response> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), DEFAULT_TIMEOUT_MS);
+
+  try {
+    return await fetch(toUrl(path), {
+      method: 'GET',
+      headers: {
+        Accept: 'application/json'
+      },
+      signal: controller.signal
+    });
+  } catch (error) {
+    if (error instanceof MobileApiError) {
+      throw error;
+    }
+    throw new MobileApiError('Network request failed', 'transport');
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+function parseStatsOverview(payload: unknown): MobileStatsOverview {
+  if (!isRecord(payload)) {
+    throw new MobileApiError('Invalid stats response payload', 'validation');
+  }
+
+  const gameStats = payload.gameStats;
+  if (!isRecord(gameStats)) {
+    return {
+      totalGames: 0,
+      wins: 0,
+      winRate: 0,
+      avgQuestions: 0,
+      avgPoolSize: 0,
+      byDifficulty: [],
+      recentGames: []
+    };
+  }
+
+  const byDifficulty = Array.isArray(gameStats.byDifficulty)
+    ? gameStats.byDifficulty
+        .map((entry): MobileStatsByDifficulty | null => {
+          if (!isRecord(entry)) {
+            return null;
+          }
+
+          const difficulty = asString(entry.difficulty);
+          const games = asNumber(entry.games);
+          const wins = asNumber(entry.wins);
+          const winRate = asNumber(entry.winRate);
+          const avgQuestions = asNumber(entry.avgQuestions);
+          if (
+            difficulty === null ||
+            games === null ||
+            wins === null ||
+            winRate === null ||
+            avgQuestions === null
+          ) {
+            return null;
+          }
+
+          return {
+            difficulty,
+            games,
+            wins,
+            winRate,
+            avgQuestions
+          };
+        })
+        .filter((entry): entry is MobileStatsByDifficulty => entry !== null)
+    : [];
+
+  const recentGames = Array.isArray(gameStats.recentGames)
+    ? gameStats.recentGames
+        .map((entry): MobileRecentGame | null => {
+          if (!isRecord(entry)) {
+            return null;
+          }
+
+          const won = entry.won;
+          const difficulty = asString(entry.difficulty);
+          const questionsAsked = asNumber(entry.questionsAsked);
+          const poolSize = asNumber(entry.poolSize);
+          const timestamp = asNumber(entry.timestamp);
+          if (
+            typeof won !== 'boolean' ||
+            difficulty === null ||
+            questionsAsked === null ||
+            poolSize === null ||
+            timestamp === null
+          ) {
+            return null;
+          }
+
+          return {
+            won,
+            difficulty,
+            questionsAsked,
+            poolSize,
+            timestamp
+          };
+        })
+        .filter((entry): entry is MobileRecentGame => entry !== null)
+    : [];
+
+  return {
+    totalGames: asNumber(gameStats.totalGames) ?? 0,
+    wins: asNumber(gameStats.wins) ?? 0,
+    winRate: asNumber(gameStats.winRate) ?? 0,
+    avgQuestions: asNumber(gameStats.avgQuestions) ?? 0,
+    avgPoolSize: asNumber(gameStats.avgPoolSize) ?? 0,
+    byDifficulty,
+    recentGames
+  };
+}
+
+function parseHistoryGames(payload: unknown): MobileHistoryGame[] {
+  if (!isRecord(payload) || !Array.isArray(payload.games)) {
+    throw new MobileApiError('Invalid history response payload', 'validation');
+  }
+
+  return payload.games
+    .map((entry): MobileHistoryGame | null => {
+      if (!isRecord(entry)) {
+        return null;
+      }
+
+      const id = asString(entry.id);
+      const characterId = asString(entry.characterId);
+      const characterName = asString(entry.characterName);
+      const won = entry.won;
+      const difficulty = asString(entry.difficulty);
+      const questionsAsked = asNumber(entry.questionsAsked);
+      const poolSize = asNumber(entry.poolSize);
+      const timestamp = asNumber(entry.timestamp);
+
+      if (
+        id === null ||
+        characterId === null ||
+        characterName === null ||
+        typeof won !== 'boolean' ||
+        difficulty === null ||
+        questionsAsked === null ||
+        poolSize === null ||
+        timestamp === null
+      ) {
+        return null;
+      }
+
+      return {
+        id,
+        characterId,
+        characterName,
+        won,
+        difficulty,
+        questionsAsked,
+        poolSize,
+        timestamp
+      };
+    })
+    .filter((entry): entry is MobileHistoryGame => entry !== null);
 }
 
 export async function startGame(input: StartGameInput): Promise<MobileStartResponse> {
@@ -408,4 +645,31 @@ export async function resumeGame(sessionId: string): Promise<MobileResumeRespons
     reasoning: parseReasoning(payload.reasoning),
     guessCount: typeof guessCount === 'number' ? guessCount : 0
   };
+}
+
+export async function fetchStatsOverview(): Promise<MobileStatsOverview> {
+  const payload = await getJson(ENDPOINTS.stats);
+  return parseStatsOverview(payload);
+}
+
+export async function fetchHistoryGames(limit = 50): Promise<MobileHistoryGame[]> {
+  const safeLimit = Math.max(1, Math.min(limit, 200));
+  const payload = await getJson(`${ENDPOINTS.history}?limit=${safeLimit}`);
+  return parseHistoryGames(payload);
+}
+
+export async function submitFeedback(
+  sessionId: string,
+  rating: number,
+  feedbackText?: string
+): Promise<void> {
+  const payload = await postJson(ENDPOINTS.feedback, {
+    sessionId,
+    rating,
+    feedbackText: feedbackText?.trim() || undefined
+  });
+
+  if (!isRecord(payload) || payload.success !== true) {
+    throw new MobileApiError('Feedback response payload is malformed', 'validation');
+  }
 }

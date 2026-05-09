@@ -1,15 +1,24 @@
 import type { ReactElement } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import type { MobileGameState } from '../state/mobileGameState';
+
+export type Difficulty = 'easy' | 'medium' | 'hard';
+
+const DIFFICULTIES: { value: Difficulty; label: string; description: string }[] = [
+  { value: 'easy', label: 'Easy', description: 'More common characters' },
+  { value: 'medium', label: 'Medium', description: 'Balanced challenge' },
+  { value: 'hard', label: 'Hard', description: 'Niche and obscure picks' }
+];
 
 interface PreferencesScreenProps {
-  state: MobileGameState;
+  difficulty: Difficulty;
+  onSaveDifficulty: (difficulty: Difficulty) => void;
   onOpenTeaching: () => void;
   onBackToWelcome: () => void;
 }
 
 export function PreferencesScreen({
-  state,
+  difficulty,
+  onSaveDifficulty,
   onOpenTeaching,
   onBackToWelcome
 }: Readonly<PreferencesScreenProps>): ReactElement {
@@ -18,22 +27,29 @@ export function PreferencesScreen({
       <View style={styles.headerBlock}>
         <Text style={styles.phasePill}>PREFERENCES</Text>
         <Text style={styles.title}>Preferences</Text>
-        <Text style={styles.subtitle}>Utility surface placeholder for local settings and accessibility controls.</Text>
+        <Text style={styles.subtitle}>Customize your game experience. Changes apply to the next game.</Text>
       </View>
 
       <View style={styles.settingsBlock}>
-        <Text style={styles.settingsLabel}>Current Session Preferences Snapshot</Text>
-        <View style={styles.settingItem}>
-          <Text style={styles.settingKey}>Saved Session</Text>
-          <Text style={styles.settingValue}>{state.lastSessionId ?? 'none'}</Text>
-        </View>
-        <View style={styles.settingItem}>
-          <Text style={styles.settingKey}>Busy State</Text>
-          <Text style={styles.settingValue}>{state.isBusy ? 'Enabled' : 'Idle'}</Text>
-        </View>
-        <View style={styles.settingItem}>
-          <Text style={styles.settingKey}>Error Banner</Text>
-          <Text style={styles.settingValue}>{state.lastError ? 'Visible' : 'None'}</Text>
+        <Text style={styles.settingsLabel}>Difficulty</Text>
+        <View style={styles.difficultyRow}>
+          {DIFFICULTIES.map((opt) => {
+            const isSelected = difficulty === opt.value;
+            return (
+              <Pressable
+                key={opt.value}
+                onPress={() => { onSaveDifficulty(opt.value); }}
+                style={[styles.difficultyOption, isSelected && styles.difficultyOptionSelected]}
+              >
+                <Text style={[styles.difficultyLabel, isSelected && styles.difficultyLabelSelected]}>
+                  {opt.label}
+                </Text>
+                <Text style={[styles.difficultyDesc, isSelected && styles.difficultyDescSelected]}>
+                  {opt.description}
+                </Text>
+              </Pressable>
+            );
+          })}
         </View>
       </View>
 
@@ -45,8 +61,6 @@ export function PreferencesScreen({
           <Text style={[styles.actionLabel, styles.actionLabelSecondary]}>Back To Welcome</Text>
         </Pressable>
       </View>
-
-      {state.lastError ? <Text style={styles.errorText}>{state.lastError}</Text> : null}
     </View>
   );
 }
@@ -90,25 +104,42 @@ const styles = StyleSheet.create({
   },
   settingsLabel: {
     color: '#94a3b8',
-    fontSize: 14,
-    fontWeight: '600'
+    fontSize: 13,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+    marginBottom: 4
   },
-  settingItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 8,
-    paddingVertical: 6
+  difficultyRow: {
+    gap: 8
   },
-  settingKey: {
+  difficultyOption: {
+    borderWidth: 1,
+    borderColor: '#334155',
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    backgroundColor: '#1e293b'
+  },
+  difficultyOptionSelected: {
+    borderColor: '#7c3aed',
+    backgroundColor: '#1e1245'
+  },
+  difficultyLabel: {
     color: '#cbd5e1',
-    fontSize: 14,
-    fontWeight: '500'
-  },
-  settingValue: {
-    color: '#f8fafc',
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: '700'
+  },
+  difficultyLabelSelected: {
+    color: '#a78bfa'
+  },
+  difficultyDesc: {
+    color: '#64748b',
+    fontSize: 13,
+    marginTop: 2
+  },
+  difficultyDescSelected: {
+    color: '#8b5cf6'
   },
   actionsBlock: {
     gap: 10
@@ -137,14 +168,5 @@ const styles = StyleSheet.create({
   },
   actionLabelSecondary: {
     color: '#d1d5db'
-  },
-  errorText: {
-    color: '#fca5a5',
-    fontSize: 14,
-    fontWeight: '500',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 8,
-    backgroundColor: '#7f1d1d'
   }
 });

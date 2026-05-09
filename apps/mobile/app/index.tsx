@@ -1,4 +1,4 @@
-import type { ReactElement } from 'react';
+import { useEffect, useState, type ReactElement } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MobileGameProvider } from '../src/state/MobileGameProvider';
@@ -10,7 +10,7 @@ import { FeedbackScreen } from '../src/screens/FeedbackScreen';
 import { GameOverScreen } from '../src/screens/GameOverScreen';
 import { GuessingScreen } from '../src/screens/GuessingScreen';
 import { HistoryScreen } from '../src/screens/HistoryScreen';
-import { PreferencesScreen } from '../src/screens/PreferencesScreen';
+import { PreferencesScreen, type Difficulty } from '../src/screens/PreferencesScreen';
 import { PlayingScreen } from '../src/screens/PlayingScreen';
 import { ResumeScreen } from '../src/screens/ResumeScreen';
 import { StatsScreen } from '../src/screens/StatsScreen';
@@ -19,12 +19,17 @@ import { WelcomeScreen } from '../src/screens/WelcomeScreen';
 import { useMobileGame } from '../src/state/useMobileGame';
 import {
   type AnswerValue,
+  fetchHistoryGames,
+  fetchStatsOverview,
+  type MobileHistoryGame,
+  type MobileStatsOverview,
   MobileApiError,
   rejectGuess,
   resumeGame,
   skipQuestion,
   startGame,
   submitAnswer,
+  submitFeedback,
   submitResult
 } from '../src/network/mobileGameApi';
 
@@ -95,13 +100,81 @@ export default function HomeScreen(): ReactElement {
 function MobileShell(): ReactElement {
   const { state, dispatch } = useMobileGame();
   const meta = PHASE_META[state.phase];
+  const [difficulty, setDifficulty] = useState<Difficulty>('medium');
+  const [statsOverview, setStatsOverview] = useState<MobileStatsOverview | null>(null);
+  const [historyGames, setHistoryGames] = useState<MobileHistoryGame[]>([]);
+  const [statsLoading, setStatsLoading] = useState(false);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [statsError, setStatsError] = useState<string | null>(null);
+  const [historyError, setHistoryError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    if (state.phase === 'stats') {
+      setStatsLoading(true);
+      setStatsError(null);
+
+      void Promise.all([fetchStatsOverview(), fetchHistoryGames(100)])
+        .then(([stats, history]) => {
+          if (cancelled) {
+            return;
+          }
+
+          setStatsOverview(stats);
+          setHistoryGames(history);
+        })
+        .catch((error: unknown) => {
+          if (cancelled) {
+            return;
+          }
+
+          setStatsError(toErrorMessage(error));
+        })
+        .finally(() => {
+          if (!cancelled) {
+            setStatsLoading(false);
+          }
+        });
+    }
+
+    if (state.phase === 'history') {
+      setHistoryLoading(true);
+      setHistoryError(null);
+
+      void fetchHistoryGames(100)
+        .then((history) => {
+          if (cancelled) {
+            return;
+          }
+
+          setHistoryGames(history);
+        })
+        .catch((error: unknown) => {
+          if (cancelled) {
+            return;
+          }
+
+          setHistoryError(toErrorMessage(error));
+        })
+        .finally(() => {
+          if (!cancelled) {
+            setHistoryLoading(false);
+          }
+        });
+    }
+
+    return () => {
+      cancelled = true;
+    };
+  }, [state.phase]);
 
   const runStartGame = async (): Promise<void> => {
     dispatch({ type: 'SET_BUSY', isBusy: true });
     dispatch({ type: 'SET_ERROR', message: null });
     try {
       const response = await startGame({
-        difficulty: 'medium',
+        difficulty,
         categories: []
       });
       dispatch({
@@ -262,6 +335,26 @@ function MobileShell(): ReactElement {
     }
   };
 
+  const runSubmitFeedback = async (rating: number, feedbackText: string): Promise<boolean> => {
+    const targetSessionId = state.lastSessionId ?? state.sessionId;
+    if (!targetSessionId) {
+      dispatch({ type: 'SET_ERROR', message: 'No completed session found for feedback.' });
+      return false;
+    }
+
+    dispatch({ type: 'SET_BUSY', isBusy: true });
+    dispatch({ type: 'SET_ERROR', message: null });
+    try {
+      await submitFeedback(targetSessionId, rating, feedbackText);
+      return true;
+    } catch (error) {
+      dispatch({ type: 'SET_ERROR', message: toErrorMessage(error) });
+      return false;
+    } finally {
+      dispatch({ type: 'SET_BUSY', isBusy: false });
+    }
+  };
+
   const onStartGame = (): void => {
     void runStartGame();
   };
@@ -370,6 +463,9 @@ function MobileShell(): ReactElement {
       return (
         <FeedbackScreen
           isBusy={state.isBusy}
+          sessionId={state.lastSessionId ?? state.sessionId}
+          errorMessage={state.lastError}
+          onSubmitFeedback={runSubmitFeedback}
           onBackToWelcome={() => dispatch({ type: 'BACK_TO_WELCOME' })}
           onStartNewGame={onStartGame}
         />
@@ -380,6 +476,10 @@ function MobileShell(): ReactElement {
       return (
         <StatsScreen
           state={state}
+          stats={statsOverview}
+          historyGames={historyGames}
+          isLoading={statsLoading}
+          loadError={statsError}
           onOpenCompare={() => dispatch({ type: 'OPEN_PHASE', phase: 'compare' })}
           onBackToWelcome={() => dispatch({ type: 'BACK_TO_WELCOME' })}
         />
@@ -390,6 +490,9 @@ function MobileShell(): ReactElement {
       return (
         <HistoryScreen
           state={state}
+          historyGames={historyGames}
+          isLoading={historyLoading}
+          loadError={historyError}
           onOpenStats={() => dispatch({ type: 'OPEN_PHASE', phase: 'stats' })}
           onBackToWelcome={() => dispatch({ type: 'BACK_TO_WELCOME' })}
         />
@@ -409,7 +512,8 @@ function MobileShell(): ReactElement {
     if (state.phase === 'preferences') {
       return (
         <PreferencesScreen
-          state={state}
+          difficulty={difficulty}
+          onSaveDifficulty={setDifficulty}
           onOpenTeaching={() => dispatch({ type: 'OPEN_PHASE', phase: 'teaching' })}
           onBackToWelcome={() => dispatch({ type: 'BACK_TO_WELCOME' })}
         />
