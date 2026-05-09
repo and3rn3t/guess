@@ -116,8 +116,8 @@
       },
       "notes": "MP.3 history surface now renders live session history with timeframe filtering, summary metrics, and outcome/detail rows from shared insights state. Device validation pending for scroll performance and screen-reader traversal."
     },
-    "PostGameFeedbackScreen": {
-      "file": "apps/mobile/src/screens/PostGameFeedbackScreen.tsx",
+    "FeedbackScreen": {
+      "file": "apps/mobile/src/screens/FeedbackScreen.tsx",
       "evaluatedAt": "2026-05-07",
       "deviceValidationPending": true,
       "categories": {
@@ -144,22 +144,8 @@
       },
       "notes": "MP.3 preferences surface now persists difficulty and accessibility toggles to local AsyncStorage with saved/loading state feedback and tokenized segmented controls/switches. Device validation pending for persistence verification after relaunch."
     },
-    "ScreenRouter": {
-      "file": "apps/mobile/src/screens/ScreenRouter.tsx",
-      "evaluatedAt": "2026-05-07",
-      "deviceValidationPending": true,
-      "categories": {
-        "nativeInteractionFidelity": 88,
-        "visualNativeFit": 88,
-        "accessibilityAndInclusivity": 88,
-        "performanceFeel": 89,
-        "platformBehaviorIntegrity": 89,
-        "contentClarityAndCognitiveLoad": 88
-      },
-      "notes": "MP.2 router expansion now covers the additional placeholder screens and keeps phase transitions aligned with the mobile navigation shell. Awaiting device validation across deep-link and resume paths."
-    },
-    "SessionResumeScreen": {
-      "file": "apps/mobile/src/screens/SessionResumeScreen.tsx",
+    "ResumeScreen": {
+      "file": "apps/mobile/src/screens/ResumeScreen.tsx",
       "evaluatedAt": "2026-05-07",
       "deviceValidationPending": true,
       "categories": {

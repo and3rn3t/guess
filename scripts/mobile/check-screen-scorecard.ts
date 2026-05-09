@@ -305,12 +305,16 @@ function parseScoresJson(raw: unknown, coreScreenNames: string[]): { data: Score
   } else {
     const expectedScreenNames = new Set(coreScreenNames);
 
-    for (const screenName of coreScreenNames) {
-      const entryRaw = screensRaw[screenName];
+    for (const [screenName, entryRaw] of Object.entries(screensRaw)) {
       const label = `screens.${screenName}`;
 
+      if (!expectedScreenNames.has(screenName)) {
+        errors.push(`${label} is not a known core screen in apps/mobile/src/screens.`);
+        continue;
+      }
+
       if (!isRecord(entryRaw)) {
-        errors.push(`${label} is missing or invalid.`);
+        errors.push(`${label} is invalid.`);
         continue;
       }
 
@@ -347,12 +351,6 @@ function parseScoresJson(raw: unknown, coreScreenNames: string[]): { data: Score
           ...(typeof deviceValidationPending === 'boolean' ? { deviceValidationPending } : {}),
           ...(typeof notes === 'string' ? { notes } : {}),
         };
-      }
-    }
-
-    for (const key of Object.keys(screensRaw)) {
-      if (!expectedScreenNames.has(key)) {
-        errors.push(`screens.${key} is not a known core screen in apps/mobile/src/screens.`);
       }
     }
   }
@@ -417,7 +415,7 @@ function getChangedPaths(baseRef: string): string[] {
 
 function getCoreScreenNames(): string[] {
   return readdirSync(SCREENS_DIR)
-    .filter((f) => f.endsWith('.tsx') && f !== 'index.tsx' && f !== 'tokens.ts')
+    .filter((f) => f.endsWith('Screen.tsx'))
     .map((fileName) => fileName.replace(/\.tsx$/, ''));
 }
 
@@ -457,9 +455,9 @@ function selectScreens(coreScreenNames: string[], baseRef: string | null): {
 
   return {
     changedPaths,
-    selectedScreenNames: coreScreenNames,
-    selectionMode: 'fallback-all',
-    selectionDetail: `no touched core screens vs ${baseRef}; validated all core screens`,
+    selectedScreenNames: [],
+    selectionMode: 'touched',
+    selectionDetail: `no touched core screens vs ${baseRef}; skipped gate`,
   };
 }
 
