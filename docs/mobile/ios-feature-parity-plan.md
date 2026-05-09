@@ -5,6 +5,7 @@
 **Implementation direction (2026-05-09 update)**: SwiftUI-first app shell with shared backend contracts and shared domain semantics. React Native/Expo artifacts in `apps/mobile/app/**` are treated as reset baseline references, not proof of parity completion.
 
 This document is the canonical source for iOS feature parity execution. It defines:
+
 - **Parity scope**: core gameplay + player-facing features (exclude power-user/admin initially)
 - **Parity levels**: L1 (functional), L2 (UX-quality), L3 (operational/polished)
 - **Milestones**: MP.1-MP.7 with sequencing guardrails and evidence requirements
@@ -43,11 +44,13 @@ For feature-level status and exception tracking, see `parity-matrix.md`. For que
 **Surfaces**: Update parity-matrix.md with initial feature states (Welcome/Playing/Guessing/GameOver = shipped L2; Challenge = partial L2; Stats/History/etc = missing L1).
 
 **Quality Gates**:
+
 - ✅ Screen-quality-scorecard: All 5 core screens ≥88 (prMerge gate) and ≥90 (milestone gate).
 - ✅ Device validation: Haptics, VoiceOver, reduce-motion, lifecycle all verified on physical iPhone.
 - ✅ Mobile guardrails: No web-port drift detected (boundary check clean).
 
 **Done When**:
+
 - [ ] MB.3 evidence documented (Welcome/Playing/Guessing/GameOver/Challenge phase transitions recorded).
 - [ ] MB.5 acceptance finalized (scorecard entry + device checklist signed off).
 - [ ] `parity-matrix.md` seeded with all 10 core features, initial state assignments, and owner field populated.
@@ -55,12 +58,14 @@ For feature-level status and exception tracking, see `parity-matrix.md`. For que
 - [ ] No regressions: `pnpm validate` green, mobile guardrails PASS.
 
 **Evidence Artifacts**:
+
 - `docs/mobile/parity-matrix.md` (feature registry)
 - `docs/mobile/screen-quality-scores.json` (MB.1-MB.5 completion evidence)
 - `docs/mobile/device-validation-checklist.md` (device test results)
 - `ROADMAP.md` (MP.1 marked ✅ + MPs marked in queue)
 
 **Risks / Rollback**:
+
 - **Risk**: MB.5 evidence incomplete (scorecard gaps). *Mitigation*: Complete missing scorecard entries before MP.1 closure.
 - **Risk**: Phase transition evidence lost. *Mitigation*: Recording saved to `docs/mobile/archive/2026-05-07-phase-transitions.md`.
 
@@ -78,6 +83,7 @@ For feature-level status and exception tracking, see `parity-matrix.md`. For que
 **Features Out**: Admin routes (Question Manager, Describe Yourself, Team Leaderboard — post-MP.7 scope).
 
 **API Dependencies**:
+
 - `GET /api/v2/game/{id}` (game history)
 - `GET /api/v2/games?limit=10&offset=0` (player history)
 - `GET /api/v2/characters/{id1}/compare/{id2}` (character compare, if needed)
@@ -86,10 +92,12 @@ For feature-level status and exception tracking, see `parity-matrix.md`. For que
 **Surfaces**: 7 new SwiftUI routes/screens + state wiring in the native app state model.
 
 **Quality Gates**:
+
 - ✅ Screen-quality-scorecard: Teaching/Stats/History/Compare ≥88 (prMerge) and target ≥90 (milestone).
 - ✅ Device validation: Tap-to-screen-render <300ms on iPhone 12 (acceptable for feature depth).
 
 **Done When**:
+
 - [ ] All 7 routes wired to GamePhaseRouter state transitions.
 - [ ] Each route renders with placeholder content and production API integration.
 - [ ] Screen quality scores updated (≥88 for prMerge gate).
@@ -97,11 +105,13 @@ For feature-level status and exception tracking, see `parity-matrix.md`. For que
 - [ ] `parity-matrix.md` updated: 7 features marked "shipped L1" or "partial L2" with owner signatures.
 
 **Evidence Artifacts**:
+
 - Screen recordings (7 new phases in action)
 - `docs/mobile/screen-quality-scores.json` (MP.2 entries added)
 - Device profiling traces (tap-to-render, transition timing)
 
 **Risks / Rollback**:
+
 - **Risk**: API latency balloons (especially `GET /api/v2/games?limit=10`). *Mitigation*: Pagination, caching via SWR/React Query.
 - **Risk**: Screen quality scores miss gate due to animation cost. *Mitigation*: Defer heavy animations to MP.5 or replace with CSS-driven entry effects.
 
@@ -119,6 +129,7 @@ For feature-level status and exception tracking, see `parity-matrix.md`. For que
 **Features Out**: Team leaderboards, global leaderboards (MP.5+).
 
 **API Dependencies**:
+
 - `GET /api/v2/analytics/player/summary` (session stats)
 - `GET /api/v2/analytics/player/streaks` (streak data)
 - `GET /api/v2/analytics/question-difficulty` (heatmap data)
@@ -126,10 +137,12 @@ For feature-level status and exception tracking, see `parity-matrix.md`. For que
 **Surfaces**: Stats screen, History screen (expanded), Achievement badge UI component.
 
 **Quality Gates**:
+
 - ✅ Screen-quality-scorecard: Stats/History/Achievements ≥88 (prMerge) and ≥90 (milestone).
 - ✅ Device validation: Charts render in <200ms on low-end device (iPhone SE).
 
 **Done When**:
+
 - [ ] All 3 surfaces render with real data (production API + mobile caching).
 - [ ] Charts/heatmaps adapted for 5–6" screens (not 1:1 web port).
 - [ ] Screen quality scores ≥90.
@@ -137,11 +150,13 @@ For feature-level status and exception tracking, see `parity-matrix.md`. For que
 - [ ] `parity-matrix.md` updated: Stats/History/Achievements marked "shipped L2" with owner signatures.
 
 **Evidence Artifacts**:
+
 - Screen-quality-scores.json entries
 - Device profiling (chart render times on low-end device)
 - API call traces (caching hits vs misses)
 
 **Risks / Rollback**:
+
 - **Risk**: Heatmap rendering blocks main thread. *Mitigation*: Render to canvas or lazy-load cells.
 - **Risk**: Stats surface feels cluttered on small screen. *Mitigation*: Redesign for mobile-first (fewer cells per row, vertical stacking).
 
@@ -159,6 +174,7 @@ For feature-level status and exception tracking, see `parity-matrix.md`. For que
 **Features Out**: Team player setup (MP.6+).
 
 **API Dependencies**:
+
 - `POST /api/v2/player/preferences` (save difficulty, pool selection)
 - `GET /api/v2/player/session/{id}/resume` (auto-save state)
 - `POST /api/v2/player/feedback` (submit post-game feedback)
@@ -166,21 +182,25 @@ For feature-level status and exception tracking, see `parity-matrix.md`. For que
 **Surfaces**: Preferences screen, Session resume banner (if auto-save triggered), Post-game feedback modal, PersonaSelector overlay.
 
 **Quality Gates**:
+
 - ✅ Screen-quality-scorecard: Preferences/Feedback ≥88 (prMerge).
 - ✅ Auto-save reliability: 100% save success rate on test device.
 
 **Done When**:
-- [ ] Preferences screen wired to API and reflects in next game session.
-- [ ] Session resume correctly restores game state (question, history, posterior).
-- [ ] Feedback form submits and triggers analytics ingestion.
-- [ ] `parity-matrix.md` updated: Preferences/Resume/Feedback marked as target.
+
+- [x] Preferences screen wired to API and reflects in next game session. *(difficulty via startGame payload; persona cards match web)*
+- [x] Session resume correctly restores game state (question, history, posterior). *(ResumeScreen wired to resumeGame API)*
+- [x] Feedback form submits and triggers analytics ingestion. *(POST /api/v2/game/feedback wired with rating + notes)*
+- [x] `parity-matrix.md` updated: Preferences/Resume/Feedback marked as target. *(parity-matrix.md v1.4)*
 
 **Evidence Artifacts**:
+
 - Screen recordings (preferences update → next game reflects choice)
 - Auto-save reliability telemetry
 - Feedback submission logs
 
 **Risks / Rollback**:
+
 - **Risk**: Auto-save triggers false positives (resume offered when not needed). *Mitigation*: Set high threshold (game >1 minute old).
 - **Risk**: Preferences not applied to API response. *Mitigation*: Add player context to bootstrap request.
 
@@ -198,6 +218,7 @@ For feature-level status and exception tracking, see `parity-matrix.md`. For que
 **Features Out**: Full global leaderboard, team-based challenges.
 
 **API Dependencies**:
+
 - `GET /api/v2/challenges/daily/{date}` (today's challenge)
 - `POST /api/v2/challenges/daily/{date}/submit` (submit challenge guess)
 - `GET /api/v2/leaderboards/challenges/seasonal?limit=10` (top 10 leaderboard)
@@ -205,22 +226,26 @@ For feature-level status and exception tracking, see `parity-matrix.md`. For que
 **Surfaces**: Challenge detail screen (mobile-optimized), Challenge leaderboard (top 10 only), Multi-guess mode in Playing screen.
 
 **Quality Gates**:
+
 - ✅ Screen-quality-scorecard: Challenge/Leaderboard ≥88 (prMerge) and ≥90 (milestone).
 - ✅ Device validation: Summary render <150ms (even on low-end device).
 - ✅ Leaderboard scroll performance: <60ms per scroll frame.
 
 **Done When**:
+
 - [ ] Challenge summary renders with player's previous attempt and today's meta (# guesses, top guesses).
 - [ ] Leaderboard loads and scrolls smoothly (60fps target).
 - [ ] Multi-guess mode integration confirmed in Playing screen state machine.
 - [ ] `parity-matrix.md` updated: Challenge/Leaderboard marked "shipped L2" with owner + evidence links.
 
 **Evidence Artifacts**:
+
 - Screen-quality-scores.json entries (Challenge/Leaderboard)
 - Device profiling (render times, scroll fps)
 - Leaderboard API response telemetry
 
 **Risks / Rollback**:
+
 - **Risk**: Leaderboard query times out (full SQL query too expensive). *Mitigation*: Pre-compute top 10 nightly, cache in KV.
 - **Risk**: Multi-guess state machine breaks existing game flow. *Mitigation*: Feature-flag behind `multiGuessEnabled` context flag, default off until MP.5 ship.
 
@@ -242,12 +267,14 @@ For feature-level status and exception tracking, see `parity-matrix.md`. For que
 **Surfaces**: Connection status indicator (top-of-screen), Low-bandwidth warning modal, Background sync badge on answers/feedback.
 
 **Quality Gates**:
+
 - ✅ Device validation: p95 tap-to-feedback <100ms, p95 transition start <150ms across all 10 features (iPhone SE).
 - ✅ Offline resilience: All surfaces gracefully degrade (no crashes, state preserved).
 - ✅ Network profiling: 100% of API calls cache-aware; retry logic logs telemetry.
 - ✅ Screen-quality-scorecard: No regressions from MP.5.
 
 **Done When**:
+
 - [ ] Performance profiling complete (all features meet <100ms, <150ms gates).
 - [ ] Offline mode tested on device (enable airplane mode, verify no crashes, state persists).
 - [ ] Background sync queue handles 50+ pending answers without data loss.
@@ -255,12 +282,14 @@ For feature-level status and exception tracking, see `parity-matrix.md`. For que
 - [ ] `parity-matrix.md` updated: All features marked "shipped L3" with performance + offline evidence.
 
 **Evidence Artifacts**:
+
 - Device profiling traces (tap-to-feedback, transition timing per feature)
 - Offline mode test recordings
 - Network telemetry logs (cache hit rates, retry counts)
 - Background sync durability test results
 
 **Risks / Rollback**:
+
 - **Risk**: Performance targets unmet on SE (due to heavy analytics). *Mitigation*: Disable intra-game analytics on low-end device, log only on game completion.
 - **Risk**: Offline state becomes stale (user edits answer locally, server has different state). *Mitigation*: Strict conflict-free merge strategy (server always wins; show undo prompt if local edits lost).
 
@@ -282,6 +311,7 @@ For feature-level status and exception tracking, see `parity-matrix.md`. For que
 **Surfaces**: Release notes, handoff README (Xcode continuity), Changelog entry in `CHANGELOG.md`.
 
 **Quality Gates**:
+
 - ✅ Parity matrix: 10+ core features all marked ✅ (shipped L2+) with evidence links + owner signatures.
 - ✅ Screen-quality-scorecard: All features ≥90 (production gate).
 - ✅ Device validation: All tests green on iPhone 12 + SE.
@@ -289,6 +319,7 @@ For feature-level status and exception tracking, see `parity-matrix.md`. For que
 - ✅ CI/CD: E2E tests green for all mobile flows.
 
 **Done When**:
+
 - [ ] `parity-matrix.md` finalized: all features ✅, all evidence linked, all owners signed.
 - [ ] `ROADMAP.md` MP.7 marked ✅ with date.
 - [ ] Handoff README updated in `docs/mobile/xcode-claude-memory-handoff.md` with known edge cases + mobile-specific API behaviors.
@@ -296,12 +327,14 @@ For feature-level status and exception tracking, see `parity-matrix.md`. For que
 - [ ] AppStore submission readiness verified (TestFlight build passes review, no known crashes).
 
 **Evidence Artifacts**:
+
 - Finalized `parity-matrix.md`
 - `CHANGELOG.md` release entry
 - Handoff README
 - AppStore submission checklist (signed off)
 
 **Risks / Rollback**:
+
 - **Risk**: AppStore review rejects due to privacy/compliance issue. *Mitigation*: Pre-submission review with privacy/legal; test in TestFlight for 1+ week.
 - **Risk**: Last-minute blocker (e.g., iOS 18 incompatibility). *Mitigation*: Maintain `1.x-lts` branch for prior iOS versions if needed; communicate timeline to stakeholders.
 

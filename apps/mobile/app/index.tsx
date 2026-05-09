@@ -19,8 +19,12 @@ import { WelcomeScreen } from '../src/screens/WelcomeScreen';
 import { useMobileGame } from '../src/state/useMobileGame';
 import {
   type AnswerValue,
+  fetchDailyChallenge,
+  fetchDailyLeaderboard,
   fetchHistoryGames,
   fetchStatsOverview,
+  type MobileDailyChallenge,
+  type MobileDailyLeaderboard,
   type MobileHistoryGame,
   type MobileStatsOverview,
   MobileApiError,
@@ -107,6 +111,10 @@ function MobileShell(): ReactElement {
   const [historyLoading, setHistoryLoading] = useState(false);
   const [statsError, setStatsError] = useState<string | null>(null);
   const [historyError, setHistoryError] = useState<string | null>(null);
+  const [dailyChallenge, setDailyChallenge] = useState<MobileDailyChallenge | null>(null);
+  const [dailyLeaderboard, setDailyLeaderboard] = useState<MobileDailyLeaderboard | null>(null);
+  const [challengeLoading, setChallengeLoading] = useState(false);
+  const [challengeError, setChallengeError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -164,6 +172,27 @@ function MobileShell(): ReactElement {
         });
     }
 
+    if (state.phase === 'challenge') {
+      setChallengeLoading(true);
+      setChallengeError(null);
+
+      void Promise.all([fetchDailyChallenge(), fetchDailyLeaderboard()])
+        .then(([daily, lb]) => {
+          if (cancelled) return;
+          setDailyChallenge(daily);
+          setDailyLeaderboard(lb);
+        })
+        .catch((error: unknown) => {
+          if (cancelled) return;
+          setChallengeError(toErrorMessage(error));
+        })
+        .finally(() => {
+          if (!cancelled) {
+            setChallengeLoading(false);
+          }
+        });
+    }
+
     return () => {
       cancelled = true;
     };
@@ -177,6 +206,24 @@ function MobileShell(): ReactElement {
         difficulty,
         categories: []
       });
+      dispatch({
+        type: 'START_SUCCESS',
+        sessionId: response.sessionId,
+        question: response.question,
+        reasoning: response.reasoning
+      });
+    } catch (error) {
+      dispatch({ type: 'SET_ERROR', message: toErrorMessage(error) });
+    } finally {
+      dispatch({ type: 'SET_BUSY', isBusy: false });
+    }
+  };
+
+  const runStartChallenge = async (characterId: string): Promise<void> => {
+    dispatch({ type: 'SET_BUSY', isBusy: true });
+    dispatch({ type: 'SET_ERROR', message: null });
+    try {
+      const response = await startGame({ difficulty, categories: [], characterId });
       dispatch({
         type: 'START_SUCCESS',
         sessionId: response.sessionId,
@@ -441,6 +488,11 @@ function MobileShell(): ReactElement {
         <ChallengeScreen
           isBusy={state.isBusy}
           errorMessage={state.lastError}
+          daily={dailyChallenge}
+          leaderboard={dailyLeaderboard}
+          isLoading={challengeLoading}
+          loadError={challengeError}
+          onStartChallenge={(characterId) => { void runStartChallenge(characterId); }}
           onBackToWelcome={() => dispatch({ type: 'BACK_TO_WELCOME' })}
           onOpenHistory={() => dispatch({ type: 'OPEN_PHASE', phase: 'history' })}
         />

@@ -121,7 +121,9 @@ const ENDPOINTS = {
   resume: '/api/v2/game/resume',
   feedback: '/api/v2/game/feedback',
   stats: '/api/v2/stats',
-  history: '/api/v2/history'
+  history: '/api/v2/history',
+  daily: '/api/v2/daily',
+  dailyLeaderboard: '/api/v2/daily/leaderboard'
 } as const;
 
 const DEFAULT_TIMEOUT_MS = 10_000;
@@ -672,4 +674,111 @@ export async function submitFeedback(
   if (!isRecord(payload) || payload.success !== true) {
     throw new MobileApiError('Feedback response payload is malformed', 'validation');
   }
+}
+
+// ─── Daily Challenge ───────────────────────────────────────────────────────
+
+export interface MobileFeaturedCharacter {
+  id: string;
+  name: string;
+  imageUrl: string | null;
+}
+
+export interface MobileDailyResult {
+  won: boolean;
+  questionsAsked: number;
+  completedAt: number;
+}
+
+export interface MobileDailyChallenge {
+  date: string;
+  characterId: string;
+  featuredCharacter: MobileFeaturedCharacter;
+  completed: boolean;
+  result: MobileDailyResult | null;
+  revealedCharacter: MobileFeaturedCharacter | null;
+}
+
+export interface MobileLeaderboardEntry {
+  rank: number;
+  userLabel: string;
+  won: boolean;
+  questionsAsked: number;
+  completedAt: number;
+  isYou: boolean;
+}
+
+export interface MobileDailyLeaderboard {
+  date: string;
+  leaderboard: MobileLeaderboardEntry[];
+}
+
+function parseFeaturedCharacter(raw: unknown): MobileFeaturedCharacter | null {
+  if (!isRecord(raw)) return null;
+  const id = asString(raw.id);
+  const name = asString(raw.name);
+  if (id === null || name === null) return null;
+  const imageUrl = asString(raw.imageUrl) ?? asString(raw.image_url) ?? null;
+  return { id, name, imageUrl };
+}
+
+function parseDailyResult(raw: unknown): MobileDailyResult | null {
+  if (!isRecord(raw)) return null;
+  const won = typeof raw.won === 'boolean' ? raw.won : null;
+  const questionsAsked = typeof raw.questionsAsked === 'number' ? raw.questionsAsked : null;
+  const completedAt = typeof raw.completedAt === 'number' ? raw.completedAt : null;
+  if (won === null || questionsAsked === null || completedAt === null) return null;
+  return { won, questionsAsked, completedAt };
+}
+
+function parseDailyChallenge(raw: unknown): MobileDailyChallenge {
+  if (!isRecord(raw)) {
+    throw new MobileApiError('Daily challenge response is not an object', 'validation');
+  }
+  const date = asString(raw.date) ?? '';
+  const characterId = asString(raw.characterId) ?? '';
+  const featuredCharacter = parseFeaturedCharacter(raw.featuredCharacter);
+  if (!featuredCharacter) {
+    throw new MobileApiError('Daily challenge missing featuredCharacter', 'validation');
+  }
+  const completed = raw.completed === true;
+  const result = parseDailyResult(raw.result);
+  const revealedCharacter = completed ? parseFeaturedCharacter(raw.revealedCharacter) : null;
+  return { date, characterId, featuredCharacter, completed, result, revealedCharacter };
+}
+
+function parseLeaderboardEntry(raw: unknown, idx: number): MobileLeaderboardEntry | null {
+  if (!isRecord(raw)) return null;
+  const rank = typeof raw.rank === 'number' ? raw.rank : idx + 1;
+  const userLabel = asString(raw.userLabel) ?? `#${rank}`;
+  const won = typeof raw.won === 'boolean' ? raw.won : false;
+  const questionsAsked = typeof raw.questionsAsked === 'number' ? raw.questionsAsked : 0;
+  const completedAt = typeof raw.completedAt === 'number' ? raw.completedAt : 0;
+  const isYou = raw.isYou === true;
+  return { rank, userLabel, won, questionsAsked, completedAt, isYou };
+}
+
+function parseDailyLeaderboard(raw: unknown): MobileDailyLeaderboard {
+  if (!isRecord(raw)) {
+    throw new MobileApiError('Leaderboard response is not an object', 'validation');
+  }
+  const date = asString(raw.date) ?? '';
+  const rows = Array.isArray(raw.leaderboard)
+    ? raw.leaderboard
+        .map((entry, idx) => parseLeaderboardEntry(entry, idx))
+        .filter((e): e is MobileLeaderboardEntry => e !== null)
+        .slice(0, 10)
+    : [];
+  return { date, leaderboard: rows };
+}
+
+export async function fetchDailyChallenge(): Promise<MobileDailyChallenge> {
+  const payload = await getJson(ENDPOINTS.daily);
+  return parseDailyChallenge(payload);
+}
+
+export async function fetchDailyLeaderboard(date?: string): Promise<MobileDailyLeaderboard> {
+  const url = date ? `${ENDPOINTS.dailyLeaderboard}?date=${encodeURIComponent(date)}` : ENDPOINTS.dailyLeaderboard;
+  const payload = await getJson(url);
+  return parseDailyLeaderboard(payload);
 }
