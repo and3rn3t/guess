@@ -116,14 +116,10 @@ pnpm dev
 | Command | Description |
 |---|---|
 | `pnpm mobile:dev` | Start Expo dev server for apps/mobile |
-| `pnpm mobile:dev:device` | Start Expo dev server for physical iOS device with tunnel-backed dev-client and EXPO_PUBLIC_API_BASE_URL auto-set to the Mac LAN IP |
 | `pnpm mobile:dev:tunnel` | Start Expo dev server in tunnel mode for constrained LANs |
 | `pnpm mobile:ios` | Build and run apps/mobile on iOS simulator/device |
 | `pnpm mobile:typecheck` | Type-check the mobile app workspace |
 | `pnpm mobile:prebuild:ios` | Generate native iOS project files under apps/mobile/ios |
-| `pnpm mobile:pods` | Install CocoaPods dependencies for apps/mobile/ios |
-| `pnpm mobile:open:xcode` | Open generated Xcode workspace for apps/mobile |
-| `pnpm mobile:setup:xcode` | Run prebuild + pods + open workspace in one command |
 
 ### Data And DB Ops
 

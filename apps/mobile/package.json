@@ -1,39 +1,23 @@
 {
   "name": "@guess/mobile",
   "private": true,
-  "version": "0.0.1",
-  "main": "index.js",
+  "version": "0.1.0",
+  "main": "expo-router/entry",
   "scripts": {
-    "dev": "expo start --clear",
-    "dev:device": "node ../../scripts/mobile/start-expo-device-dev.mjs",
-    "dev:tunnel": "node ../../scripts/mobile/start-expo-device-dev.mjs --host tunnel",
+    "dev": "expo start",
+    "dev:tunnel": "expo start --tunnel",
     "ios": "expo run:ios",
     "typecheck": "tsc --noEmit",
-    "prebuild:ios": "expo prebuild --platform ios && pnpm sync:xcode-env",
-    "sync:xcode-dev": "pnpm sync:xcode-env",
-    "sync:xcode-env": "[ -d ios ] && cp .xcode.env ios/.xcode.env || echo 'iOS project missing; run pnpm prebuild:ios first'",
-    "pods": "pnpm sync:xcode-env && cd ios && pod install",
-    "open:xcode": "open ios/*.xcworkspace",
-    "setup:xcode": "pnpm prebuild:ios && pnpm pods && pnpm open:xcode"
+    "prebuild:ios": "expo prebuild --platform ios"
   },
   "dependencies": {
-    "@babel/runtime": "^7.29.2",
-    "@guess/app-core": "workspace:*",
-    "@react-native-async-storage/async-storage": "^3.0.2",
-    "expo": "^55.0.19",
-    "expo-constants": "^55.0.16",
-    "expo-haptics": "^55.0.14",
-    "expo-linking": "^55.0.15",
-    "expo-router": "^55.0.14",
-    "expo-status-bar": "^55.0.0",
-    "expo-system-ui": "^55.0.17",
-    "react": "^19.0.0",
-    "react-native": "^0.85.0",
-    "react-native-safe-area-context": "^5.7.0",
-    "react-native-screens": "^4.24.0"
+    "expo": "^55.0.0",
+    "expo-router": "^6.0.0",
+    "react": "^19.1.0",
+    "react-native": "0.82.0"
   },
   "devDependencies": {
-    "@types/react": "^19.0.10",
-    "typescript": "~6.0.3"
+    "@types/react": "^19.2.2",
+    "typescript": "~5.9.2"
   }
 }

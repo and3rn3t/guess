@@ -93,6 +93,5 @@
   "vitest.configPath": "vitest.config.ts",
 
   // SweetPad / Xcode
-  "sweetpad.workspacePath": "apps/mobile/ios/Andernator.xcworkspace",
   "lldb.library": "/Applications/Xcode.app/Contents/SharedFrameworks/LLDB.framework/Versions/A/LLDB"
 }
