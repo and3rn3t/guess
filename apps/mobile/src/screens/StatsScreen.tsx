@@ -5,6 +5,9 @@ import type {
   MobileStatsOverview,
 } from "../network/mobileGameApi";
 import {
+  getMobileApiBaseUrlForDebug,
+} from "../network/mobileGameApi";
+import {
   clearMobilePerfMetrics,
   getMobilePerfSummary,
 } from "../perf/mobilePerfMetrics";
@@ -50,6 +53,7 @@ export function StatsScreen({
     stats?.totalGames ?? historyGames.length,
   );
   const perfSummary = getMobilePerfSummary();
+  const apiBaseUrl = getMobileApiBaseUrlForDebug();
   const diagnosticsSnapshot = buildDiagnosticsSnapshot(perfSummary);
 
   return (
@@ -156,6 +160,12 @@ export function StatsScreen({
           <Text style={styles.metricKey}>Samples</Text>
           <Text style={styles.metricValue}>
             tap {perfSummary.tap_to_feedback.count} · transition {perfSummary.transition_start.count}
+          </Text>
+        </View>
+        <View style={styles.metricItem}>
+          <Text style={styles.metricKey}>API base URL</Text>
+          <Text style={styles.metricValue}>
+            {apiBaseUrl.length > 0 ? apiBaseUrl : "Not configured"}
           </Text>
         </View>
         <Text style={styles.metricKey}>Pasteback Snapshot</Text>

@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   fetchHistoryGames,
+  getMobileApiBaseUrlForDebug,
   getMobileSyncStatus,
   onMobileSyncStatusChange,
   type MobileSyncStatus
@@ -120,5 +121,19 @@ describe('mobileGameApi GET resilience', () => {
     expect(observedStatuses[observedStatuses.length - 1]).toBe('synced');
 
     unsubscribe();
+  });
+
+  it('uses EXPO_PUBLIC_API_BASE_URL when provided', () => {
+    process.env.EXPO_PUBLIC_API_BASE_URL = 'https://example.com/';
+    vi.stubGlobal('__DEV__', true);
+
+    expect(getMobileApiBaseUrlForDebug()).toBe('https://example.com');
+  });
+
+  it('falls back to localhost in dev when API base is unset', () => {
+    delete process.env.EXPO_PUBLIC_API_BASE_URL;
+    vi.stubGlobal('__DEV__', true);
+
+    expect(getMobileApiBaseUrlForDebug()).toBe('http://127.0.0.1:8788');
   });
 });

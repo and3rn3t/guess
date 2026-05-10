@@ -209,6 +209,10 @@ function getApiBaseUrl(): string {
   return '';
 }
 
+export function getMobileApiBaseUrlForDebug(): string {
+  return getApiBaseUrl();
+}
+
 function toUrl(path: string): string {
   const base = getApiBaseUrl();
   if (!base) {
