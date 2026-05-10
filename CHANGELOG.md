@@ -34,6 +34,8 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+- **Mobile dev server tunnel fallback** — updated `@guess/mobile` `dev:tunnel` to automatically fall back to LAN mode when ngrok tunnel startup fails (for example, temporary ngrok API outages), and added explicit `dev:lan` script for physical-device debugging on shared Wi-Fi.
+
 - **Mobile physical iOS dev connectivity hardening** — added iOS `infoPlist` local-network declarations (`NSLocalNetworkUsageDescription`, `NSBonjourServices`) in Expo app config and switched `dev:tunnel` to `expo start --dev-client --tunnel --clear`, addressing red-banner startup failures when iPhone cannot fetch the dev bundle.
 
 - **Mobile iOS debug linking guardrail** — updated `@guess/mobile` iOS scripts to force source-based React Native linkage (`RCT_USE_PREBUILT_RNCORE=0 RCT_USE_RN_DEP=0`) during `expo run:ios` and iOS prebuilds, preventing duplicate `RCTSwiftUI` class implementations between `React.framework` and `AndernatorMobile.debug.dylib` seen on physical-device debug runs.
