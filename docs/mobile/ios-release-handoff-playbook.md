@@ -58,6 +58,12 @@ Before marking MP.6 or MP.7 complete, capture and reference:
 - `.ci-artifacts/mobile-ci/reliability-perf-gate.log` (or equivalent CI artifact)
 - Any device screenshots/recordings stored under `docs/mobile/screenshots/`
 
+### MP.7 Release Prep Notes
+
+- Confirm the changelog entry reflects the current RN branch truth and does not describe the legacy SwiftUI reset baseline as shipped state.
+- Verify the handoff summary names the exact capture paths for Stats diagnostics and airplane-mode recordings.
+- Call out any intentional divergences from web behavior in the release notes so Xcode-side reviewers know what is expected.
+
 ## App Store Submission Checklist
 
 - Confirm version/build number alignment with the release notes.

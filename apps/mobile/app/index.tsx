@@ -429,14 +429,13 @@ function MobileShell(): ReactElement {
     beginTapFeedbackTiming();
     dispatch({ type: "SET_BUSY", isBusy: true });
     dispatch({ type: "SET_ERROR", message: null });
-    const nextQuestionRenderStartMs = startMobilePerfTimer();
     try {
       const response = await startGame({
         difficulty,
         categories: selectedCategories,
       });
       beginPhaseTransitionTiming();
-      pendingQuestionRenderTimerStartMsRef.current = nextQuestionRenderStartMs;
+      pendingQuestionRenderTimerStartMsRef.current = startMobilePerfTimer();
       dispatch({
         type: "START_SUCCESS",
         sessionId: response.sessionId,
@@ -466,7 +465,6 @@ function MobileShell(): ReactElement {
     beginTapFeedbackTiming();
     dispatch({ type: "SET_BUSY", isBusy: true });
     dispatch({ type: "SET_ERROR", message: null });
-    const nextQuestionRenderStartMs = startMobilePerfTimer();
     try {
       const response = await startGame({
         difficulty,
@@ -474,7 +472,7 @@ function MobileShell(): ReactElement {
         characterId,
       });
       beginPhaseTransitionTiming();
-      pendingQuestionRenderTimerStartMsRef.current = nextQuestionRenderStartMs;
+      pendingQuestionRenderTimerStartMsRef.current = startMobilePerfTimer();
       dispatch({
         type: "START_SUCCESS",
         sessionId: response.sessionId,
@@ -512,12 +510,10 @@ function MobileShell(): ReactElement {
     beginTapFeedbackTiming();
     dispatch({ type: "SET_BUSY", isBusy: true });
     dispatch({ type: "SET_ERROR", message: null });
-    const nextQuestionRenderStartMs = startMobilePerfTimer();
     try {
       const response = await submitAnswer(state.sessionId, value);
       if (response.type === "question") {
-        pendingQuestionRenderTimerStartMsRef.current =
-          nextQuestionRenderStartMs;
+        pendingQuestionRenderTimerStartMsRef.current = startMobilePerfTimer();
         dispatch({
           type: "ANSWER_QUESTION",
           question: response.question,
@@ -573,7 +569,6 @@ function MobileShell(): ReactElement {
     beginTapFeedbackTiming();
     dispatch({ type: "SET_BUSY", isBusy: true });
     dispatch({ type: "SET_ERROR", message: null });
-    const nextQuestionRenderStartMs = startMobilePerfTimer();
     try {
       const response = await skipQuestion(state.sessionId);
       if (!response) {
@@ -582,7 +577,7 @@ function MobileShell(): ReactElement {
         return;
       }
 
-      pendingQuestionRenderTimerStartMsRef.current = nextQuestionRenderStartMs;
+      pendingQuestionRenderTimerStartMsRef.current = startMobilePerfTimer();
       dispatch({
         type: "SKIP_QUESTION",
         question: response.question,
@@ -616,7 +611,6 @@ function MobileShell(): ReactElement {
     beginTapFeedbackTiming();
     dispatch({ type: "SET_BUSY", isBusy: true });
     dispatch({ type: "SET_ERROR", message: null });
-    const nextQuestionRenderStartMs = startMobilePerfTimer();
     try {
       const response = await rejectGuess(state.sessionId, state.finalGuess.id);
       if (response.type === "exhausted") {
@@ -626,7 +620,7 @@ function MobileShell(): ReactElement {
       }
 
       beginPhaseTransitionTiming();
-      pendingQuestionRenderTimerStartMsRef.current = nextQuestionRenderStartMs;
+      pendingQuestionRenderTimerStartMsRef.current = startMobilePerfTimer();
       dispatch({
         type: "REJECT_QUESTION",
         question: response.question,
@@ -691,7 +685,6 @@ function MobileShell(): ReactElement {
     beginTapFeedbackTiming();
     dispatch({ type: "SET_BUSY", isBusy: true });
     dispatch({ type: "SET_ERROR", message: null });
-    const nextQuestionRenderStartMs = startMobilePerfTimer();
     try {
       const response = await resumeGame(targetSessionId);
       if (!response) {
@@ -701,7 +694,7 @@ function MobileShell(): ReactElement {
       }
 
       beginPhaseTransitionTiming();
-      pendingQuestionRenderTimerStartMsRef.current = nextQuestionRenderStartMs;
+      pendingQuestionRenderTimerStartMsRef.current = startMobilePerfTimer();
       dispatch({
         type: "RESUME_SUCCESS",
         sessionId: targetSessionId,

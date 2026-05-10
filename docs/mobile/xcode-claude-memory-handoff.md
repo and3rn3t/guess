@@ -31,6 +31,12 @@ Before starting Xcode-native work, read in order:
 - MP.6 diagnostics live in `StatsScreen` and are currently the canonical in-app source for p95 tap-to-feedback and transition timing evidence.
 - The current CI release guard for mobile behavior is `pnpm mobile:reliability-gate`; if you move tests or files, keep `.github/workflows/mobile-ci.yml` and `docs/ci-artifacts.md` in sync.
 
+## MP.7 Handoff Focus
+
+- The physical-device evidence path lives in `docs/mobile/device-validation-checklist.md` and `docs/mobile/screenshots/`; use the Stats diagnostics share action for pasteback snapshots when manual selection is unreliable.
+- Release-prep reviewers should confirm the branch still reports `main...origin/main` cleanly after any push and that `pnpm mobile:reliability-gate` remains green before handoff.
+- If MP.7 is being prepared for app submission, keep the changelog scope aligned with the shipped RN surfaces and call out intentional mobile divergences in the PR summary.
+
 ## Required handoff block for native PRs
 
 Include this in every PR touching `apps/mobile/ios/**`.
