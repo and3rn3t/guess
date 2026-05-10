@@ -1,6 +1,7 @@
 import type { ReactElement } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import type { MobileDailyChallenge, MobileDailyLeaderboard, MobileLeaderboardEntry } from '../network/mobileGameApi';
+import { SyncStatusBadge } from './SyncStatusBadge';
 
 interface ChallengeScreenProps {
   isBusy: boolean;
@@ -110,6 +111,8 @@ export function ChallengeScreen({
       </View>
 
       {errorMessage ? <Text style={styles.inlineError}>{errorMessage}</Text> : null}
+
+      <SyncStatusBadge />
 
       <View style={styles.actionsBlock}>
         <Pressable

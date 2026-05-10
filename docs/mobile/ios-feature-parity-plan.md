@@ -292,7 +292,7 @@ For feature-level status and exception tracking, see `parity-matrix.md`. For que
 | Feedback (submit feedback) | ✅ | Offline queue + replay for feedback submissions + sync badge. |
 | Stats | ✅ | GET transport retry + global connection/sync status surfaces. |
 | History | ✅ | GET transport retry + global connection/sync status surfaces. |
-| Challenge | 🟡 | Global connection/sync surfaces active; endpoint-specific resilience audit still pending. |
+| Challenge | ✅ | Sync badge + global connection/sync surfaces + offline leaderboard graceful degradation. |
 | Compare | ⬜ | Feature not shipped in current branch. |
 | Resume | ✅ | Resume API path covered by sync status + connection state handling. |
 | Preferences | ✅ | Global connection/sync resilience surfaces active. |
