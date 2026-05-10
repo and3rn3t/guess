@@ -304,6 +304,7 @@ For feature-level status and exception tracking, see `parity-matrix.md`. For que
 - Offline mode test recordings
 - Network telemetry logs (cache hit rates, retry counts)
 - Background sync durability test results
+- MP.6 execution checklist + pasteback template in `docs/mobile/device-validation-checklist.md`
 
 **Risks / Rollback**:
 

@@ -119,3 +119,78 @@ MP.3-specific checks:
 - [ ] Verify tap-to-feedback and transition timing remain within scorecard thresholds.
 - [ ] Verify feedback submission succeeds and handles offline/error states gracefully.
 - [ ] Verify preferences persist after app restart on physical device.
+
+## MP.6 Addendum (Reliability & Performance Closure)
+
+Run this pass after the MP.6 reliability hardening and diagnostics instrumentation commits.
+
+### Preconditions
+
+- [ ] Build includes `apps/mobile/src/perf/mobilePerfMetrics.ts` instrumentation.
+- [ ] Build includes Stats diagnostics card (`MP.6 Diagnostics`) in `StatsScreen`.
+- [ ] Device has cellular or Wi-Fi available and can toggle airplane mode.
+
+### Performance Evidence Capture (p95)
+
+1. Launch app and use `Reset Diagnostics Samples` on Stats.
+2. Execute 20+ interaction samples across gameplay:
+	- Start game / start challenge
+	- Answer question
+	- Skip question
+	- Reject guess
+	- Submit result
+3. Return to Stats and capture diagnostics values:
+	- `Tap-to-feedback p95`
+	- `Transition-start p95`
+	- sample counts
+4. Record screenshot(s) in `docs/mobile/screenshots/` and link in parity evidence notes.
+
+Performance pass criteria:
+
+- [ ] Tap-to-feedback p95 <= 100 ms.
+- [ ] Transition-start p95 <= 150 ms.
+- [ ] Sample count is >= 20 for tap and >= 10 for transition.
+
+### Offline / Airplane Mode Evidence Capture
+
+1. Start in online mode and begin a game session.
+2. Toggle airplane mode ON.
+3. Validate resilience surfaces while offline:
+	- Connection banner shows offline state.
+	- Sync badge reflects offline/pending behavior.
+	- No crash while navigating Welcome, Playing, Guessing, Game Over, Challenge, Stats, History.
+4. Submit result and feedback while offline to queue actions.
+5. Toggle airplane mode OFF and verify queued actions flush.
+6. Capture screen recording and attach evidence path.
+
+Offline pass criteria:
+
+- [ ] No crashes across tested routes in airplane mode.
+- [ ] Offline submissions queue correctly.
+- [ ] Reconnect flush succeeds and clears queued count.
+
+### MP.6 Pasteback Template
+
+Owner: <name>
+Device: <model>
+iOS: <version>
+Run date: <YYYY-MM-DD>
+
+Performance diagnostics:
+- Tap-to-feedback p95: <value> ms (threshold 100)
+- Transition-start p95: <value> ms (threshold 150)
+- Tap samples: <count>
+- Transition samples: <count>
+
+Offline run:
+- Airplane mode no-crash pass: yes|no - <notes>
+- Offline queue enqueued actions: yes|no - <notes>
+- Reconnect flush cleared queue: yes|no - <notes>
+
+Evidence files:
+- Screenshot: <path>
+- Recording: <path>
+
+Ready to mark:
+- MP.6 Performance profiling complete: yes|no
+- MP.6 Offline mode tested on device: yes|no
