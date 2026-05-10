@@ -8,7 +8,13 @@
     "userInterfaceStyle": "automatic",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.andernet.guessmobile"
+      "bundleIdentifier": "com.andernet.guessmobile",
+      "infoPlist": {
+        "NSLocalNetworkUsageDescription": "Andernator Mobile uses your local network in development to connect to the Metro bundler running on your Mac.",
+        "NSBonjourServices": [
+          "_http._tcp"
+        ]
+      }
     },
     "plugins": ["expo-router"]
   }
