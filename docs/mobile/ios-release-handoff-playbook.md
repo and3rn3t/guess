@@ -1,6 +1,6 @@
 # iOS Release and Handoff Playbook
 
-Effective date: 2026-05-09
+Effective date: 2026-05-10
 
 This playbook defines pre-release checks, release communication requirements, and handoff steps for iOS parity work.
 
@@ -19,6 +19,7 @@ Run from repo root:
 3. `pnpm build:worker`
 4. `pnpm mobile:typecheck`
 5. `pnpm mobile:guardrails`
+6. `pnpm mobile:reliability-gate`
 
 If iOS dependencies/config changed:
 
@@ -37,6 +38,8 @@ Functional preflight:
 - Welcome -> Playing -> Guessing -> Game Over flow completes.
 - Challenge flow and leaderboard summary render correctly.
 - Resume path and preferences persistence verified.
+- Teaching, Stats, History, and Compare surfaces load with current branch data and copy.
+- Feedback submission succeeds online and queues safely offline.
 
 Quality preflight:
 
@@ -44,6 +47,24 @@ Quality preflight:
 - Dynamic Type pass for changed screens.
 - Reduced-motion pass for changed screens.
 - Performance budgets checked for changed transitions and interactions.
+- Airplane-mode run verifies connection banner, sync badge, queueing, and reconnect flush.
+
+## Release Evidence Package
+
+Before marking MP.6 or MP.7 complete, capture and reference:
+
+- `docs/mobile/device-validation-checklist.md` MP.6 addendum results
+- `docs/mobile/parity-matrix.md` row updates for touched features
+- `.ci-artifacts/mobile-ci/reliability-perf-gate.log` (or equivalent CI artifact)
+- Any device screenshots/recordings stored under `docs/mobile/screenshots/`
+
+## App Store Submission Checklist
+
+- Confirm version/build number alignment with the release notes.
+- Confirm privacy disclosure text still matches current networked and offline-queue behavior.
+- Confirm no open blocker issues in start game, challenge, resume, feedback, or preferences flows.
+- Confirm TestFlight smoke run on at least one current iPhone and one small-screen device.
+- Confirm release handoff notes call out remaining intentional divergences from web.
 
 ## Release Notes Contract
 
@@ -62,6 +83,7 @@ Before handoff to another contributor:
 3. Update operational docs when behavior/scripts changed:
    - `docs/mobile/xcode-setup.md`
    - `docs/mobile/xcode-claude-memory-handoff.md`
+   - `docs/mobile/ios-release-handoff-playbook.md`
 4. Include links to QA evidence artifacts in the PR summary.
 5. Include unresolved risks and next actions.
 

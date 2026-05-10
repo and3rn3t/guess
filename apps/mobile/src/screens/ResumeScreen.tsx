@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 interface ResumeScreenProps {
   isBusy: boolean;
+  isOffline: boolean;
   savedSessionId: string | null;
   errorMessage: string | null;
   onResume: () => void;
@@ -11,6 +12,7 @@ interface ResumeScreenProps {
 
 export function ResumeScreen({
   isBusy,
+  isOffline,
   savedSessionId,
   errorMessage,
   onResume,
@@ -33,11 +35,17 @@ export function ResumeScreen({
 
       {errorMessage ? <Text style={styles.errorText}>{errorMessage}</Text> : null}
 
+      {isOffline && hasSession && !errorMessage ? (
+        <View style={styles.offlineCard}>
+          <Text style={styles.offlineCardText}>You're offline — your session is preserved. Resume will work when you reconnect.</Text>
+        </View>
+      ) : null}
+
       <Pressable
         accessibilityRole="button"
-        disabled={isBusy || !hasSession}
+        disabled={isBusy || !hasSession || isOffline}
         onPress={onResume}
-        style={[styles.actionButton, styles.actionPrimary, isBusy || !hasSession ? styles.disabled : null]}
+        style={[styles.actionButton, styles.actionPrimary, isBusy || !hasSession || isOffline ? styles.disabled : null]}
       >
         <Text style={styles.actionPrimaryText}>{hasSession ? 'Resume To Playing' : 'No Session To Resume'}</Text>
       </Pressable>
@@ -106,6 +114,20 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     lineHeight: 20
+  },
+  offlineCard: {
+    borderWidth: 1,
+    borderColor: '#92400e',
+    borderRadius: 12,
+    backgroundColor: '#1c1007',
+    paddingHorizontal: 14,
+    paddingVertical: 10
+  },
+  offlineCardText: {
+    color: '#fbbf24',
+    fontSize: 13,
+    fontWeight: '600',
+    lineHeight: 18
   },
   actionButton: {
     borderRadius: 12,

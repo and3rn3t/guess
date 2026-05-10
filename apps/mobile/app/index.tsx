@@ -57,6 +57,7 @@ import { TeachingScreen } from "../src/screens/TeachingScreen";
 import { WelcomeScreen } from "../src/screens/WelcomeScreen";
 import { buildQuickStartSummary } from "../src/screens/mobileQuickStartSummary";
 import { getTeachingProgressSummary } from "../src/screens/teachingProgress";
+import { useMobileConnectionStatus } from "../src/network/useMobileConnectionStatus";
 import { MobileGameProvider } from "../src/state/MobileGameProvider";
 import type { MobileCharacterCategory } from "../src/state/mobileCategories";
 import { createMobileActionGuard } from "../src/state/mobileActionGuard";
@@ -146,8 +147,25 @@ export default function HomeScreen(): ReactElement {
   );
 }
 
+function toOfflineAwareError(
+  error: unknown,
+  tone: string,
+  offlineMessage: string,
+): string {
+  if (
+    error instanceof MobileApiError &&
+    error.kind === "transport" &&
+    tone === "offline"
+  ) {
+    return offlineMessage;
+  }
+  return toErrorMessage(error);
+}
+
 function MobileShell(): ReactElement {
   const { state, dispatch } = useMobileGame();
+  const connectionStatus = useMobileConnectionStatus();
+  const isOffline = connectionStatus.tone === "offline";
   const meta = PHASE_META[state.phase];
   const [preferencesState, setPreferencesState] = useState(
     createMobilePreferencesSessionState,
@@ -426,7 +444,14 @@ function MobileShell(): ReactElement {
         reasoning: response.reasoning,
       });
     } catch (error) {
-      dispatch({ type: "SET_ERROR", message: toErrorMessage(error) });
+      dispatch({
+        type: "SET_ERROR",
+        message: toOfflineAwareError(
+          error,
+          connectionStatus.tone,
+          "You're offline \u2014 connect to the internet to start a new game.",
+        ),
+      });
     } finally {
       dispatch({ type: "SET_BUSY", isBusy: false });
       actionGuardRef.current.leave();
@@ -457,7 +482,14 @@ function MobileShell(): ReactElement {
         reasoning: response.reasoning,
       });
     } catch (error) {
-      dispatch({ type: "SET_ERROR", message: toErrorMessage(error) });
+      dispatch({
+        type: "SET_ERROR",
+        message: toOfflineAwareError(
+          error,
+          connectionStatus.tone,
+          "You're offline \u2014 connect to the internet to start a challenge.",
+        ),
+      });
     } finally {
       dispatch({ type: "SET_BUSY", isBusy: false });
       actionGuardRef.current.leave();
@@ -511,7 +543,14 @@ function MobileShell(): ReactElement {
         reasoning: response.reasoning,
       });
     } catch (error) {
-      dispatch({ type: "SET_ERROR", message: toErrorMessage(error) });
+      dispatch({
+        type: "SET_ERROR",
+        message: toOfflineAwareError(
+          error,
+          connectionStatus.tone,
+          "You're offline \u2014 reconnect to continue your game. Your progress is saved.",
+        ),
+      });
     } finally {
       dispatch({ type: "SET_BUSY", isBusy: false });
       actionGuardRef.current.leave();
@@ -550,7 +589,14 @@ function MobileShell(): ReactElement {
         reasoning: response.reasoning,
       });
     } catch (error) {
-      dispatch({ type: "SET_ERROR", message: toErrorMessage(error) });
+      dispatch({
+        type: "SET_ERROR",
+        message: toOfflineAwareError(
+          error,
+          connectionStatus.tone,
+          "You're offline \u2014 reconnect to skip a question. Your progress is saved.",
+        ),
+      });
     } finally {
       dispatch({ type: "SET_BUSY", isBusy: false });
       actionGuardRef.current.leave();
@@ -589,7 +635,14 @@ function MobileShell(): ReactElement {
         guessCount: response.guessCount,
       });
     } catch (error) {
-      dispatch({ type: "SET_ERROR", message: toErrorMessage(error) });
+      dispatch({
+        type: "SET_ERROR",
+        message: toOfflineAwareError(
+          error,
+          connectionStatus.tone,
+          "You're offline \u2014 reconnect to continue. Your session is preserved.",
+        ),
+      });
     } finally {
       dispatch({ type: "SET_BUSY", isBusy: false });
       actionGuardRef.current.leave();
@@ -657,7 +710,14 @@ function MobileShell(): ReactElement {
         guessCount: response.guessCount,
       });
     } catch (error) {
-      dispatch({ type: "SET_ERROR", message: toErrorMessage(error) });
+      dispatch({
+        type: "SET_ERROR",
+        message: toOfflineAwareError(
+          error,
+          connectionStatus.tone,
+          "You're offline \u2014 your session is preserved. Reconnect to resume.",
+        ),
+      });
     } finally {
       dispatch({ type: "SET_BUSY", isBusy: false });
       actionGuardRef.current.leave();
@@ -725,6 +785,7 @@ function MobileShell(): ReactElement {
       return (
         <WelcomeScreen
           isBusy={state.isBusy}
+          isOffline={isOffline}
           lastError={state.lastError}
           hasSavedSession={Boolean(state.lastSessionId ?? state.sessionId)}
           quickStartSummary={quickStartSummary}
@@ -779,6 +840,7 @@ function MobileShell(): ReactElement {
       return (
         <ResumeScreen
           isBusy={state.isBusy}
+          isOffline={isOffline}
           savedSessionId={state.lastSessionId ?? state.sessionId}
           errorMessage={state.lastError}
           onResume={onResumeGame}

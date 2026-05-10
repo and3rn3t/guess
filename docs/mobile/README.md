@@ -24,8 +24,9 @@ Canonical planning sources:
 12. [xcode-claude-memory-handoff.md](xcode-claude-memory-handoff.md)
 13. [screen-quality-scorecard.md](screen-quality-scorecard.md)
 14. [device-validation-checklist.md](device-validation-checklist.md)
-15. [roadmap-foundations.md](roadmap-foundations.md) (legacy foundations reference)
-16. [ios-master-plan.md](ios-master-plan.md) (superseded pointer)
+15. [screenshots/README.md](screenshots/README.md)
+16. [roadmap-foundations.md](roadmap-foundations.md) (legacy foundations reference)
+17. [ios-master-plan.md](ios-master-plan.md) (superseded pointer)
 
 ## What Each Doc Is For
 
@@ -43,6 +44,7 @@ Canonical planning sources:
 - [xcode-claude-memory-handoff.md](xcode-claude-memory-handoff.md): AI handoff protocol when memory is not shared across IDEs.
 - [screen-quality-scorecard.md](screen-quality-scorecard.md): PR scoring rubric for core screens.
 - [device-validation-checklist.md](device-validation-checklist.md): physical-device runtime checklist used for score evidence updates.
+- [screenshots/README.md](screenshots/README.md): naming and storage rules for device-evidence screenshots and recordings.
 - [roadmap-foundations.md](roadmap-foundations.md): legacy MB-series foundation detail retained for historical context.
 - [ios-master-plan.md](ios-master-plan.md): superseded compatibility pointer to archived strategy content.
 

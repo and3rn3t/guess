@@ -86,7 +86,8 @@ export type MobileGameAction =
   | { type: 'OPEN_PHASE'; phase: Exclude<MobileGamePhase, CoreGamePhase> }
   | { type: 'INCREMENT_GUESS_COUNT' }
   | { type: 'SET_BUSY'; isBusy: boolean }
-  | { type: 'SET_ERROR'; message: string | null };
+  | { type: 'SET_ERROR'; message: string | null }
+  | { type: 'RESTORE_SESSION_ID'; sessionId: string };
 
 export const createInitialMobileGameState = (): MobileGameState => ({
   phase: 'welcome',
@@ -261,6 +262,11 @@ export function mobileGameReducer(
         ...state,
         lastError: action.message
       };
+      case 'RESTORE_SESSION_ID':
+        return {
+          ...state,
+          lastSessionId: state.lastSessionId ?? action.sessionId
+        };
     default:
       return state;
   }

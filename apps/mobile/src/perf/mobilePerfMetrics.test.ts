@@ -34,18 +34,22 @@ describe('mobilePerfMetrics', () => {
     const summary = getMobilePerfSummary();
 
     expect(summary.tap_to_feedback.count).toBe(20);
+    expect(summary.tap_to_feedback.thresholdMs).toBe(100);
     expect(summary.tap_to_feedback.p95Ms).toBe(38);
     expect(summary.tap_to_feedback.meetsTarget).toBe(true);
 
     expect(summary.feedback_to_next_question.count).toBe(20);
+    expect(summary.feedback_to_next_question.thresholdMs).toBe(450);
     expect(summary.feedback_to_next_question.p95Ms).toBe(190);
     expect(summary.feedback_to_next_question.meetsTarget).toBe(true);
 
     expect(summary.transition_start.count).toBe(20);
+    expect(summary.transition_start.thresholdMs).toBe(150);
     expect(summary.transition_start.p95Ms).toBe(95);
     expect(summary.transition_start.meetsTarget).toBe(true);
 
     expect(summary.transition_complete.count).toBe(20);
+    expect(summary.transition_complete.thresholdMs).toBe(350);
     expect(summary.transition_complete.p95Ms).toBe(228);
     expect(summary.transition_complete.meetsTarget).toBe(true);
   });

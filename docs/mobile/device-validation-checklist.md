@@ -25,56 +25,58 @@ Update this file in the same commit as score changes in docs/mobile/screen-quali
 1. Launch Debug build from Xcode to the physical iPhone.
 2. Run all 5 core screens in sequence: Welcome -> Playing -> Guessing -> Game Over -> Challenge.
 3. Validate native module behavior during the flow:
-	- Haptics feedback is present and mapped to expected actions.
-	- VoiceOver announcements trigger at expected moments.
-	- Reduce Motion state is readable and updates when changed.
-	- Lifecycle events appear on app foreground/background transitions.
+   - Haptics feedback is present and mapped to expected actions.
+   - VoiceOver announcements trigger at expected moments.
+   - Reduce Motion state is readable and updates when changed.
+   - Lifecycle events appear on app foreground/background transitions.
 4. Open the in-app `DEV` Native Debug panel and capture module state evidence:
-	- Verify live labels for VoiceOver, Reduce Motion, and Lifecycle.
-	- Trigger at least one haptic action and one VoiceOver announcement from the panel.
+   - Verify live labels for VoiceOver, Reduce Motion, and Lifecycle.
+   - Trigger at least one haptic action and one VoiceOver announcement from the panel.
 5. Run quick performance pass:
-	- Tap-to-feedback perceived under 100 ms.
-	- Transition start perceived under 150 ms.
-	- No visible stutter.
+   - Tap-to-feedback perceived under 100 ms.
+   - Transition start perceived under 150 ms.
+   - No visible stutter.
 6. Update Run Record + checkboxes, then update score evidence in docs/mobile/screen-quality-scores.json.
 
 ## Pasteback Template (for chat handoff)
 
 Copy and fill this block so evidence can be applied quickly:
 
-Owner: <name>
-Device: <model>
-iOS: <version>
-Run date: <YYYY-MM-DD>
+```text
+Owner: [name]
+Device: [model]
+iOS: [version]
+Run date: [YYYY-MM-DD]
 
 Core screens:
-- WelcomeScreen: pass|fail - <notes>
-- PlayingScreen: pass|fail - <notes>
-- GuessingScreen: pass|fail - <notes>
-- GameOverScreen: pass|fail - <notes>
-- ChallengeScreen: pass|fail - <notes>
+- WelcomeScreen: pass|fail - [notes]
+- PlayingScreen: pass|fail - [notes]
+- GuessingScreen: pass|fail - [notes]
+- GameOverScreen: pass|fail - [notes]
+- ChallengeScreen: pass|fail - [notes]
 
 Native modules:
-- NativeHaptics: pass|fail - <notes>
-- NativeVoiceOver: pass|fail - <notes>
-- NativeReduceMotion: pass|fail - <notes>
-- NativeLifecycle: pass|fail - <notes>
+- NativeHaptics: pass|fail - [notes]
+- NativeVoiceOver: pass|fail - [notes]
+- NativeReduceMotion: pass|fail - [notes]
+- NativeLifecycle: pass|fail - [notes]
 
 Performance:
-- Tap-to-feedback <100 ms: yes|no - <notes>
-- Transition start <150 ms: yes|no - <notes>
-- Stutter observed: yes|no - <notes>
+- Tap-to-feedback <100 ms: yes|no - [notes]
+- Transition start <150 ms: yes|no - [notes]
+- Stutter observed: yes|no - [notes]
 
 Score updates wanted now:
-- WelcomeScreen: <weighted or keep>
-- PlayingScreen: <weighted or keep>
-- GuessingScreen: <weighted or keep>
-- GameOverScreen: <weighted or keep>
-- ChallengeScreen: <weighted or keep>
+- WelcomeScreen: [weighted or keep]
+- PlayingScreen: [weighted or keep]
+- GuessingScreen: [weighted or keep]
+- GameOverScreen: [weighted or keep]
+- ChallengeScreen: [weighted or keep]
 
 Ready to mark:
 - MB.4 shipped: yes|no
 - MB.5 in progress: yes|no
+```
 
 ## Core Screens
 
@@ -124,7 +126,7 @@ MP.3-specific checks:
 
 Run this pass after the MP.6 reliability hardening and diagnostics instrumentation commits.
 
-### Preconditions
+### MP.6 Preconditions
 
 - [ ] Build includes `apps/mobile/src/perf/mobilePerfMetrics.ts` instrumentation.
 - [ ] Build includes Stats diagnostics card (`MP.6 Diagnostics`) in `StatsScreen`.
@@ -134,16 +136,19 @@ Run this pass after the MP.6 reliability hardening and diagnostics instrumentati
 
 1. Launch app and use `Reset Diagnostics Samples` on Stats.
 2. Execute 20+ interaction samples across gameplay:
-	- Start game / start challenge
-	- Answer question
-	- Skip question
-	- Reject guess
-	- Submit result
+   - Start game / start challenge
+   - Answer question
+   - Skip question
+   - Reject guess
+   - Submit result
 3. Return to Stats and capture diagnostics values:
-	- `Tap-to-feedback p95`
-	- `Transition-start p95`
-	- sample counts
+   - `Tap-to-feedback p95`
+   - `Transition-start p95`
+   - sample counts
 4. Record screenshot(s) in `docs/mobile/screenshots/` and link in parity evidence notes.
+   - Recommended filename: `YYYY-MM-DD-mp6-stats-diagnostics.png`
+   - Include the `Pasteback Snapshot` block in the screenshot when possible.
+   - Use `Share Diagnostics Snapshot` to send the text block off-device if text selection is awkward during capture.
 
 Performance pass criteria:
 
@@ -156,12 +161,14 @@ Performance pass criteria:
 1. Start in online mode and begin a game session.
 2. Toggle airplane mode ON.
 3. Validate resilience surfaces while offline:
-	- Connection banner shows offline state.
-	- Sync badge reflects offline/pending behavior.
-	- No crash while navigating Welcome, Playing, Guessing, Game Over, Challenge, Stats, History.
+   - Connection banner shows offline state.
+   - Sync badge reflects offline/pending behavior.
+   - No crash while navigating Welcome, Playing, Guessing, Game Over, Challenge, Stats, History.
 4. Submit result and feedback while offline to queue actions.
 5. Toggle airplane mode OFF and verify queued actions flush.
 6. Capture screen recording and attach evidence path.
+   - Recommended filename: `YYYY-MM-DD-mp6-offline-recording.mov`
+   - Ensure the recording includes offline banner state, queued submission, and reconnect flush.
 
 Offline pass criteria:
 
@@ -171,26 +178,28 @@ Offline pass criteria:
 
 ### MP.6 Pasteback Template
 
-Owner: <name>
-Device: <model>
-iOS: <version>
-Run date: <YYYY-MM-DD>
+```text
+Owner: [name]
+Device: [model]
+iOS: [version]
+Run date: [YYYY-MM-DD]
 
 Performance diagnostics:
-- Tap-to-feedback p95: <value> ms (threshold 100)
-- Transition-start p95: <value> ms (threshold 150)
-- Tap samples: <count>
-- Transition samples: <count>
+- Tap-to-feedback p95: [value] ms (threshold 100)
+- Transition-start p95: [value] ms (threshold 150)
+- Tap samples: [count]
+- Transition samples: [count]
 
 Offline run:
-- Airplane mode no-crash pass: yes|no - <notes>
-- Offline queue enqueued actions: yes|no - <notes>
-- Reconnect flush cleared queue: yes|no - <notes>
+- Airplane mode no-crash pass: yes|no - [notes]
+- Offline queue enqueued actions: yes|no - [notes]
+- Reconnect flush cleared queue: yes|no - [notes]
 
 Evidence files:
-- Screenshot: <path>
-- Recording: <path>
+- Screenshot: docs/mobile/screenshots/[YYYY-MM-DD-mp6-stats-diagnostics.png]
+- Recording: docs/mobile/screenshots/[YYYY-MM-DD-mp6-offline-recording.mov]
 
 Ready to mark:
 - MP.6 Performance profiling complete: yes|no
 - MP.6 Offline mode tested on device: yes|no
+```

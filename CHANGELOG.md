@@ -10,6 +10,8 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- **MP.6 mobile reliability closeout track** — completed the remaining resilience hardening slices for the RN app: offline-aware start/resume UX on Welcome and Resume, per-operation network timeouts with jittered retry, AsyncStorage-backed session durability for cold-start recovery, and a blocking mobile CI gate (`pnpm mobile:reliability-gate`) that runs the mobile Vitest slice covering perf budgets, transport resilience, and session durability. Release and parity docs were also refreshed to match the current React Native branch truth and the new CI artifact (`reliability-perf-gate.log`).
+
 - **MP.6 mobile performance instrumentation** — added in-app timing capture for `tap_to_feedback` and `transition_start` metrics across gameplay actions in `apps/mobile/app/index.tsx`, plus a reusable aggregator with p50/p95 summaries and threshold evaluation (`apps/mobile/src/perf/mobilePerfMetrics.ts`, `apps/mobile/src/perf/mobilePerfMetrics.test.ts`). This establishes the code path needed for MP.6 device evidence collection.
 
 - **MP.6 diagnostics panel for evidence capture** — Stats now exposes an MP.6 diagnostics card with live p95 values and thresholds for tap-to-feedback and transition-start timing plus sample counts and a reset control, making device evidence collection reproducible in-app (`apps/mobile/src/screens/StatsScreen.tsx`).

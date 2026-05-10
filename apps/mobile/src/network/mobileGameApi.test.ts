@@ -6,6 +6,7 @@ import {
   getMobileSyncStatus,
   onMobileSyncStatusChange,
   startGame,
+  submitAnswer,
   type MobileSyncStatus
 } from './mobileGameApi';
 
@@ -70,7 +71,8 @@ describe('mobileGameApi GET resilience', () => {
       );
 
     const request = fetchHistoryGames(1);
-    await vi.advanceTimersByTimeAsync(250);
+    // Advance beyond max retry delay (250ms base + 100ms jitter cap)
+    await vi.advanceTimersByTimeAsync(500);
 
     await expect(request).resolves.toEqual([
       {
@@ -87,6 +89,42 @@ describe('mobileGameApi GET resilience', () => {
     expect(fetchMock).toHaveBeenCalledTimes(2);
 
     vi.useRealTimers();
+  });
+
+  it('passes an AbortSignal to game-write POST requests (timeout is wired)', async () => {
+    let capturedSignal: AbortSignal | undefined;
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (_, init) => {
+      capturedSignal = (init as RequestInit | undefined)?.signal ?? undefined;
+      return new Response(
+        JSON.stringify({
+          type: 'question',
+          question: { id: 'q1', text: 'Is your character human?', attribute: 'isHuman' },
+          reasoning: { why: 'entropy', impact: 'high', remaining: 10, confidence: 50 }
+        }),
+        { status: 200, headers: { 'content-type': 'application/json' } }
+      );
+    });
+
+    await submitAnswer('sess-signal', 'yes');
+
+    expect(capturedSignal).toBeDefined();
+    expect(capturedSignal).toBeInstanceOf(AbortSignal);
+  });
+
+  it('passes an AbortSignal to stats read GET requests (timeout is wired)', async () => {
+    let capturedSignal: AbortSignal | undefined;
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (_, init) => {
+      capturedSignal = (init as RequestInit | undefined)?.signal ?? undefined;
+      return new Response(JSON.stringify({ games: [] }), {
+        status: 200,
+        headers: { 'content-type': 'application/json' }
+      });
+    });
+
+    await fetchHistoryGames(1);
+
+    expect(capturedSignal).toBeDefined();
+    expect(capturedSignal).toBeInstanceOf(AbortSignal);
   });
 
   it('publishes pending and synced states around API requests', async () => {

@@ -141,9 +141,12 @@ const ENDPOINTS = {
   dailyLeaderboard: '/api/v2/daily/leaderboard'
 } as const;
 
+const GAME_WRITE_TIMEOUT_MS = 8_000;
+const STATS_READ_TIMEOUT_MS = 12_000;
 const DEFAULT_TIMEOUT_MS = 10_000;
 const TRANSPORT_RETRY_COUNT = 1;
 const TRANSPORT_RETRY_DELAY_MS = 250;
+const TRANSPORT_JITTER_MS = 100;
 
 export type MobileSyncStatus = 'synced' | 'pending' | 'offline' | 'error';
 
@@ -301,7 +304,7 @@ async function withTransportRetry<T>(operation: () => Promise<T>): Promise<T> {
       }
 
       incrementMobileReliabilityCounter('transport_retry');
-      await sleep(TRANSPORT_RETRY_DELAY_MS);
+      await sleep(TRANSPORT_RETRY_DELAY_MS + Math.floor(Math.random() * TRANSPORT_JITTER_MS));
     }
   }
 
@@ -378,8 +381,8 @@ function parseGuess(value: unknown): MobileGuessCandidate {
   };
 }
 
-async function postJson(path: string, body: Record<string, unknown>): Promise<unknown> {
-  const response = await postRaw(path, body);
+async function postJson(path: string, body: Record<string, unknown>, timeoutMs = DEFAULT_TIMEOUT_MS): Promise<unknown> {
+  const response = await postRaw(path, body, timeoutMs);
 
   if (!response.ok) {
     incrementMobileReliabilityCounter('server_failure');
@@ -405,8 +408,8 @@ async function postJson(path: string, body: Record<string, unknown>): Promise<un
   }
 }
 
-async function getJson(path: string): Promise<unknown> {
-  const response = await getRaw(path);
+async function getJson(path: string, timeoutMs = STATS_READ_TIMEOUT_MS): Promise<unknown> {
+  const response = await getRaw(path, timeoutMs);
 
   if (!response.ok) {
     incrementMobileReliabilityCounter('server_failure');
@@ -432,11 +435,11 @@ async function getJson(path: string): Promise<unknown> {
   }
 }
 
-async function postRaw(path: string, body: Record<string, unknown>): Promise<Response> {
+async function postRaw(path: string, body: Record<string, unknown>, timeoutMs = DEFAULT_TIMEOUT_MS): Promise<Response> {
   beginSyncRequest();
 
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), DEFAULT_TIMEOUT_MS);
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
     const response = await fetch(toUrl(path), {
@@ -463,13 +466,13 @@ async function postRaw(path: string, body: Record<string, unknown>): Promise<Res
   }
 }
 
-async function getRaw(path: string): Promise<Response> {
+async function getRaw(path: string, timeoutMs = STATS_READ_TIMEOUT_MS): Promise<Response> {
   beginSyncRequest();
 
   try {
     const response = await withTransportRetry(async () => {
       const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), DEFAULT_TIMEOUT_MS);
+      const timeout = setTimeout(() => controller.abort(), timeoutMs);
 
       try {
         return await fetch(toUrl(path), {
@@ -648,7 +651,7 @@ export async function startGame(input: StartGameInput): Promise<MobileStartRespo
     categories: input.categories.length ? input.categories : undefined,
     difficulty: input.difficulty,
     characterId: input.characterId
-  });
+  }, GAME_WRITE_TIMEOUT_MS);
 
   if (!isRecord(payload) || typeof payload.sessionId !== 'string') {
     throw new MobileApiError('Invalid start response payload', 'validation');
@@ -668,7 +671,7 @@ export async function submitAnswer(
   const payload = await postJson(ENDPOINTS.answer, {
     sessionId,
     value
-  });
+  }, GAME_WRITE_TIMEOUT_MS);
 
   if (!isRecord(payload) || typeof payload.type !== 'string') {
     throw new MobileApiError('Invalid answer response payload', 'validation');
@@ -709,7 +712,7 @@ function parseAnswerPayload(payload: Record<string, unknown>): MobileAnswerRespo
 }
 
 export async function skipQuestion(sessionId: string): Promise<MobileSkipResponse | null> {
-  const response = await postRaw(ENDPOINTS.skip, { sessionId });
+  const response = await postRaw(ENDPOINTS.skip, { sessionId }, GAME_WRITE_TIMEOUT_MS);
   if (response.status === 409) {
     return null;
   }
@@ -754,7 +757,7 @@ export async function rejectGuess(
   const payload = await postJson(ENDPOINTS.rejectGuess, {
     sessionId,
     characterId
-  });
+  }, GAME_WRITE_TIMEOUT_MS);
 
   if (!isRecord(payload) || typeof payload.type !== 'string') {
     throw new MobileApiError('Invalid reject response payload', 'validation');
@@ -805,7 +808,7 @@ export async function submitResult(sessionId: string, correct: boolean): Promise
 }
 
 export async function resumeGame(sessionId: string): Promise<MobileResumeResponse | null> {
-  const payload = await postJson(ENDPOINTS.resume, { sessionId });
+  const payload = await postJson(ENDPOINTS.resume, { sessionId }, GAME_WRITE_TIMEOUT_MS);
   if (!isRecord(payload)) {
     throw new MobileApiError('Invalid resume response payload', 'validation');
   }
@@ -823,13 +826,13 @@ export async function resumeGame(sessionId: string): Promise<MobileResumeRespons
 }
 
 export async function fetchStatsOverview(): Promise<MobileStatsOverview> {
-  const payload = await getJson(ENDPOINTS.stats);
+  const payload = await getJson(ENDPOINTS.stats, STATS_READ_TIMEOUT_MS);
   return parseStatsOverview(payload);
 }
 
 export async function fetchHistoryGames(limit = 50): Promise<MobileHistoryGame[]> {
   const safeLimit = Math.max(1, Math.min(limit, 200));
-  const payload = await getJson(`${ENDPOINTS.history}?limit=${safeLimit}`);
+  const payload = await getJson(`${ENDPOINTS.history}?limit=${safeLimit}`, STATS_READ_TIMEOUT_MS);
   return parseHistoryGames(payload);
 }
 
@@ -993,12 +996,12 @@ function parseDailyLeaderboard(raw: unknown): MobileDailyLeaderboard {
 }
 
 export async function fetchDailyChallenge(): Promise<MobileDailyChallenge> {
-  const payload = await getJson(ENDPOINTS.daily);
+  const payload = await getJson(ENDPOINTS.daily, STATS_READ_TIMEOUT_MS);
   return parseDailyChallenge(payload);
 }
 
 export async function fetchDailyLeaderboard(date?: string): Promise<MobileDailyLeaderboard> {
   const url = date ? `${ENDPOINTS.dailyLeaderboard}?date=${encodeURIComponent(date)}` : ENDPOINTS.dailyLeaderboard;
-  const payload = await getJson(url);
+  const payload = await getJson(url, STATS_READ_TIMEOUT_MS);
   return parseDailyLeaderboard(payload);
 }

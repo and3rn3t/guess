@@ -39,6 +39,11 @@ jobs:
           set -o pipefail
           pnpm mobile:guardrails 2>&1 | tee .ci-artifacts/mobile-ci/guardrails.log
 
+      - name: Mobile reliability and perf gate
+        run: |
+          set -o pipefail
+          pnpm mobile:reliability-gate 2>&1 | tee .ci-artifacts/mobile-ci/reliability-perf-gate.log
+
       - name: Mobile scorecard milestone gate (main)
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
         run: |
@@ -70,6 +75,7 @@ jobs:
           echo "## Mobile CI" >> $GITHUB_STEP_SUMMARY
           echo "- typecheck.log" >> $GITHUB_STEP_SUMMARY
           echo "- guardrails.log" >> $GITHUB_STEP_SUMMARY
+          echo "- reliability-perf-gate.log" >> $GITHUB_STEP_SUMMARY
           echo "- scorecard-milestone.log (main pushes only)" >> $GITHUB_STEP_SUMMARY
           echo "- scorecard-production.log (main pushes only, warn-only)" >> $GITHUB_STEP_SUMMARY
           echo "- scorecard-production-status.txt" >> $GITHUB_STEP_SUMMARY

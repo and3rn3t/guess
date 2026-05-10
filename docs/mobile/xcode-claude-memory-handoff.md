@@ -20,7 +20,16 @@ Before starting Xcode-native work, read in order:
 2. `docs/mobile/roadmap-foundations.md`
 3. `docs/mobile/native-product-contract.md`
 4. `docs/mobile/native-surface-policy.md`
-5. `docs/mobile/xcode-setup.md`
+5. `docs/mobile/ios-release-handoff-playbook.md`
+6. `docs/mobile/device-validation-checklist.md`
+7. `docs/mobile/xcode-setup.md`
+
+## Current branch behaviors to preserve
+
+- Session resume durability is backed by AsyncStorage in `apps/mobile/src/state/mobileSessionDurability.ts`; do not regress cold-start resume while touching provider lifecycle code.
+- Offline resilience is visible in product UI through the connection banner, sync badge, offline queue, and replay-on-foreground flow; changes in `mobileGameApi.ts` should preserve those behaviors.
+- MP.6 diagnostics live in `StatsScreen` and are currently the canonical in-app source for p95 tap-to-feedback and transition timing evidence.
+- The current CI release guard for mobile behavior is `pnpm mobile:reliability-gate`; if you move tests or files, keep `.github/workflows/mobile-ci.yml` and `docs/ci-artifacts.md` in sync.
 
 ## Required handoff block for native PRs
 
@@ -36,6 +45,7 @@ Include this in every PR touching `apps/mobile/ios/**`.
 - Validation run:
   - pnpm validate:fast
   - pnpm --filter @guess/mobile typecheck
+  - pnpm mobile:reliability-gate
 - Follow-up tasks:
 ```
 
@@ -58,7 +68,8 @@ Run from repo root before switching IDEs or AI agents:
 
 1. `pnpm validate:fast`
 2. `pnpm --filter @guess/mobile typecheck`
-3. `pnpm --filter @guess/mobile sync:xcode-env`
+3. `pnpm mobile:reliability-gate`
+4. `pnpm --filter @guess/mobile sync:xcode-env`
 
 If dependencies or Expo config changed:
 

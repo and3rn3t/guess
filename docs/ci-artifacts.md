@@ -60,10 +60,11 @@ Source: .github/workflows/mobile-ci.yml
 - Contents:
   - typecheck.log — mobile TypeScript typecheck output
   - guardrails.log — boundary violation scan + scorecard gate output
+  - reliability-perf-gate.log — mobile Vitest gate for perf budgets, transport resilience, and session durability
   - scorecard-milestone.log — milestone gate result on `main` push events
   - scorecard-production.log — production gate result on `main` push events (warn-only rollout)
   - scorecard-production-status.txt — one-line pass/fail status for production gate telemetry
-- Use when: mobile typecheck or boundary guardrails fail on mobile-touching PRs.
+- Use when: mobile typecheck, runtime reliability checks, or boundary guardrails fail on mobile-touching PRs.
 - Triggered by: changes to `apps/mobile/**`, `packages/app-core/**`, or `packages/game-engine/**`.
 
 ### eas-build job

@@ -2,7 +2,7 @@
 
 **Effective**: 2026-05-07 | **Supersedes**: `roadmap-foundations.md` (detail) and `ios-master-plan.md` (strategy)
 
-**Implementation direction (2026-05-09 update)**: SwiftUI-first app shell with shared backend contracts and shared domain semantics. React Native/Expo artifacts in `apps/mobile/app/**` are treated as reset baseline references, not proof of parity completion.
+**Implementation direction (2026-05-10 update)**: The current branch truth is the React Native / Expo app in `apps/mobile/app/**` and `apps/mobile/src/**`, backed by shared backend contracts and shared domain semantics. Historical SwiftUI targets in this document remain useful as product-mapping labels, but parity completion is proven by the shipped RN surfaces and validation artifacts in this repo.
 
 This document is the canonical source for iOS feature parity execution. It defines:
 
@@ -293,10 +293,10 @@ For feature-level status and exception tracking, see `parity-matrix.md`. For que
 | Stats | ✅ | GET transport retry + global connection/sync status surfaces. |
 | History | ✅ | GET transport retry + global connection/sync status surfaces. |
 | Challenge | ✅ | Sync badge + global connection/sync surfaces + offline leaderboard graceful degradation. |
-| Compare | ⬜ | Feature not shipped in current branch. |
+| Compare | ✅ | Compare screen ships percentile, difficulty, and category insights in the RN shell. |
 | Resume | ✅ | Resume API path covered by sync status + connection state handling. |
 | Preferences | ✅ | Global connection/sync resilience surfaces active. |
-| Teaching | ⬜ | Feature not shipped in current branch. |
+| Teaching | ✅ | Teaching screen ships guided lesson progress in the RN shell. |
 
 **Evidence Artifacts**:
 
@@ -334,7 +334,7 @@ For feature-level status and exception tracking, see `parity-matrix.md`. For que
 - ✅ Screen-quality-scorecard: All features ≥90 (production gate).
 - ✅ Device validation: All tests green on iPhone 12 + SE.
 - ✅ Guardrails: Mobile boundary checks + shared-core tests all pass.
-- ✅ CI/CD: E2E tests green for all mobile flows.
+- ✅ CI/CD: `pnpm mobile:reliability-gate`, `pnpm mobile:guardrails`, and `mobile-ci` checks green.
 
 **Done When**:
 
@@ -342,7 +342,7 @@ For feature-level status and exception tracking, see `parity-matrix.md`. For que
 - [ ] `ROADMAP.md` MP.7 marked ✅ with date.
 - [ ] Handoff README updated in `docs/mobile/xcode-claude-memory-handoff.md` with known edge cases + mobile-specific API behaviors.
 - [ ] Release notes drafted in `CHANGELOG.md` (version TBD, likely 2.0.0 or 1.2.0).
-- [ ] AppStore submission readiness verified (TestFlight build passes review, no known crashes).
+- [ ] AppStore submission readiness verified (TestFlight build passes review, no known crashes, mobile-ci release checks clean).
 
 **Evidence Artifacts**:
 

@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 interface WelcomeScreenProps {
   isBusy: boolean;
+  isOffline: boolean;
   lastError: string | null;
   hasSavedSession: boolean;
   quickStartSummary: string;
@@ -15,6 +16,7 @@ interface WelcomeScreenProps {
 
 export function WelcomeScreen({
   isBusy,
+  isOffline,
   lastError,
   hasSavedSession,
   quickStartSummary,
@@ -40,11 +42,15 @@ export function WelcomeScreen({
 
       {lastError ? <Text style={styles.errorText}>{lastError}</Text> : null}
 
+      {isOffline && !lastError ? (
+        <Text style={styles.offlineHint}>You're offline — starting a game requires a connection.</Text>
+      ) : null}
+
       <Pressable
         accessibilityRole="button"
-        disabled={isBusy}
+        disabled={isBusy || isOffline}
         onPress={onStartGame}
-        style={[styles.actionButton, styles.actionPrimary, isBusy ? styles.disabled : null]}
+        style={[styles.actionButton, styles.actionPrimary, isBusy || isOffline ? styles.disabled : null]}
       >
         <Text style={styles.actionPrimaryText}>Start Game</Text>
       </Pressable>
@@ -143,6 +149,12 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     lineHeight: 20
+  },
+  offlineHint: {
+    color: '#fbbf24',
+    fontSize: 13,
+    fontWeight: '600',
+    lineHeight: 18
   },
   actionButton: {
     borderRadius: 12,

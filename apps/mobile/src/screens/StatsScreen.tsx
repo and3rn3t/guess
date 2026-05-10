@@ -2,6 +2,7 @@ import { useMemo, useState, type ReactElement } from "react";
 import {
   ActivityIndicator,
   Pressable,
+  Share,
   StyleSheet,
   Text,
   View,
@@ -70,6 +71,7 @@ export function StatsScreen({
   const [apiHealth, setApiHealth] =
     useState<MobileApiHealthCheckResult | null>(null);
   const [isCheckingApiHealth, setIsCheckingApiHealth] = useState(false);
+  const [isSharingSnapshot, setIsSharingSnapshot] = useState(false);
   const diagnosticsSnapshot = buildDiagnosticsSnapshot(perfSummary, reliabilitySummary);
   const apiHealthPresentation = getApiHealthPresentation(apiHealth);
 
@@ -269,6 +271,24 @@ export function StatsScreen({
         <Text selectable style={styles.snapshotText}>
           {diagnosticsSnapshot}
         </Text>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Share diagnostics snapshot"
+          onPress={() => {
+            setIsSharingSnapshot(true);
+            void Share.share({
+              message: diagnosticsSnapshot,
+              title: "MP.6 Diagnostics Snapshot",
+            }).finally(() => {
+              setIsSharingSnapshot(false);
+            });
+          }}
+          style={[styles.actionButton, styles.actionSecondary]}
+        >
+          <Text style={[styles.actionLabel, styles.actionLabelSecondary]}>
+            {isSharingSnapshot ? "Sharing Snapshot..." : "Share Diagnostics Snapshot"}
+          </Text>
+        </Pressable>
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Reset diagnostics samples"

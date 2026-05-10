@@ -107,6 +107,7 @@
     "release": "tsx scripts/cut-release.ts",
     "doctor": "tsx scripts/doctor.ts",
     "mobile:guardrails": "tsx scripts/mobile/check-mobile-boundaries.ts",
+    "mobile:reliability-gate": "vitest run apps/mobile/src/",
     "mobile:scorecard": "tsx scripts/mobile/check-screen-scorecard.ts",
     "mobile:scorecard:milestone": "pnpm mobile:scorecard -- --gate=milestone",
     "mobile:scorecard:production": "pnpm mobile:scorecard -- --gate=production",
