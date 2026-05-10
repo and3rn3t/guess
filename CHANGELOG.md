@@ -10,6 +10,8 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- **MP.6 mobile performance instrumentation** — added in-app timing capture for `tap_to_feedback` and `transition_start` metrics across gameplay actions in `apps/mobile/app/index.tsx`, plus a reusable aggregator with p50/p95 summaries and threshold evaluation (`apps/mobile/src/perf/mobilePerfMetrics.ts`, `apps/mobile/src/perf/mobilePerfMetrics.test.ts`). This establishes the code path needed for MP.6 device evidence collection.
+
 - **MP.6 mobile reliability hardening (in progress)** — added a production mobile resilience layer across the RN app: connection status monitoring (`online|limited|offline`) via `expo-network`, a global top-of-screen `ConnectionStatusBanner`, a cellular `LowBandwidthWarningModal`, sync-state broadcasting (`synced|pending|offline|error`), GET transport retry, and an AsyncStorage-backed offline mutation queue (result + feedback) with reconnect replay. Added focused tests for GET retry/sync transitions and queue durability/replay (`mobileGameApi.test.ts`, `mobileOfflineQueue.test.ts`).
 
 - **MP.3 mobile player insights foundation** — iOS Stats and History screens now consume live `/api/v2/stats` and `/api/v2/history` data through a shared mobile insights hook instead of placeholder copy. Added derived daily streaks, achievement badges, difficulty win-rate summaries, question-load heatmap buckets, recent-session summaries, and history filtering sized for mobile screens. Game-result recording now triggers an insights refresh so newly completed sessions flow into the analytics surfaces without restarting the app.

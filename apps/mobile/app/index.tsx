@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactElement } from 'react';
+import { useEffect, useRef, useState, type ReactElement } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MobileGameProvider } from '../src/state/MobileGameProvider';
@@ -18,6 +18,10 @@ import { StatsScreen } from '../src/screens/StatsScreen';
 import { ConnectionStatusBanner } from '../src/screens/ConnectionStatusBanner';
 import { WelcomeScreen } from '../src/screens/WelcomeScreen';
 import { useMobileGame } from '../src/state/useMobileGame';
+import {
+  finishMobilePerfTimer,
+  startMobilePerfTimer
+} from '../src/perf/mobilePerfMetrics';
 import {
   type AnswerValue,
   fetchDailyChallenge,
@@ -116,6 +120,20 @@ function MobileShell(): ReactElement {
   const [dailyLeaderboard, setDailyLeaderboard] = useState<MobileDailyLeaderboard | null>(null);
   const [challengeLoading, setChallengeLoading] = useState(false);
   const [challengeError, setChallengeError] = useState<string | null>(null);
+  const transitionTimerStartMsRef = useRef<number | null>(null);
+  const previousPhaseRef = useRef<MobileGamePhase>(state.phase);
+
+  useEffect(() => {
+    if (previousPhaseRef.current === state.phase) {
+      return;
+    }
+
+    previousPhaseRef.current = state.phase;
+    if (transitionTimerStartMsRef.current !== null) {
+      finishMobilePerfTimer('transition_start', transitionTimerStartMsRef.current);
+      transitionTimerStartMsRef.current = null;
+    }
+  }, [state.phase]);
 
   useEffect(() => {
     let cancelled = false;
@@ -200,8 +218,10 @@ function MobileShell(): ReactElement {
   }, [state.phase]);
 
   const runStartGame = async (): Promise<void> => {
+    const tapTimerStartMs = startMobilePerfTimer();
     dispatch({ type: 'SET_BUSY', isBusy: true });
     dispatch({ type: 'SET_ERROR', message: null });
+    transitionTimerStartMsRef.current = startMobilePerfTimer();
     try {
       const response = await startGame({
         difficulty,
@@ -216,13 +236,16 @@ function MobileShell(): ReactElement {
     } catch (error) {
       dispatch({ type: 'SET_ERROR', message: toErrorMessage(error) });
     } finally {
+      finishMobilePerfTimer('tap_to_feedback', tapTimerStartMs);
       dispatch({ type: 'SET_BUSY', isBusy: false });
     }
   };
 
   const runStartChallenge = async (characterId: string): Promise<void> => {
+    const tapTimerStartMs = startMobilePerfTimer();
     dispatch({ type: 'SET_BUSY', isBusy: true });
     dispatch({ type: 'SET_ERROR', message: null });
+    transitionTimerStartMsRef.current = startMobilePerfTimer();
     try {
       const response = await startGame({ difficulty, categories: [], characterId });
       dispatch({
@@ -234,6 +257,7 @@ function MobileShell(): ReactElement {
     } catch (error) {
       dispatch({ type: 'SET_ERROR', message: toErrorMessage(error) });
     } finally {
+      finishMobilePerfTimer('tap_to_feedback', tapTimerStartMs);
       dispatch({ type: 'SET_BUSY', isBusy: false });
     }
   };
@@ -244,6 +268,7 @@ function MobileShell(): ReactElement {
       return;
     }
 
+    const tapTimerStartMs = startMobilePerfTimer();
     dispatch({ type: 'SET_BUSY', isBusy: true });
     dispatch({ type: 'SET_ERROR', message: null });
     try {
@@ -258,6 +283,7 @@ function MobileShell(): ReactElement {
       }
 
       if (response.type === 'guess') {
+        transitionTimerStartMsRef.current = startMobilePerfTimer();
         dispatch({
           type: 'ANSWER_GUESS',
           character: response.character,
@@ -275,6 +301,7 @@ function MobileShell(): ReactElement {
     } catch (error) {
       dispatch({ type: 'SET_ERROR', message: toErrorMessage(error) });
     } finally {
+      finishMobilePerfTimer('tap_to_feedback', tapTimerStartMs);
       dispatch({ type: 'SET_BUSY', isBusy: false });
     }
   };
@@ -285,11 +312,13 @@ function MobileShell(): ReactElement {
       return;
     }
 
+    const tapTimerStartMs = startMobilePerfTimer();
     dispatch({ type: 'SET_BUSY', isBusy: true });
     dispatch({ type: 'SET_ERROR', message: null });
     try {
       const response = await skipQuestion(state.sessionId);
       if (!response) {
+        transitionTimerStartMsRef.current = startMobilePerfTimer();
         dispatch({ type: 'SKIP_EXHAUSTED' });
         return;
       }
@@ -302,6 +331,7 @@ function MobileShell(): ReactElement {
     } catch (error) {
       dispatch({ type: 'SET_ERROR', message: toErrorMessage(error) });
     } finally {
+      finishMobilePerfTimer('tap_to_feedback', tapTimerStartMs);
       dispatch({ type: 'SET_BUSY', isBusy: false });
     }
   };
@@ -312,15 +342,18 @@ function MobileShell(): ReactElement {
       return;
     }
 
+    const tapTimerStartMs = startMobilePerfTimer();
     dispatch({ type: 'SET_BUSY', isBusy: true });
     dispatch({ type: 'SET_ERROR', message: null });
     try {
       const response = await rejectGuess(state.sessionId, state.finalGuess.id);
       if (response.type === 'exhausted') {
+        transitionTimerStartMsRef.current = startMobilePerfTimer();
         dispatch({ type: 'REJECT_EXHAUSTED', message: response.message });
         return;
       }
 
+      transitionTimerStartMsRef.current = startMobilePerfTimer();
       dispatch({
         type: 'REJECT_QUESTION',
         question: response.question,
@@ -331,6 +364,7 @@ function MobileShell(): ReactElement {
     } catch (error) {
       dispatch({ type: 'SET_ERROR', message: toErrorMessage(error) });
     } finally {
+      finishMobilePerfTimer('tap_to_feedback', tapTimerStartMs);
       dispatch({ type: 'SET_BUSY', isBusy: false });
     }
   };
@@ -341,14 +375,17 @@ function MobileShell(): ReactElement {
       return;
     }
 
+    const tapTimerStartMs = startMobilePerfTimer();
     dispatch({ type: 'SET_BUSY', isBusy: true });
     dispatch({ type: 'SET_ERROR', message: null });
+    transitionTimerStartMsRef.current = startMobilePerfTimer();
     try {
       await submitResult(state.sessionId, correct);
       dispatch({ type: 'END_GAME', exhausted: false, surrendered: false });
     } catch (error) {
       dispatch({ type: 'SET_ERROR', message: toErrorMessage(error) });
     } finally {
+      finishMobilePerfTimer('tap_to_feedback', tapTimerStartMs);
       dispatch({ type: 'SET_BUSY', isBusy: false });
     }
   };
@@ -360,8 +397,10 @@ function MobileShell(): ReactElement {
       return;
     }
 
+    const tapTimerStartMs = startMobilePerfTimer();
     dispatch({ type: 'SET_BUSY', isBusy: true });
     dispatch({ type: 'SET_ERROR', message: null });
+    transitionTimerStartMsRef.current = startMobilePerfTimer();
     try {
       const response = await resumeGame(targetSessionId);
       if (!response) {
@@ -379,6 +418,7 @@ function MobileShell(): ReactElement {
     } catch (error) {
       dispatch({ type: 'SET_ERROR', message: toErrorMessage(error) });
     } finally {
+      finishMobilePerfTimer('tap_to_feedback', tapTimerStartMs);
       dispatch({ type: 'SET_BUSY', isBusy: false });
     }
   };
@@ -390,6 +430,7 @@ function MobileShell(): ReactElement {
       return false;
     }
 
+    const tapTimerStartMs = startMobilePerfTimer();
     dispatch({ type: 'SET_BUSY', isBusy: true });
     dispatch({ type: 'SET_ERROR', message: null });
     try {
@@ -399,6 +440,7 @@ function MobileShell(): ReactElement {
       dispatch({ type: 'SET_ERROR', message: toErrorMessage(error) });
       return false;
     } finally {
+      finishMobilePerfTimer('tap_to_feedback', tapTimerStartMs);
       dispatch({ type: 'SET_BUSY', isBusy: false });
     }
   };
