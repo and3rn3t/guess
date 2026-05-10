@@ -121,6 +121,13 @@ export interface MobileHistoryGame {
   timestamp: number;
 }
 
+export interface MobileApiHealthCheckResult {
+  ok: boolean;
+  statusCode: number | null;
+  checkedAtMs: number;
+  detail: string;
+}
+
 const ENDPOINTS = {
   start: '/api/v2/game/start',
   answer: '/api/v2/game/answer',
@@ -211,6 +218,38 @@ function getApiBaseUrl(): string {
 
 export function getMobileApiBaseUrlForDebug(): string {
   return getApiBaseUrl();
+}
+
+export async function checkMobileApiHealth(): Promise<MobileApiHealthCheckResult> {
+  const checkedAtMs = Date.now();
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 4_000);
+
+  try {
+    const response = await fetch(toUrl(ENDPOINTS.stats), {
+      method: 'GET',
+      headers: {
+        Accept: 'application/json'
+      },
+      signal: controller.signal
+    });
+
+    return {
+      ok: response.ok,
+      statusCode: response.status,
+      checkedAtMs,
+      detail: response.ok ? 'reachable' : `server_error_${response.status}`
+    };
+  } catch {
+    return {
+      ok: false,
+      statusCode: null,
+      checkedAtMs,
+      detail: 'network_unreachable'
+    };
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 function toUrl(path: string): string {

@@ -34,6 +34,8 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+- **Mobile MP.6 diagnostics health probe** — added a one-tap API connectivity check to Stats diagnostics (`reachable`/`unreachable` + status detail) backed by a timeout-protected `checkMobileApiHealth()` helper and unit tests.
+
 - **Mobile diagnostics visibility** — MP.6 diagnostics now display the resolved mobile API base URL in Stats, making physical-device network misconfiguration obvious without opening Metro logs; added regression tests for API base URL resolution behavior.
 
 - **Mobile command ergonomics** — added `@guess/mobile` `cf:dev` script that forwards to the root Cloudflare dev server command, so running `pnpm cf:dev` from `apps/mobile` works.

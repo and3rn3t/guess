@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
+  checkMobileApiHealth,
   fetchHistoryGames,
   getMobileApiBaseUrlForDebug,
   getMobileSyncStatus,
@@ -135,5 +136,31 @@ describe('mobileGameApi GET resilience', () => {
     vi.stubGlobal('__DEV__', true);
 
     expect(getMobileApiBaseUrlForDebug()).toBe('http://127.0.0.1:8788');
+  });
+
+  it('reports reachable API when health check returns 200', async () => {
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(JSON.stringify({ ok: true }), {
+        status: 200,
+        headers: {
+          'content-type': 'application/json'
+        }
+      })
+    );
+
+    const result = await checkMobileApiHealth();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(result.ok).toBe(true);
+    expect(result.statusCode).toBe(200);
+    expect(result.detail).toBe('reachable');
+  });
+
+  it('reports unreachable API when health check request fails', async () => {
+    vi.spyOn(globalThis, 'fetch').mockRejectedValue(new TypeError('network down'));
+
+    const result = await checkMobileApiHealth();
+    expect(result.ok).toBe(false);
+    expect(result.statusCode).toBeNull();
+    expect(result.detail).toBe('network_unreachable');
   });
 });

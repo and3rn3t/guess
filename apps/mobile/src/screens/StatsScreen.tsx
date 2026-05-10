@@ -1,10 +1,12 @@
-import type { ReactElement } from "react";
+import { useState, type ReactElement } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import type {
+  MobileApiHealthCheckResult,
   MobileHistoryGame,
   MobileStatsOverview,
 } from "../network/mobileGameApi";
 import {
+  checkMobileApiHealth,
   getMobileApiBaseUrlForDebug,
 } from "../network/mobileGameApi";
 import {
@@ -54,6 +56,9 @@ export function StatsScreen({
   );
   const perfSummary = getMobilePerfSummary();
   const apiBaseUrl = getMobileApiBaseUrlForDebug();
+  const [apiHealth, setApiHealth] =
+    useState<MobileApiHealthCheckResult | null>(null);
+  const [isCheckingApiHealth, setIsCheckingApiHealth] = useState(false);
   const diagnosticsSnapshot = buildDiagnosticsSnapshot(perfSummary);
 
   return (
@@ -168,6 +173,42 @@ export function StatsScreen({
             {apiBaseUrl.length > 0 ? apiBaseUrl : "Not configured"}
           </Text>
         </View>
+        <View style={styles.metricItem}>
+          <Text style={styles.metricKey}>API health</Text>
+          <Text
+            style={[
+              styles.metricValue,
+              apiHealth === null
+                ? undefined
+                : apiHealth.ok
+                  ? styles.metricValuePass
+                  : styles.metricValueFail,
+            ]}
+          >
+            {apiHealth === null
+              ? "Not checked"
+              : apiHealth.ok
+                ? `Reachable (${apiHealth.statusCode ?? "n/a"})`
+                : `Unreachable (${apiHealth.detail})`}
+          </Text>
+        </View>
+        <Pressable
+          onPress={() => {
+            setIsCheckingApiHealth(true);
+            void checkMobileApiHealth()
+              .then((result) => {
+                setApiHealth(result);
+              })
+              .finally(() => {
+                setIsCheckingApiHealth(false);
+              });
+          }}
+          style={[styles.actionButton, styles.actionSecondary]}
+        >
+          <Text style={[styles.actionLabel, styles.actionLabelSecondary]}>
+            {isCheckingApiHealth ? "Checking API..." : "Check API Connectivity"}
+          </Text>
+        </Pressable>
         <Text style={styles.metricKey}>Pasteback Snapshot</Text>
         <Text selectable style={styles.snapshotText}>
           {diagnosticsSnapshot}
