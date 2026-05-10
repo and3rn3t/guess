@@ -36,6 +36,7 @@ This matrix reflects the active branch truth. If a feature is not implemented in
 | Sync status badge | ✅ Implemented | Reusable badge on gameplay/feedback surfaces with queued-action awareness. | `apps/mobile/src/screens/SyncStatusBadge.tsx` |
 | Offline queue + replay | ✅ Implemented | AsyncStorage-backed queue for result/feedback with reconnect flush behavior. | `apps/mobile/src/network/mobileOfflineQueue.ts`, `apps/mobile/src/network/mobileGameApi.ts`, `apps/mobile/src/network/useMobileOfflineQueue.ts` |
 | Transport retry | ✅ Implemented | GET requests retry once on transport errors before surfacing failure. | `apps/mobile/src/network/mobileGameApi.ts`, `apps/mobile/src/network/mobileGameApi.test.ts` |
+| MP.6 route audit + evidence | ✅ Complete | All 10 feature routes verified for resilience surfaces (sync badge, connection status, offline graceful degradation). Route-by-route audit table finalized in ios-feature-parity-plan.md. | `docs/mobile/ios-feature-parity-plan.md` (Route Integration Status table, MP.6 section) |
 | MP.6 perf/offline evidence package | 🟡 Pending | Device p95 timings and airplane-mode recordings are still required for MP.6 closeout; 50+ queue durability is covered in tests. | `docs/mobile/ios-feature-parity-plan.md` (MP.6 Done When), `apps/mobile/src/network/mobileOfflineQueue.test.ts` |
 
 ---
