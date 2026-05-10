@@ -7,9 +7,9 @@
     "dev": "expo start",
     "dev:tunnel": "expo start --tunnel",
     "dev:sim": "EXPO_PUBLIC_API_BASE_URL=http://127.0.0.1:8788 expo start --dev-client --host localhost --port 8081",
-    "ios": "expo run:ios",
+    "ios": "RCT_USE_PREBUILT_RNCORE=0 RCT_USE_RN_DEP=0 expo run:ios",
     "typecheck": "tsc --noEmit",
-    "prebuild:ios": "expo prebuild --platform ios"
+    "prebuild:ios": "RCT_USE_PREBUILT_RNCORE=0 RCT_USE_RN_DEP=0 expo prebuild --platform ios"
   },
   "dependencies": {
     "@guess/app-core": "workspace:*",

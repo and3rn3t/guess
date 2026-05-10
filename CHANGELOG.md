@@ -34,6 +34,8 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+- **Mobile iOS debug linking guardrail** — updated `@guess/mobile` iOS scripts to force source-based React Native linkage (`RCT_USE_PREBUILT_RNCORE=0 RCT_USE_RN_DEP=0`) during `expo run:ios` and iOS prebuilds, preventing duplicate `RCTSwiftUI` class implementations between `React.framework` and `AndernatorMobile.debug.dylib` seen on physical-device debug runs.
+
 - **Mobile iOS build compatibility alignment** — pinned `@guess/mobile` to Expo SDK 55-compatible `react-native@0.83.6` (from `0.85.3`) and refreshed lockfile resolution, which fixes Expo Swift compile failures in `ExpoReactNativeFactory.swift` under current Xcode toolchains.
 
 - **Mobile offline queue auto-flush correctness** — fixed `useMobileOfflineQueue` so reconnect flushes no longer overwrite queue state with the number of flushed actions, and guarded against overlapping flush calls.
