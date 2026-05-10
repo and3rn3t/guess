@@ -34,6 +34,8 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+- **Mobile device API URL auto-configuration** — updated `@guess/mobile` `dev:tunnel` and `dev:lan` scripts to export `EXPO_PUBLIC_API_BASE_URL` to `http://<mac-lan-ip>:8788` by default, preventing physical iPhone sessions from falling back to `127.0.0.1:8788`.
+
 - **Mobile dev server tunnel fallback** — updated `@guess/mobile` `dev:tunnel` to automatically fall back to LAN mode when ngrok tunnel startup fails (for example, temporary ngrok API outages), and added explicit `dev:lan` script for physical-device debugging on shared Wi-Fi.
 
 - **Mobile physical iOS dev connectivity hardening** — added iOS `infoPlist` local-network declarations (`NSLocalNetworkUsageDescription`, `NSBonjourServices`) in Expo app config and switched `dev:tunnel` to `expo start --dev-client --tunnel --clear`, addressing red-banner startup failures when iPhone cannot fetch the dev bundle.
