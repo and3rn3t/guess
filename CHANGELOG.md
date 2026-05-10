@@ -34,6 +34,8 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+- **Mobile iOS build compatibility alignment** — pinned `@guess/mobile` to Expo SDK 55-compatible `react-native@0.83.6` (from `0.85.3`) and refreshed lockfile resolution, which fixes Expo Swift compile failures in `ExpoReactNativeFactory.swift` under current Xcode toolchains.
+
 - **Mobile offline queue auto-flush correctness** — fixed `useMobileOfflineQueue` so reconnect flushes no longer overwrite queue state with the number of flushed actions, and guarded against overlapping flush calls.
 
 - **MP.2 Parity matrix v1.1** — updated 8 feature rows to mark as ✅ Shipped L1 (Stats, History, Compare, SessionResume, Preferences, Teaching, PostGameFeedback) with owner assignments and evidence references (screen-quality-scores.json MVP entries). Removed Teaching Mode from deferred features. Updated header to show MP.2 Status: ✅ Closed (2026-05-07).
