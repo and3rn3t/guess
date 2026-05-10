@@ -50,6 +50,7 @@ export function StatsScreen({
     stats?.totalGames ?? historyGames.length,
   );
   const perfSummary = getMobilePerfSummary();
+  const diagnosticsSnapshot = buildDiagnosticsSnapshot(perfSummary);
 
   return (
     <View style={styles.root}>
@@ -157,6 +158,10 @@ export function StatsScreen({
             tap {perfSummary.tap_to_feedback.count} · transition {perfSummary.transition_start.count}
           </Text>
         </View>
+        <Text style={styles.metricKey}>Pasteback Snapshot</Text>
+        <Text selectable style={styles.snapshotText}>
+          {diagnosticsSnapshot}
+        </Text>
         <Pressable
           onPress={() => {
             clearMobilePerfMetrics();
@@ -282,6 +287,19 @@ function formatMs(value: number): string {
   return `${Math.round(value * 10) / 10}`;
 }
 
+function buildDiagnosticsSnapshot(
+  summary: ReturnType<typeof getMobilePerfSummary>,
+): string {
+  const runDate = new Date().toISOString().slice(0, 10);
+  return [
+    `Run date: ${runDate}`,
+    `Tap-to-feedback p95: ${formatMs(summary.tap_to_feedback.p95Ms)} ms / ${summary.tap_to_feedback.thresholdMs} ms`,
+    `Transition-start p95: ${formatMs(summary.transition_start.p95Ms)} ms / ${summary.transition_start.thresholdMs} ms`,
+    `Tap samples: ${summary.tap_to_feedback.count}`,
+    `Transition samples: ${summary.transition_start.count}`
+  ].join('\n');
+}
+
 const styles = StyleSheet.create({
   root: {
     width: "100%",
@@ -346,6 +364,17 @@ const styles = StyleSheet.create({
   },
   metricValueFail: {
     color: "#f87171",
+  },
+  snapshotText: {
+    color: "#e2e8f0",
+    fontSize: 12,
+    lineHeight: 18,
+    borderWidth: 1,
+    borderColor: "#334155",
+    borderRadius: 8,
+    backgroundColor: "#020617",
+    paddingHorizontal: 10,
+    paddingVertical: 8,
   },
   achievementsWrap: {
     flexDirection: "row",
