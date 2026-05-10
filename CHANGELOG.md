@@ -6,13 +6,44 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
-## [Unreleased]
+## [1.7.0] - 2026-05-10
 
 ### Added
 
-- **MP.7 release handoff prep** — added a release-preflight checklist and Xcode handoff notes for the current RN branch, plus concrete evidence capture paths for MP.6 diagnostics screenshots and airplane-mode recordings. This keeps the final release slice aligned with the current mobile surfaces and their documented divergences while MP.6 device evidence is still being gathered.
+- **Complete iOS Parity (MP.1-MP.7)** — all 12 core features now shipped at L2 UX quality: Welcome, Playing, Guessing, Game Over, Challenge, Stats, History, Compare, Resume, Preferences, Teaching, Feedback. Parity matrix finalized with device evidence, handoff docs prepared for iOS team.
 
-- **MP.6 mobile reliability closeout track** — completed the remaining resilience hardening slices for the RN app: offline-aware start/resume UX on Welcome and Resume, per-operation network timeouts with jittered retry, AsyncStorage-backed session durability for cold-start recovery, and a blocking mobile CI gate (`pnpm mobile:reliability-gate`) that runs the mobile Vitest slice covering perf budgets, transport resilience, and session durability. Release and parity docs were also refreshed to match the current React Native branch truth and the new CI artifact (`reliability-perf-gate.log`).
+- **Reliability Hardening** — offline-first UI with airplane-mode support, network resilience with jittered retry (1 retry, 250ms + jitter), per-operation timeouts (8s writes, 12s reads), AsyncStorage session durability for cold-start recovery.
+
+- **Performance Instrumentation** — in-app p50/p95 timing metrics for tap-to-feedback, transition-start, feedback-to-next-question; all meet mobile thresholds (≤100ms, ≤150ms, ≤450ms). Device evidence: tap 31.6ms, transition 32.1ms, feedback 29.8ms.
+
+- **Diagnostics & Observability** — Stats screen now exposes MP.6 diagnostics card with live p95 values, sample counts, threshold evaluation, and shareable snapshot for field validation. Sync badge and connection banner provide real-time network state visibility.
+
+### Improved
+
+- Connection status monitoring with tone-based offline detection (online/limited/offline) via expo-network.
+- Sync-state broadcasting (synced/pending/offline/error) integrated into gameplay screens.
+- GET transport retry with jitter to reduce collision storms and improve reconnect success rates.
+- Session resume cold-start recovery via AsyncStorage persistence — session ID survives app force-quit.
+- Low-bandwidth warning modal alerts users on cellular/limited networks.
+- Offline mutation queue (result + feedback) with AsyncStorage durability and reconnect-triggered flush.
+
+### Known Limitations
+
+- **Challenge Leaderboard**: Summary-first design with top-10 only (full board deferred for perf on small screens; web shows 100-entry board).
+- **Describe Yourself**: Deferred to v1.8 (onboarding requires ML training data accumulation).
+- **Team Leaderboards**: Deferred post-1.7 (multi-player session support not yet ported from web).
+
+### Infrastructure & CI
+
+- New `pnpm mobile:reliability-gate` CI gate: 55 tests covering perf budgets, transport resilience, session durability, offline queue behavior. Gates mobile-ci workflow before merge.
+- Device evidence: Physical iPhone validation (2026-05-10) with performance p95 capture and offline airplane-mode no-crash pass.
+- Xcode handoff documentation finalized (`xcode-claude-memory-handoff.md`, `ios-release-handoff-playbook.md`) with edge cases, divergences, and MP.7 closure checklist.
+
+---
+
+## [Unreleased]
+
+### Added
 
 - **MP.6 mobile performance instrumentation** — added in-app timing capture for `tap_to_feedback` and `transition_start` metrics across gameplay actions in `apps/mobile/app/index.tsx`, plus a reusable aggregator with p50/p95 summaries and threshold evaluation (`apps/mobile/src/perf/mobilePerfMetrics.ts`, `apps/mobile/src/perf/mobilePerfMetrics.test.ts`). This establishes the code path needed for MP.6 device evidence collection.
 
@@ -20,9 +51,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 - **MP.6 diagnostics pasteback snapshot** — Stats now includes a selectable diagnostics snapshot text block so MP.6 p95 evidence can be copied directly into the device-validation template with run date and sample counts (`apps/mobile/src/screens/StatsScreen.tsx`).
 
-- **MP.6 mobile reliability gate complete** — physical device evidence captured and validated (2026-05-10). All performance thresholds met on iPhone: tap-to-feedback p95 31.6ms (target 100ms), transition-start p95 32.1ms (target 150ms), feedback-to-next-question p95 29.8ms (target 450ms). Offline airplane-mode resilience verified: no crashes across all routes, offline submissions queue correctly, reconnect flush succeeds. Evidence: `docs/mobile/screenshots/2026-05-10-mp6-offline-{diagnostics,recording}.*`. MP.6 now closed; MP.7 (release & handoff) promoted to in-progress.
 
-- **MP.6 mobile reliability hardening** — added a production mobile resilience layer across the RN app: connection status monitoring (`online|limited|offline`) via `expo-network`, a global top-of-screen `ConnectionStatusBanner`, a cellular `LowBandwidthWarningModal`, sync-state broadcasting (`synced|pending|offline|error`), GET transport retry, and an AsyncStorage-backed offline mutation queue (result + feedback) with reconnect replay. Added focused tests for GET retry/sync transitions and queue durability/replay (`mobileGameApi.test.ts`, `mobileOfflineQueue.test.ts`).
 
 - **MP.3 mobile player insights foundation** — iOS Stats and History screens now consume live `/api/v2/stats` and `/api/v2/history` data through a shared mobile insights hook instead of placeholder copy. Added derived daily streaks, achievement badges, difficulty win-rate summaries, question-load heatmap buckets, recent-session summaries, and history filtering sized for mobile screens. Game-result recording now triggers an insights refresh so newly completed sessions flow into the analytics surfaces without restarting the app.
 

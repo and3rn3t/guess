@@ -1,6 +1,6 @@
 # iOS Feature Parity Matrix
 
-**Last Updated**: 2026-05-10 | **Version**: 1.6 | **MP.1 Status**: ✅ Closed (2026-05-07) | **MP.2 Status**: ✅ Closed (2026-05-07) | **MP.3 Status**: ✅ Closed (2026-05-09) | **MP.4 Status**: ✅ Closed (2026-05-09) | **MP.5 Status**: ✅ Closed (2026-05-09) | **MP.6 Status**: 🟡 In Progress
+**Last Updated**: 2026-05-10 | **Version**: 1.7 | **MP.1 Status**: ✅ Closed (2026-05-07) | **MP.2 Status**: ✅ Closed (2026-05-07) | **MP.3 Status**: ✅ Closed (2026-05-09) | **MP.4 Status**: ✅ Closed (2026-05-09) | **MP.5 Status**: ✅ Closed (2026-05-09) | **MP.6 Status**: ✅ Closed (2026-05-10) | **MP.7 Status**: ✅ Closed (2026-05-10)
 
 Living registry of feature parity state across web and iOS. Updated with every mobile PR that touches a parity feature (add owner initials + evidence link to the row's Evidence column).
 
