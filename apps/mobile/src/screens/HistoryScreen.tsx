@@ -1,5 +1,5 @@
-import type { ReactElement } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { useMemo, type ReactElement } from "react";
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
 import type { MobileHistoryGame } from "../network/mobileGameApi";
 import type { MobileGameState } from "../state/mobileGameState";
 
@@ -10,6 +10,7 @@ interface HistoryScreenProps {
   loadError: string | null;
   onOpenStats: () => void;
   onBackToWelcome: () => void;
+  onRetry: () => void;
 }
 
 export function HistoryScreen({
@@ -19,9 +20,10 @@ export function HistoryScreen({
   loadError,
   onOpenStats,
   onBackToWelcome,
+  onRetry,
 }: Readonly<HistoryScreenProps>): ReactElement {
-  const recentGames = historyGames.slice(0, 8);
-  const wins = historyGames.filter((game) => game.won).length;
+  const recentGames = useMemo(() => historyGames.slice(0, 8), [historyGames]);
+  const wins = useMemo(() => historyGames.filter((game) => game.won).length, [historyGames]);
 
   return (
     <View style={styles.root}>
@@ -32,6 +34,31 @@ export function HistoryScreen({
           Your latest sessions with outcomes, difficulty, and question depth.
         </Text>
       </View>
+
+      {isLoading && (
+        <View style={styles.loadingBlock}>
+          <ActivityIndicator color="#86efac" size="small" />
+          <Text style={styles.infoText}>Loading latest history…</Text>
+        </View>
+      )}
+      {loadError ? (
+        <View style={styles.errorCard}>
+          <Text style={styles.errorCardText}>{loadError}</Text>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Retry loading history"
+            onPress={onRetry}
+            style={[styles.actionButton, styles.actionSecondary]}
+          >
+            <Text style={[styles.actionLabel, styles.actionLabelSecondary]}>Retry</Text>
+          </Pressable>
+        </View>
+      ) : null}
+      {state.lastError ? (
+        <View style={styles.errorCard}>
+          <Text style={styles.errorCardText}>{state.lastError}</Text>
+        </View>
+      ) : null}
 
       <View style={styles.sessionBlock}>
         <Text style={styles.sessionLabel}>Summary</Text>
@@ -85,6 +112,8 @@ export function HistoryScreen({
 
       <View style={styles.actionsBlock}>
         <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Open stats"
           onPress={onOpenStats}
           style={[styles.actionButton, styles.actionPrimary]}
         >
@@ -93,6 +122,8 @@ export function HistoryScreen({
           </Text>
         </Pressable>
         <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Back to welcome"
           onPress={onBackToWelcome}
           style={[styles.actionButton, styles.actionSecondary]}
         >
@@ -101,14 +132,6 @@ export function HistoryScreen({
           </Text>
         </Pressable>
       </View>
-
-      {isLoading ? (
-        <Text style={styles.infoText}>Loading latest history...</Text>
-      ) : null}
-      {loadError ? <Text style={styles.errorText}>{loadError}</Text> : null}
-      {state.lastError ? (
-        <Text style={styles.errorText}>{state.lastError}</Text>
-      ) : null}
     </View>
   );
 }
@@ -271,6 +294,24 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 8,
     backgroundColor: "#7f1d1d",
+  },
+  loadingBlock: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    paddingVertical: 10,
+  },
+  errorCard: {
+    borderRadius: 10,
+    backgroundColor: "#7f1d1d",
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    gap: 10,
+  },
+  errorCardText: {
+    color: "#fca5a5",
+    fontSize: 14,
+    fontWeight: "500",
   },
   infoText: {
     color: "#93c5fd",

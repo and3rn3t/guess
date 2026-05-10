@@ -64,10 +64,20 @@ export function CompareScreen({ state, onOpenPreferences, onBackToWelcome }: Rea
       </View>
 
       <View style={styles.actionsBlock}>
-        <Pressable onPress={onOpenPreferences} style={[styles.actionButton, styles.actionPrimary]}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Open preferences"
+          onPress={onOpenPreferences}
+          style={[styles.actionButton, styles.actionPrimary]}
+        >
           <Text style={[styles.actionLabel, styles.actionLabelPrimary]}>Open Preferences</Text>
         </Pressable>
-        <Pressable onPress={onBackToWelcome} style={[styles.actionButton, styles.actionSecondary]}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Back to welcome"
+          onPress={onBackToWelcome}
+          style={[styles.actionButton, styles.actionSecondary]}
+        >
           <Text style={[styles.actionLabel, styles.actionLabelSecondary]}>Back To Welcome</Text>
         </Pressable>
       </View>

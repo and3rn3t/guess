@@ -5,6 +5,7 @@ import {
   getMobileApiBaseUrlForDebug,
   getMobileSyncStatus,
   onMobileSyncStatusChange,
+  startGame,
   type MobileSyncStatus
 } from './mobileGameApi';
 
@@ -162,5 +163,84 @@ describe('mobileGameApi GET resilience', () => {
     expect(result.ok).toBe(false);
     expect(result.statusCode).toBeNull();
     expect(result.detail).toBe('network_unreachable');
+  });
+
+  it('sends selected difficulty in startGame payload', async () => {
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          sessionId: 'sess-start-hard',
+          question: {
+            id: 'q-start',
+            text: 'Is your character from a game?',
+            attribute: 'fromGame'
+          },
+          reasoning: {
+            why: 'Initial split favors medium entropy.',
+            impact: 'high',
+            remaining: 120,
+            confidence: 71
+          }
+        }),
+        {
+          status: 200,
+          headers: {
+            'content-type': 'application/json'
+          }
+        }
+      )
+    );
+
+    await expect(
+      startGame({
+        difficulty: 'hard',
+        categories: []
+      })
+    ).resolves.toMatchObject({ sessionId: 'sess-start-hard' });
+
+    const init = fetchMock.mock.calls[0]?.[1];
+    expect(init).toBeDefined();
+    expect(init?.method).toBe('POST');
+
+    const body = JSON.parse(String(init?.body)) as { difficulty?: string };
+    expect(body.difficulty).toBe('hard');
+  });
+
+  it('forwards selected categories in startGame payload', async () => {
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          sessionId: 'sess-start-cats',
+          question: {
+            id: 'q-cats',
+            text: 'Is your character from anime?',
+            attribute: 'fromAnime'
+          },
+          reasoning: {
+            why: 'Category narrowing improves first-turn precision.',
+            impact: 'high',
+            remaining: 88,
+            confidence: 79
+          }
+        }),
+        {
+          status: 200,
+          headers: {
+            'content-type': 'application/json'
+          }
+        }
+      )
+    );
+
+    await expect(
+      startGame({
+        difficulty: 'medium',
+        categories: ['anime', 'movies']
+      })
+    ).resolves.toMatchObject({ sessionId: 'sess-start-cats' });
+
+    const init = fetchMock.mock.calls[0]?.[1];
+    const body = JSON.parse(String(init?.body)) as { categories?: string[] };
+    expect(body.categories).toEqual(['anime', 'movies']);
   });
 });

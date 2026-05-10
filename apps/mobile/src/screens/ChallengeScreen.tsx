@@ -13,6 +13,7 @@ interface ChallengeScreenProps {
   onStartChallenge: (characterId: string) => void;
   onBackToWelcome: () => void;
   onOpenHistory: () => void;
+  onRetry: () => void;
 }
 
 function LeaderboardRow({ entry }: Readonly<{ entry: MobileLeaderboardEntry }>): ReactElement {
@@ -38,7 +39,8 @@ export function ChallengeScreen({
   loadError,
   onStartChallenge,
   onBackToWelcome,
-  onOpenHistory
+  onOpenHistory,
+  onRetry
 }: Readonly<ChallengeScreenProps>): ReactElement {
   const today = daily?.date ?? new Date().toISOString().slice(0, 10);
 
@@ -60,6 +62,14 @@ export function ChallengeScreen({
       {loadError && !isLoading && (
         <View style={styles.errorCard}>
           <Text style={styles.errorText}>{loadError}</Text>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Retry loading challenge"
+            onPress={onRetry}
+            style={styles.retryButton}
+          >
+            <Text style={styles.retryButtonText}>Retry</Text>
+          </Pressable>
         </View>
       )}
 
@@ -181,12 +191,26 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     backgroundColor: '#7f1d1d',
     paddingHorizontal: 14,
-    paddingVertical: 12
+    paddingVertical: 12,
+    gap: 10,
   },
   errorText: {
     color: '#fecaca',
     fontSize: 14,
     lineHeight: 20
+  },
+  retryButton: {
+    alignSelf: 'flex-start',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#ef4444',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  retryButtonText: {
+    color: '#fca5a5',
+    fontSize: 13,
+    fontWeight: '700',
   },
   summaryCard: {
     borderRadius: 14,

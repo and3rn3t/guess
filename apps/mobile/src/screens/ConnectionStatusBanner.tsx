@@ -7,11 +7,12 @@ import { useMobileSyncStatus } from '../network/useMobileSyncStatus';
 export function ConnectionStatusBanner(): ReactElement {
   const status = useMobileConnectionStatus();
   const syncStatus = useMobileSyncStatus();
-  const queuedActionCount = useMobileOfflineQueue();
-  const queueDetail =
-    queuedActionCount > 0
-      ? `${queuedActionCount} queued action${queuedActionCount === 1 ? '' : 's'} waiting to sync.`
-      : status.detail;
+  const queuedActionCount = useMobileOfflineQueue(status.tone);
+  let queueDetail = status.detail;
+  if (queuedActionCount > 0) {
+    const suffix = queuedActionCount === 1 ? '' : 's';
+    queueDetail = `${queuedActionCount} queued action${suffix} waiting to sync.`;
+  }
 
   return (
     <View

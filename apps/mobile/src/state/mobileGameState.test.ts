@@ -131,4 +131,48 @@ describe('mobileGameReducer', () => {
     expect(next.finalGuess).toBeNull();
     expect(next.guessCount).toBe(2);
   });
+
+  it('opens preferences via OPEN_PHASE without mutating session state', () => {
+    const next = mobileGameReducer(
+      baseState({
+        phase: 'compare',
+        sessionId: 'sess-777',
+        lastSessionId: 'sess-777',
+        guessCount: 4
+      }),
+      { type: 'OPEN_PHASE', phase: 'preferences' }
+    );
+
+    expect(next.phase).toBe('preferences');
+    expect(next.sessionId).toBe('sess-777');
+    expect(next.lastSessionId).toBe('sess-777');
+    expect(next.guessCount).toBe(4);
+    expect(next.lastError).toBeNull();
+  });
+
+  it('opens teaching via OPEN_PHASE and preserves active gameplay context', () => {
+    const next = mobileGameReducer(
+      baseState({
+        phase: 'preferences',
+        sessionId: 'sess-888',
+        currentQuestion: {
+          id: 'q5',
+          text: 'Can your character fly?',
+          attribute: 'canFly'
+        },
+        reasoning: {
+          why: 'Flight ability resolves multiple branches quickly.',
+          impact: 'high',
+          remaining: 18,
+          confidence: 74
+        }
+      }),
+      { type: 'OPEN_PHASE', phase: 'teaching' }
+    );
+
+    expect(next.phase).toBe('teaching');
+    expect(next.sessionId).toBe('sess-888');
+    expect(next.currentQuestion?.id).toBe('q5');
+    expect(next.reasoning?.confidence).toBe(74);
+  });
 });

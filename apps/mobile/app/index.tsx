@@ -1,5 +1,11 @@
-import { useEffect, useRef, useState, type ReactElement } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactElement } from 'react';
+import {
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  View
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MobileGameProvider } from '../src/state/MobileGameProvider';
 import type { MobileGamePhase } from '../src/state/mobileGameState';
@@ -12,12 +18,28 @@ import { GuessingScreen } from '../src/screens/GuessingScreen';
 import { HistoryScreen } from '../src/screens/HistoryScreen';
 import { LowBandwidthWarningModal } from '../src/screens/LowBandwidthWarningModal';
 import { type Difficulty } from '../src/screens/PreferencesScreen';
+import { PreferencesScreen } from '../src/screens/PreferencesScreen';
 import { PlayingScreen } from '../src/screens/PlayingScreen';
 import { ResumeScreen } from '../src/screens/ResumeScreen';
 import { StatsScreen } from '../src/screens/StatsScreen';
 import { ConnectionStatusBanner } from '../src/screens/ConnectionStatusBanner';
+import { TeachingScreen } from '../src/screens/TeachingScreen';
 import { WelcomeScreen } from '../src/screens/WelcomeScreen';
+import { buildQuickStartSummary } from '../src/screens/mobileQuickStartSummary';
+import { getTeachingProgressSummary } from '../src/screens/teachingProgress';
 import { useMobileGame } from '../src/state/useMobileGame';
+import {
+  loadMobilePreferences,
+  saveMobilePreferences
+} from '../src/state/mobilePreferences';
+import type { MobileCharacterCategory } from '../src/state/mobileCategories';
+import {
+  clampTeachingLessonIndex,
+  createMobilePreferencesSessionState,
+  hydrateMobilePreferencesSessionState,
+  toPersistedMobilePreferences,
+  toggleMobilePreferencesCategory
+} from '../src/state/mobilePreferencesSession';
 import {
   finishMobilePerfTimer,
   startMobilePerfTimer
@@ -109,7 +131,7 @@ export default function HomeScreen(): ReactElement {
 function MobileShell(): ReactElement {
   const { state, dispatch } = useMobileGame();
   const meta = PHASE_META[state.phase];
-  const [difficulty] = useState<Difficulty>('medium');
+  const [preferencesState, setPreferencesState] = useState(createMobilePreferencesSessionState);
   const [statsOverview, setStatsOverview] = useState<MobileStatsOverview | null>(null);
   const [historyGames, setHistoryGames] = useState<MobileHistoryGame[]>([]);
   const [statsLoading, setStatsLoading] = useState(false);
@@ -120,8 +142,20 @@ function MobileShell(): ReactElement {
   const [dailyLeaderboard, setDailyLeaderboard] = useState<MobileDailyLeaderboard | null>(null);
   const [challengeLoading, setChallengeLoading] = useState(false);
   const [challengeError, setChallengeError] = useState<string | null>(null);
+  const [fetchKey, setFetchKey] = useState(0);
   const transitionTimerStartMsRef = useRef<number | null>(null);
   const previousPhaseRef = useRef<MobileGamePhase>(state.phase);
+  const difficulty: Difficulty = preferencesState.difficulty;
+  const selectedCategories: MobileCharacterCategory[] = preferencesState.selectedCategories;
+  const teachingLessonIndex = preferencesState.teachingLessonIndex;
+  const quickStartSummary = useMemo(
+    () => buildQuickStartSummary(difficulty, selectedCategories),
+    [difficulty, selectedCategories]
+  );
+  const teachingProgressSummary = useMemo(
+    () => getTeachingProgressSummary(teachingLessonIndex),
+    [teachingLessonIndex]
+  );
 
   useEffect(() => {
     if (previousPhaseRef.current === state.phase) {
@@ -134,6 +168,64 @@ function MobileShell(): ReactElement {
       transitionTimerStartMsRef.current = null;
     }
   }, [state.phase]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    void loadMobilePreferences()
+      .then((preferences) => {
+        if (cancelled) {
+          return;
+        }
+
+        setPreferencesState(hydrateMobilePreferencesSessionState(preferences));
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setPreferencesState((current) => ({
+            ...current,
+            hydrated: true
+          }));
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!preferencesState.hydrated) {
+      return;
+    }
+
+    void saveMobilePreferences(toPersistedMobilePreferences(preferencesState));
+  }, [preferencesState]);
+
+  const toggleCategory = (category: MobileCharacterCategory): void => {
+    setPreferencesState((current) => {
+      return {
+        ...current,
+        selectedCategories: toggleMobilePreferencesCategory(current.selectedCategories, category)
+      };
+    });
+  };
+
+  const saveDifficulty = (nextDifficulty: Difficulty): void => {
+    setPreferencesState((current) => ({
+      ...current,
+      difficulty: nextDifficulty
+    }));
+  };
+
+  const saveTeachingLessonIndex = (index: number): void => {
+    setPreferencesState((current) => ({
+      ...current,
+      teachingLessonIndex: clampTeachingLessonIndex(index)
+    }));
+  };
+
+  const onRetry = useCallback(() => setFetchKey((k) => k + 1), []);
 
   useEffect(() => {
     let cancelled = false;
@@ -215,7 +307,7 @@ function MobileShell(): ReactElement {
     return () => {
       cancelled = true;
     };
-  }, [state.phase]);
+  }, [state.phase, fetchKey]);
 
   const runStartGame = async (): Promise<void> => {
     const tapTimerStartMs = startMobilePerfTimer();
@@ -225,7 +317,7 @@ function MobileShell(): ReactElement {
     try {
       const response = await startGame({
         difficulty,
-        categories: []
+        categories: selectedCategories
       });
       dispatch({
         type: 'START_SUCCESS',
@@ -247,7 +339,11 @@ function MobileShell(): ReactElement {
     dispatch({ type: 'SET_ERROR', message: null });
     transitionTimerStartMsRef.current = startMobilePerfTimer();
     try {
-      const response = await startGame({ difficulty, categories: [], characterId });
+      const response = await startGame({
+        difficulty,
+        categories: selectedCategories,
+        characterId
+      });
       dispatch({
         type: 'START_SUCCESS',
         sessionId: response.sessionId,
@@ -476,8 +572,11 @@ function MobileShell(): ReactElement {
           isBusy={state.isBusy}
           lastError={state.lastError}
           hasSavedSession={Boolean(state.lastSessionId ?? state.sessionId)}
+          quickStartSummary={quickStartSummary}
+          teachingProgressSummary={teachingProgressSummary}
           onStartGame={onStartGame}
           onOpenChallenge={() => dispatch({ type: 'GO_TO_CHALLENGE' })}
+          onOpenTeaching={() => dispatch({ type: 'OPEN_PHASE', phase: 'teaching' })}
           onOpenResume={() => dispatch({ type: 'OPEN_PHASE', phase: 'resume' })}
         />
       );
@@ -508,6 +607,7 @@ function MobileShell(): ReactElement {
           onStartChallenge={(characterId) => { void runStartChallenge(characterId); }}
           onBackToWelcome={() => dispatch({ type: 'BACK_TO_WELCOME' })}
           onOpenHistory={() => dispatch({ type: 'OPEN_PHASE', phase: 'history' })}
+          onRetry={onRetry}
         />
       );
     }
@@ -547,6 +647,7 @@ function MobileShell(): ReactElement {
           loadError={statsError}
           onOpenCompare={() => dispatch({ type: 'OPEN_PHASE', phase: 'compare' })}
           onBackToWelcome={() => dispatch({ type: 'BACK_TO_WELCOME' })}
+          onRetry={onRetry}
         />
       );
     }
@@ -560,6 +661,7 @@ function MobileShell(): ReactElement {
           loadError={historyError}
           onOpenStats={() => dispatch({ type: 'OPEN_PHASE', phase: 'stats' })}
           onBackToWelcome={() => dispatch({ type: 'BACK_TO_WELCOME' })}
+          onRetry={onRetry}
         />
       );
     }
@@ -569,6 +671,31 @@ function MobileShell(): ReactElement {
         <CompareScreen
           state={state}
           onOpenPreferences={() => dispatch({ type: 'OPEN_PHASE', phase: 'preferences' })}
+          onBackToWelcome={() => dispatch({ type: 'BACK_TO_WELCOME' })}
+        />
+      );
+    }
+
+    if (state.phase === 'preferences') {
+      return (
+        <PreferencesScreen
+          difficulty={difficulty}
+          onSaveDifficulty={saveDifficulty}
+          selectedCategories={selectedCategories}
+          onToggleCategory={toggleCategory}
+          onOpenTeaching={() => dispatch({ type: 'OPEN_PHASE', phase: 'teaching' })}
+          onBackToWelcome={() => dispatch({ type: 'BACK_TO_WELCOME' })}
+        />
+      );
+    }
+
+    if (state.phase === 'teaching') {
+      return (
+        <TeachingScreen
+          state={state}
+          lessonIndex={teachingLessonIndex}
+          onLessonIndexChange={saveTeachingLessonIndex}
+          onOpenFeedback={() => dispatch({ type: 'OPEN_PHASE', phase: 'feedback' })}
           onBackToWelcome={() => dispatch({ type: 'BACK_TO_WELCOME' })}
         />
       );
@@ -613,30 +740,39 @@ function MobileShell(): ReactElement {
   const primaryPhase = renderPrimaryPhase();
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView edges={['top']} style={styles.safeArea}>
       <LowBandwidthWarningModal />
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        <View style={styles.container}>
-          <ConnectionStatusBanner />
-          {primaryPhase ?? (
-            <PhaseScaffold
-              phase={state.phase}
-              title={meta.title}
-              subtitle={meta.subtitle}
-              state={state}
-              onDispatch={dispatch}
-              actions={getPhaseActions(state.phase, {
-                onStartGame,
-                onAnswer,
-                onSkip,
-                onRejectGuess,
-                onSubmitResult,
-                onResumeGame
-              })}
-            />
-          )}
-        </View>
-      </ScrollView>
+      <KeyboardAvoidingView
+        behavior={Platform.select({ ios: 'padding', default: undefined })}
+        style={styles.keyboardArea}
+      >
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={styles.container}>
+            <ConnectionStatusBanner />
+            {primaryPhase ?? (
+              <PhaseScaffold
+                phase={state.phase}
+                title={meta.title}
+                subtitle={meta.subtitle}
+                state={state}
+                onDispatch={dispatch}
+                actions={getPhaseActions(state.phase, {
+                  onStartGame,
+                  onAnswer,
+                  onSkip,
+                  onRejectGuess,
+                  onSubmitResult,
+                  onResumeGame
+                })}
+              />
+            )}
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
@@ -752,12 +888,17 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#020617'
   },
+  keyboardArea: {
+    flex: 1
+  },
   scrollContent: {
-    flexGrow: 1
+    flexGrow: 1,
+    paddingBottom: 20
   },
   container: {
     flex: 1,
-    paddingVertical: 32,
+    minHeight: '100%',
+    paddingVertical: 24,
     paddingHorizontal: 20,
     justifyContent: 'center'
   }

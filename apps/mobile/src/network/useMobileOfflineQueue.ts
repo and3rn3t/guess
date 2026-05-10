@@ -1,15 +1,19 @@
 import { useEffect, useRef, useState } from 'react';
-import { useMobileConnectionStatus } from './useMobileConnectionStatus';
+import {
+  type MobileConnectionTone,
+  useMobileConnectionStatus
+} from './useMobileConnectionStatus';
 import {
   flushMobileQueuedActions,
   getMobileQueuedActionCount,
   onMobileQueuedActionCountChange
 } from './mobileGameApi';
 
-export function useMobileOfflineQueue(): number {
+export function useMobileOfflineQueue(connectionTone?: MobileConnectionTone): number {
   const connection = useMobileConnectionStatus();
   const [queuedActionCount, setQueuedActionCount] = useState(0);
   const isFlushingRef = useRef(false);
+  const effectiveConnectionTone = connectionTone ?? connection.tone;
 
   useEffect(() => {
     let cancelled = false;
@@ -28,7 +32,7 @@ export function useMobileOfflineQueue(): number {
   }, []);
 
   useEffect(() => {
-    if (connection.tone === 'offline' || queuedActionCount === 0 || isFlushingRef.current) {
+    if (effectiveConnectionTone === 'offline' || queuedActionCount === 0 || isFlushingRef.current) {
       return;
     }
 
@@ -36,7 +40,7 @@ export function useMobileOfflineQueue(): number {
     void flushMobileQueuedActions().finally(() => {
       isFlushingRef.current = false;
     });
-  }, [connection.tone, queuedActionCount]);
+  }, [effectiveConnectionTone, queuedActionCount]);
 
   return queuedActionCount;
 }

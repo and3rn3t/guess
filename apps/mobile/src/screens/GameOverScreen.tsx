@@ -41,6 +41,7 @@ export function GameOverScreen({
 
       <Pressable
         accessibilityRole="button"
+        accessibilityLabel="Back to welcome"
         disabled={isBusy}
         onPress={onBackToWelcome}
         style={[styles.actionButton, styles.actionPrimary, isBusy ? styles.disabled : null]}
@@ -50,6 +51,7 @@ export function GameOverScreen({
 
       <Pressable
         accessibilityRole="button"
+        accessibilityLabel="Open feedback"
         disabled={isBusy}
         onPress={onOpenFeedback}
         style={[styles.actionButton, styles.actionSecondary, isBusy ? styles.disabled : null]}
@@ -59,6 +61,7 @@ export function GameOverScreen({
 
       <Pressable
         accessibilityRole="button"
+        accessibilityLabel="Open stats"
         disabled={isBusy}
         onPress={onOpenStats}
         style={[styles.actionButton, styles.actionGhost, isBusy ? styles.disabled : null]}

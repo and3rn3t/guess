@@ -34,6 +34,7 @@ export function PlayingScreen({
     { label: 'Maybe', value: 'maybe' },
     { label: 'Unknown', value: 'unknown', tone: 'secondary' }
   ];
+  const confidenceLabel = formatConfidence(confidence);
 
   return (
     <View style={styles.root}>
@@ -52,20 +53,19 @@ export function PlayingScreen({
         <Text style={styles.questionLabel}>Current Question</Text>
         <Text style={styles.questionText}>{questionText}</Text>
         {reasoningText ? <Text style={styles.reasoningText}>{reasoningText}</Text> : null}
-        <Text style={styles.metaText}>Confidence: {confidence ?? 'n/a'}</Text>
-            {rejectCooldownRemaining !== null && rejectCooldownRemaining > 0 && (
-              <View style={styles.cooldownCard}>
-                <Text style={styles.cooldownText}>
-                  Next guess available in {rejectCooldownRemaining} more {rejectCooldownRemaining === 1 ? 'question' : 'questions'}
-                </Text>
-              </View>
-            )}
-
+        <Text style={styles.metaText}>Confidence: {confidenceLabel}</Text>
+        {rejectCooldownRemaining !== null && rejectCooldownRemaining > 0 ? (
+          <View style={styles.cooldownCard}>
+            <Text style={styles.cooldownText}>
+              Next guess available in {rejectCooldownRemaining} more {rejectCooldownRemaining === 1 ? 'question' : 'questions'}
+            </Text>
+          </View>
+        ) : null}
       </View>
 
       {errorMessage ? <Text style={styles.errorText}>{errorMessage}</Text> : null}
 
-  <SyncStatusBadge />
+      <SyncStatusBadge />
 
       <View style={styles.answerGrid}>
         {answerButtons.map((entry) => {
@@ -115,6 +115,18 @@ export function PlayingScreen({
       </View>
     </View>
   );
+}
+
+function formatConfidence(confidence: number | null): string {
+  if (confidence === null || Number.isNaN(confidence)) {
+    return 'n/a';
+  }
+
+  if (confidence >= 0 && confidence <= 1) {
+    return `${Math.round(confidence * 100)}%`;
+  }
+
+  return `${Math.round(confidence)}%`;
 }
 
 const styles = StyleSheet.create({

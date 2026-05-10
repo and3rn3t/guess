@@ -1,5 +1,10 @@
 import type { ReactElement } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import {
+  MOBILE_CATEGORY_LABELS,
+  MOBILE_CHARACTER_CATEGORIES,
+  type MobileCharacterCategory
+} from '../state/mobileCategories';
 
 export type Difficulty = 'easy' | 'medium' | 'hard';
 
@@ -38,6 +43,8 @@ const PERSONAS: PersonaOption[] = [
 interface PreferencesScreenProps {
   difficulty: Difficulty;
   onSaveDifficulty: (difficulty: Difficulty) => void;
+  selectedCategories: readonly MobileCharacterCategory[];
+  onToggleCategory: (category: MobileCharacterCategory) => void;
   onOpenTeaching: () => void;
   onBackToWelcome: () => void;
 }
@@ -45,6 +52,8 @@ interface PreferencesScreenProps {
 export function PreferencesScreen({
   difficulty,
   onSaveDifficulty,
+  selectedCategories,
+  onToggleCategory,
   onOpenTeaching,
   onBackToWelcome
 }: Readonly<PreferencesScreenProps>): ReactElement {
@@ -84,6 +93,35 @@ export function PreferencesScreen({
             );
           })}
         </View>
+      </View>
+
+      <View style={styles.settingsBlock}>
+        <Text style={styles.settingsLabel}>Category Focus (Optional)</Text>
+        <View style={styles.categoryRow}>
+          {MOBILE_CHARACTER_CATEGORIES.map((category) => {
+            const selected = selectedCategories.includes(category);
+
+            return (
+              <Pressable
+                key={category}
+                onPress={() => {
+                  onToggleCategory(category);
+                }}
+                style={[styles.categoryPill, selected && styles.categoryPillSelected]}
+                accessibilityRole="checkbox"
+                accessibilityState={{ checked: selected }}
+                accessibilityLabel={MOBILE_CATEGORY_LABELS[category]}
+              >
+                <Text style={[styles.categoryPillText, selected && styles.categoryPillTextSelected]}>
+                  {MOBILE_CATEGORY_LABELS[category]}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
+        <Text style={styles.helperText}>
+          Leave all unselected to include every category.
+        </Text>
       </View>
 
       <View style={styles.actionsBlock}>
@@ -147,6 +185,36 @@ const styles = StyleSheet.create({
   personaRow: {
     flexDirection: 'row',
     gap: 8
+  },
+  categoryRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8
+  },
+  categoryPill: {
+    borderWidth: 1,
+    borderColor: '#334155',
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    backgroundColor: '#1e293b'
+  },
+  categoryPillSelected: {
+    borderColor: '#7c3aed',
+    backgroundColor: '#1e1245'
+  },
+  categoryPillText: {
+    color: '#cbd5e1',
+    fontSize: 12,
+    fontWeight: '600'
+  },
+  categoryPillTextSelected: {
+    color: '#a78bfa'
+  },
+  helperText: {
+    color: '#64748b',
+    fontSize: 12,
+    lineHeight: 18
   },
   personaCard: {
     flex: 1,

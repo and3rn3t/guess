@@ -5,8 +5,11 @@ interface WelcomeScreenProps {
   isBusy: boolean;
   lastError: string | null;
   hasSavedSession: boolean;
+  quickStartSummary: string;
+  teachingProgressSummary: string;
   onStartGame: () => void;
   onOpenChallenge: () => void;
+  onOpenTeaching: () => void;
   onOpenResume: () => void;
 }
 
@@ -14,8 +17,11 @@ export function WelcomeScreen({
   isBusy,
   lastError,
   hasSavedSession,
+  quickStartSummary,
+  teachingProgressSummary,
   onStartGame,
   onOpenChallenge,
+  onOpenTeaching,
   onOpenResume
 }: Readonly<WelcomeScreenProps>): ReactElement {
   return (
@@ -28,7 +34,8 @@ export function WelcomeScreen({
 
       <View style={styles.heroCard}>
         <Text style={styles.heroTitle}>Quick Start</Text>
-        <Text style={styles.heroBody}>Medium difficulty with all categories enabled.</Text>
+        <Text style={styles.heroBody}>{quickStartSummary}</Text>
+        <Text style={styles.heroSubtle}>{teachingProgressSummary}</Text>
       </View>
 
       {lastError ? <Text style={styles.errorText}>{lastError}</Text> : null}
@@ -49,6 +56,15 @@ export function WelcomeScreen({
         style={[styles.actionButton, styles.actionSecondary, isBusy ? styles.disabled : null]}
       >
         <Text style={styles.actionSecondaryText}>Open Challenge</Text>
+      </Pressable>
+
+      <Pressable
+        accessibilityRole="button"
+        disabled={isBusy}
+        onPress={onOpenTeaching}
+        style={[styles.actionButton, styles.actionSecondary, isBusy ? styles.disabled : null]}
+      >
+        <Text style={styles.actionSecondaryText}>Open Teaching</Text>
       </Pressable>
 
       <Pressable
@@ -115,6 +131,12 @@ const styles = StyleSheet.create({
     color: '#e0f2fe',
     fontSize: 14,
     lineHeight: 20
+  },
+  heroSubtle: {
+    color: '#a5f3fc',
+    fontSize: 12,
+    lineHeight: 18,
+    fontWeight: '600'
   },
   errorText: {
     color: '#fecaca',

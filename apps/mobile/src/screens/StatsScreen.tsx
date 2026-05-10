@@ -1,5 +1,5 @@
-import { useState, type ReactElement } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { useMemo, useState, type ReactElement } from "react";
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
 import type {
   MobileApiHealthCheckResult,
   MobileHistoryGame,
@@ -23,6 +23,7 @@ interface StatsScreenProps {
   loadError: string | null;
   onOpenCompare: () => void;
   onBackToWelcome: () => void;
+  onRetry: () => void;
 }
 
 interface AchievementBadge {
@@ -47,12 +48,12 @@ export function StatsScreen({
   loadError,
   onOpenCompare,
   onBackToWelcome,
+  onRetry,
 }: Readonly<StatsScreenProps>): ReactElement {
-  const streak = computeDailyWinStreak(historyGames);
-  const achievements = deriveAchievements(
-    historyGames,
-    streak,
-    stats?.totalGames ?? historyGames.length,
+  const streak = useMemo(() => computeDailyWinStreak(historyGames), [historyGames]);
+  const achievements = useMemo(
+    () => deriveAchievements(historyGames, streak, stats?.totalGames ?? historyGames.length),
+    [historyGames, streak, stats]
   );
   const perfSummary = getMobilePerfSummary();
   const apiBaseUrl = getMobileApiBaseUrlForDebug();
@@ -71,6 +72,31 @@ export function StatsScreen({
           sessions.
         </Text>
       </View>
+
+      {isLoading && (
+        <View style={styles.loadingBlock}>
+          <ActivityIndicator color="#a78bfa" size="small" />
+          <Text style={styles.infoText}>Loading latest stats…</Text>
+        </View>
+      )}
+      {loadError ? (
+        <View style={styles.errorCard}>
+          <Text style={styles.errorText}>{loadError}</Text>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Retry loading stats"
+            onPress={onRetry}
+            style={[styles.actionButton, styles.actionSecondary]}
+          >
+            <Text style={[styles.actionLabel, styles.actionLabelSecondary]}>Retry</Text>
+          </Pressable>
+        </View>
+      ) : null}
+      {state.lastError ? (
+        <View style={styles.errorCard}>
+          <Text style={styles.errorText}>{state.lastError}</Text>
+        </View>
+      ) : null}
 
       <View style={styles.metricsBlock}>
         <Text style={styles.metricLabel}>Player Summary</Text>
@@ -193,6 +219,8 @@ export function StatsScreen({
           </Text>
         </View>
         <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Check API connectivity"
           onPress={() => {
             setIsCheckingApiHealth(true);
             void checkMobileApiHealth()
@@ -214,6 +242,8 @@ export function StatsScreen({
           {diagnosticsSnapshot}
         </Text>
         <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Reset diagnostics samples"
           onPress={() => {
             clearMobilePerfMetrics();
           }}
@@ -227,6 +257,8 @@ export function StatsScreen({
 
       <View style={styles.actionsBlock}>
         <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Open compare"
           onPress={onOpenCompare}
           style={[styles.actionButton, styles.actionPrimary]}
         >
@@ -235,6 +267,8 @@ export function StatsScreen({
           </Text>
         </Pressable>
         <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Back to welcome"
           onPress={onBackToWelcome}
           style={[styles.actionButton, styles.actionSecondary]}
         >
@@ -243,14 +277,6 @@ export function StatsScreen({
           </Text>
         </Pressable>
       </View>
-
-      {isLoading ? (
-        <Text style={styles.infoText}>Loading latest stats...</Text>
-      ) : null}
-      {loadError ? <Text style={styles.errorText}>{loadError}</Text> : null}
-      {state.lastError ? (
-        <Text style={styles.errorText}>{state.lastError}</Text>
-      ) : null}
     </View>
   );
 }
@@ -451,6 +477,19 @@ const styles = StyleSheet.create({
     fontStyle: "italic",
     paddingHorizontal: 8,
     paddingVertical: 6,
+  },
+  loadingBlock: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    paddingVertical: 10,
+  },
+  errorCard: {
+    borderRadius: 10,
+    backgroundColor: "#7f1d1d",
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    gap: 10,
   },
   actionsBlock: {
     gap: 10,

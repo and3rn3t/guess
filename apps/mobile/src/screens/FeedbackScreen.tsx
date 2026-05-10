@@ -23,6 +23,16 @@ export function FeedbackScreen({
   const [feedbackText, setFeedbackText] = useState('');
   const [submitted, setSubmitted] = useState(false);
 
+  const handleFeedbackTextChange = (nextValue: string): void => {
+    setSubmitted(false);
+    setFeedbackText(nextValue);
+  };
+
+  const handleSelectRating = (rating: number): void => {
+    setSubmitted(false);
+    setSelectedRating(rating);
+  };
+
   const handleSubmit = (): void => {
     if (!sessionId || selectedRating < 1 || selectedRating > 5 || isBusy) {
       return;
@@ -62,7 +72,7 @@ export function FeedbackScreen({
               key={rating}
               accessibilityRole="button"
               disabled={isBusy || !sessionId}
-              onPress={() => setSelectedRating(rating)}
+              onPress={() => handleSelectRating(rating)}
               style={[
                 styles.ratingButton,
                 selected ? styles.ratingButtonSelected : null,
@@ -81,12 +91,14 @@ export function FeedbackScreen({
         editable={!isBusy && Boolean(sessionId)}
         maxLength={500}
         multiline
-        onChangeText={setFeedbackText}
+        onChangeText={handleFeedbackTextChange}
         placeholder="Optional notes about the round..."
         placeholderTextColor="#94a3b8"
         style={styles.textInput}
         value={feedbackText}
       />
+
+      <Text style={styles.feedbackHint}>{feedbackText.length}/500 characters</Text>
 
       <SyncStatusBadge />
 
@@ -205,6 +217,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 10,
     textAlignVertical: 'top'
+  },
+  feedbackHint: {
+    color: '#94a3b8',
+    fontSize: 12,
+    marginTop: -6
   },
   actionButton: {
     borderRadius: 12,
