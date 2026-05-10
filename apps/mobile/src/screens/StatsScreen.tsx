@@ -4,6 +4,10 @@ import type {
   MobileHistoryGame,
   MobileStatsOverview,
 } from "../network/mobileGameApi";
+import {
+  clearMobilePerfMetrics,
+  getMobilePerfSummary,
+} from "../perf/mobilePerfMetrics";
 import type { MobileGameState } from "../state/mobileGameState";
 
 interface StatsScreenProps {
@@ -45,6 +49,7 @@ export function StatsScreen({
     streak,
     stats?.totalGames ?? historyGames.length,
   );
+  const perfSummary = getMobilePerfSummary();
 
   return (
     <View style={styles.root}>
@@ -116,6 +121,52 @@ export function StatsScreen({
             No badges yet. Keep playing to unlock achievements.
           </Text>
         )}
+      </View>
+
+      <View style={styles.metricsBlock}>
+        <Text style={styles.metricLabel}>MP.6 Diagnostics</Text>
+        <View style={styles.metricItem}>
+          <Text style={styles.metricKey}>Tap-to-feedback p95</Text>
+          <Text
+            style={[
+              styles.metricValue,
+              perfSummary.tap_to_feedback.meetsTarget
+                ? styles.metricValuePass
+                : styles.metricValueFail,
+            ]}
+          >
+            {formatMs(perfSummary.tap_to_feedback.p95Ms)} / {perfSummary.tap_to_feedback.thresholdMs}ms
+          </Text>
+        </View>
+        <View style={styles.metricItem}>
+          <Text style={styles.metricKey}>Transition-start p95</Text>
+          <Text
+            style={[
+              styles.metricValue,
+              perfSummary.transition_start.meetsTarget
+                ? styles.metricValuePass
+                : styles.metricValueFail,
+            ]}
+          >
+            {formatMs(perfSummary.transition_start.p95Ms)} / {perfSummary.transition_start.thresholdMs}ms
+          </Text>
+        </View>
+        <View style={styles.metricItem}>
+          <Text style={styles.metricKey}>Samples</Text>
+          <Text style={styles.metricValue}>
+            tap {perfSummary.tap_to_feedback.count} · transition {perfSummary.transition_start.count}
+          </Text>
+        </View>
+        <Pressable
+          onPress={() => {
+            clearMobilePerfMetrics();
+          }}
+          style={[styles.actionButton, styles.actionTertiary]}
+        >
+          <Text style={[styles.actionLabel, styles.actionLabelSecondary]}>
+            Reset Diagnostics Samples
+          </Text>
+        </Pressable>
       </View>
 
       <View style={styles.actionsBlock}>
@@ -227,6 +278,10 @@ function formatNumber(value: number): string {
   return `${Math.round(value * 10) / 10}`;
 }
 
+function formatMs(value: number): string {
+  return `${Math.round(value * 10) / 10}`;
+}
+
 const styles = StyleSheet.create({
   root: {
     width: "100%",
@@ -286,6 +341,12 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "700",
   },
+  metricValuePass: {
+    color: "#4ade80",
+  },
+  metricValueFail: {
+    color: "#f87171",
+  },
   achievementsWrap: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -328,6 +389,12 @@ const styles = StyleSheet.create({
     backgroundColor: "transparent",
     borderWidth: 1,
     borderColor: "#6b7280",
+  },
+  actionTertiary: {
+    marginTop: 8,
+    backgroundColor: "transparent",
+    borderWidth: 1,
+    borderColor: "#475569",
   },
   actionLabel: {
     fontSize: 16,
