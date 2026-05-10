@@ -1,4 +1,14 @@
-export type MobilePerfMetricName = 'tap_to_feedback' | 'transition_start';
+export type MobilePerfMetricName =
+  | 'tap_to_feedback'
+  | 'feedback_to_next_question'
+  | 'transition_start'
+  | 'transition_complete';
+
+export type MobileReliabilityCounterName =
+  | 'transport_retry'
+  | 'transport_failure'
+  | 'server_failure'
+  | 'validation_failure';
 
 interface MobilePerfTarget {
   readonly thresholdMs: number;
@@ -14,14 +24,32 @@ interface MobilePerfSummary {
   readonly meetsTarget: boolean;
 }
 
+interface MobileReliabilitySummary {
+  readonly transportRetryCount: number;
+  readonly transportFailureCount: number;
+  readonly serverFailureCount: number;
+  readonly validationFailureCount: number;
+}
+
 const METRIC_TARGETS: Readonly<Record<MobilePerfMetricName, MobilePerfTarget>> = {
   tap_to_feedback: { thresholdMs: 100 },
-  transition_start: { thresholdMs: 150 }
+  feedback_to_next_question: { thresholdMs: 450 },
+  transition_start: { thresholdMs: 150 },
+  transition_complete: { thresholdMs: 350 }
 };
 
 const metricSamples: Record<MobilePerfMetricName, number[]> = {
   tap_to_feedback: [],
-  transition_start: []
+  feedback_to_next_question: [],
+  transition_start: [],
+  transition_complete: []
+};
+
+const reliabilityCounters: Record<MobileReliabilityCounterName, number> = {
+  transport_retry: 0,
+  transport_failure: 0,
+  server_failure: 0,
+  validation_failure: 0
 };
 
 function getNowMs(): number {
@@ -76,7 +104,22 @@ export function finishMobilePerfTimer(metricName: MobilePerfMetricName, startMs:
 export function getMobilePerfSummary(): Readonly<Record<MobilePerfMetricName, MobilePerfSummary>> {
   return {
     tap_to_feedback: summarizeMetric('tap_to_feedback'),
-    transition_start: summarizeMetric('transition_start')
+    feedback_to_next_question: summarizeMetric('feedback_to_next_question'),
+    transition_start: summarizeMetric('transition_start'),
+    transition_complete: summarizeMetric('transition_complete')
+  };
+}
+
+export function incrementMobileReliabilityCounter(counterName: MobileReliabilityCounterName): void {
+  reliabilityCounters[counterName] += 1;
+}
+
+export function getMobileReliabilitySummary(): MobileReliabilitySummary {
+  return {
+    transportRetryCount: reliabilityCounters.transport_retry,
+    transportFailureCount: reliabilityCounters.transport_failure,
+    serverFailureCount: reliabilityCounters.server_failure,
+    validationFailureCount: reliabilityCounters.validation_failure
   };
 }
 
@@ -101,5 +144,12 @@ function summarizeMetric(metricName: MobilePerfMetricName): MobilePerfSummary {
 
 export function clearMobilePerfMetrics(): void {
   metricSamples.tap_to_feedback.length = 0;
+  metricSamples.feedback_to_next_question.length = 0;
   metricSamples.transition_start.length = 0;
+  metricSamples.transition_complete.length = 0;
+
+  reliabilityCounters.transport_retry = 0;
+  reliabilityCounters.transport_failure = 0;
+  reliabilityCounters.server_failure = 0;
+  reliabilityCounters.validation_failure = 0;
 }

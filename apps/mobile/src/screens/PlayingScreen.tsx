@@ -1,6 +1,16 @@
-import type { ReactElement } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useRef, useState, type ReactElement } from 'react';
+import {
+  AccessibilityInfo,
+  ActivityIndicator,
+  Animated,
+  Easing,
+  Pressable,
+  StyleSheet,
+  Text,
+  View
+} from 'react-native';
 import type { AnswerValue } from '../network/mobileGameApi';
+import { triggerImpactHaptic, triggerNotificationHaptic } from '../lib/mobileHaptics';
 import { SyncStatusBadge } from './SyncStatusBadge';
 
 interface PlayingScreenProps {
@@ -16,6 +26,25 @@ interface PlayingScreenProps {
   onEndGame: () => void;
 }
 
+interface AnswerButtonConfig {
+  readonly label: string;
+  readonly value: AnswerValue;
+  readonly tone: 'yes' | 'no' | 'maybe' | 'secondary';
+  readonly accessibilityHint: string;
+}
+
+const ANSWER_BUTTONS: readonly AnswerButtonConfig[] = [
+  { label: 'Yes', value: 'yes', tone: 'yes', accessibilityHint: 'Confirms this statement is true for your character' },
+  { label: 'No', value: 'no', tone: 'no', accessibilityHint: 'Rejects this statement for your character' },
+  { label: 'Maybe', value: 'maybe', tone: 'maybe', accessibilityHint: 'Marks this statement as uncertain' },
+  {
+    label: 'Unknown',
+    value: 'unknown',
+    tone: 'secondary',
+    accessibilityHint: 'Use when you do not know the answer to this statement'
+  }
+];
+
 export function PlayingScreen({
   questionText,
   reasoningText,
@@ -28,16 +57,71 @@ export function PlayingScreen({
   onSkip,
   onEndGame
 }: Readonly<PlayingScreenProps>): ReactElement {
-  const answerButtons: ReadonlyArray<{ label: string; value: AnswerValue; tone?: 'primary' | 'secondary' }> = [
-    { label: 'Yes', value: 'yes' },
-    { label: 'No', value: 'no' },
-    { label: 'Maybe', value: 'maybe' },
-    { label: 'Unknown', value: 'unknown', tone: 'secondary' }
-  ];
   const confidenceLabel = formatConfidence(confidence);
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
+  const contentOpacity = useRef(new Animated.Value(1)).current;
+  const contentShiftY = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    void AccessibilityInfo.isReduceMotionEnabled()
+      .then((enabled) => {
+        setPrefersReducedMotion(enabled);
+      })
+      .catch(() => {
+        setPrefersReducedMotion(false);
+      });
+  }, []);
+
+  useEffect(() => {
+    if (prefersReducedMotion) {
+      contentOpacity.setValue(1);
+      contentShiftY.setValue(0);
+      return;
+    }
+
+    contentOpacity.setValue(0.8);
+    contentShiftY.setValue(6);
+    Animated.parallel([
+      Animated.timing(contentOpacity, {
+        toValue: 1,
+        duration: 180,
+        easing: Easing.out(Easing.quad),
+        useNativeDriver: true
+      }),
+      Animated.timing(contentShiftY, {
+        toValue: 0,
+        duration: 220,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true
+      })
+    ]).start();
+  }, [contentOpacity, contentShiftY, prefersReducedMotion, questionText]);
+
+  const handleAnswer = (value: AnswerValue): void => {
+    triggerImpactHaptic('light');
+    onAnswer(value);
+  };
+
+  const handleSkip = (): void => {
+    triggerImpactHaptic('medium');
+    onSkip();
+  };
+
+  const handleEndGame = (): void => {
+    triggerNotificationHaptic('warning');
+    onEndGame();
+  };
 
   return (
-    <View style={styles.root}>
+    <Animated.View
+      style={[
+        styles.root,
+        {
+          opacity: contentOpacity,
+          transform: [{ translateY: contentShiftY }]
+        }
+      ]}
+    >
       <View style={styles.headerBlock}>
         <Text style={styles.phasePill}>PLAYING</Text>
         {guessCount > 0 && (
@@ -63,29 +147,52 @@ export function PlayingScreen({
         ) : null}
       </View>
 
+      {isBusy ? (
+        <View style={styles.busyCard}>
+          <ActivityIndicator color="#93c5fd" size="small" />
+          <Text style={styles.busyText}>Submitting your answer...</Text>
+        </View>
+      ) : (
+        <Text style={styles.helperText}>Choose the answer that best fits your character to keep the model calibrated.</Text>
+      )}
+
       {errorMessage ? <Text style={styles.errorText}>{errorMessage}</Text> : null}
 
       <SyncStatusBadge />
 
       <View style={styles.answerGrid}>
-        {answerButtons.map((entry) => {
-          const primary = entry.tone !== 'secondary';
+        {ANSWER_BUTTONS.map((entry) => {
           return (
             <Pressable
               accessibilityRole="button"
+              accessibilityLabel={`Answer ${entry.label}`}
+              accessibilityHint={entry.accessibilityHint}
               key={entry.value}
               disabled={isBusy}
-              onPress={() => onAnswer(entry.value)}
-              style={[
+                onPress={() => handleAnswer(entry.value)}
+              style={({ pressed }) => [
                 styles.answerButton,
-                primary ? styles.answerButtonPrimary : styles.answerButtonSecondary,
-                isBusy ? styles.answerButtonDisabled : null
+                entry.tone === 'yes'
+                  ? styles.answerButtonYes
+                  : entry.tone === 'no'
+                    ? styles.answerButtonNo
+                    : entry.tone === 'maybe'
+                      ? styles.answerButtonMaybe
+                      : styles.answerButtonSecondary,
+                isBusy ? styles.answerButtonDisabled : null,
+                pressed && !isBusy ? styles.answerButtonPressed : null
               ]}
             >
               <Text
                 style={[
                   styles.answerButtonText,
-                  primary ? styles.answerButtonTextPrimary : styles.answerButtonTextSecondary
+                  entry.tone === 'yes'
+                    ? styles.answerButtonTextYes
+                    : entry.tone === 'no'
+                      ? styles.answerButtonTextNo
+                      : entry.tone === 'maybe'
+                        ? styles.answerButtonTextMaybe
+                        : styles.answerButtonTextSecondary
                 ]}
               >
                 {entry.label}
@@ -98,22 +205,36 @@ export function PlayingScreen({
       <View style={styles.footerActions}>
         <Pressable
           accessibilityRole="button"
+          accessibilityLabel="Skip current question"
+          accessibilityHint="Moves to the next best question without recording an answer"
           disabled={isBusy}
-          onPress={onSkip}
-          style={[styles.footerButton, styles.footerButtonSecondary, isBusy ? styles.answerButtonDisabled : null]}
+          onPress={handleSkip}
+          style={({ pressed }) => [
+            styles.footerButton,
+            styles.footerButtonSecondary,
+            isBusy ? styles.answerButtonDisabled : null,
+            pressed && !isBusy ? styles.answerButtonPressed : null
+          ]}
         >
           <Text style={styles.footerButtonTextSecondary}>Skip Question</Text>
         </Pressable>
         <Pressable
           accessibilityRole="button"
+          accessibilityLabel="End game"
+          accessibilityHint="Ends the current round and moves to game over"
           disabled={isBusy}
-          onPress={onEndGame}
-          style={[styles.footerButton, styles.footerButtonGhost, isBusy ? styles.answerButtonDisabled : null]}
+          onPress={handleEndGame}
+          style={({ pressed }) => [
+            styles.footerButton,
+            styles.footerButtonGhost,
+            isBusy ? styles.answerButtonDisabled : null,
+            pressed && !isBusy ? styles.answerButtonPressed : null
+          ]}
         >
           <Text style={styles.footerButtonTextGhost}>End Game</Text>
         </Pressable>
       </View>
-    </View>
+    </Animated.View>
   );
 }
 
@@ -178,6 +299,27 @@ const styles = StyleSheet.create({
     gap: 8,
     backgroundColor: '#0b1c44'
   },
+  busyCard: {
+    borderWidth: 1,
+    borderColor: '#334155',
+    borderRadius: 10,
+    backgroundColor: '#111827',
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    gap: 8,
+    flexDirection: 'row',
+    alignItems: 'center'
+  },
+  busyText: {
+    color: '#cbd5e1',
+    fontSize: 13,
+    fontWeight: '600'
+  },
+  helperText: {
+    color: '#93c5fd',
+    fontSize: 13,
+    lineHeight: 19
+  },
   cooldownCard: {
     borderRadius: 10,
     backgroundColor: '#1c1917',
@@ -230,8 +372,14 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     alignItems: 'center'
   },
-  answerButtonPrimary: {
+  answerButtonYes: {
     backgroundColor: '#22c55e'
+  },
+  answerButtonNo: {
+    backgroundColor: '#ef4444'
+  },
+  answerButtonMaybe: {
+    backgroundColor: '#f59e0b'
   },
   answerButtonSecondary: {
     backgroundColor: '#1e293b',
@@ -245,11 +393,20 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '700'
   },
-  answerButtonTextPrimary: {
+  answerButtonTextYes: {
     color: '#052e16'
+  },
+  answerButtonTextNo: {
+    color: '#fff1f2'
+  },
+  answerButtonTextMaybe: {
+    color: '#451a03'
   },
   answerButtonTextSecondary: {
     color: '#e2e8f0'
+  },
+  answerButtonPressed: {
+    transform: [{ scale: 0.98 }]
   },
   footerActions: {
     flexDirection: 'row',

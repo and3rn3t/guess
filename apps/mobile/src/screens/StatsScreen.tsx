@@ -1,5 +1,13 @@
 import { useMemo, useState, type ReactElement } from "react";
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
+import {
+  ActivityIndicator,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+  type StyleProp,
+  type TextStyle,
+} from "react-native";
 import type {
   MobileApiHealthCheckResult,
   MobileHistoryGame,
@@ -11,6 +19,7 @@ import {
 } from "../network/mobileGameApi";
 import {
   clearMobilePerfMetrics,
+  getMobileReliabilitySummary,
   getMobilePerfSummary,
 } from "../perf/mobilePerfMetrics";
 import type { MobileGameState } from "../state/mobileGameState";
@@ -56,11 +65,13 @@ export function StatsScreen({
     [historyGames, streak, stats]
   );
   const perfSummary = getMobilePerfSummary();
+  const reliabilitySummary = getMobileReliabilitySummary();
   const apiBaseUrl = getMobileApiBaseUrlForDebug();
   const [apiHealth, setApiHealth] =
     useState<MobileApiHealthCheckResult | null>(null);
   const [isCheckingApiHealth, setIsCheckingApiHealth] = useState(false);
-  const diagnosticsSnapshot = buildDiagnosticsSnapshot(perfSummary);
+  const diagnosticsSnapshot = buildDiagnosticsSnapshot(perfSummary, reliabilitySummary);
+  const apiHealthPresentation = getApiHealthPresentation(apiHealth);
 
   return (
     <View style={styles.root}>
@@ -188,9 +199,41 @@ export function StatsScreen({
           </Text>
         </View>
         <View style={styles.metricItem}>
+          <Text style={styles.metricKey}>Feedback-to-next-question p95</Text>
+          <Text
+            style={[
+              styles.metricValue,
+              perfSummary.feedback_to_next_question.meetsTarget
+                ? styles.metricValuePass
+                : styles.metricValueFail,
+            ]}
+          >
+            {formatMs(perfSummary.feedback_to_next_question.p95Ms)} / {perfSummary.feedback_to_next_question.thresholdMs}ms
+          </Text>
+        </View>
+        <View style={styles.metricItem}>
+          <Text style={styles.metricKey}>Transition-complete p95</Text>
+          <Text
+            style={[
+              styles.metricValue,
+              perfSummary.transition_complete.meetsTarget
+                ? styles.metricValuePass
+                : styles.metricValueFail,
+            ]}
+          >
+            {formatMs(perfSummary.transition_complete.p95Ms)} / {perfSummary.transition_complete.thresholdMs}ms
+          </Text>
+        </View>
+        <View style={styles.metricItem}>
           <Text style={styles.metricKey}>Samples</Text>
           <Text style={styles.metricValue}>
-            tap {perfSummary.tap_to_feedback.count} · transition {perfSummary.transition_start.count}
+            tap {perfSummary.tap_to_feedback.count} · next-q {perfSummary.feedback_to_next_question.count} · transition-start {perfSummary.transition_start.count} · transition-complete {perfSummary.transition_complete.count}
+          </Text>
+        </View>
+        <View style={styles.metricItem}>
+          <Text style={styles.metricKey}>Reliability counters</Text>
+          <Text style={styles.metricValue}>
+            retry {reliabilitySummary.transportRetryCount} · transport fail {reliabilitySummary.transportFailureCount} · server fail {reliabilitySummary.serverFailureCount} · payload fail {reliabilitySummary.validationFailureCount}
           </Text>
         </View>
         <View style={styles.metricItem}>
@@ -201,22 +244,7 @@ export function StatsScreen({
         </View>
         <View style={styles.metricItem}>
           <Text style={styles.metricKey}>API health</Text>
-          <Text
-            style={[
-              styles.metricValue,
-              apiHealth === null
-                ? undefined
-                : apiHealth.ok
-                  ? styles.metricValuePass
-                  : styles.metricValueFail,
-            ]}
-          >
-            {apiHealth === null
-              ? "Not checked"
-              : apiHealth.ok
-                ? `Reachable (${apiHealth.statusCode ?? "n/a"})`
-                : `Unreachable (${apiHealth.detail})`}
-          </Text>
+          <Text style={apiHealthPresentation.style}>{apiHealthPresentation.label}</Text>
         </View>
         <Pressable
           accessibilityRole="button"
@@ -364,16 +392,48 @@ function formatMs(value: number): string {
   return `${Math.round(value * 10) / 10}`;
 }
 
+function getApiHealthPresentation(
+  apiHealth: MobileApiHealthCheckResult | null,
+): { label: string; style: StyleProp<TextStyle> } {
+  if (apiHealth === null) {
+    return {
+      label: "Not checked",
+      style: [styles.metricValue],
+    };
+  }
+
+  if (apiHealth.ok) {
+    return {
+      label: `Reachable (${apiHealth.statusCode ?? "n/a"})`,
+      style: [styles.metricValue, styles.metricValuePass],
+    };
+  }
+
+  return {
+    label: `Unreachable (${apiHealth.detail})`,
+    style: [styles.metricValue, styles.metricValueFail],
+  };
+}
+
 function buildDiagnosticsSnapshot(
   summary: ReturnType<typeof getMobilePerfSummary>,
+  reliabilitySummary: ReturnType<typeof getMobileReliabilitySummary>,
 ): string {
   const runDate = new Date().toISOString().slice(0, 10);
   return [
     `Run date: ${runDate}`,
     `Tap-to-feedback p95: ${formatMs(summary.tap_to_feedback.p95Ms)} ms / ${summary.tap_to_feedback.thresholdMs} ms`,
+    `Feedback-to-next-question p95: ${formatMs(summary.feedback_to_next_question.p95Ms)} ms / ${summary.feedback_to_next_question.thresholdMs} ms`,
     `Transition-start p95: ${formatMs(summary.transition_start.p95Ms)} ms / ${summary.transition_start.thresholdMs} ms`,
+    `Transition-complete p95: ${formatMs(summary.transition_complete.p95Ms)} ms / ${summary.transition_complete.thresholdMs} ms`,
     `Tap samples: ${summary.tap_to_feedback.count}`,
-    `Transition samples: ${summary.transition_start.count}`
+    `Feedback-to-next-question samples: ${summary.feedback_to_next_question.count}`,
+    `Transition-start samples: ${summary.transition_start.count}`,
+    `Transition-complete samples: ${summary.transition_complete.count}`,
+    `Transport retries: ${reliabilitySummary.transportRetryCount}`,
+    `Transport failures: ${reliabilitySummary.transportFailureCount}`,
+    `Server failures: ${reliabilitySummary.serverFailureCount}`,
+    `Payload validation failures: ${reliabilitySummary.validationFailureCount}`
   ].join('\n');
 }
 

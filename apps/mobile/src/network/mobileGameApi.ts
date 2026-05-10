@@ -2,10 +2,9 @@ import {
   drainMobileQueuedActions,
   enqueueMobileQueuedFeedbackAction,
   enqueueMobileQueuedResultAction,
-  getMobileQueuedActionCount,
-  onMobileQueuedActionCountChange,
   replaceMobileQueuedActions
 } from './mobileOfflineQueue';
+import { incrementMobileReliabilityCounter } from '../perf/mobilePerfMetrics';
 
 export type Difficulty = 'easy' | 'medium' | 'hard';
 export type AnswerValue = 'yes' | 'no' | 'maybe' | 'unknown';
@@ -295,13 +294,18 @@ async function withTransportRetry<T>(operation: () => Promise<T>): Promise<T> {
     } catch (error) {
       attempt += 1;
       if (!isTransportError(error) || attempt > TRANSPORT_RETRY_COUNT) {
+        if (isTransportError(error)) {
+          incrementMobileReliabilityCounter('transport_failure');
+        }
         throw error;
       }
 
+      incrementMobileReliabilityCounter('transport_retry');
       await sleep(TRANSPORT_RETRY_DELAY_MS);
     }
   }
 
+  incrementMobileReliabilityCounter('transport_failure');
   throw new MobileApiError('Network request failed', 'transport');
 }
 
@@ -378,12 +382,14 @@ async function postJson(path: string, body: Record<string, unknown>): Promise<un
   const response = await postRaw(path, body);
 
   if (!response.ok) {
+    incrementMobileReliabilityCounter('server_failure');
     throw new MobileApiError(`Server request failed (${response.status})`, 'server', response.status);
   }
 
   const contentType = response.headers.get('content-type') ?? '';
   if (!contentType.toLowerCase().includes('application/json')) {
     const preview = (await response.text()).slice(0, 140).replaceAll(/\s+/g, ' ').trim();
+    incrementMobileReliabilityCounter('validation_failure');
     throw new MobileApiError(
       `Server returned non-JSON response for ${response.url}: ${preview || 'empty response'}`,
       'validation',
@@ -394,6 +400,7 @@ async function postJson(path: string, body: Record<string, unknown>): Promise<un
   try {
     return (await response.json()) as unknown;
   } catch {
+    incrementMobileReliabilityCounter('validation_failure');
     throw new MobileApiError(`Server returned invalid JSON for ${response.url}`, 'validation', response.status);
   }
 }
@@ -402,12 +409,14 @@ async function getJson(path: string): Promise<unknown> {
   const response = await getRaw(path);
 
   if (!response.ok) {
+    incrementMobileReliabilityCounter('server_failure');
     throw new MobileApiError(`Server request failed (${response.status})`, 'server', response.status);
   }
 
   const contentType = response.headers.get('content-type') ?? '';
   if (!contentType.toLowerCase().includes('application/json')) {
     const preview = (await response.text()).slice(0, 140).replaceAll(/\s+/g, ' ').trim();
+    incrementMobileReliabilityCounter('validation_failure');
     throw new MobileApiError(
       `Server returned non-JSON response for ${response.url}: ${preview || 'empty response'}`,
       'validation',
@@ -418,6 +427,7 @@ async function getJson(path: string): Promise<unknown> {
   try {
     return (await response.json()) as unknown;
   } catch {
+    incrementMobileReliabilityCounter('validation_failure');
     throw new MobileApiError(`Server returned invalid JSON for ${response.url}`, 'validation', response.status);
   }
 }
@@ -446,6 +456,7 @@ async function postRaw(path: string, body: Record<string, unknown>): Promise<Res
     }
 
     settleSyncRequest('offline');
+    incrementMobileReliabilityCounter('transport_failure');
     throw new MobileApiError('Network request failed', 'transport');
   } finally {
     clearTimeout(timeout);
@@ -704,11 +715,13 @@ export async function skipQuestion(sessionId: string): Promise<MobileSkipRespons
   }
 
   if (!response.ok) {
+    incrementMobileReliabilityCounter('server_failure');
     throw new MobileApiError(`Skip request failed (${response.status})`, 'server', response.status);
   }
 
   const payload = (await response.json()) as unknown;
   if (!isRecord(payload) || payload.type !== 'question') {
+    incrementMobileReliabilityCounter('validation_failure');
     throw new MobileApiError('Invalid skip response payload', 'validation');
   }
 
@@ -720,6 +733,7 @@ export async function skipQuestion(sessionId: string): Promise<MobileSkipRespons
     typeof questionCount !== 'number' ||
     typeof skippedCount !== 'number'
   ) {
+    incrementMobileReliabilityCounter('validation_failure');
     throw new MobileApiError('Skip counters are malformed', 'validation');
   }
 
@@ -772,6 +786,7 @@ export async function rejectGuess(
 async function sendResult(sessionId: string, correct: boolean): Promise<void> {
   const response = await postRaw(ENDPOINTS.result, { sessionId, correct });
   if (!response.ok) {
+    incrementMobileReliabilityCounter('server_failure');
     throw new MobileApiError(`Result request failed (${response.status})`, 'server', response.status);
   }
 }
@@ -867,7 +882,7 @@ export async function flushMobileQueuedActions(): Promise<number> {
   return flushedCount;
 }
 
-export { getMobileQueuedActionCount, onMobileQueuedActionCountChange };
+export { getMobileQueuedActionCount, onMobileQueuedActionCountChange } from './mobileOfflineQueue';
 
 async function sendFeedback(sessionId: string, rating: number, feedbackText: string): Promise<void> {
   const payload = await postJson(ENDPOINTS.feedback, {

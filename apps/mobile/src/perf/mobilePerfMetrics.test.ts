@@ -2,7 +2,9 @@ import { afterEach, describe, expect, it } from 'vitest';
 import {
   clearMobilePerfMetrics,
   finishMobilePerfTimer,
+  getMobileReliabilitySummary,
   getMobilePerfSummary,
+  incrementMobileReliabilityCounter,
   recordMobilePerfMetric,
   startMobilePerfTimer
 } from './mobilePerfMetrics';
@@ -18,7 +20,15 @@ describe('mobilePerfMetrics', () => {
     }
 
     for (let index = 1; index <= 20; index += 1) {
+      recordMobilePerfMetric('feedback_to_next_question', index * 10);
+    }
+
+    for (let index = 1; index <= 20; index += 1) {
       recordMobilePerfMetric('transition_start', index * 5);
+    }
+
+    for (let index = 1; index <= 20; index += 1) {
+      recordMobilePerfMetric('transition_complete', index * 12);
     }
 
     const summary = getMobilePerfSummary();
@@ -27,9 +37,17 @@ describe('mobilePerfMetrics', () => {
     expect(summary.tap_to_feedback.p95Ms).toBe(38);
     expect(summary.tap_to_feedback.meetsTarget).toBe(true);
 
+    expect(summary.feedback_to_next_question.count).toBe(20);
+    expect(summary.feedback_to_next_question.p95Ms).toBe(190);
+    expect(summary.feedback_to_next_question.meetsTarget).toBe(true);
+
     expect(summary.transition_start.count).toBe(20);
     expect(summary.transition_start.p95Ms).toBe(95);
     expect(summary.transition_start.meetsTarget).toBe(true);
+
+    expect(summary.transition_complete.count).toBe(20);
+    expect(summary.transition_complete.p95Ms).toBe(228);
+    expect(summary.transition_complete.meetsTarget).toBe(true);
   });
 
   it('ignores invalid samples', () => {
@@ -47,5 +65,20 @@ describe('mobilePerfMetrics', () => {
 
     expect(elapsed).toBeGreaterThanOrEqual(0);
     expect(getMobilePerfSummary().tap_to_feedback.count).toBe(1);
+  });
+
+  it('tracks reliability counters', () => {
+    incrementMobileReliabilityCounter('transport_retry');
+    incrementMobileReliabilityCounter('transport_retry');
+    incrementMobileReliabilityCounter('transport_failure');
+    incrementMobileReliabilityCounter('server_failure');
+    incrementMobileReliabilityCounter('validation_failure');
+
+    expect(getMobileReliabilitySummary()).toEqual({
+      transportRetryCount: 2,
+      transportFailureCount: 1,
+      serverFailureCount: 1,
+      validationFailureCount: 1
+    });
   });
 });

@@ -1,5 +1,15 @@
-import type { ReactElement } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useRef, useState, type ReactElement } from 'react';
+import {
+  AccessibilityInfo,
+  ActivityIndicator,
+  Animated,
+  Easing,
+  Pressable,
+  StyleSheet,
+  Text,
+  View
+} from 'react-native';
+import { triggerImpactHaptic, triggerNotificationHaptic } from '../lib/mobileHaptics';
 
 interface GuessingScreenProps {
   characterName: string;
@@ -24,8 +34,71 @@ export function GuessingScreen({
   onReject,
   onSurrender
 }: Readonly<GuessingScreenProps>): ReactElement {
+  const confidenceLabel = formatGuessConfidence(confidence);
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
+  const contentOpacity = useRef(new Animated.Value(1)).current;
+  const contentShiftY = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    void AccessibilityInfo.isReduceMotionEnabled()
+      .then((enabled) => {
+        setPrefersReducedMotion(enabled);
+      })
+      .catch(() => {
+        setPrefersReducedMotion(false);
+      });
+  }, []);
+
+  useEffect(() => {
+    if (prefersReducedMotion) {
+      contentOpacity.setValue(1);
+      contentShiftY.setValue(0);
+      return;
+    }
+
+    contentOpacity.setValue(0.82);
+    contentShiftY.setValue(8);
+    Animated.parallel([
+      Animated.timing(contentOpacity, {
+        toValue: 1,
+        duration: 200,
+        easing: Easing.out(Easing.quad),
+        useNativeDriver: true
+      }),
+      Animated.timing(contentShiftY, {
+        toValue: 0,
+        duration: 240,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true
+      })
+    ]).start();
+  }, [characterName, contentOpacity, contentShiftY, prefersReducedMotion]);
+
+  const handleConfirm = (): void => {
+    triggerNotificationHaptic('success');
+    onConfirm();
+  };
+
+  const handleReject = (): void => {
+    triggerImpactHaptic('medium');
+    onReject();
+  };
+
+  const handleSurrender = (): void => {
+    triggerNotificationHaptic('warning');
+    onSurrender();
+  };
+
   return (
-    <View style={styles.root}>
+    <Animated.View
+      style={[
+        styles.root,
+        {
+          opacity: contentOpacity,
+          transform: [{ translateY: contentShiftY }]
+        }
+      ]}
+    >
       <View style={styles.headerBlock}>
         <Text style={styles.phasePill}>GUESSING</Text>
         <Text style={styles.title}>
@@ -38,39 +111,79 @@ export function GuessingScreen({
         <Text style={styles.guessLabel}>{guessCount > 0 ? `Attempt ${guessCount + 1}` : 'Current Guess'}</Text>
         <Text style={styles.guessName}>{characterName}</Text>
         <Text style={styles.guessMeta}>Category: {characterCategory}</Text>
-        <Text style={styles.guessMeta}>Confidence: {confidence ?? 'n/a'}</Text>
+        <Text style={styles.guessMeta}>Confidence: {confidenceLabel}</Text>
       </View>
+
+      {isBusy ? (
+        <View style={styles.busyCard}>
+          <ActivityIndicator color="#86efac" size="small" />
+          <Text style={styles.busyText}>Submitting your decision...</Text>
+        </View>
+      ) : null}
 
       {errorMessage ? <Text style={styles.errorText}>{errorMessage}</Text> : null}
 
       <Pressable
         accessibilityRole="button"
+        accessibilityLabel="Confirm guess"
+        accessibilityHint="Confirms this character as correct"
         disabled={isBusy}
-        onPress={onConfirm}
-        style={[styles.actionButton, styles.actionPrimary, isBusy ? styles.disabled : null]}
+        onPress={handleConfirm}
+        style={({ pressed }) => [
+          styles.actionButton,
+          styles.actionPrimary,
+          isBusy ? styles.disabled : null,
+          pressed && !isBusy ? styles.pressed : null
+        ]}
       >
         <Text style={styles.actionPrimaryText}>Yes, Correct Guess</Text>
       </Pressable>
 
       <Pressable
         accessibilityRole="button"
+        accessibilityLabel="Reject guess"
+        accessibilityHint="Rejects this candidate and continues asking questions"
         disabled={isBusy}
-        onPress={onReject}
-        style={[styles.actionButton, styles.actionSecondary, isBusy ? styles.disabled : null]}
+        onPress={handleReject}
+        style={({ pressed }) => [
+          styles.actionButton,
+          styles.actionSecondary,
+          isBusy ? styles.disabled : null,
+          pressed && !isBusy ? styles.pressed : null
+        ]}
       >
         <Text style={styles.actionSecondaryText}>No, Keep Going</Text>
       </Pressable>
 
       <Pressable
         accessibilityRole="button"
+        accessibilityLabel="Surrender game"
+        accessibilityHint="Ends this round as a loss"
         disabled={isBusy}
-        onPress={onSurrender}
-        style={[styles.actionButton, styles.actionGhost, isBusy ? styles.disabled : null]}
+        onPress={handleSurrender}
+        style={({ pressed }) => [
+          styles.actionButton,
+          styles.actionDanger,
+          isBusy ? styles.disabled : null,
+          pressed && !isBusy ? styles.pressed : null
+        ]}
       >
-        <Text style={styles.actionGhostText}>Surrender</Text>
+        <Text style={styles.actionDangerText}>Surrender</Text>
       </Pressable>
-    </View>
+    </Animated.View>
   );
+}
+
+function formatGuessConfidence(confidence: number | null): string {
+  if (confidence === null || Number.isNaN(confidence)) {
+    return 'n/a';
+  }
+
+  if (confidence >= 0 && confidence <= 1) {
+    return `${Math.round(confidence * 100)}%`;
+  }
+
+  return `${Math.round(confidence)}%`;
 }
 
 const styles = StyleSheet.create({
@@ -110,6 +223,22 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     gap: 6
   },
+  busyCard: {
+    borderWidth: 1,
+    borderColor: '#14532d',
+    borderRadius: 10,
+    backgroundColor: '#052e16',
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    gap: 8,
+    flexDirection: 'row',
+    alignItems: 'center'
+  },
+  busyText: {
+    color: '#dcfce7',
+    fontSize: 13,
+    fontWeight: '600'
+  },
   guessLabel: {
     color: '#bbf7d0',
     fontSize: 12,
@@ -145,10 +274,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#334155'
   },
-  actionGhost: {
-    backgroundColor: '#111827',
+  actionDanger: {
+    backgroundColor: '#7f1d1d',
     borderWidth: 1,
-    borderColor: '#374151'
+    borderColor: '#b91c1c'
   },
   actionPrimaryText: {
     color: '#052e16',
@@ -160,10 +289,13 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '700'
   },
-  actionGhostText: {
-    color: '#cbd5e1',
+  actionDangerText: {
+    color: '#fee2e2',
     fontSize: 15,
     fontWeight: '700'
+  },
+  pressed: {
+    transform: [{ scale: 0.98 }]
   },
   disabled: {
     opacity: 0.5
