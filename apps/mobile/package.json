@@ -8,6 +8,7 @@
     "dev:tunnel": "sh -c 'HOST_IP=$(ipconfig getifaddr en0 || ipconfig getifaddr en1); EXPO_PUBLIC_API_BASE_URL=${EXPO_PUBLIC_API_BASE_URL:-http://$HOST_IP:8788}; export EXPO_PUBLIC_API_BASE_URL; expo start --dev-client --tunnel --clear || expo start --dev-client --host lan --clear'",
     "dev:lan": "sh -c 'HOST_IP=$(ipconfig getifaddr en0 || ipconfig getifaddr en1); EXPO_PUBLIC_API_BASE_URL=${EXPO_PUBLIC_API_BASE_URL:-http://$HOST_IP:8788}; export EXPO_PUBLIC_API_BASE_URL; expo start --dev-client --host lan --clear'",
     "dev:sim": "EXPO_PUBLIC_API_BASE_URL=http://127.0.0.1:8788 expo start --dev-client --host localhost --port 8081",
+    "cf:dev": "pnpm -C ../.. cf:dev",
     "ios": "RCT_USE_PREBUILT_RNCORE=0 RCT_USE_RN_DEP=0 expo run:ios",
     "typecheck": "tsc --noEmit",
     "prebuild:ios": "RCT_USE_PREBUILT_RNCORE=0 RCT_USE_RN_DEP=0 expo prebuild --platform ios"
