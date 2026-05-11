@@ -189,7 +189,7 @@ function formatGuessConfidence(confidence: number | null): string {
 const styles = StyleSheet.create({
   root: {
     width: '100%',
-    gap: 14
+    gap: 12
   },
   headerBlock: {
     gap: 8

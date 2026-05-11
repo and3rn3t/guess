@@ -51,9 +51,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#f59e0b',
     backgroundColor: '#111827',
-    paddingHorizontal: 18,
-    paddingVertical: 18,
-    gap: 12
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    gap: 10
   },
   kicker: {
     color: '#fbbf24',
@@ -79,8 +79,8 @@ const styles = StyleSheet.create({
   primaryButton: {
     borderRadius: 999,
     backgroundColor: '#f59e0b',
-    paddingHorizontal: 16,
-    paddingVertical: 12
+    paddingHorizontal: 14,
+    paddingVertical: 10
   },
   primaryButtonText: {
     color: '#111827',

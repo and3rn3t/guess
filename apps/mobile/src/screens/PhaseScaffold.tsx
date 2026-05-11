@@ -102,7 +102,7 @@ export function PhaseScaffold({
 const styles = StyleSheet.create({
   root: {
     width: '100%',
-    gap: 22
+    gap: 18
   },
   headerBlock: {
     gap: 8
@@ -128,12 +128,12 @@ const styles = StyleSheet.create({
     lineHeight: 24
   },
   metricsRow: {
-    gap: 4,
+    gap: 3,
     borderWidth: 1,
     borderColor: '#334155',
     borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
     backgroundColor: '#0f172a'
   },
   metric: {
@@ -146,8 +146,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#1d4ed8',
     borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
     backgroundColor: '#0b1c44'
   },
   questionTitle: {
@@ -167,12 +167,12 @@ const styles = StyleSheet.create({
     lineHeight: 18
   },
   guessBlock: {
-    gap: 4,
+    gap: 3,
     borderWidth: 1,
     borderColor: '#166534',
     borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
     backgroundColor: '#052e16'
   },
   guessTitle: {
@@ -192,12 +192,12 @@ const styles = StyleSheet.create({
     lineHeight: 20
   },
   actionsBlock: {
-    gap: 12
+    gap: 10
   },
   actionButton: {
     borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
     alignItems: 'center'
   },
   actionPrimary: {
