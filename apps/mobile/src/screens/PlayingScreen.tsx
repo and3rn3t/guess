@@ -89,11 +89,14 @@ export function PlayingScreen({
   const confidenceLabel = formatConfidence(confidence);
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
   const [isActionsOpen, setIsActionsOpen] = useState(false);
+  const [isErrorDismissed, setIsErrorDismissed] = useState(false);
   const hasRenderedQuestionRef = useRef(false);
   const hasTrackedErrorRef = useRef(false);
   const swipeHandledRef = useRef(false);
   const contentOpacity = useRef(new Animated.Value(1)).current;
   const contentShiftY = useRef(new Animated.Value(0)).current;
+  const busyPulseOpacity = useRef(new Animated.Value(1)).current;
+  const swipeHintFloatY = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     void AccessibilityInfo.isReduceMotionEnabled()
@@ -129,6 +132,70 @@ export function PlayingScreen({
       })
     ]).start();
   }, [contentOpacity, contentShiftY, prefersReducedMotion, questionText]);
+
+  useEffect(() => {
+    setIsErrorDismissed(false);
+  }, [errorMessage]);
+
+  useEffect(() => {
+    if (prefersReducedMotion || !isBusy) {
+      busyPulseOpacity.setValue(1);
+      return;
+    }
+
+    const busyPulse = Animated.loop(
+      Animated.sequence([
+        Animated.timing(busyPulseOpacity, {
+          toValue: 0.72,
+          duration: 420,
+          easing: Easing.inOut(Easing.quad),
+          useNativeDriver: true
+        }),
+        Animated.timing(busyPulseOpacity, {
+          toValue: 1,
+          duration: 420,
+          easing: Easing.inOut(Easing.quad),
+          useNativeDriver: true
+        })
+      ])
+    );
+
+    busyPulse.start();
+    return () => {
+      busyPulse.stop();
+      busyPulseOpacity.setValue(1);
+    };
+  }, [busyPulseOpacity, isBusy, prefersReducedMotion]);
+
+  useEffect(() => {
+    if (prefersReducedMotion || isBusy || isActionsOpen) {
+      swipeHintFloatY.setValue(0);
+      return;
+    }
+
+    const swipeHintLoop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(swipeHintFloatY, {
+          toValue: -3,
+          duration: 440,
+          easing: Easing.inOut(Easing.quad),
+          useNativeDriver: true
+        }),
+        Animated.timing(swipeHintFloatY, {
+          toValue: 0,
+          duration: 440,
+          easing: Easing.inOut(Easing.quad),
+          useNativeDriver: true
+        })
+      ])
+    );
+
+    swipeHintLoop.start();
+    return () => {
+      swipeHintLoop.stop();
+      swipeHintFloatY.setValue(0);
+    };
+  }, [isActionsOpen, isBusy, prefersReducedMotion, swipeHintFloatY]);
 
   useEffect(() => {
     if (!hasRenderedQuestionRef.current) {
@@ -252,15 +319,34 @@ export function PlayingScreen({
       </View>
 
       {isBusy ? (
-        <View style={styles.busyCard}>
+        <Animated.View style={[styles.busyCard, { opacity: busyPulseOpacity }]}>
           <ActivityIndicator color="#93c5fd" size="small" />
-          <Text style={styles.busyText}>Submitting your answer...</Text>
-        </View>
+          <View style={styles.busyTextGroup}>
+            <Text style={styles.busyText}>Submitting your answer...</Text>
+            <Text style={styles.busyMetaText}>Updating candidates and confidence.</Text>
+          </View>
+        </Animated.View>
       ) : (
         <Text style={styles.helperText}>Choose the answer that best fits your character to keep the model calibrated.</Text>
       )}
 
-      {errorMessage ? <Text style={styles.errorText}>{errorMessage}</Text> : null}
+      {errorMessage && !isErrorDismissed ? (
+        <View style={styles.errorCard}>
+          <Text style={styles.errorText}>{errorMessage}</Text>
+          <Text style={styles.errorHint}>Try again in a moment, or check connection quality.</Text>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Dismiss error message"
+            onPress={() => {
+              triggerImpactHaptic('light');
+              setIsErrorDismissed(true);
+            }}
+            style={({ pressed }) => [styles.errorDismissButton, pressed ? styles.answerButtonPressed : null]}
+          >
+            <Text style={styles.errorDismissText}>Dismiss</Text>
+          </Pressable>
+        </View>
+      ) : null}
 
       <SyncStatusBadge />
 
@@ -299,6 +385,7 @@ export function PlayingScreen({
 
       <View style={styles.footerActions}>
         <View {...actionsSwipeResponder.panHandlers} style={styles.moreActionsGestureArea}>
+          <Animated.Text style={[styles.moreActionsChevron, { transform: [{ translateY: swipeHintFloatY }] }]}>⌃</Animated.Text>
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Open more actions"
@@ -449,10 +536,18 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center'
   },
+  busyTextGroup: {
+    gap: 2
+  },
   busyText: {
     color: '#cbd5e1',
     fontSize: 13,
     fontWeight: '600'
+  },
+  busyMetaText: {
+    color: '#94a3b8',
+    fontSize: 12,
+    lineHeight: 16
   },
   helperText: {
     color: '#bfdbfe',
@@ -493,11 +588,39 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600'
   },
+  errorCard: {
+    borderWidth: 1,
+    borderColor: '#7f1d1d',
+    borderRadius: 10,
+    backgroundColor: '#3f1d1d',
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    gap: 6
+  },
   errorText: {
     color: '#fecaca',
     fontSize: 14,
     fontWeight: '600',
     lineHeight: 20
+  },
+  errorHint: {
+    color: '#fca5a5',
+    fontSize: 12,
+    lineHeight: 17
+  },
+  errorDismissButton: {
+    alignSelf: 'flex-start',
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: '#b91c1c',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    backgroundColor: '#450a0a'
+  },
+  errorDismissText: {
+    color: '#fecaca',
+    fontSize: 12,
+    fontWeight: '700'
   },
   answerGrid: {
     flexDirection: 'row',
@@ -554,6 +677,12 @@ const styles = StyleSheet.create({
   moreActionsGestureArea: {
     alignItems: 'center',
     gap: 4
+  },
+  moreActionsChevron: {
+    color: '#64748b',
+    fontSize: 14,
+    lineHeight: 14,
+    fontWeight: '700'
   },
   moreActionsButton: {
     borderRadius: 999,

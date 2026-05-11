@@ -22,6 +22,8 @@ export function GameOverScreen({
   const hasAnnouncedOutcomeRef = useRef(false);
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
   const celebrationScale = useRef(new Animated.Value(1)).current;
+  const celebrationGlowOpacity = useRef(new Animated.Value(0.7)).current;
+  const celebrationSparkLiftY = useRef(new Animated.Value(0)).current;
   const isCelebrationState = !exhausted && !surrendered;
 
   let outcome = 'Run complete. Ready for another round.';
@@ -59,22 +61,58 @@ export function GameOverScreen({
   useEffect(() => {
     if (!isCelebrationState || prefersReducedMotion) {
       celebrationScale.setValue(1);
+      celebrationGlowOpacity.setValue(0.7);
+      celebrationSparkLiftY.setValue(0);
       return;
     }
 
-    Animated.sequence([
-      Animated.timing(celebrationScale, {
-        toValue: 1.03,
-        duration: 180,
-        useNativeDriver: true,
-      }),
-      Animated.timing(celebrationScale, {
-        toValue: 1,
-        duration: 180,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  }, [celebrationScale, isCelebrationState, prefersReducedMotion]);
+    const celebrationLoop = Animated.loop(
+      Animated.sequence([
+        Animated.parallel([
+          Animated.timing(celebrationScale, {
+            toValue: 1.035,
+            duration: 220,
+            useNativeDriver: true,
+          }),
+          Animated.timing(celebrationGlowOpacity, {
+            toValue: 1,
+            duration: 220,
+            useNativeDriver: true,
+          }),
+          Animated.timing(celebrationSparkLiftY, {
+            toValue: -3,
+            duration: 220,
+            useNativeDriver: true,
+          }),
+        ]),
+        Animated.parallel([
+          Animated.timing(celebrationScale, {
+            toValue: 1,
+            duration: 220,
+            useNativeDriver: true,
+          }),
+          Animated.timing(celebrationGlowOpacity, {
+            toValue: 0.7,
+            duration: 220,
+            useNativeDriver: true,
+          }),
+          Animated.timing(celebrationSparkLiftY, {
+            toValue: 0,
+            duration: 220,
+            useNativeDriver: true,
+          }),
+        ]),
+      ])
+    );
+
+    celebrationLoop.start();
+    return () => {
+      celebrationLoop.stop();
+      celebrationScale.setValue(1);
+      celebrationGlowOpacity.setValue(0.7);
+      celebrationSparkLiftY.setValue(0);
+    };
+  }, [celebrationGlowOpacity, celebrationScale, celebrationSparkLiftY, isCelebrationState, prefersReducedMotion]);
 
   const handleBackToWelcome = (): void => {
     triggerImpactHaptic('medium');
@@ -101,8 +139,20 @@ export function GameOverScreen({
 
       {isCelebrationState ? (
         <Animated.View style={[styles.celebrationCard, { transform: [{ scale: celebrationScale }] }]}> 
+          <Animated.View style={[styles.celebrationGlow, { opacity: celebrationGlowOpacity }]} />
           <Text style={styles.celebrationTitle}>Streak Moment</Text>
           <Text style={styles.celebrationSubtitle}>Great round. Keep momentum and jump into the next game.</Text>
+          <Animated.Text
+            style={[
+              styles.celebrationSpark,
+              {
+                opacity: celebrationGlowOpacity,
+                transform: [{ translateY: celebrationSparkLiftY }]
+              }
+            ]}
+          >
+            ✦ Momentum maintained
+          </Animated.Text>
         </Animated.View>
       ) : null}
 
@@ -174,6 +224,7 @@ const styles = StyleSheet.create({
     lineHeight: 22
   },
   celebrationCard: {
+    overflow: 'hidden',
     borderWidth: 1,
     borderColor: '#14532d',
     borderRadius: 14,
@@ -182,15 +233,32 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     gap: 3
   },
+  celebrationGlow: {
+    position: 'absolute',
+    top: -20,
+    right: -18,
+    width: 110,
+    height: 110,
+    borderRadius: 999,
+    backgroundColor: '#22c55e'
+  },
   celebrationTitle: {
+    zIndex: 1,
     color: '#86efac',
     fontSize: 13,
     fontWeight: '700'
   },
   celebrationSubtitle: {
+    zIndex: 1,
     color: '#dcfce7',
     fontSize: 13,
     lineHeight: 19
+  },
+  celebrationSpark: {
+    zIndex: 1,
+    color: '#bbf7d0',
+    fontSize: 12,
+    fontWeight: '700'
   },
   summaryCard: {
     borderWidth: 1,

@@ -36,8 +36,10 @@ export function GuessingScreen({
 }: Readonly<GuessingScreenProps>): ReactElement {
   const confidenceLabel = formatGuessConfidence(confidence);
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
+  const [isErrorDismissed, setIsErrorDismissed] = useState(false);
   const contentOpacity = useRef(new Animated.Value(1)).current;
   const contentShiftY = useRef(new Animated.Value(0)).current;
+  const busyPulseOpacity = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
     void AccessibilityInfo.isReduceMotionEnabled()
@@ -73,6 +75,40 @@ export function GuessingScreen({
       })
     ]).start();
   }, [characterName, contentOpacity, contentShiftY, prefersReducedMotion]);
+
+  useEffect(() => {
+    setIsErrorDismissed(false);
+  }, [errorMessage]);
+
+  useEffect(() => {
+    if (prefersReducedMotion || !isBusy) {
+      busyPulseOpacity.setValue(1);
+      return;
+    }
+
+    const busyPulse = Animated.loop(
+      Animated.sequence([
+        Animated.timing(busyPulseOpacity, {
+          toValue: 0.72,
+          duration: 420,
+          easing: Easing.inOut(Easing.quad),
+          useNativeDriver: true
+        }),
+        Animated.timing(busyPulseOpacity, {
+          toValue: 1,
+          duration: 420,
+          easing: Easing.inOut(Easing.quad),
+          useNativeDriver: true
+        })
+      ])
+    );
+
+    busyPulse.start();
+    return () => {
+      busyPulse.stop();
+      busyPulseOpacity.setValue(1);
+    };
+  }, [busyPulseOpacity, isBusy, prefersReducedMotion]);
 
   const handleConfirm = (): void => {
     triggerNotificationHaptic('success');
@@ -115,13 +151,32 @@ export function GuessingScreen({
       </View>
 
       {isBusy ? (
-        <View style={styles.busyCard}>
+        <Animated.View style={[styles.busyCard, { opacity: busyPulseOpacity }]}>
           <ActivityIndicator color="#86efac" size="small" />
-          <Text style={styles.busyText}>Submitting your decision...</Text>
-        </View>
+          <View style={styles.busyTextGroup}>
+            <Text style={styles.busyText}>Submitting your decision...</Text>
+            <Text style={styles.busyMetaText}>Finalizing this branch.</Text>
+          </View>
+        </Animated.View>
       ) : null}
 
-      {errorMessage ? <Text style={styles.errorText}>{errorMessage}</Text> : null}
+      {errorMessage && !isErrorDismissed ? (
+        <View style={styles.errorCard}>
+          <Text style={styles.errorText}>{errorMessage}</Text>
+          <Text style={styles.errorHint}>Try the action again after connection stabilizes.</Text>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Dismiss error message"
+            onPress={() => {
+              triggerImpactHaptic('light');
+              setIsErrorDismissed(true);
+            }}
+            style={({ pressed }) => [styles.errorDismissButton, pressed ? styles.pressed : null]}
+          >
+            <Text style={styles.errorDismissText}>Dismiss</Text>
+          </Pressable>
+        </View>
+      ) : null}
 
       <Pressable
         accessibilityRole="button"
@@ -234,10 +289,18 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center'
   },
+  busyTextGroup: {
+    gap: 2
+  },
   busyText: {
     color: '#dcfce7',
     fontSize: 13,
     fontWeight: '600'
+  },
+  busyMetaText: {
+    color: '#86efac',
+    fontSize: 12,
+    lineHeight: 16
   },
   guessLabel: {
     color: '#bbf7d0',
@@ -254,11 +317,39 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600'
   },
+  errorCard: {
+    borderWidth: 1,
+    borderColor: '#7f1d1d',
+    borderRadius: 10,
+    backgroundColor: '#3f1d1d',
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    gap: 6
+  },
   errorText: {
     color: '#fecaca',
     fontSize: 14,
     fontWeight: '600',
     lineHeight: 20
+  },
+  errorHint: {
+    color: '#fca5a5',
+    fontSize: 12,
+    lineHeight: 17
+  },
+  errorDismissButton: {
+    alignSelf: 'flex-start',
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: '#b91c1c',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    backgroundColor: '#450a0a'
+  },
+  errorDismissText: {
+    color: '#fecaca',
+    fontSize: 12,
+    fontWeight: '700'
   },
   actionButton: {
     borderRadius: 12,

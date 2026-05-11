@@ -36,6 +36,7 @@ export function SecondaryActionsSheet({
   isSecondaryDisabled = false,
 }: Readonly<SecondaryActionsSheetProps>): ReactElement {
   const [isOpen, setIsOpen] = useState(false);
+  const [isModalVisible, setIsModalVisible] = useState(false);
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
   const hasSecondaryActions = secondaryActions.length > 0;
   const sheetTranslateY = useRef(new Animated.Value(0)).current;
@@ -52,14 +53,24 @@ export function SecondaryActionsSheet({
   }, []);
 
   useEffect(() => {
-    if (prefersReducedMotion) {
-      sheetTranslateY.setValue(isOpen ? 0 : 280);
-      backdropOpacity.setValue(isOpen ? 1 : 0);
+    if (!isModalVisible) {
       return;
     }
 
-    sheetTranslateY.setValue(isOpen ? 280 : 0);
-    backdropOpacity.setValue(isOpen ? 0 : 1);
+    if (prefersReducedMotion) {
+      sheetTranslateY.setValue(isOpen ? 0 : 280);
+      backdropOpacity.setValue(isOpen ? 1 : 0);
+      if (!isOpen) {
+        setIsModalVisible(false);
+      }
+      return;
+    }
+
+    if (isOpen) {
+      sheetTranslateY.setValue(280);
+      backdropOpacity.setValue(0);
+    }
+
     Animated.parallel([
       Animated.timing(sheetTranslateY, {
         toValue: isOpen ? 0 : 280,
@@ -73,11 +84,29 @@ export function SecondaryActionsSheet({
         easing: Easing.out(Easing.quad),
         useNativeDriver: true
       })
-    ]).start();
-  }, [isOpen, prefersReducedMotion, backdropOpacity, sheetTranslateY]);
+    ]).start(({ finished }) => {
+      if (finished && !isOpen) {
+        setIsModalVisible(false);
+      }
+    });
+  }, [isModalVisible, isOpen, prefersReducedMotion, backdropOpacity, sheetTranslateY]);
 
   const handleClose = (): void => {
+    if (!isOpen) {
+      return;
+    }
+
     setIsOpen(false);
+    triggerImpactHaptic('light');
+  };
+
+  const handleOpen = (): void => {
+    if (isSecondaryDisabled) {
+      return;
+    }
+
+    setIsModalVisible(true);
+    setIsOpen(true);
     triggerImpactHaptic('light');
   };
 
@@ -100,10 +129,7 @@ export function SecondaryActionsSheet({
           accessibilityRole="button"
           accessibilityLabel="Open more actions"
           accessibilityHint="Opens secondary actions for this screen"
-          onPress={() => {
-            triggerImpactHaptic('light');
-            setIsOpen(true);
-          }}
+          onPress={handleOpen}
           disabled={isSecondaryDisabled}
           style={[styles.secondaryTriggerButton, isSecondaryDisabled ? styles.disabled : null]}
         >
@@ -114,11 +140,17 @@ export function SecondaryActionsSheet({
       <Modal
         transparent
         animationType="none"
-        visible={isOpen}
+        visible={isModalVisible}
         onRequestClose={handleClose}
       >
-        <Animated.View style={[styles.backdrop, { opacity: backdropOpacity }]} onTouchEnd={handleClose}>
-          <Pressable style={styles.sheet} onPress={() => {}}>
+        <Animated.View style={[styles.backdrop, { opacity: backdropOpacity }]}> 
+          <Pressable style={styles.backdropPressable} onPress={handleClose}>
+          <Pressable
+            style={styles.sheet}
+            onPress={(event) => {
+              event.stopPropagation();
+            }}
+          >
             <Animated.View
               style={[
                 styles.sheetContent,
@@ -154,6 +186,7 @@ export function SecondaryActionsSheet({
                 <Text style={styles.cancelButtonText}>Cancel</Text>
               </Pressable>
             </Animated.View>
+          </Pressable>
           </Pressable>
         </Animated.View>
       </Modal>
@@ -199,6 +232,9 @@ const styles = StyleSheet.create({
   backdrop: {
     flex: 1,
     backgroundColor: 'rgba(2, 6, 23, 0.6)',
+  },
+  backdropPressable: {
+    flex: 1,
     justifyContent: 'flex-end',
   },
   sheet: {
