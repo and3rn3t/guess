@@ -46,6 +46,20 @@ jobs:
           set -o pipefail
           pnpm mobile:reliability-gate 2>&1 | tee .ci-artifacts/mobile-ci/reliability-perf-gate.log
 
+      - name: Resolve scorecard base ref (main pushes)
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        run: |
+          set -euo pipefail
+          base_sha="${{ github.event.before }}"
+
+          if [[ -n "$base_sha" && "$base_sha" != "0000000000000000000000000000000000000000" ]]; then
+            git fetch --no-tags --prune --depth=1 origin "$base_sha" || true
+            echo "MOBILE_SCORECARD_BASE_REF=$base_sha" >> "$GITHUB_ENV"
+            echo "Resolved scorecard base ref: $base_sha"
+          else
+            echo "No explicit base SHA available from event payload; using default scorecard base ref logic."
+          fi
+
       - name: Mobile scorecard milestone gate (main)
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
         run: |
