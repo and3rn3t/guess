@@ -40,9 +40,11 @@ import {
   finishMobilePerfTimer,
   startMobilePerfTimer,
 } from "../src/perf/mobilePerfMetrics";
+import { recordMobileRuntimeError } from "../src/perf/mobileRuntimeTelemetry";
 import { ChallengeScreen } from "../src/screens/ChallengeScreen";
 import { CompareScreen } from "../src/screens/CompareScreen";
 import { ConnectionStatusBanner } from "../src/screens/ConnectionStatusBanner";
+import { DescribeYourselfScreen } from "../src/screens/DescribeYourselfScreen";
 import { FeedbackScreen } from "../src/screens/FeedbackScreen";
 import { GameOverScreen } from "../src/screens/GameOverScreen";
 import { GuessingScreen } from "../src/screens/GuessingScreen";
@@ -136,6 +138,11 @@ const PHASE_META: Record<MobileGamePhase, PhaseMeta> = {
     title: "Teaching",
     subtitle: "Utility surface placeholder for guided strategy lessons.",
   },
+  describeYourself: {
+    title: "Describe Yourself",
+    subtitle:
+      "Utility surface for short-form self profile prompts and persistence.",
+  },
   feedback: {
     title: "Post-Game Feedback",
     subtitle:
@@ -216,6 +223,44 @@ function MobileShell(): ReactElement {
     () => getPhaseTransitionProfile(state.phase),
     [state.phase],
   );
+
+  useEffect(() => {
+    type GlobalErrorHandler = (error: Error, isFatal?: boolean) => void;
+    type ErrorUtilsLike = {
+      getGlobalHandler?: () => GlobalErrorHandler;
+      setGlobalHandler?: (handler: GlobalErrorHandler) => void;
+    };
+
+    const rootWithErrorUtils = globalThis as unknown as {
+      ErrorUtils?: ErrorUtilsLike;
+    };
+    const errorUtils = rootWithErrorUtils.ErrorUtils;
+    if (!errorUtils?.setGlobalHandler) {
+      return;
+    }
+
+    const previousHandler = errorUtils.getGlobalHandler?.();
+    const telemetryHandler: GlobalErrorHandler = (error, isFatal) => {
+      recordMobileRuntimeError({
+        source: "global",
+        severity: isFatal ? "fatal" : "error",
+        message: error?.message ?? "Unhandled runtime error",
+        stack: error?.stack,
+      });
+
+      if (previousHandler) {
+        previousHandler(error, isFatal);
+      }
+    };
+
+    errorUtils.setGlobalHandler(telemetryHandler);
+
+    return () => {
+      if (previousHandler && errorUtils.setGlobalHandler) {
+        errorUtils.setGlobalHandler(previousHandler);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     void AccessibilityInfo.isReduceMotionEnabled()
@@ -842,6 +887,9 @@ function MobileShell(): ReactElement {
           onOpenTeaching={() =>
             dispatch({ type: "OPEN_PHASE", phase: "teaching" })
           }
+          onOpenDescribeYourself={() =>
+            dispatch({ type: "OPEN_PHASE", phase: "describeYourself" })
+          }
           onOpenResume={() => dispatch({ type: "OPEN_PHASE", phase: "resume" })}
         />
       );
@@ -978,6 +1026,16 @@ function MobileShell(): ReactElement {
           onOpenFeedback={() =>
             dispatch({ type: "OPEN_PHASE", phase: "feedback" })
           }
+          onBackToWelcome={() => dispatch({ type: "BACK_TO_WELCOME" })}
+        />
+      );
+    }
+
+    if (state.phase === "describeYourself") {
+      return (
+        <DescribeYourselfScreen
+          isBusy={state.isBusy}
+          errorMessage={state.lastError}
           onBackToWelcome={() => dispatch({ type: "BACK_TO_WELCOME" })}
         />
       );

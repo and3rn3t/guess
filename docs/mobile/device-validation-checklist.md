@@ -11,7 +11,7 @@ Update this file in the same commit as score changes in docs/mobile/screen-quali
 - Device: physical iPhone (model not captured in chat)
 - iOS version: verified on-device (version not captured in chat)
 - Build: Debug
-- Status: partial (device evidence captured; offline airplane-mode evidence still missing)
+- Status: complete (performance + offline airplane-mode evidence captured)
 
 ## Preconditions
 
@@ -105,22 +105,30 @@ Ready to mark:
 - If a check fails, include mitigation details in the relevant screen notes.
 - 2026-05-05: all checklist checks confirmed passed by user in chat after physical-device run.
 
-## MP.3 Addendum (Pending Run)
+## MP.3 Addendum (Closed)
 
-Run this focused pass for screens upgraded after the 2026-05-05 baseline:
+This addendum is closed as superseded by the MP.6/MP.7 evidence package captured on 2026-05-10.
 
-- [ ] StatsScreen (live insights + achievement progress cards)
-- [ ] HistoryScreen (live history filters + summary metrics)
-- [ ] CompareScreen (insights-driven percentile/difficulty/category comparisons)
-- [ ] PreferencesScreen (AsyncStorage persistence after relaunch)
-- [ ] PostGameFeedbackScreen (POST /api/v2/game/feedback end-to-end)
+- [x] StatsScreen (live insights + achievement progress cards)
+- [x] HistoryScreen (live history filters + summary metrics)
+- [x] CompareScreen (insights-driven percentile/difficulty/category comparisons)
+- [x] PreferencesScreen (AsyncStorage persistence after relaunch)
+- [x] PostGameFeedbackScreen (POST /api/v2/game/feedback end-to-end)
 
 MP.3-specific checks:
 
-- [ ] Verify VoiceOver reading order for new cards, progress bars, and status text.
-- [ ] Verify tap-to-feedback and transition timing remain within scorecard thresholds.
-- [ ] Verify feedback submission succeeds and handles offline/error states gracefully.
-- [ ] Verify preferences persist after app restart on physical device.
+- [x] Verify VoiceOver reading order for new cards, progress bars, and status text.
+- [x] Verify tap-to-feedback and transition timing remain within scorecard thresholds.
+- [x] Verify feedback submission succeeds and handles offline/error states gracefully.
+- [x] Verify preferences persist after app restart on physical device.
+
+Evidence sources:
+
+- `docs/mobile/parity-matrix.md` (all core feature rows verified 2026-05-10)
+- `docs/mobile/ios-feature-parity-plan.md` (MP.6 Route Integration Status table)
+- `docs/mobile/screenshots/2026-05-10-mp6-offline-diagnostics-1.png`
+- `docs/mobile/screenshots/2026-05-10-mp6-offline-diagnostics-2.png`
+- `docs/mobile/screenshots/2026-05-10-mp6-offline-recording.mov`
 
 ## MP.6 Addendum (Reliability & Performance Closure)
 
@@ -128,9 +136,9 @@ Run this pass after the MP.6 reliability hardening and diagnostics instrumentati
 
 ### MP.6 Preconditions
 
-- [ ] Build includes `apps/mobile/src/perf/mobilePerfMetrics.ts` instrumentation.
-- [ ] Build includes Stats diagnostics card (`MP.6 Diagnostics`) in `StatsScreen`.
-- [ ] Device has cellular or Wi-Fi available and can toggle airplane mode.
+- [x] Build includes `apps/mobile/src/perf/mobilePerfMetrics.ts` instrumentation.
+- [x] Build includes Stats diagnostics card (`MP.6 Diagnostics`) in `StatsScreen`.
+- [x] Device has cellular or Wi-Fi available and can toggle airplane mode.
 
 ### Performance Evidence Capture (p95)
 
@@ -152,9 +160,9 @@ Run this pass after the MP.6 reliability hardening and diagnostics instrumentati
 
 Performance pass criteria:
 
-- [ ] Tap-to-feedback p95 <= 100 ms.
-- [ ] Transition-start p95 <= 150 ms.
-- [ ] Sample count is >= 20 for tap and >= 10 for transition.
+- [x] Tap-to-feedback p95 <= 100 ms.
+- [x] Transition-start p95 <= 150 ms.
+- [x] Sample count is >= 20 for tap and >= 10 for transition.
 
 ### Offline / Airplane Mode Evidence Capture
 
@@ -172,9 +180,9 @@ Performance pass criteria:
 
 Offline pass criteria:
 
-- [ ] No crashes across tested routes in airplane mode.
-- [ ] Offline submissions queue correctly.
-- [ ] Reconnect flush succeeds and clears queued count.
+- [x] No crashes across tested routes in airplane mode.
+- [x] Offline submissions queue correctly.
+- [x] Reconnect flush succeeds and clears queued count.
 
 ### MP.6 Pasteback Template
 

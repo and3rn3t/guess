@@ -23,6 +23,11 @@ import {
   getMobileReliabilitySummary,
   getMobilePerfSummary,
 } from "../perf/mobilePerfMetrics";
+import {
+  clearMobileRuntimeTelemetry,
+  getMobileRuntimeTelemetrySummary,
+  getRecentMobileRuntimeErrors,
+} from "../perf/mobileRuntimeTelemetry";
 import { triggerImpactHaptic } from "../lib/mobileHaptics";
 import type { MobileGameState } from "../state/mobileGameState";
 
@@ -195,6 +200,8 @@ export function StatsScreen({
 function DiagnosticsSection(): ReactElement {
   const perfSummary = getMobilePerfSummary();
   const reliabilitySummary = getMobileReliabilitySummary();
+  const runtimeSummary = getMobileRuntimeTelemetrySummary();
+  const recentRuntimeErrors = getRecentMobileRuntimeErrors(3);
   const apiBaseUrl = getMobileApiBaseUrlForDebug();
   const [apiHealth, setApiHealth] = useState<MobileApiHealthCheckResult | null>(null);
   const [isCheckingApiHealth, setIsCheckingApiHealth] = useState(false);
@@ -247,6 +254,8 @@ function DiagnosticsSection(): ReactElement {
         <AdvancedDiagnosticsDetails
           perfSummary={perfSummary}
           reliabilitySummary={reliabilitySummary}
+          runtimeSummary={runtimeSummary}
+          recentRuntimeErrors={recentRuntimeErrors}
           apiBaseUrl={apiBaseUrl}
           diagnosticsSnapshot={diagnosticsSnapshot}
           isCheckingApiHealth={isCheckingApiHealth}
@@ -272,6 +281,7 @@ function DiagnosticsSection(): ReactElement {
           }}
           onResetSamples={() => {
             clearMobilePerfMetrics();
+            clearMobileRuntimeTelemetry();
           }}
         />
       ) : null}
@@ -282,6 +292,8 @@ function DiagnosticsSection(): ReactElement {
 interface AdvancedDiagnosticsDetailsProps {
   perfSummary: ReturnType<typeof getMobilePerfSummary>;
   reliabilitySummary: ReturnType<typeof getMobileReliabilitySummary>;
+  runtimeSummary: ReturnType<typeof getMobileRuntimeTelemetrySummary>;
+  recentRuntimeErrors: ReturnType<typeof getRecentMobileRuntimeErrors>;
   apiBaseUrl: string;
   diagnosticsSnapshot: string;
   isCheckingApiHealth: boolean;
@@ -294,6 +306,8 @@ interface AdvancedDiagnosticsDetailsProps {
 function AdvancedDiagnosticsDetails({
   perfSummary,
   reliabilitySummary,
+  runtimeSummary,
+  recentRuntimeErrors,
   apiBaseUrl,
   diagnosticsSnapshot,
   isCheckingApiHealth,
@@ -368,6 +382,22 @@ function AdvancedDiagnosticsDetails({
           retry {reliabilitySummary.transportRetryCount} · transport fail {reliabilitySummary.transportFailureCount} · server fail {reliabilitySummary.serverFailureCount} · payload fail {reliabilitySummary.validationFailureCount}
         </Text>
       </View>
+      <View style={styles.metricItem}>
+        <Text style={styles.metricKey}>Runtime errors</Text>
+        <Text style={styles.metricValueCompact}>
+          total {runtimeSummary.totalCount} · fatal {runtimeSummary.fatalCount} · network {runtimeSummary.networkCount}
+        </Text>
+      </View>
+      {recentRuntimeErrors.length > 0 ? (
+        <View style={styles.metricItemStacked}>
+          <Text style={styles.metricKey}>Latest runtime events</Text>
+          {recentRuntimeErrors.map((event) => (
+            <Text key={event.id} style={styles.metricValueCompact}>
+              [{event.source}/{event.severity}] {event.message}
+            </Text>
+          ))}
+        </View>
+      ) : null}
       <View style={styles.metricItem}>
         <Text style={styles.metricKey}>API base URL</Text>
         <Text style={styles.metricValueCompact}>
@@ -534,6 +564,7 @@ function buildDiagnosticsSnapshot(
   summary: ReturnType<typeof getMobilePerfSummary>,
   reliabilitySummary: ReturnType<typeof getMobileReliabilitySummary>,
 ): string {
+  const runtimeSummary = getMobileRuntimeTelemetrySummary();
   const runDate = new Date().toISOString().slice(0, 10);
   return [
     `Run date: ${runDate}`,
@@ -548,7 +579,10 @@ function buildDiagnosticsSnapshot(
     `Transport retries: ${reliabilitySummary.transportRetryCount}`,
     `Transport failures: ${reliabilitySummary.transportFailureCount}`,
     `Server failures: ${reliabilitySummary.serverFailureCount}`,
-    `Payload validation failures: ${reliabilitySummary.validationFailureCount}`
+    `Payload validation failures: ${reliabilitySummary.validationFailureCount}`,
+    `Runtime errors total: ${runtimeSummary.totalCount}`,
+    `Runtime errors fatal: ${runtimeSummary.fatalCount}`,
+    `Runtime errors network: ${runtimeSummary.networkCount}`
   ].join('\n');
 }
 
@@ -598,6 +632,11 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+    paddingHorizontal: 6,
+    paddingVertical: 5,
+  },
+  metricItemStacked: {
+    gap: 6,
     paddingHorizontal: 6,
     paddingVertical: 5,
   },

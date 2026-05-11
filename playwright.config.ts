@@ -12,6 +12,7 @@ export default defineConfig({
   use: {
     baseURL: 'http://localhost:4173',
     screenshot: 'only-on-failure',
+    video: 'retain-on-failure',
     trace: 'on-first-retry',
     serviceWorkers: 'block',
   },
@@ -19,9 +20,23 @@ export default defineConfig({
     ? [
         { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
         { name: 'firefox', use: { ...devices['Desktop Firefox'] } },
+        {
+          name: 'mobile-chromium',
+          use: {
+            ...devices['Pixel 7'],
+            viewport: { width: 412, height: 915 },
+          },
+        },
       ]
     : [
         { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
+        {
+          name: 'mobile-chromium',
+          use: {
+            ...devices['Pixel 7'],
+            viewport: { width: 412, height: 915 },
+          },
+        },
       ],
   webServer: {
     command: 'pnpm preview',

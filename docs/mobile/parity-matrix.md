@@ -1,6 +1,6 @@
 # iOS Feature Parity Matrix
 
-**Last Updated**: 2026-05-10 | **Version**: 1.7 | **MP.1 Status**: ✅ Closed (2026-05-07) | **MP.2 Status**: ✅ Closed (2026-05-07) | **MP.3 Status**: ✅ Closed (2026-05-09) | **MP.4 Status**: ✅ Closed (2026-05-09) | **MP.5 Status**: ✅ Closed (2026-05-09) | **MP.6 Status**: ✅ Closed (2026-05-10) | **MP.7 Status**: ✅ Closed (2026-05-10)
+**Last Updated**: 2026-05-11 | **Version**: 1.8 | **MP.1 Status**: ✅ Closed (2026-05-07) | **MP.2 Status**: ✅ Closed (2026-05-07) | **MP.3 Status**: ✅ Closed (2026-05-09) | **MP.4 Status**: ✅ Closed (2026-05-09) | **MP.5 Status**: ✅ Closed (2026-05-09) | **MP.6 Status**: ✅ Closed (2026-05-10) | **MP.7 Status**: ✅ Closed (2026-05-10)
 
 Living registry of feature parity state across web and iOS. Updated with every mobile PR that touches a parity feature (add owner initials + evidence link to the row's Evidence column).
 
@@ -12,22 +12,22 @@ This matrix reflects the active branch truth for the current React Native / Expo
 
 | Feature Area | Web Source | iOS Surface (Target) | State | Target Level | Parity | Divergence | Owner | Last Verified | Evidence |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| **Welcome Screen** | GamePhaseRouter → WelcomeScreen | `screens/WelcomeScreen.tsx` | ✅ Shipped | L2 | L2 | Offline start guard and resume/challenge entry are intentionally integrated into one mobile-first landing surface. | andernet | 2026-05-10 | `apps/mobile/src/screens/WelcomeScreen.tsx`, `apps/mobile/app/index.tsx` |
-| **Playing Screen** | GamePhaseRouter → PlayingScreen | `screens/PlayingScreen.tsx` | ✅ Shipped | L2 | L2 | Sync-state and resilience affordances are surfaced inline instead of via separate diagnostics-only UI. | andernet | 2026-05-10 | `apps/mobile/src/screens/PlayingScreen.tsx`, `apps/mobile/app/index.tsx` |
-| **Guessing Phase** | GamePhaseRouter → GuessReveal | `screens/GuessingScreen.tsx` | ✅ Shipped | L2 | L2 | Multi-guess and reject-guess runtime remains mobile-first but parity-equivalent in outcome. | andernet | 2026-05-10 | `apps/mobile/src/screens/GuessingScreen.tsx`, `apps/mobile/app/index.tsx` |
-| **Game Over Screen** | GamePhaseRouter → GameOver | `screens/GameOverScreen.tsx` | ✅ Shipped | L2 | L2 | Result submission is queue-backed for offline safety; native share remains lightweight. | andernet | 2026-05-10 | `apps/mobile/src/screens/GameOverScreen.tsx`, `apps/mobile/app/index.tsx` |
-| **Challenge Screen** | GamePhaseRouter → ChallengeView | `screens/ChallengeScreen.tsx` | ✅ Shipped | L2 | L2 | Summary-first; top-10 daily leaderboard; seasonal full-board deferred (no server endpoint). | andernet | 2026-05-10 | `apps/mobile/src/screens/ChallengeScreen.tsx`, `apps/mobile/app/index.tsx` |
-| **Stats & Streaks** | GamePhaseRouter → StatsRoute | `screens/StatsScreen.tsx` | ✅ Shipped | L2 | L2 | Mobile-first cards and derived streaks; includes MP.6 diagnostics instead of a web-style analytics dashboard. | andernet | 2026-05-10 | `apps/mobile/src/screens/StatsScreen.tsx`, `apps/mobile/src/perf/mobilePerfMetrics.ts` |
-| **Game History** | GamePhaseRouter → HistoryRoute | `screens/HistoryScreen.tsx` | ✅ Shipped | L2 | L2 | Mobile-first recent-session list; full board remains intentionally deferred on small screens. | andernet | 2026-05-10 | `apps/mobile/src/screens/HistoryScreen.tsx`, `apps/mobile/app/index.tsx` |
-| **Player Compare** | GamePhaseRouter → CompareRoute | `screens/CompareScreen.tsx` | ✅ Shipped | L2 | L2 | Insight density is reduced for handheld scanability, but percentile, difficulty, and category comparisons are present. | andernet | 2026-05-10 | `apps/mobile/src/screens/CompareScreen.tsx`, `apps/mobile/app/index.tsx` |
-| **Session Resume** | Session state hook | `screens/ResumeScreen.tsx` | ✅ Shipped | L1 | L1 | Resume prompt is explicit on mobile; cold-start session ID durability now preserves the last resumable session. | andernet | 2026-05-10 | `apps/mobile/src/screens/ResumeScreen.tsx`, `apps/mobile/src/state/mobileSessionDurability.ts` |
-| **Player Preferences** | GamePhaseRouter → PreferencesRoute | `screens/PreferencesScreen.tsx` | ✅ Shipped | L2 | L2 | Persona cards, difficulty, category filters, and local persistence are mobile-native and production-wired. | andernet | 2026-05-10 | `apps/mobile/src/screens/PreferencesScreen.tsx`, `apps/mobile/src/state/mobilePreferences.ts` |
-| **Teaching Mode** | GamePhaseRouter → TeachingRoute | `screens/TeachingScreen.tsx` | ✅ Shipped | L1 | L1 | Guided lessons are shipped as a mobile-first teaching surface rather than a 1:1 web layout port. | andernet | 2026-05-10 | `apps/mobile/src/screens/TeachingScreen.tsx`, `apps/mobile/src/screens/teachingProgress.ts` |
-| **Post-Game Feedback** | GamePhaseRouter → PostGameFeedbackRoute | `screens/FeedbackScreen.tsx` | ✅ Shipped | L1 | L1 | Feedback submission supports offline-safe queuing and replay instead of requiring immediate connectivity. | andernet | 2026-05-10 | `apps/mobile/src/screens/FeedbackScreen.tsx`, `apps/mobile/src/network/mobileOfflineQueue.ts` |
+| **Welcome Screen** | GamePhaseRouter → WelcomeScreen | `screens/WelcomeScreen.tsx` | ✅ Shipped | L2 | L2 | Offline start guard and resume/challenge entry are intentionally integrated into one mobile-first landing surface. | andernet | 2026-05-10 | Code: `apps/mobile/src/screens/WelcomeScreen.tsx` · Route: `apps/mobile/app/index.tsx` · QA: `docs/mobile/device-validation-checklist.md` |
+| **Playing Screen** | GamePhaseRouter → PlayingScreen | `screens/PlayingScreen.tsx` | ✅ Shipped | L2 | L2 | Sync-state and resilience affordances are surfaced inline instead of via separate diagnostics-only UI. | andernet | 2026-05-10 | Code: `apps/mobile/src/screens/PlayingScreen.tsx` · Route: `apps/mobile/app/index.tsx` · QA: `docs/mobile/device-validation-checklist.md` |
+| **Guessing Phase** | GamePhaseRouter → GuessReveal | `screens/GuessingScreen.tsx` | ✅ Shipped | L2 | L2 | Multi-guess and reject-guess runtime remains mobile-first but parity-equivalent in outcome. | andernet | 2026-05-10 | Code: `apps/mobile/src/screens/GuessingScreen.tsx` · Route: `apps/mobile/app/index.tsx` · QA: `docs/mobile/device-validation-checklist.md` |
+| **Game Over Screen** | GamePhaseRouter → GameOver | `screens/GameOverScreen.tsx` | ✅ Shipped | L2 | L2 | Result submission is queue-backed for offline safety; native share remains lightweight. | andernet | 2026-05-10 | Code: `apps/mobile/src/screens/GameOverScreen.tsx` · Route: `apps/mobile/app/index.tsx` · QA: `docs/mobile/device-validation-checklist.md` |
+| **Challenge Screen** | GamePhaseRouter → ChallengeView | `screens/ChallengeScreen.tsx` | ✅ Shipped | L2 | L2 | Summary-first; top-10 daily leaderboard; seasonal full-board deferred (no server endpoint). | andernet | 2026-05-10 | Code: `apps/mobile/src/screens/ChallengeScreen.tsx` · Route: `apps/mobile/app/index.tsx` · QA: `docs/mobile/device-validation-checklist.md` |
+| **Stats & Streaks** | GamePhaseRouter → StatsRoute | `screens/StatsScreen.tsx` | ✅ Shipped | L2 | L2 | Mobile-first cards and derived streaks; includes MP.6 diagnostics instead of a web-style analytics dashboard. | andernet | 2026-05-10 | Code: `apps/mobile/src/screens/StatsScreen.tsx` · Perf: `apps/mobile/src/perf/mobilePerfMetrics.ts` · QA: `docs/mobile/device-validation-checklist.md` |
+| **Game History** | GamePhaseRouter → HistoryRoute | `screens/HistoryScreen.tsx` | ✅ Shipped | L2 | L2 | Mobile-first recent-session list; full board remains intentionally deferred on small screens. | andernet | 2026-05-10 | Code: `apps/mobile/src/screens/HistoryScreen.tsx` · Route: `apps/mobile/app/index.tsx` · QA: `docs/mobile/device-validation-checklist.md` |
+| **Player Compare** | GamePhaseRouter → CompareRoute | `screens/CompareScreen.tsx` | ✅ Shipped | L2 | L2 | Insight density is reduced for handheld scanability, but percentile, difficulty, and category comparisons are present. | andernet | 2026-05-10 | Code: `apps/mobile/src/screens/CompareScreen.tsx` · Route: `apps/mobile/app/index.tsx` · QA: `docs/mobile/device-validation-checklist.md` |
+| **Session Resume** | Session state hook | `screens/ResumeScreen.tsx` | ✅ Shipped | L1 | L1 | Resume prompt is explicit on mobile; cold-start session ID durability now preserves the last resumable session. | andernet | 2026-05-10 | Code: `apps/mobile/src/screens/ResumeScreen.tsx` · State: `apps/mobile/src/state/mobileSessionDurability.ts` · QA: `docs/mobile/device-validation-checklist.md` |
+| **Player Preferences** | GamePhaseRouter → PreferencesRoute | `screens/PreferencesScreen.tsx` | ✅ Shipped | L2 | L2 | Persona cards, difficulty, category filters, and local persistence are mobile-native and production-wired. | andernet | 2026-05-10 | Code: `apps/mobile/src/screens/PreferencesScreen.tsx` · State: `apps/mobile/src/state/mobilePreferences.ts` · QA: `docs/mobile/device-validation-checklist.md` |
+| **Teaching Mode** | GamePhaseRouter → TeachingRoute | `screens/TeachingScreen.tsx` | ✅ Shipped | L1 | L1 | Guided lessons are shipped as a mobile-first teaching surface rather than a 1:1 web layout port. | andernet | 2026-05-10 | Code: `apps/mobile/src/screens/TeachingScreen.tsx` · Helper: `apps/mobile/src/screens/teachingProgress.ts` · QA: `docs/mobile/device-validation-checklist.md` |
+| **Post-Game Feedback** | GamePhaseRouter → PostGameFeedbackRoute | `screens/FeedbackScreen.tsx` | ✅ Shipped | L1 | L1 | Feedback submission supports offline-safe queuing and replay instead of requiring immediate connectivity. | andernet | 2026-05-10 | Code: `apps/mobile/src/screens/FeedbackScreen.tsx` · Queue: `apps/mobile/src/network/mobileOfflineQueue.ts` · QA: `docs/mobile/device-validation-checklist.md` |
 
 ---
 
-## MP.6 Operational Surfaces (Reliability In Progress)
+## MP.6 Operational Surfaces (Reliability Complete)
 
 | Surface | State | Notes | Evidence |
 | --- | --- | --- | --- |
@@ -54,7 +54,7 @@ This matrix reflects the active branch truth for the current React Native / Expo
 
 | Feature | Exception | Rationale | Decision Date | Status |
 | --- | --- | --- | --- | --- |
-| **Challenge Leaderboard** | Summary-first design (top 10 only, not full board) | Perf/payload optimization for 5–6" screens; full board causes scroll jank. Web shows 100-entry board; mobile shows summary card. | 2026-05-07 | Planned for MP.5 |
+| **Challenge Leaderboard** | Summary-first design (top 10 only, not full board) | Perf/payload optimization for 5–6" screens; full board causes scroll jank. Web shows 100-entry board; mobile shows summary card. | 2026-05-07 | Shipped divergence |
 
 ---
 
@@ -113,6 +113,6 @@ When a milestone (MP.1, MP.2, etc.) is completed:
 ## See Also
 
 - `ios-feature-parity-plan.md` — milestone planning, dependencies, quality gates, sequencing guardrails.
-- `ROADMAP.md` → Mobile (iOS App) → Foundations Queue — active MP.* queue and status.
+- `ROADMAP.md` — active mobile-only queue and status (`MR.*`, `MN.*`, `MX.*`) plus completed MP.* history.
 - `screen-quality-scorecard.md` — how to score features and what ≥88/≥90/≥92 thresholds mean.
 - `device-validation-checklist.md` — checklist for physical iPhone testing (haptics, VoiceOver, reduce-motion, lifecycle).

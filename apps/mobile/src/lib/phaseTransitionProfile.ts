@@ -13,6 +13,7 @@ const FAST_TRANSITION_PHASES = new Set<MobileGamePhase>([
   'compare',
   'preferences',
   'teaching',
+  'describeYourself',
   'feedback'
 ]);
 

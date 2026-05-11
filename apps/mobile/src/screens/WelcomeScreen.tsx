@@ -12,6 +12,7 @@ interface WelcomeScreenProps {
   onStartGame: () => void;
   onOpenChallenge: () => void;
   onOpenTeaching: () => void;
+  onOpenDescribeYourself: () => void;
   onOpenResume: () => void;
 }
 
@@ -25,9 +26,14 @@ export function WelcomeScreen({
   onStartGame,
   onOpenChallenge,
   onOpenTeaching,
+  onOpenDescribeYourself,
   onOpenResume
 }: Readonly<WelcomeScreenProps>): ReactElement {
   const [showMoreOptions, setShowMoreOptions] = useState(false);
+  const handleToggleMoreOptions = (): void => {
+    triggerImpactHaptic('light');
+    setShowMoreOptions((value) => !value);
+  };
 
   return (
     <View style={styles.root}>
@@ -76,10 +82,7 @@ export function WelcomeScreen({
       <Pressable
         accessibilityRole="button"
         disabled={isBusy}
-        onPress={() => {
-          triggerImpactHaptic('light');
-          setShowMoreOptions((value) => !value);
-        }}
+        onPress={handleToggleMoreOptions}
         style={[styles.actionButton, styles.actionGhost, isBusy ? styles.disabled : null]}
       >
         <Text style={styles.actionGhostText}>
@@ -88,39 +91,83 @@ export function WelcomeScreen({
       </Pressable>
 
       {showMoreOptions ? (
-        <>
-          <Pressable
-            accessibilityRole="button"
-            disabled={isBusy}
-            onPress={() => {
-              triggerImpactHaptic('light');
-              onOpenTeaching();
-            }}
-            style={[styles.actionButton, styles.actionSecondary, isBusy ? styles.disabled : null]}
-          >
-            <Text style={styles.actionSecondaryText}>Open Teaching</Text>
-          </Pressable>
-
-          <Pressable
-            accessibilityRole="button"
-            disabled={isBusy || !hasSavedSession}
-            onPress={() => {
-              triggerImpactHaptic('light');
-              onOpenResume();
-            }}
-            style={[
-              styles.actionButton,
-              styles.actionGhost,
-              isBusy || !hasSavedSession ? styles.disabled : null
-            ]}
-          >
-            <Text style={styles.actionGhostText}>
-              {hasSavedSession ? 'Open Session Resume' : 'No Saved Session'}
-            </Text>
-          </Pressable>
-        </>
+        <MoreOptionsPanel
+          isBusy={isBusy}
+          hasSavedSession={hasSavedSession}
+          onOpenTeaching={onOpenTeaching}
+          onOpenDescribeYourself={onOpenDescribeYourself}
+          onOpenResume={onOpenResume}
+        />
       ) : null}
     </View>
+  );
+}
+
+interface MoreOptionsPanelProps {
+  isBusy: boolean;
+  hasSavedSession: boolean;
+  onOpenTeaching: () => void;
+  onOpenDescribeYourself: () => void;
+  onOpenResume: () => void;
+}
+
+function MoreOptionsPanel({
+  isBusy,
+  hasSavedSession,
+  onOpenTeaching,
+  onOpenDescribeYourself,
+  onOpenResume
+}: Readonly<MoreOptionsPanelProps>): ReactElement {
+  const handleOpenTeaching = (): void => {
+    triggerImpactHaptic('light');
+    onOpenTeaching();
+  };
+
+  const handleOpenDescribe = (): void => {
+    triggerImpactHaptic('light');
+    onOpenDescribeYourself();
+  };
+
+  const handleOpenResume = (): void => {
+    triggerImpactHaptic('light');
+    onOpenResume();
+  };
+
+  return (
+    <>
+      <Pressable
+        accessibilityRole="button"
+        disabled={isBusy}
+        onPress={handleOpenTeaching}
+        style={[styles.actionButton, styles.actionSecondary, isBusy ? styles.disabled : null]}
+      >
+        <Text style={styles.actionSecondaryText}>Open Teaching</Text>
+      </Pressable>
+
+      <Pressable
+        accessibilityRole="button"
+        disabled={isBusy}
+        onPress={handleOpenDescribe}
+        style={[styles.actionButton, styles.actionSecondary, isBusy ? styles.disabled : null]}
+      >
+        <Text style={styles.actionSecondaryText}>Describe Yourself</Text>
+      </Pressable>
+
+      <Pressable
+        accessibilityRole="button"
+        disabled={isBusy || !hasSavedSession}
+        onPress={handleOpenResume}
+        style={[
+          styles.actionButton,
+          styles.actionGhost,
+          isBusy || !hasSavedSession ? styles.disabled : null
+        ]}
+      >
+        <Text style={styles.actionGhostText}>
+          {hasSavedSession ? 'Open Session Resume' : 'No Saved Session'}
+        </Text>
+      </Pressable>
+    </>
   );
 }
 

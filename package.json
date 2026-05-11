@@ -33,6 +33,7 @@
     "test:api": "vitest run functions/api/",
     "test:workers": "vitest run functions/ tail-worker/",
     "test:e2e": "playwright test",
+    "test:e2e:mobile": "playwright test --project=mobile-chromium e2e/mobile-core-flow.spec.ts",
     "size": "size-limit",
     "build:worker": "wrangler deploy --dry-run --config tail-worker/wrangler.toml --env preview",
     "refactor:guard": "tsx scripts/check-complexity.ts",

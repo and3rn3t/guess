@@ -5,6 +5,7 @@ import {
   replaceMobileQueuedActions
 } from './mobileOfflineQueue';
 import { incrementMobileReliabilityCounter } from '../perf/mobilePerfMetrics';
+import { recordMobileRuntimeError } from '../perf/mobileRuntimeTelemetry';
 
 export type Difficulty = 'easy' | 'medium' | 'hard';
 export type AnswerValue = 'yes' | 'no' | 'maybe' | 'unknown';
@@ -137,6 +138,7 @@ const ENDPOINTS = {
   feedback: '/api/v2/game/feedback',
   stats: '/api/v2/stats',
   history: '/api/v2/history',
+  events: '/api/v2/events',
   daily: '/api/v2/daily',
   dailyLeaderboard: '/api/v2/daily/leaderboard'
 } as const;
@@ -149,6 +151,11 @@ const TRANSPORT_RETRY_DELAY_MS = 250;
 const TRANSPORT_JITTER_MS = 100;
 
 export type MobileSyncStatus = 'synced' | 'pending' | 'offline' | 'error';
+
+export interface MobileDescribeYourselfAnswer {
+  promptKey: string;
+  answer: AnswerValue;
+}
 
 let syncStatus: MobileSyncStatus = 'synced';
 let activeRequestCount = 0;
@@ -243,6 +250,11 @@ export async function checkMobileApiHealth(): Promise<MobileApiHealthCheckResult
       detail: response.ok ? 'reachable' : `server_error_${response.status}`
     };
   } catch {
+    recordMobileRuntimeError({
+      source: 'network',
+      message: 'API health check failed',
+      detail: ENDPOINTS.stats
+    });
     return {
       ok: false,
       statusCode: null,
@@ -386,6 +398,11 @@ async function postJson(path: string, body: Record<string, unknown>, timeoutMs =
 
   if (!response.ok) {
     incrementMobileReliabilityCounter('server_failure');
+    recordMobileRuntimeError({
+      source: 'network',
+      message: `Server request failed (${response.status})`,
+      detail: path
+    });
     throw new MobileApiError(`Server request failed (${response.status})`, 'server', response.status);
   }
 
@@ -393,6 +410,11 @@ async function postJson(path: string, body: Record<string, unknown>, timeoutMs =
   if (!contentType.toLowerCase().includes('application/json')) {
     const preview = (await response.text()).slice(0, 140).replaceAll(/\s+/g, ' ').trim();
     incrementMobileReliabilityCounter('validation_failure');
+    recordMobileRuntimeError({
+      source: 'network',
+      message: 'Server returned non-JSON response',
+      detail: `${path} :: ${preview || 'empty response'}`
+    });
     throw new MobileApiError(
       `Server returned non-JSON response for ${response.url}: ${preview || 'empty response'}`,
       'validation',
@@ -404,6 +426,11 @@ async function postJson(path: string, body: Record<string, unknown>, timeoutMs =
     return (await response.json()) as unknown;
   } catch {
     incrementMobileReliabilityCounter('validation_failure');
+    recordMobileRuntimeError({
+      source: 'network',
+      message: 'Server returned invalid JSON',
+      detail: path
+    });
     throw new MobileApiError(`Server returned invalid JSON for ${response.url}`, 'validation', response.status);
   }
 }
@@ -413,6 +440,11 @@ async function getJson(path: string, timeoutMs = STATS_READ_TIMEOUT_MS): Promise
 
   if (!response.ok) {
     incrementMobileReliabilityCounter('server_failure');
+    recordMobileRuntimeError({
+      source: 'network',
+      message: `Server request failed (${response.status})`,
+      detail: path
+    });
     throw new MobileApiError(`Server request failed (${response.status})`, 'server', response.status);
   }
 
@@ -420,6 +452,11 @@ async function getJson(path: string, timeoutMs = STATS_READ_TIMEOUT_MS): Promise
   if (!contentType.toLowerCase().includes('application/json')) {
     const preview = (await response.text()).slice(0, 140).replaceAll(/\s+/g, ' ').trim();
     incrementMobileReliabilityCounter('validation_failure');
+    recordMobileRuntimeError({
+      source: 'network',
+      message: 'Server returned non-JSON response',
+      detail: `${path} :: ${preview || 'empty response'}`
+    });
     throw new MobileApiError(
       `Server returned non-JSON response for ${response.url}: ${preview || 'empty response'}`,
       'validation',
@@ -431,6 +468,11 @@ async function getJson(path: string, timeoutMs = STATS_READ_TIMEOUT_MS): Promise
     return (await response.json()) as unknown;
   } catch {
     incrementMobileReliabilityCounter('validation_failure');
+    recordMobileRuntimeError({
+      source: 'network',
+      message: 'Server returned invalid JSON',
+      detail: path
+    });
     throw new MobileApiError(`Server returned invalid JSON for ${response.url}`, 'validation', response.status);
   }
 }
@@ -460,6 +502,12 @@ async function postRaw(path: string, body: Record<string, unknown>, timeoutMs = 
 
     settleSyncRequest('offline');
     incrementMobileReliabilityCounter('transport_failure');
+    const errorMessage = error instanceof Error ? error.message : 'unknown';
+    recordMobileRuntimeError({
+      source: 'network',
+      message: 'Network request failed',
+      detail: `${path} :: ${errorMessage}`
+    });
     throw new MobileApiError('Network request failed', 'transport');
   } finally {
     clearTimeout(timeout);
@@ -500,6 +548,12 @@ async function getRaw(path: string, timeoutMs = STATS_READ_TIMEOUT_MS): Promise<
     }
 
     settleSyncRequest('error');
+    const errorMessage = error instanceof Error ? error.message : 'unknown';
+    recordMobileRuntimeError({
+      source: 'network',
+      message: 'Unexpected network error',
+      detail: `${path} :: ${errorMessage}`
+    });
     throw error;
   }
 }
@@ -897,6 +951,40 @@ async function sendFeedback(sessionId: string, rating: number, feedbackText: str
   if (!isRecord(payload) || payload.success !== true) {
     throw new MobileApiError('Feedback response payload is malformed', 'validation');
   }
+}
+
+export async function submitDescribeYourselfProfile(
+  answers: MobileDescribeYourselfAnswer[],
+  archetype: string,
+): Promise<void> {
+  const normalizedArchetype = archetype.trim();
+  if (answers.length < 5) {
+    throw new MobileApiError('At least 5 answers are required', 'validation');
+  }
+
+  if (normalizedArchetype.length < 2) {
+    throw new MobileApiError('Archetype summary is required', 'validation');
+  }
+
+  const now = Date.now();
+  const eventId = `mobile-describe-${now}-${Math.random().toString(36).slice(2, 8)}`;
+  await postJson(ENDPOINTS.events, {
+    events: [
+      {
+        id: eventId,
+        eventType: 'mobile_describe_yourself_completed',
+        data: {
+          answerCount: answers.length,
+          archetype: normalizedArchetype,
+          answers: answers.map((entry) => ({
+            promptKey: entry.promptKey,
+            answer: entry.answer,
+          })),
+        },
+        clientTs: now,
+      },
+    ],
+  });
 }
 
 // ─── Daily Challenge ───────────────────────────────────────────────────────

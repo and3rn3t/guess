@@ -4,7 +4,7 @@ Start here for any iOS/native work.
 
 Canonical planning sources:
 
-- [../../ROADMAP.md](../../ROADMAP.md) for active queue/status (`MP.*`)
+- [../../ROADMAP.md](../../ROADMAP.md) for active queue/status (`MR.*`, `MN.*`, `MX.*`; historical `MP.*` listed as completed)
 - [ios-feature-parity-plan.md](ios-feature-parity-plan.md) for parity sequencing, quality gates, and milestones
 - [parity-matrix.md](parity-matrix.md) for feature-level parity truth
 
@@ -30,7 +30,7 @@ Canonical planning sources:
 
 ## What Each Doc Is For
 
-- [ios-feature-parity-plan.md](ios-feature-parity-plan.md): active parity plan for SwiftUI-first delivery (MP.1-MP.7 + documentation track).
+- [ios-feature-parity-plan.md](ios-feature-parity-plan.md): active parity baseline for delivery history (MP.1-MP.7) and documentation track.
 - [parity-matrix.md](parity-matrix.md): feature-by-feature parity state, divergence register, and evidence links.
 - [ios-documentation-program.md](ios-documentation-program.md): documentation backlog, ownership, and acceptance gates.
 - [ios-architecture-map.md](ios-architecture-map.md): SwiftUI-first architecture boundaries and implementation sequencing.

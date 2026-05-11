@@ -6,6 +6,7 @@ import {
   getMobileSyncStatus,
   onMobileSyncStatusChange,
   startGame,
+  submitDescribeYourselfProfile,
   submitAnswer,
   type MobileSyncStatus
 } from './mobileGameApi';
@@ -280,5 +281,54 @@ describe('mobileGameApi GET resilience', () => {
     const init = fetchMock.mock.calls[0]?.[1];
     const body = JSON.parse(String(init?.body)) as { categories?: string[] };
     expect(body.categories).toEqual(['anime', 'movies']);
+  });
+
+  it('persists Describe Yourself completion through /api/v2/events', async () => {
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(
+        JSON.stringify({ accepted: 1 }),
+        {
+          status: 200,
+          headers: {
+            'content-type': 'application/json'
+          }
+        }
+      )
+    );
+
+    await expect(
+      submitDescribeYourselfProfile(
+        [
+          { promptKey: 'leadership', answer: 'yes' },
+          { promptKey: 'riskTaking', answer: 'maybe' },
+          { promptKey: 'analytical', answer: 'yes' },
+          { promptKey: 'collaborative', answer: 'no' },
+          { promptKey: 'creative', answer: 'yes' },
+        ],
+        'Strategic Maverick',
+      )
+    ).resolves.toBeUndefined();
+
+    const init = fetchMock.mock.calls[0]?.[1];
+    expect(init?.method).toBe('POST');
+
+    const body = JSON.parse(String(init?.body)) as {
+      events?: Array<{ eventType?: string; data?: { answerCount?: number; archetype?: string } }>;
+    };
+    expect(body.events?.[0]?.eventType).toBe('mobile_describe_yourself_completed');
+    expect(body.events?.[0]?.data?.answerCount).toBe(5);
+    expect(body.events?.[0]?.data?.archetype).toBe('Strategic Maverick');
+  });
+
+  it('validates Describe Yourself answer minimum before persistence', async () => {
+    await expect(
+      submitDescribeYourselfProfile(
+        [
+          { promptKey: 'leadership', answer: 'yes' },
+          { promptKey: 'riskTaking', answer: 'no' },
+        ],
+        'Focused Builder',
+      )
+    ).rejects.toThrow('At least 5 answers are required');
   });
 });

@@ -12,7 +12,7 @@ This document is the canonical source for iOS feature parity execution. It defin
 - **Documentation program**: docs-as-deliverable requirements that run in parallel to feature delivery
 - **Quality gates**: scorecard evidence + device validation required for each milestone
 
-For feature-level status and exception tracking, see `parity-matrix.md`. For queue/status, see `ROADMAP.md` (MP.* series).
+For feature-level status and exception tracking, see `parity-matrix.md`. For active queue/status, see `ROADMAP.md` (mobile-only `MR.*`, `MN.*`, `MX.*` series; `MP.*` remains historical milestone context).
 
 ---
 
@@ -406,7 +406,7 @@ Documentation is a mandatory deliverable for every parity slice, not end-of-proj
 ## See Also
 
 - `parity-matrix.md` — living feature-by-feature parity status and exception register.
-- `ROADMAP.md` → Mobile (iOS App) section — queue and status (MP.* series).
+- `ROADMAP.md` — active mobile-only queue and status (`MR.*`, `MN.*`, `MX.*`).
 - `docs/mobile/README.md` — full mobile docs index and read order.
 - `native-product-contract.md` — quality bar and acceptance criteria (per-feature).
 - `native-surface-policy.md` — boundaries and what is out-of-scope for iOS.

@@ -16,13 +16,14 @@ Do not depend on external memory files as the primary handoff mechanism.
 
 Before starting Xcode-native work, read in order:
 
-1. `ROADMAP.md` (mobile queue/status)
-2. `docs/mobile/roadmap-foundations.md`
-3. `docs/mobile/native-product-contract.md`
-4. `docs/mobile/native-surface-policy.md`
-5. `docs/mobile/ios-release-handoff-playbook.md`
-6. `docs/mobile/device-validation-checklist.md`
-7. `docs/mobile/xcode-setup.md`
+1. `ROADMAP.md` (mobile queue/status; active IDs are `MR.*`, `MN.*`, `MX.*`)
+2. `docs/mobile/parity-matrix.md`
+3. `docs/mobile/ios-feature-parity-plan.md`
+4. `docs/mobile/native-product-contract.md`
+5. `docs/mobile/native-surface-policy.md`
+6. `docs/mobile/ios-release-handoff-playbook.md`
+7. `docs/mobile/device-validation-checklist.md`
+8. `docs/mobile/xcode-setup.md`
 
 ## Current branch behaviors to preserve
 
@@ -36,6 +37,12 @@ Before starting Xcode-native work, read in order:
 - The physical-device evidence path lives in `docs/mobile/device-validation-checklist.md` and `docs/mobile/screenshots/`; use the Stats diagnostics share action for pasteback snapshots when manual selection is unreliable.
 - Release-prep reviewers should confirm the branch still reports `main...origin/main` cleanly after any push and that `pnpm mobile:reliability-gate` remains green before handoff.
 - If MP.7 is being prepared for app submission, keep the changelog scope aligned with the shipped RN surfaces and call out intentional mobile divergences in the PR summary.
+
+Current known evidence bundle:
+
+- `docs/mobile/screenshots/2026-05-10-mp6-offline-diagnostics-1.png`
+- `docs/mobile/screenshots/2026-05-10-mp6-offline-diagnostics-2.png`
+- `docs/mobile/screenshots/2026-05-10-mp6-offline-recording.mov`
 
 ## Required handoff block for native PRs
 

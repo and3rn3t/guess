@@ -13,6 +13,7 @@ export type MobileGamePhase =
   | 'resume'
   | 'preferences'
   | 'teaching'
+  | 'describeYourself'
   | 'feedback';
 
 export interface MobileGameState {

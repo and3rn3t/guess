@@ -45,6 +45,18 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- **MX.1 Describe Yourself (mobile)** — shipped a native mobile Describe Yourself flow with small-screen prompt UX, local archetype summary, validation gate (minimum 5 answers), and backend persistence via existing `POST /api/v2/events` contract (`apps/mobile/src/screens/DescribeYourselfScreen.tsx`, `apps/mobile/src/network/mobileGameApi.ts`). Added comprehensive screen logic tests covering state progression, answer validation, archetype scoring, API integration, and error handling (`apps/mobile/src/screens/DescribeYourselfScreen.test.tsx` — 30 tests).
+
+- **MN.2 mobile core-flow E2E lane** — added `pnpm test:e2e:mobile` (Playwright `mobile-chromium` profile) with core mobile regression coverage for start, answer, guess, game over, daily challenge entry, resume, and feedback submission (`e2e/mobile-core-flow.spec.ts`).
+
+- **MR.2 App Store/TestFlight preflight closure** — documented release-preflight pass matrix (functional + quality) and locked release-note contract for intentional web divergences (challenge leaderboard top-10 summary-first, Describe Yourself deferred, team leaderboards deferred) in `docs/mobile/ios-release-handoff-playbook.md`.
+
+- **MN.3 runtime telemetry baseline (initial)** — added mobile runtime telemetry capture for network/runtime failures plus global JS fatal/non-fatal error hooks in the mobile app shell (`apps/mobile/src/perf/mobileRuntimeTelemetry.ts`, `apps/mobile/app/index.tsx`, `apps/mobile/src/network/mobileGameApi.ts`).
+
+- **MN.3 runtime telemetry baseline closure** — release handoff and QA evidence indexes now include runtime telemetry checks as part of mobile stability go/no-go (`docs/mobile/ios-release-handoff-playbook.md`, `docs/mobile/ios-qa-evidence-index.md`).
+
+- **MR.1 release-documentation closeout** — normalized mobile parity evidence references in `docs/mobile/parity-matrix.md` to a consistent `Code/Route(or State|Perf)/QA` format, updated Xcode handoff canonical read order for the mobile-only roadmap era, and aligned handoff notes with the current MP.6/MP.7 evidence bundle.
+
 - **MP.6 mobile performance instrumentation** — added in-app timing capture for `tap_to_feedback` and `transition_start` metrics across gameplay actions in `apps/mobile/app/index.tsx`, plus a reusable aggregator with p50/p95 summaries and threshold evaluation (`apps/mobile/src/perf/mobilePerfMetrics.ts`, `apps/mobile/src/perf/mobilePerfMetrics.test.ts`). This establishes the code path needed for MP.6 device evidence collection.
 
 - **MP.6 diagnostics panel for evidence capture** — Stats now exposes an MP.6 diagnostics card with live p95 values and thresholds for tap-to-feedback and transition-start timing plus sample counts and a reset control, making device evidence collection reproducible in-app (`apps/mobile/src/screens/StatsScreen.tsx`).
@@ -68,6 +80,12 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **iOS parity planning stack migration (MP series)** — migrated mobile execution from MB foundations series to MP feature-parity milestones (MP.1-MP.7). New canonical docs: ios-feature-parity-plan.md (parity sequencing + quality gates) and parity-matrix.md (living feature-level status + exception register). Updated ROADMAP.md mobile queue to MP.* series, locked MB.1-MB.5 prerequisites as complete, and established MP.1 (foundation closeout + parity matrix seed) as active.
 
 ### Changed
+
+- **Mobile CI evidence automation for MN.2** — wired the mobile core-flow E2E lane into `.github/workflows/mobile-ci.yml` and persisted logs plus Playwright artifacts under `.ci-artifacts/mobile-ci/e2e/` for failure triage.
+
+- **Mobile diagnostics expansion for MN.3** — Stats diagnostics now include runtime error summary counters and recent runtime events, and diagnostics reset now clears both perf and runtime telemetry sample buffers (`apps/mobile/src/screens/StatsScreen.tsx`).
+
+- **Documentation-only normalization (no runtime behavior change)** — refreshed iOS parity/handoff documentation metadata and stale wording (`Reliability Complete`, shipped divergence wording for challenge leaderboard) to match current branch truth.
 
 - **Mobile MP.6 diagnostics health probe** — added a one-tap API connectivity check to Stats diagnostics (`reachable`/`unreachable` + status detail) backed by a timeout-protected `checkMobileApiHealth()` helper and unit tests.
 
