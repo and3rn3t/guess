@@ -90,8 +90,15 @@ jobs:
 
       - uses: ./.github/actions/setup
 
+      - name: Verify EXPO_TOKEN secret exists
+        uses: ./.github/actions/verify-secrets
+        with:
+          names: EXPO_TOKEN
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+
       - name: Setup Expo + EAS CLI
-        run: pnpm add -g eas-cli@latest
+        run: npm install --global eas-cli@latest
 
       - name: EAS Build — iOS preview
         working-directory: apps/mobile
