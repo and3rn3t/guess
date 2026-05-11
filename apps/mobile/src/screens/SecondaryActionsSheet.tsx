@@ -1,5 +1,14 @@
-import { useEffect, useState, type ReactElement } from 'react';
-import { AccessibilityInfo, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useRef, useState, type ReactElement } from 'react';
+import {
+  AccessibilityInfo,
+  Animated,
+  Easing,
+  Modal,
+  Pressable,
+  StyleSheet,
+  Text,
+  View
+} from 'react-native';
 import { triggerImpactHaptic } from '../lib/mobileHaptics';
 
 export interface SecondaryActionItem {
@@ -29,6 +38,8 @@ export function SecondaryActionsSheet({
   const [isOpen, setIsOpen] = useState(false);
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
   const hasSecondaryActions = secondaryActions.length > 0;
+  const sheetTranslateY = useRef(new Animated.Value(0)).current;
+  const backdropOpacity = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     void AccessibilityInfo.isReduceMotionEnabled()
@@ -39,6 +50,31 @@ export function SecondaryActionsSheet({
         setPrefersReducedMotion(false);
       });
   }, []);
+
+  useEffect(() => {
+    if (prefersReducedMotion) {
+      sheetTranslateY.setValue(isOpen ? 0 : 280);
+      backdropOpacity.setValue(isOpen ? 1 : 0);
+      return;
+    }
+
+    sheetTranslateY.setValue(isOpen ? 280 : 0);
+    backdropOpacity.setValue(isOpen ? 0 : 1);
+    Animated.parallel([
+      Animated.timing(sheetTranslateY, {
+        toValue: isOpen ? 0 : 280,
+        duration: 240,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true
+      }),
+      Animated.timing(backdropOpacity, {
+        toValue: isOpen ? 1 : 0,
+        duration: 200,
+        easing: Easing.out(Easing.quad),
+        useNativeDriver: true
+      })
+    ]).start();
+  }, [isOpen, prefersReducedMotion, backdropOpacity, sheetTranslateY]);
 
   const handleClose = (): void => {
     setIsOpen(false);
@@ -77,40 +113,49 @@ export function SecondaryActionsSheet({
 
       <Modal
         transparent
-        animationType={prefersReducedMotion ? 'none' : 'slide'}
+        animationType="none"
         visible={isOpen}
         onRequestClose={handleClose}
       >
-        <Pressable style={styles.backdrop} onPress={handleClose}>
+        <Animated.View style={[styles.backdrop, { opacity: backdropOpacity }]} onTouchEnd={handleClose}>
           <Pressable style={styles.sheet} onPress={() => {}}>
-            <View style={styles.handle} />
-            <Text style={styles.sheetTitle}>Secondary Actions</Text>
-            <View style={styles.actionsList}>
-              {secondaryActions.map((action) => (
-                <Pressable
-                  key={action.key}
-                  accessibilityRole="button"
-                  accessibilityLabel={action.accessibilityLabel}
-                  onPress={() => {
-                    handleClose();
-                    action.onPress();
-                  }}
-                  style={styles.sheetActionButton}
-                >
-                  <Text style={styles.sheetActionText}>{action.label}</Text>
-                </Pressable>
-              ))}
-            </View>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Close action menu"
-              onPress={handleClose}
-              style={styles.cancelButton}
+            <Animated.View
+              style={[
+                styles.sheetContent,
+                {
+                  transform: [{ translateY: sheetTranslateY }]
+                }
+              ]}
             >
-              <Text style={styles.cancelButtonText}>Cancel</Text>
-            </Pressable>
+              <View style={styles.handle} />
+              <Text style={styles.sheetTitle}>Secondary Actions</Text>
+              <View style={styles.actionsList}>
+                {secondaryActions.map((action) => (
+                  <Pressable
+                    key={action.key}
+                    accessibilityRole="button"
+                    accessibilityLabel={action.accessibilityLabel}
+                    onPress={() => {
+                      handleClose();
+                      action.onPress();
+                    }}
+                    style={styles.sheetActionButton}
+                  >
+                    <Text style={styles.sheetActionText}>{action.label}</Text>
+                  </Pressable>
+                ))}
+              </View>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Close action menu"
+                onPress={handleClose}
+                style={styles.cancelButton}
+              >
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </Pressable>
+            </Animated.View>
           </Pressable>
-        </Pressable>
+        </Animated.View>
       </Modal>
     </View>
   );
@@ -165,6 +210,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 12,
     paddingBottom: 22,
+  },
+  sheetContent: {
     gap: 10,
   },
   handle: {
