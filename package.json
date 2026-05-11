@@ -6,6 +6,8 @@
   "packageManager": "pnpm@10.33.4",
   "scripts": {
     "dev": "vite",
+    "clean": "pnpm clean:root",
+    "clean:root": "node scripts/clean-root.mjs",
     "kill": "pids=$(lsof -ti tcp:5000); [ -n \"$pids\" ] && kill $pids || true",
     "build": "pnpm typecheck && vite build",
     "build:fast": "tsc -b --noCheck && vite build",

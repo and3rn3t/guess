@@ -94,5 +94,8 @@ apps/mobile/ios/**/xcuserdata/
 # Playwright MCP session artifacts
 .playwright-mcp/
 
+# Local-only CI diagnostics produced by ad-hoc checks
+.ci-artifacts/checks-local/
+
 # nohup output
 nohup.out
