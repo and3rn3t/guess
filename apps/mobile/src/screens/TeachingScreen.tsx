@@ -1,17 +1,17 @@
-import { useEffect, useMemo, useState, type ReactElement } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { triggerImpactHaptic } from '../lib/mobileHaptics';
-import type { MobileGameState } from '../state/mobileGameState';
-import { SecondaryActionsSheet } from './SecondaryActionsSheet';
+import { useEffect, useMemo, useState, type ReactElement } from "react";
+import { Pressable, StyleSheet, Text, View } from "react-native";
+import { triggerImpactHaptic } from "../lib/mobileHaptics";
+import type { MobileGameState } from "../state/mobileGameState";
+import { SecondaryActionsSheet } from "./SecondaryActionsSheet";
 import {
   clampLessonIndex,
   getAdjacentLessonLabel,
   getLessonAnnouncement,
-  getLessonStatus,
   getLessonPositionLabel,
+  getLessonStatus,
   inferLessonIndexFromGuessCount,
-  TEACHING_LESSONS
-} from './teachingProgress';
+  TEACHING_LESSONS,
+} from "./teachingProgress";
 
 interface TeachingScreenProps {
   state: MobileGameState;
@@ -26,15 +26,17 @@ export function TeachingScreen({
   lessonIndex,
   onLessonIndexChange,
   onOpenFeedback,
-  onBackToWelcome
+  onBackToWelcome,
 }: Readonly<TeachingScreenProps>): ReactElement {
   const inferredIndex = inferLessonIndexFromGuessCount(state.guessCount);
   const [activeLessonIndex, setActiveLessonIndex] = useState(
-    clampLessonIndex(Math.max(lessonIndex, inferredIndex))
+    clampLessonIndex(Math.max(lessonIndex, inferredIndex)),
   );
 
   useEffect(() => {
-    setActiveLessonIndex(clampLessonIndex(Math.max(lessonIndex, inferredIndex)));
+    setActiveLessonIndex(
+      clampLessonIndex(Math.max(lessonIndex, inferredIndex)),
+    );
   }, [inferredIndex, lessonIndex]);
 
   useEffect(() => {
@@ -44,14 +46,22 @@ export function TeachingScreen({
   }, [activeLessonIndex, lessonIndex, onLessonIndexChange]);
 
   const activeLesson = TEACHING_LESSONS[activeLessonIndex];
-  const { lessonPositionLabel, lessonAnnouncement, previousLessonLabel, nextLessonLabel } = useMemo(
+  const {
+    lessonPositionLabel,
+    lessonAnnouncement,
+    previousLessonLabel,
+    nextLessonLabel,
+  } = useMemo(
     () => ({
       lessonPositionLabel: getLessonPositionLabel(activeLessonIndex),
       lessonAnnouncement: getLessonAnnouncement(activeLessonIndex),
-      previousLessonLabel: getAdjacentLessonLabel(activeLessonIndex, 'previous'),
-      nextLessonLabel: getAdjacentLessonLabel(activeLessonIndex, 'next'),
+      previousLessonLabel: getAdjacentLessonLabel(
+        activeLessonIndex,
+        "previous",
+      ),
+      nextLessonLabel: getAdjacentLessonLabel(activeLessonIndex, "next"),
     }),
-    [activeLessonIndex]
+    [activeLessonIndex],
   );
 
   return (
@@ -59,7 +69,10 @@ export function TeachingScreen({
       <View style={styles.headerBlock}>
         <Text style={styles.phasePill}>TEACHING</Text>
         <Text style={styles.title}>Teaching</Text>
-        <Text style={styles.subtitle}>Guided lessons to improve question quality, recovery, and guess timing.</Text>
+        <Text style={styles.subtitle}>
+          Guided lessons to improve question quality, recovery, and guess
+          timing.
+        </Text>
       </View>
 
       <View style={styles.lessonsBlock}>
@@ -71,12 +84,12 @@ export function TeachingScreen({
             <Pressable
               key={lesson.id}
               onPress={() => {
-                triggerImpactHaptic('light');
+                triggerImpactHaptic("light");
                 setActiveLessonIndex(index);
               }}
               style={[
                 styles.lessonItem,
-                status === 'active' ? styles.lessonItemActive : null
+                status === "active" ? styles.lessonItemActive : null,
               ]}
               accessibilityRole="button"
               accessibilityLabel={`${lesson.title}: ${status}`}
@@ -102,24 +115,26 @@ export function TeachingScreen({
         <Text style={styles.lessonDetailTitle}>{activeLesson.title}</Text>
         <Text style={styles.lessonDetailText}>Goal: {activeLesson.goal}</Text>
         <Text style={styles.lessonDetailText}>Tip: {activeLesson.tip}</Text>
-        <Text style={styles.lessonDetailSignal}>Success signal: {activeLesson.successSignal}</Text>
+        <Text style={styles.lessonDetailSignal}>
+          Success signal: {activeLesson.successSignal}
+        </Text>
 
         <View style={styles.lessonNavRow}>
           <Pressable
             onPress={() => {
-              triggerImpactHaptic('light');
+              triggerImpactHaptic("light");
               setActiveLessonIndex((index) => clampLessonIndex(index - 1));
             }}
             disabled={activeLessonIndex === 0}
             style={[
               styles.lessonNavButton,
-              activeLessonIndex === 0 ? styles.lessonNavButtonDisabled : null
+              activeLessonIndex === 0 ? styles.lessonNavButtonDisabled : null,
             ]}
             accessibilityRole="button"
             accessibilityHint="Moves to the previous teaching lesson"
             accessibilityLabel={
               activeLessonIndex === 0
-                ? 'Previous lesson unavailable. You are on the first lesson.'
+                ? "Previous lesson unavailable. You are on the first lesson."
                 : `Previous lesson. ${previousLessonLabel}`
             }
           >
@@ -127,19 +142,21 @@ export function TeachingScreen({
           </Pressable>
           <Pressable
             onPress={() => {
-              triggerImpactHaptic('light');
+              triggerImpactHaptic("light");
               setActiveLessonIndex((index) => clampLessonIndex(index + 1));
             }}
             disabled={activeLessonIndex >= TEACHING_LESSONS.length - 1}
             style={[
               styles.lessonNavButton,
-              activeLessonIndex >= TEACHING_LESSONS.length - 1 ? styles.lessonNavButtonDisabled : null
+              activeLessonIndex >= TEACHING_LESSONS.length - 1
+                ? styles.lessonNavButtonDisabled
+                : null,
             ]}
             accessibilityRole="button"
             accessibilityHint="Moves to the next teaching lesson"
             accessibilityLabel={
               activeLessonIndex >= TEACHING_LESSONS.length - 1
-                ? 'Next lesson unavailable. You are on the final lesson.'
+                ? "Next lesson unavailable. You are on the final lesson."
                 : `Next lesson. ${nextLessonLabel}`
             }
           >
@@ -156,7 +173,9 @@ export function TeachingScreen({
         </View>
         <View style={styles.metricItem}>
           <Text style={styles.metricKey}>Confidence</Text>
-          <Text style={styles.metricValue}>{state.guessConfidence ?? 'n/a'}</Text>
+          <Text style={styles.metricValue}>
+            {state.guessConfidence ?? "n/a"}
+          </Text>
         </View>
       </View>
 
@@ -165,16 +184,16 @@ export function TeachingScreen({
           primaryLabel="Open Feedback"
           primaryAccessibilityLabel="Open feedback"
           onPrimaryPress={() => {
-            triggerImpactHaptic('light');
+            triggerImpactHaptic("light");
             onOpenFeedback();
           }}
           secondaryActions={[
             {
-              key: 'back-to-welcome',
-              label: 'Back To Welcome',
-              accessibilityLabel: 'Back to welcome',
+              key: "back-to-welcome",
+              label: "Back To Welcome",
+              accessibilityLabel: "Back to welcome",
               onPress: () => {
-                triggerImpactHaptic('medium');
+                triggerImpactHaptic("medium");
                 onBackToWelcome();
               },
             },
@@ -182,184 +201,188 @@ export function TeachingScreen({
         />
       </View>
 
-      {state.lastError ? <Text style={styles.errorText}>{state.lastError}</Text> : null}
+      {state.lastError ? (
+        <Text style={styles.errorText}>{state.lastError}</Text>
+      ) : null}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   root: {
-    width: '100%',
-    gap: 22
+    width: "100%",
+    gap: 18,
   },
   headerBlock: {
-    gap: 8
+    gap: 8,
   },
   phasePill: {
-    alignSelf: 'flex-start',
+    alignSelf: "flex-start",
     fontSize: 12,
-    fontWeight: '800',
-    color: '#101828',
-    backgroundColor: '#d1fadf',
+    fontWeight: "800",
+    color: "#101828",
+    backgroundColor: "#d1fadf",
     paddingHorizontal: 10,
     paddingVertical: 4,
-    borderRadius: 999
+    borderRadius: 999,
   },
   title: {
-    color: '#f8fafc',
+    color: "#f8fafc",
     fontSize: 32,
-    fontWeight: '800'
+    fontWeight: "800",
   },
   subtitle: {
-    color: '#cbd5e1',
+    color: "#cbd5e1",
     fontSize: 16,
-    lineHeight: 24
+    lineHeight: 24,
   },
   lessonsBlock: {
-    gap: 10,
+    gap: 8,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: "#334155",
     borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    backgroundColor: '#0f172a'
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    backgroundColor: "#0f172a",
   },
   lessonsLabel: {
-    color: '#94a3b8',
+    color: "#94a3b8",
     fontSize: 14,
-    fontWeight: '600'
+    fontWeight: "600",
   },
   lessonItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: "#334155",
     borderRadius: 10,
-    paddingHorizontal: 8,
-    paddingVertical: 6
+    paddingHorizontal: 6,
+    paddingVertical: 5,
   },
   lessonItemActive: {
-    borderColor: '#7c3aed',
-    backgroundColor: '#1e1245'
+    borderColor: "#7c3aed",
+    backgroundColor: "#1e1245",
   },
   lessonKey: {
-    color: '#cbd5e1',
+    color: "#cbd5e1",
     fontSize: 14,
-    fontWeight: '500'
+    fontWeight: "500",
   },
   lessonValue: {
-    color: '#f8fafc',
+    color: "#f8fafc",
     fontSize: 14,
-    fontWeight: '700'
+    fontWeight: "700",
   },
   lessonDetailBlock: {
-    gap: 10,
+    gap: 8,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: "#334155",
     borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    backgroundColor: '#0f172a'
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    backgroundColor: "#0f172a",
   },
   lessonDetailTitle: {
-    color: '#f8fafc',
+    color: "#f8fafc",
     fontSize: 18,
-    fontWeight: '700'
+    fontWeight: "700",
   },
   lessonPosition: {
-    color: '#a5b4fc',
+    color: "#a5b4fc",
     fontSize: 12,
-    fontWeight: '700',
-    textTransform: 'uppercase',
-    letterSpacing: 0.8
+    fontWeight: "700",
+    textTransform: "uppercase",
+    letterSpacing: 0.8,
   },
   lessonDetailText: {
-    color: '#cbd5e1',
+    color: "#cbd5e1",
     fontSize: 14,
-    lineHeight: 21
+    lineHeight: 21,
   },
   lessonDetailSignal: {
-    color: '#93c5fd',
+    color: "#93c5fd",
     fontSize: 13,
     lineHeight: 20,
-    fontWeight: '600'
+    fontWeight: "600",
   },
   lessonNavRow: {
-    flexDirection: 'row',
-    gap: 8
+    flexDirection: "row",
+    gap: 6,
   },
   lessonNavButton: {
     flex: 1,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#475569',
-    backgroundColor: '#1e293b',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 10
+    borderColor: "#475569",
+    backgroundColor: "#1e293b",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 8,
   },
   lessonNavButtonDisabled: {
-    opacity: 0.5
+    opacity: 0.5,
   },
   lessonNavLabel: {
-    color: '#e2e8f0',
+    color: "#e2e8f0",
     fontSize: 14,
-    fontWeight: '600'
+    fontWeight: "600",
   },
   metricsBlock: {
-    gap: 10,
+    gap: 8,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: "#334155",
     borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    backgroundColor: '#0f172a'
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    backgroundColor: "#0f172a",
   },
   metricsLabel: {
-    color: '#94a3b8',
+    color: "#94a3b8",
     fontSize: 14,
-    fontWeight: '600'
+    fontWeight: "600",
   },
   metricItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 8,
-    paddingVertical: 6
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 6,
+    paddingVertical: 5,
   },
   metricKey: {
-    color: '#cbd5e1',
+    color: "#cbd5e1",
     fontSize: 14,
-    fontWeight: '500'
+    fontWeight: "500",
   },
   metricValue: {
-    color: '#f8fafc',
+    color: "#f8fafc",
     fontSize: 14,
-    fontWeight: '700'
+    fontWeight: "700",
   },
   actionsBlock: {
-    gap: 10
+    gap: 8,
   },
   errorText: {
-    color: '#fca5a5',
+    color: "#fca5a5",
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: "500",
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 8,
-    backgroundColor: '#7f1d1d'
-  }
+    backgroundColor: "#7f1d1d",
+  },
 });
 
-function getLessonStatusLabel(status: ReturnType<typeof getLessonStatus>): string {
-  if (status === 'done') {
-    return 'Done';
+function getLessonStatusLabel(
+  status: ReturnType<typeof getLessonStatus>,
+): string {
+  if (status === "done") {
+    return "Done";
   }
 
-  if (status === 'active') {
-    return 'Active';
+  if (status === "active") {
+    return "Active";
   }
 
-  return 'Up next';
+  return "Up next";
 }

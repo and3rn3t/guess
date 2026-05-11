@@ -1,6 +1,9 @@
-import type { ReactElement } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { triggerImpactHaptic, triggerNotificationHaptic } from '../lib/mobileHaptics';
+import type { ReactElement } from "react";
+import { Pressable, StyleSheet, Text, View } from "react-native";
+import {
+  triggerImpactHaptic,
+  triggerNotificationHaptic,
+} from "../lib/mobileHaptics";
 
 interface ResumeScreenProps {
   isBusy: boolean;
@@ -17,7 +20,7 @@ export function ResumeScreen({
   savedSessionId,
   errorMessage,
   onResume,
-  onDiscard
+  onDiscard,
 }: Readonly<ResumeScreenProps>): ReactElement {
   const hasSession = Boolean(savedSessionId);
   const resumeStatus = getResumeStatus(hasSession, isOffline);
@@ -27,20 +30,27 @@ export function ResumeScreen({
       <View style={styles.headerBlock}>
         <Text style={styles.phasePill}>RESUME</Text>
         <Text style={styles.title}>Resume Previous Session</Text>
-        <Text style={styles.subtitle}>Restore your last run or discard it and start fresh.</Text>
+        <Text style={styles.subtitle}>
+          Restore your last run or discard it and start fresh.
+        </Text>
       </View>
 
       <View style={styles.sessionCard}>
         <Text style={styles.sessionLabel}>Saved Session</Text>
-        <Text style={styles.sessionValue}>{savedSessionId ?? 'none'}</Text>
+        <Text style={styles.sessionValue}>{savedSessionId ?? "none"}</Text>
         <Text style={styles.sessionHint}>{resumeStatus}</Text>
       </View>
 
-      {errorMessage ? <Text style={styles.errorText}>{errorMessage}</Text> : null}
+      {errorMessage ? (
+        <Text style={styles.errorText}>{errorMessage}</Text>
+      ) : null}
 
       {isOffline && hasSession && !errorMessage ? (
         <View style={styles.offlineCard}>
-          <Text style={styles.offlineCardText}>You're offline — your session is preserved. Resume will work when you reconnect.</Text>
+          <Text style={styles.offlineCardText}>
+            You're offline — your session is preserved. Resume will work when
+            you reconnect.
+          </Text>
         </View>
       ) : null}
 
@@ -49,26 +59,36 @@ export function ResumeScreen({
         disabled={isBusy || !hasSession || isOffline}
         onPress={() => {
           if (!hasSession || isOffline) {
-            triggerNotificationHaptic('warning');
+            triggerNotificationHaptic("warning");
             return;
           }
 
-          triggerImpactHaptic('medium');
+          triggerImpactHaptic("medium");
           onResume();
         }}
-        style={[styles.actionButton, styles.actionPrimary, isBusy || !hasSession || isOffline ? styles.disabled : null]}
+        style={[
+          styles.actionButton,
+          styles.actionPrimary,
+          isBusy || !hasSession || isOffline ? styles.disabled : null,
+        ]}
       >
-        <Text style={styles.actionPrimaryText}>{hasSession ? 'Resume To Playing' : 'No Session To Resume'}</Text>
+        <Text style={styles.actionPrimaryText}>
+          {hasSession ? "Resume To Playing" : "No Session To Resume"}
+        </Text>
       </Pressable>
 
       <Pressable
         accessibilityRole="button"
         disabled={isBusy}
         onPress={() => {
-          triggerImpactHaptic('light');
+          triggerImpactHaptic("light");
           onDiscard();
         }}
-        style={[styles.actionButton, styles.actionSecondary, isBusy ? styles.disabled : null]}
+        style={[
+          styles.actionButton,
+          styles.actionSecondary,
+          isBusy ? styles.disabled : null,
+        ]}
       >
         <Text style={styles.actionSecondaryText}>Discard And Welcome</Text>
       </Pressable>
@@ -78,113 +98,113 @@ export function ResumeScreen({
 
 const styles = StyleSheet.create({
   root: {
-    width: '100%',
-    gap: 14
+    width: "100%",
+    gap: 12,
   },
   headerBlock: {
-    gap: 8
+    gap: 8,
   },
   phasePill: {
-    alignSelf: 'flex-start',
+    alignSelf: "flex-start",
     fontSize: 12,
-    fontWeight: '800',
-    color: '#102a43',
-    backgroundColor: '#ddd6fe',
+    fontWeight: "800",
+    color: "#102a43",
+    backgroundColor: "#ddd6fe",
     paddingHorizontal: 10,
     paddingVertical: 4,
-    borderRadius: 999
+    borderRadius: 999,
   },
   title: {
-    color: '#f8fafc',
+    color: "#f8fafc",
     fontSize: 30,
-    fontWeight: '800'
+    fontWeight: "800",
   },
   subtitle: {
-    color: '#cbd5e1',
+    color: "#cbd5e1",
     fontSize: 15,
-    lineHeight: 22
+    lineHeight: 22,
   },
   sessionCard: {
     borderWidth: 1,
-    borderColor: '#4c1d95',
+    borderColor: "#4c1d95",
     borderRadius: 14,
-    backgroundColor: '#2e1065',
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    gap: 4
+    backgroundColor: "#2e1065",
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    gap: 3,
   },
   sessionLabel: {
-    color: '#ddd6fe',
+    color: "#ddd6fe",
     fontSize: 13,
-    fontWeight: '700'
+    fontWeight: "700",
   },
   sessionValue: {
-    color: '#ede9fe',
+    color: "#ede9fe",
     fontSize: 14,
-    fontWeight: '600'
+    fontWeight: "600",
   },
   sessionHint: {
-    color: '#c4b5fd',
+    color: "#c4b5fd",
     fontSize: 12,
-    fontWeight: '600'
+    fontWeight: "600",
   },
   errorText: {
-    color: '#fecaca',
+    color: "#fecaca",
     fontSize: 14,
-    fontWeight: '600',
-    lineHeight: 20
+    fontWeight: "600",
+    lineHeight: 20,
   },
   offlineCard: {
     borderWidth: 1,
-    borderColor: '#92400e',
+    borderColor: "#92400e",
     borderRadius: 12,
-    backgroundColor: '#1c1007',
-    paddingHorizontal: 14,
-    paddingVertical: 10
+    backgroundColor: "#1c1007",
+    paddingHorizontal: 12,
+    paddingVertical: 9,
   },
   offlineCardText: {
-    color: '#fbbf24',
+    color: "#fbbf24",
     fontSize: 13,
-    fontWeight: '600',
-    lineHeight: 18
+    fontWeight: "600",
+    lineHeight: 18,
   },
   actionButton: {
     borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    alignItems: 'center'
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    alignItems: "center",
   },
   actionPrimary: {
-    backgroundColor: '#22c55e'
+    backgroundColor: "#22c55e",
   },
   actionSecondary: {
-    backgroundColor: '#0f172a',
+    backgroundColor: "#0f172a",
     borderWidth: 1,
-    borderColor: '#334155'
+    borderColor: "#334155",
   },
   actionPrimaryText: {
-    color: '#052e16',
+    color: "#052e16",
     fontSize: 15,
-    fontWeight: '700'
+    fontWeight: "700",
   },
   actionSecondaryText: {
-    color: '#e2e8f0',
+    color: "#e2e8f0",
     fontSize: 15,
-    fontWeight: '700'
+    fontWeight: "700",
   },
   disabled: {
-    opacity: 0.5
-  }
+    opacity: 0.5,
+  },
 });
 
 function getResumeStatus(hasSession: boolean, isOffline: boolean): string {
   if (!hasSession) {
-    return 'No saved session';
+    return "No saved session";
   }
 
   if (isOffline) {
-    return 'Saved and waiting for reconnect';
+    return "Saved and waiting for reconnect";
   }
 
-  return 'Ready to resume';
+  return "Ready to resume";
 }

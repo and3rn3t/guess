@@ -1,5 +1,11 @@
 import { useMemo, useState, type ReactElement } from "react";
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
+import {
+  ActivityIndicator,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import { triggerImpactHaptic } from "../lib/mobileHaptics";
 import type { MobileHistoryGame } from "../network/mobileGameApi";
 import type { MobileGameState } from "../state/mobileGameState";
@@ -27,9 +33,12 @@ export function HistoryScreen({
   const [showAllRecentGames, setShowAllRecentGames] = useState(false);
   const recentGames = useMemo(
     () => historyGames.slice(0, showAllRecentGames ? 12 : 4),
-    [historyGames, showAllRecentGames]
+    [historyGames, showAllRecentGames],
   );
-  const wins = useMemo(() => historyGames.filter((game) => game.won).length, [historyGames]);
+  const wins = useMemo(
+    () => historyGames.filter((game) => game.won).length,
+    [historyGames],
+  );
 
   return (
     <View style={styles.root}>
@@ -56,7 +65,9 @@ export function HistoryScreen({
             onPress={onRetry}
             style={[styles.actionButton, styles.actionSecondary]}
           >
-            <Text style={[styles.actionLabel, styles.actionLabelSecondary]}>Retry</Text>
+            <Text style={[styles.actionLabel, styles.actionLabelSecondary]}>
+              Retry
+            </Text>
           </Pressable>
         </View>
       ) : null}
@@ -94,7 +105,9 @@ export function HistoryScreen({
         <View style={styles.statsHeaderRow}>
           <Text style={styles.statsLabel}>Recent Games</Text>
           {historyGames.length > recentGames.length ? (
-            <Text style={styles.statsHint}>Showing {recentGames.length} of {historyGames.length}</Text>
+            <Text style={styles.statsHint}>
+              Showing {recentGames.length} of {historyGames.length}
+            </Text>
           ) : null}
         </View>
         {recentGames.length ? (
@@ -121,7 +134,11 @@ export function HistoryScreen({
             {historyGames.length > 4 ? (
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel={showAllRecentGames ? "Show fewer recent games" : "Show more recent games"}
+                accessibilityLabel={
+                  showAllRecentGames
+                    ? "Show fewer recent games"
+                    : "Show more recent games"
+                }
                 onPress={() => {
                   triggerImpactHaptic("light");
                   setShowAllRecentGames((value) => !value);
@@ -175,7 +192,7 @@ function toTitle(value: string): string {
 const styles = StyleSheet.create({
   root: {
     width: "100%",
-    gap: 22,
+    gap: 18,
   },
   headerBlock: {
     gap: 8,
@@ -201,12 +218,12 @@ const styles = StyleSheet.create({
     lineHeight: 24,
   },
   sessionBlock: {
-    gap: 12,
+    gap: 10,
     borderWidth: 1,
     borderColor: "#334155",
     borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
     backgroundColor: "#0f172a",
   },
   sessionLabel: {
@@ -218,8 +235,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingHorizontal: 8,
-    paddingVertical: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 5,
   },
   sessionKey: {
     color: "#cbd5e1",
@@ -240,12 +257,12 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
   },
   statsBlock: {
-    gap: 12,
+    gap: 10,
     borderWidth: 1,
     borderColor: "#334155",
     borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
     backgroundColor: "#0f172a",
   },
   statsLabel: {
@@ -257,7 +274,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    gap: 10,
+    gap: 8,
   },
   statsHint: {
     color: "#64748b",
@@ -268,9 +285,9 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    gap: 10,
-    paddingHorizontal: 8,
-    paddingVertical: 6,
+    gap: 8,
+    paddingHorizontal: 6,
+    paddingVertical: 5,
   },
   statMeta: {
     flex: 1,
@@ -298,7 +315,7 @@ const styles = StyleSheet.create({
     color: "#fca5a5",
   },
   actionsBlock: {
-    gap: 10,
+    gap: 8,
   },
   actionButton: {
     paddingHorizontal: 16,
@@ -331,15 +348,15 @@ const styles = StyleSheet.create({
   loadingBlock: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
+    gap: 8,
     paddingVertical: 10,
   },
   errorCard: {
     borderRadius: 10,
     backgroundColor: "#7f1d1d",
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    gap: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    gap: 8,
   },
   errorCardText: {
     color: "#fca5a5",
