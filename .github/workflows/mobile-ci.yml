@@ -119,12 +119,36 @@ jobs:
             echo "::notice::Skipping EAS preview build because EXPO_TOKEN is not configured."
           fi
 
+      - name: Check EAS project configuration
+        id: eas-project
+        run: |
+          set -euo pipefail
+
+          has_eas_json=false
+          has_project_id=false
+
+          if [[ -f apps/mobile/eas.json ]]; then
+            has_eas_json=true
+          fi
+
+          if grep -q '"projectId"' apps/mobile/app.json; then
+            has_project_id=true
+          fi
+
+          if [[ "$has_eas_json" == true && "$has_project_id" == true ]]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+            echo "EAS project configuration detected."
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Skipping EAS preview build because EAS project is not configured (need apps/mobile/eas.json and expo.extra.eas.projectId in apps/mobile/app.json)."
+          fi
+
       - name: Setup Expo + EAS CLI
-        if: steps.expo-token.outputs.enabled == 'true'
+        if: steps.expo-token.outputs.enabled == 'true' && steps.eas-project.outputs.enabled == 'true'
         run: npm install --global eas-cli@latest
 
       - name: EAS Build — iOS preview
-        if: steps.expo-token.outputs.enabled == 'true'
+        if: steps.expo-token.outputs.enabled == 'true' && steps.eas-project.outputs.enabled == 'true'
         working-directory: apps/mobile
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
