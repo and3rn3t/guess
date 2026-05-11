@@ -50,6 +50,9 @@ An item is only `✅` when all apply:
 
 ## In Progress / Up Next
 
+- 🟡 **In progress:** [MY.2](#my-2) challenge leaderboard perf validation for deeper rows
+- ⬜ **Next:** [MY.3](#my-3) v1.9 scope lock and release-note contract refresh
+- ✅ **Completed:** [MY.1](#my-1) team leaderboard contract-prep + blocker breakdown (2026-05-11)
 - ✅ **Completed:** [MX.3](#mx-3) challenge leaderboard depth expansion (2026-05-11)
 - ✅ **Completed:** [MN.1](#mn-1) native quality gate automation hardening (2026-05-11)
 - ✅ **Completed:** [MX.2](#mx-2) team leaderboard + social comparison scope decision (2026-05-11)
@@ -204,6 +207,41 @@ Notes:
 
 ---
 
+## Wave 4 - v1.9 Scope Foundations
+
+### MY.1
+
+**Title:** Team leaderboard contract-prep + blocker breakdown  
+**Status:** ✅ 2026-05-11
+
+Done when:
+
+- [ ] Mobile-facing API contract docs enumerate the required team leaderboard endpoints/payloads for v1.9+.
+- [ ] Deferred-blocker wording across roadmap/parity/release docs is consistent and implementation-ready.
+- [ ] Scope is documented as contract-prep only (no runtime team leaderboard UI shipped).
+
+### MY.2
+
+**Title:** Challenge leaderboard perf validation for deeper rows  
+**Status:** 🟡
+
+Done when:
+
+- [ ] Physical-device evidence is captured for 25-row leaderboard expansion on at least one small-screen device.
+- [ ] If perf budgets regress, fallback cap and rationale are documented.
+
+### MY.3
+
+**Title:** v1.9 scope lock and release-note contract refresh  
+**Status:** ⬜
+
+Done when:
+
+- [ ] `In Progress / Up Next` reflects explicit v1.9 queue order.
+- [ ] Release handoff and changelog known-limitations language are synchronized with final v1.9 scope.
+
+---
+
 ## Removed / De-Prioritized
 
 - Removed vague "post-parity queue definition" item in favor of concrete feature delivery (`MX.1`, `MX.2`).
@@ -243,3 +281,4 @@ Notes:
 | 2026-05-11 | Completed MX.2 with an explicit defer decision for team leaderboard + social comparison surfaces. | Current mobile release priorities remain reliability and existing parity features; team leaderboard delivery requires multiplayer/team identity foundations and ranking integrity guardrails not yet present in the mobile stack. |
 | 2026-05-11 | Completed MN.1 by codifying mobile evidence-link checks in CI and guardrails. | Mobile-touching changes now fail predictably when canonical evidence links drift from repository files, workflow artifact outputs, or CI artifact documentation. |
 | 2026-05-11 | Completed MX.3 by expanding challenge leaderboard depth while retaining summary-first mobile UX. | Mobile users now get deeper leaderboard visibility (top-10 preview expandable to 25) without committing to full-board rendering that risks small-screen performance regressions. |
+| 2026-05-11 | Completed MY.1 by documenting v1.9+ team leaderboard contract prerequisites and blocker breakdown. | The next mobile wave now has explicit API and policy prerequisites (teams context, ranking semantics, anti-abuse fields, perf envelope) so implementation can proceed without scope ambiguity. |

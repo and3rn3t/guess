@@ -60,6 +60,10 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 - **MX.2 team leaderboard scope decision (defer)** — recorded a defer decision for team leaderboard + social comparison mobile surfaces, with explicit target window (`v1.9+`) and dependency blockers (team identity/membership model, shared team-session backend contracts, anti-abuse ranking rules, mobile perf validation) in roadmap/parity/release docs (`ROADMAP.md`, `docs/mobile/parity-matrix.md`, `docs/mobile/ios-release-handoff-playbook.md`).
 
+- **MY.1 v1.9 contract-prep kickoff** — added explicit post-MX next-wave queue in `ROADMAP.md` and documented team leaderboard API prerequisites/blockers for v1.9+ in `docs/mobile/ios-api-contract-reference.md` (contract-prep only, no runtime team leaderboard UI shipped).
+
+- **MY.2 leaderboard perf-validation prep** — marked MY.2 in progress and added concrete physical-device evidence scaffolding for expanded challenge leaderboard depth (25-row cap), including a dedicated checklist addendum, pasteback template, and canonical evidence bundle references (`docs/mobile/device-validation-checklist.md`, `docs/mobile/ios-qa-evidence-index.md`, `docs/mobile/ios-release-handoff-playbook.md`).
+
 - **MR.1 release-documentation closeout** — normalized mobile parity evidence references in `docs/mobile/parity-matrix.md` to a consistent `Code/Route(or State|Perf)/QA` format, updated Xcode handoff canonical read order for the mobile-only roadmap era, and aligned handoff notes with the current MP.6/MP.7 evidence bundle.
 
 - **MP.6 mobile performance instrumentation** — added in-app timing capture for `tap_to_feedback` and `transition_start` metrics across gameplay actions in `apps/mobile/app/index.tsx`, plus a reusable aggregator with p50/p95 summaries and threshold evaluation (`apps/mobile/src/perf/mobilePerfMetrics.ts`, `apps/mobile/src/perf/mobilePerfMetrics.test.ts`). This establishes the code path needed for MP.6 device evidence collection.

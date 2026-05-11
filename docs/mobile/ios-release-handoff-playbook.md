@@ -90,6 +90,11 @@ Before marking MP.6 or MP.7 complete, capture and reference:
 - Runtime telemetry snapshot from Stats diagnostics (runtime totals + latest events)
 - Any device screenshots/recordings stored under `docs/mobile/screenshots/`
 
+For MY.2 (leaderboard depth perf validation) specifically, also capture:
+
+- expanded leaderboard screenshot and scroll recording evidence (`YYYY-MM-DD-my2-leaderboard-*`)
+- a completed MY.2 pasteback block in `docs/mobile/device-validation-checklist.md`
+
 ### MP.7 Release Prep Notes
 
 - Confirm the changelog entry reflects the current RN branch truth and does not describe the legacy SwiftUI reset baseline as shipped state.

@@ -224,3 +224,67 @@ Ready to mark:
 - Feedback-to-next-question p95 was 29.8 ms, which is within the 450 ms target.
 - Offline airplane-mode evidence complete: no crashes, queue behavior verified, reconnect flush validated.
 - **MP.6 closure ready** — all performance and reliability gates passed on physical device.
+
+## MY.2 Addendum (Challenge Leaderboard 25-Row Perf Validation)
+
+Run this addendum on at least one small-screen iPhone to validate the MX.3 depth expansion.
+
+### MY.2 Preconditions
+
+- [ ] Build includes challenge leaderboard depth expansion (top-10 preview + expandable rows up to 25).
+- [ ] Daily leaderboard has enough rows to exercise expanded list rendering (prefer 20+ rows).
+- [ ] Device configured to default text size and again at larger Dynamic Type for a second pass.
+
+### MY.2 Execution Steps
+
+1. Launch app and navigate to Challenge.
+2. Capture baseline behavior with top-10 preview visible.
+3. Expand leaderboard rows ("Show More Entries") to render up to 25 rows.
+4. Perform 3-5 full vertical scroll passes over expanded rows.
+5. Collapse and re-expand once to verify interaction stability.
+6. Repeat quick pass at larger Dynamic Type.
+
+### MY.2 Pass Criteria
+
+- [ ] No visible frame-jank or long input delay while expanding/collapsing rows.
+- [ ] Scroll interaction remains smooth with expanded rows on small-screen device.
+- [ ] No crash, no redbox, no stuck loading state after repeated expand/collapse.
+- [ ] If regression is observed, fallback cap recommendation is documented.
+
+### MY.2 Evidence Files
+
+- Recommended screenshot: `docs/mobile/screenshots/YYYY-MM-DD-my2-leaderboard-expanded.png`
+- Recommended recording: `docs/mobile/screenshots/YYYY-MM-DD-my2-leaderboard-scroll.mov`
+- Optional diagnostics screenshot: `docs/mobile/screenshots/YYYY-MM-DD-my2-leaderboard-diagnostics.png`
+
+### MY.2 Pasteback Template
+
+```text
+Owner: [name]
+Device: [model]
+iOS: [version]
+Run date: [YYYY-MM-DD]
+
+Rows observed:
+- Preview rows: 10
+- Expanded rows rendered: [count]
+
+Interaction checks:
+- Expand/collapse responsiveness: pass|fail - [notes]
+- Expanded-list scrolling smoothness: pass|fail - [notes]
+- Crash/redbox/stuck-state: pass|fail - [notes]
+
+Dynamic Type pass:
+- Larger-text expanded list behavior: pass|fail - [notes]
+
+Evidence files:
+- Screenshot: docs/mobile/screenshots/[file]
+- Recording: docs/mobile/screenshots/[file]
+- Optional diagnostics: docs/mobile/screenshots/[file]
+
+Fallback recommendation needed:
+- no|yes - [if yes, recommend cap and rationale]
+
+Ready to mark:
+- MY.2 done: yes|no
+```

@@ -189,12 +189,38 @@ POST success response:
 
 Route:
 
-- `GET /api/v2/daily/leaderboard?date=YYYY-MM-DD` (date optional)
+- `GET /api/v2/daily/leaderboard?date=YYYY-MM-DD&limit=25` (both optional; limit currently validated in range 1-50)
 
 Success response fields:
 
 - `date: string`
 - `leaderboard: DailyLeaderboardEntry[]`
+
+## Future Contract Track: Team Leaderboards (v1.9+)
+
+This section is intentionally forward-looking and documents contract prerequisites only.
+No team leaderboard runtime UI is shipped in the current mobile release train.
+
+Required contract surfaces before mobile implementation should begin:
+
+- `GET /api/v2/teams`: list memberships for current user, including role and active team context.
+- `POST /api/v2/teams/switch`: set active team context used for leaderboard queries.
+- `GET /api/v2/teams/{teamId}/leaderboard?window=daily|weekly|seasonal&limit=50`: fetch ranked rows plus metadata.
+- `GET /api/v2/teams/{teamId}/leaderboard/me`: fetch current user row and rank neighborhood for sticky "you" rendering.
+
+Required response semantics:
+
+- Stable team/member identifiers and display-name fields suitable for iOS list rendering.
+- Rank tie-break contract (wins, questions asked, completion time) defined and consistent with server ordering.
+- Pagination or bounded-window semantics for rows beyond the initial mobile summary depth.
+- Explicit anti-abuse visibility rules (hidden/disqualified rows and reason enums).
+
+Blockers that must be resolved before runtime shipping:
+
+- Team identity/membership model finalized in backend contracts.
+- Shared team-session state semantics defined for challenge and season windows.
+- Anti-abuse ranking policy and moderation status fields exposed in API responses.
+- Performance envelope validated for small-screen list rendering and pull-to-refresh cadence.
 
 ## Error Semantics and Retry Guidance
 

@@ -123,6 +123,22 @@ Use these as the reference artifacts for mobile stability go/no-go checks:
 - `apps/mobile/app/index.tsx` (global fatal/non-fatal handler)
 - `apps/mobile/src/screens/StatsScreen.tsx` (runtime telemetry diagnostics summary)
 
+## Canonical Evidence Bundle (MY.2 Leaderboard Depth Perf Validation)
+
+Use these as the reference artifacts for validating expanded challenge leaderboard depth (up to 25 rows):
+
+- `docs/mobile/device-validation-checklist.md` (MY.2 addendum section + pasteback)
+- `docs/mobile/parity-matrix.md` (Challenge row + exception register wording)
+- `docs/mobile/screenshots/YYYY-MM-DD-my2-leaderboard-expanded.png`
+- `docs/mobile/screenshots/YYYY-MM-DD-my2-leaderboard-scroll.mov`
+- `docs/mobile/screenshots/YYYY-MM-DD-my2-leaderboard-diagnostics.png` (optional)
+
+MY.2 closure requirements:
+
+- At least one small-screen physical-device run is captured.
+- Expanded-list scroll behavior is documented as pass/fail with notes.
+- If regressions appear, fallback cap recommendation is documented before marking complete.
+
 ## PR Checklist Snippet
 
 Use this checklist in mobile parity pull requests:
