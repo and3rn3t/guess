@@ -127,7 +127,7 @@ export function WelcomeScreen({
 const styles = StyleSheet.create({
   root: {
     width: '100%',
-    gap: 14
+    gap: 12
   },
   headerBlock: {
     gap: 8
@@ -157,9 +157,9 @@ const styles = StyleSheet.create({
     borderColor: '#164e63',
     borderRadius: 14,
     backgroundColor: '#082f49',
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    gap: 4
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    gap: 3
   },
   heroTitle: {
     color: '#bae6fd',
@@ -191,8 +191,8 @@ const styles = StyleSheet.create({
   },
   actionButton: {
     borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
     alignItems: 'center'
   },
   actionPrimary: {

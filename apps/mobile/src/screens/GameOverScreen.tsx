@@ -178,9 +178,9 @@ const styles = StyleSheet.create({
     borderColor: '#14532d',
     borderRadius: 14,
     backgroundColor: '#052e16',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    gap: 4
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    gap: 3
   },
   celebrationTitle: {
     color: '#86efac',
@@ -197,9 +197,9 @@ const styles = StyleSheet.create({
     borderColor: '#7c2d12',
     borderRadius: 14,
     backgroundColor: '#431407',
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    gap: 4
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    gap: 3
   },
   summaryLabel: {
     color: '#fdba74',
@@ -213,8 +213,8 @@ const styles = StyleSheet.create({
   },
   actionButton: {
     borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
     alignItems: 'center'
   },
   actionPrimary: {

@@ -391,10 +391,10 @@ function formatConfidence(confidence: number | null): string {
 const styles = StyleSheet.create({
   root: {
     width: '100%',
-    gap: 20
+    gap: 16
   },
   headerBlock: {
-    gap: 10
+    gap: 8
   },
   phasePill: {
     alignSelf: 'flex-start',
@@ -433,9 +433,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#2563eb',
     borderRadius: 16,
-    paddingHorizontal: 18,
-    paddingVertical: 16,
-    gap: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    gap: 8,
     backgroundColor: '#0b1f52'
   },
   busyCard: {
@@ -443,9 +443,9 @@ const styles = StyleSheet.create({
     borderColor: '#334155',
     borderRadius: 10,
     backgroundColor: '#111827',
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    gap: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    gap: 6,
     flexDirection: 'row',
     alignItems: 'center'
   },
@@ -464,8 +464,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#1c1917',
     borderWidth: 1,
     borderColor: '#44403c',
-    paddingHorizontal: 14,
-    paddingVertical: 10
+    paddingHorizontal: 12,
+    paddingVertical: 9
   },
   cooldownText: {
     color: '#a8a29e',
@@ -502,13 +502,13 @@ const styles = StyleSheet.create({
   answerGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 12
+    gap: 10
   },
   answerButton: {
     width: '100%',
     borderRadius: 14,
-    paddingHorizontal: 16,
-    paddingVertical: 15,
+    paddingHorizontal: 14,
+    paddingVertical: 13,
     alignItems: 'center'
   },
   answerButtonYes: {
@@ -549,16 +549,16 @@ const styles = StyleSheet.create({
   },
   footerActions: {
     alignItems: 'center',
-    marginTop: 6
+    marginTop: 4
   },
   moreActionsGestureArea: {
     alignItems: 'center',
-    gap: 6
+    gap: 4
   },
   moreActionsButton: {
     borderRadius: 999,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
     backgroundColor: '#111827',
     borderWidth: 1,
     borderColor: '#334155',
@@ -585,10 +585,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#334155',
     backgroundColor: '#020617',
-    paddingHorizontal: 16,
-    paddingTop: 12,
-    paddingBottom: 22,
-    gap: 10
+    paddingHorizontal: 14,
+    paddingTop: 10,
+    paddingBottom: 20,
+    gap: 8
   },
   sheetHandle: {
     alignSelf: 'center',
@@ -596,7 +596,7 @@ const styles = StyleSheet.create({
     height: 5,
     borderRadius: 999,
     backgroundColor: '#334155',
-    marginBottom: 4
+    marginBottom: 3
   },
   sheetTitle: {
     color: '#f8fafc',
@@ -610,8 +610,8 @@ const styles = StyleSheet.create({
   },
   sheetActionButton: {
     borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
     alignItems: 'center'
   },
   sheetActionButtonSecondary: {
@@ -635,10 +635,10 @@ const styles = StyleSheet.create({
     fontWeight: '600'
   },
   sheetCancelButton: {
-    marginTop: 4,
+    marginTop: 3,
     borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
     alignItems: 'center',
     backgroundColor: '#1e293b'
   },
