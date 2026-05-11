@@ -25,22 +25,31 @@ const STATUS_COPY: Record<ReturnType<typeof useMobileSyncStatus>, { label: strin
 export function SyncStatusBadge(): ReactElement {
   const status = useMobileSyncStatus();
   const queuedActionCount = useMobileOfflineQueue();
+  const isHealthy = status === 'synced' && queuedActionCount === 0;
   const copy = queuedActionCount > 0 ? STATUS_COPY.offline : STATUS_COPY[status];
   const queuedCopy =
     queuedActionCount > 0
-      ? `${queuedActionCount} queued action${queuedActionCount === 1 ? '' : 's'} waiting to sync.`
+      ? getQueuedActionCopy(queuedActionCount)
       : copy.detail;
 
   return (
     <View
       accessible
-      accessibilityLabel={`${copy.label}. ${queuedCopy}`}
-      style={[styles.root, styles[status]]}
+      accessibilityLabel={isHealthy ? 'Synced.' : `${copy.label}. ${queuedCopy}`}
+      style={[styles.root, styles[status], isHealthy ? styles.rootHealthy : null]}
     >
       <Text style={styles.label}>{copy.label}</Text>
-      <Text style={styles.detail}>{queuedCopy}</Text>
+      {isHealthy ? null : <Text style={styles.detail}>{queuedCopy}</Text>}
     </View>
   );
+}
+
+function getQueuedActionCopy(queuedActionCount: number): string {
+  if (queuedActionCount === 1) {
+    return '1 queued action waiting to sync.';
+  }
+
+  return `${queuedActionCount} queued actions waiting to sync.`;
 }
 
 const styles = StyleSheet.create({
@@ -50,6 +59,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 10,
     gap: 4
+  },
+  rootHealthy: {
+    paddingVertical: 8
   },
   synced: {
     backgroundColor: '#06281f',

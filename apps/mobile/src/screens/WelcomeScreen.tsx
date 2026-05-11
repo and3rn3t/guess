@@ -1,5 +1,6 @@
-import type { ReactElement } from 'react';
+import { useState, type ReactElement } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { triggerImpactHaptic } from '../lib/mobileHaptics';
 
 interface WelcomeScreenProps {
   isBusy: boolean;
@@ -26,6 +27,8 @@ export function WelcomeScreen({
   onOpenTeaching,
   onOpenResume
 }: Readonly<WelcomeScreenProps>): ReactElement {
+  const [showMoreOptions, setShowMoreOptions] = useState(false);
+
   return (
     <View style={styles.root}>
       <View style={styles.headerBlock}>
@@ -49,7 +52,10 @@ export function WelcomeScreen({
       <Pressable
         accessibilityRole="button"
         disabled={isBusy || isOffline}
-        onPress={onStartGame}
+        onPress={() => {
+          triggerImpactHaptic('medium');
+          onStartGame();
+        }}
         style={[styles.actionButton, styles.actionPrimary, isBusy || isOffline ? styles.disabled : null]}
       >
         <Text style={styles.actionPrimaryText}>Start Game</Text>
@@ -58,7 +64,10 @@ export function WelcomeScreen({
       <Pressable
         accessibilityRole="button"
         disabled={isBusy}
-        onPress={onOpenChallenge}
+        onPress={() => {
+          triggerImpactHaptic('light');
+          onOpenChallenge();
+        }}
         style={[styles.actionButton, styles.actionSecondary, isBusy ? styles.disabled : null]}
       >
         <Text style={styles.actionSecondaryText}>Open Challenge</Text>
@@ -67,26 +76,50 @@ export function WelcomeScreen({
       <Pressable
         accessibilityRole="button"
         disabled={isBusy}
-        onPress={onOpenTeaching}
-        style={[styles.actionButton, styles.actionSecondary, isBusy ? styles.disabled : null]}
-      >
-        <Text style={styles.actionSecondaryText}>Open Teaching</Text>
-      </Pressable>
-
-      <Pressable
-        accessibilityRole="button"
-        disabled={isBusy || !hasSavedSession}
-        onPress={onOpenResume}
-        style={[
-          styles.actionButton,
-          styles.actionGhost,
-          isBusy || !hasSavedSession ? styles.disabled : null
-        ]}
+        onPress={() => {
+          triggerImpactHaptic('light');
+          setShowMoreOptions((value) => !value);
+        }}
+        style={[styles.actionButton, styles.actionGhost, isBusy ? styles.disabled : null]}
       >
         <Text style={styles.actionGhostText}>
-          {hasSavedSession ? 'Open Session Resume' : 'No Saved Session'}
+          {showMoreOptions ? 'Hide More Options' : 'More Options'}
         </Text>
       </Pressable>
+
+      {showMoreOptions ? (
+        <>
+          <Pressable
+            accessibilityRole="button"
+            disabled={isBusy}
+            onPress={() => {
+              triggerImpactHaptic('light');
+              onOpenTeaching();
+            }}
+            style={[styles.actionButton, styles.actionSecondary, isBusy ? styles.disabled : null]}
+          >
+            <Text style={styles.actionSecondaryText}>Open Teaching</Text>
+          </Pressable>
+
+          <Pressable
+            accessibilityRole="button"
+            disabled={isBusy || !hasSavedSession}
+            onPress={() => {
+              triggerImpactHaptic('light');
+              onOpenResume();
+            }}
+            style={[
+              styles.actionButton,
+              styles.actionGhost,
+              isBusy || !hasSavedSession ? styles.disabled : null
+            ]}
+          >
+            <Text style={styles.actionGhostText}>
+              {hasSavedSession ? 'Open Session Resume' : 'No Saved Session'}
+            </Text>
+          </Pressable>
+        </>
+      ) : null}
     </View>
   );
 }

@@ -4,6 +4,8 @@ import {
   ActivityIndicator,
   Animated,
   Easing,
+  Modal,
+  PanResponder,
   Pressable,
   StyleSheet,
   Text,
@@ -36,14 +38,41 @@ interface AnswerButtonConfig {
 const ANSWER_BUTTONS: readonly AnswerButtonConfig[] = [
   { label: 'Yes', value: 'yes', tone: 'yes', accessibilityHint: 'Confirms this statement is true for your character' },
   { label: 'No', value: 'no', tone: 'no', accessibilityHint: 'Rejects this statement for your character' },
-  { label: 'Maybe', value: 'maybe', tone: 'maybe', accessibilityHint: 'Marks this statement as uncertain' },
   {
-    label: 'Unknown',
+    label: 'Uncertain',
     value: 'unknown',
-    tone: 'secondary',
-    accessibilityHint: 'Use when you do not know the answer to this statement'
+    tone: 'maybe',
+    accessibilityHint: 'Use when you do not know or are uncertain about this statement'
   }
 ];
+
+function getAnswerToneStyle(tone: AnswerButtonConfig['tone']): object {
+  switch (tone) {
+    case 'yes':
+      return styles.answerButtonYes;
+    case 'no':
+      return styles.answerButtonNo;
+    case 'maybe':
+      return styles.answerButtonMaybe;
+    case 'secondary':
+    default:
+      return styles.answerButtonSecondary;
+  }
+}
+
+function getAnswerTextToneStyle(tone: AnswerButtonConfig['tone']): object {
+  switch (tone) {
+    case 'yes':
+      return styles.answerButtonTextYes;
+    case 'no':
+      return styles.answerButtonTextNo;
+    case 'maybe':
+      return styles.answerButtonTextMaybe;
+    case 'secondary':
+    default:
+      return styles.answerButtonTextSecondary;
+  }
+}
 
 export function PlayingScreen({
   questionText,
@@ -59,6 +88,10 @@ export function PlayingScreen({
 }: Readonly<PlayingScreenProps>): ReactElement {
   const confidenceLabel = formatConfidence(confidence);
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
+  const [isActionsOpen, setIsActionsOpen] = useState(false);
+  const hasRenderedQuestionRef = useRef(false);
+  const hasTrackedErrorRef = useRef(false);
+  const swipeHandledRef = useRef(false);
   const contentOpacity = useRef(new Animated.Value(1)).current;
   const contentShiftY = useRef(new Animated.Value(0)).current;
 
@@ -97,20 +130,91 @@ export function PlayingScreen({
     ]).start();
   }, [contentOpacity, contentShiftY, prefersReducedMotion, questionText]);
 
+  useEffect(() => {
+    if (!hasRenderedQuestionRef.current) {
+      hasRenderedQuestionRef.current = true;
+      return;
+    }
+
+    triggerImpactHaptic('light');
+  }, [questionText]);
+
+  useEffect(() => {
+    if (!hasTrackedErrorRef.current) {
+      hasTrackedErrorRef.current = true;
+      return;
+    }
+
+    if (errorMessage) {
+      triggerNotificationHaptic('error');
+    }
+  }, [errorMessage]);
+
   const handleAnswer = (value: AnswerValue): void => {
     triggerImpactHaptic('light');
     onAnswer(value);
   };
 
   const handleSkip = (): void => {
+    setIsActionsOpen(false);
     triggerImpactHaptic('medium');
     onSkip();
   };
 
   const handleEndGame = (): void => {
+    setIsActionsOpen(false);
     triggerNotificationHaptic('warning');
     onEndGame();
   };
+
+  const handleOpenActions = (): void => {
+    if (isBusy) {
+      return;
+    }
+
+    setIsActionsOpen(true);
+    triggerImpactHaptic('light');
+  };
+
+  const handleCloseActions = (): void => {
+    if (!isActionsOpen) {
+      return;
+    }
+
+    setIsActionsOpen(false);
+    triggerImpactHaptic('light');
+  };
+
+  const actionsSwipeResponder = useRef(
+    PanResponder.create({
+      onMoveShouldSetPanResponder: (_, gestureState) => {
+        if (isBusy || isActionsOpen) {
+          return false;
+        }
+
+        return Math.abs(gestureState.dy) > 10;
+      },
+      onPanResponderMove: (_, gestureState) => {
+        if (swipeHandledRef.current || isBusy || isActionsOpen) {
+          return;
+        }
+
+        const isSwipeUp = gestureState.dy < -28;
+        const isMostlyVertical = Math.abs(gestureState.dx) < 44;
+
+        if (isSwipeUp && isMostlyVertical) {
+          swipeHandledRef.current = true;
+          handleOpenActions();
+        }
+      },
+      onPanResponderRelease: () => {
+        swipeHandledRef.current = false;
+      },
+      onPanResponderTerminate: () => {
+        swipeHandledRef.current = false;
+      }
+    })
+  ).current;
 
   return (
     <Animated.View
@@ -162,6 +266,9 @@ export function PlayingScreen({
 
       <View style={styles.answerGrid}>
         {ANSWER_BUTTONS.map((entry) => {
+          const toneStyle = getAnswerToneStyle(entry.tone);
+          const toneTextStyle = getAnswerTextToneStyle(entry.tone);
+
           return (
             <Pressable
               accessibilityRole="button"
@@ -169,16 +276,10 @@ export function PlayingScreen({
               accessibilityHint={entry.accessibilityHint}
               key={entry.value}
               disabled={isBusy}
-                onPress={() => handleAnswer(entry.value)}
+              onPress={() => handleAnswer(entry.value)}
               style={({ pressed }) => [
                 styles.answerButton,
-                entry.tone === 'yes'
-                  ? styles.answerButtonYes
-                  : entry.tone === 'no'
-                    ? styles.answerButtonNo
-                    : entry.tone === 'maybe'
-                      ? styles.answerButtonMaybe
-                      : styles.answerButtonSecondary,
+                toneStyle,
                 isBusy ? styles.answerButtonDisabled : null,
                 pressed && !isBusy ? styles.answerButtonPressed : null
               ]}
@@ -186,13 +287,7 @@ export function PlayingScreen({
               <Text
                 style={[
                   styles.answerButtonText,
-                  entry.tone === 'yes'
-                    ? styles.answerButtonTextYes
-                    : entry.tone === 'no'
-                      ? styles.answerButtonTextNo
-                      : entry.tone === 'maybe'
-                        ? styles.answerButtonTextMaybe
-                        : styles.answerButtonTextSecondary
+                  toneTextStyle
                 ]}
               >
                 {entry.label}
@@ -203,37 +298,80 @@ export function PlayingScreen({
       </View>
 
       <View style={styles.footerActions}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Skip current question"
-          accessibilityHint="Moves to the next best question without recording an answer"
-          disabled={isBusy}
-          onPress={handleSkip}
-          style={({ pressed }) => [
-            styles.footerButton,
-            styles.footerButtonSecondary,
-            isBusy ? styles.answerButtonDisabled : null,
-            pressed && !isBusy ? styles.answerButtonPressed : null
-          ]}
-        >
-          <Text style={styles.footerButtonTextSecondary}>Skip Question</Text>
-        </Pressable>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="End game"
-          accessibilityHint="Ends the current round and moves to game over"
-          disabled={isBusy}
-          onPress={handleEndGame}
-          style={({ pressed }) => [
-            styles.footerButton,
-            styles.footerButtonGhost,
-            isBusy ? styles.answerButtonDisabled : null,
-            pressed && !isBusy ? styles.answerButtonPressed : null
-          ]}
-        >
-          <Text style={styles.footerButtonTextGhost}>End Game</Text>
-        </Pressable>
+        <View {...actionsSwipeResponder.panHandlers} style={styles.moreActionsGestureArea}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Open more actions"
+            accessibilityHint="Opens menu with skip and end game actions. You can also swipe up here."
+            disabled={isBusy}
+            onPress={handleOpenActions}
+            style={({ pressed }) => [
+              styles.moreActionsButton,
+              isBusy ? styles.answerButtonDisabled : null,
+              pressed && !isBusy ? styles.answerButtonPressed : null
+            ]}
+          >
+            <Text style={styles.moreActionsButtonText}>More Actions</Text>
+          </Pressable>
+          <Text style={styles.moreActionsHint}>Swipe up for quick actions</Text>
+        </View>
       </View>
+
+      <Modal
+        animationType={prefersReducedMotion ? 'none' : 'slide'}
+        transparent
+        visible={isActionsOpen}
+        onRequestClose={handleCloseActions}
+      >
+        <Pressable style={styles.sheetBackdrop} onPress={handleCloseActions}>
+          <Pressable style={styles.sheetContainer} onPress={() => {}}>
+            <View style={styles.sheetHandle} />
+            <Text style={styles.sheetTitle}>Secondary Actions</Text>
+            <Text style={styles.sheetSubtitle}>Keep the main flow focused and use these only when needed.</Text>
+
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Skip current question"
+              accessibilityHint="Moves to the next best question without recording an answer"
+              disabled={isBusy}
+              onPress={handleSkip}
+              style={({ pressed }) => [
+                styles.sheetActionButton,
+                styles.sheetActionButtonSecondary,
+                isBusy ? styles.answerButtonDisabled : null,
+                pressed && !isBusy ? styles.answerButtonPressed : null
+              ]}
+            >
+              <Text style={styles.sheetActionButtonSecondaryText}>Skip Question</Text>
+            </Pressable>
+
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="End game"
+              accessibilityHint="Ends the current round and moves to game over"
+              disabled={isBusy}
+              onPress={handleEndGame}
+              style={({ pressed }) => [
+                styles.sheetActionButton,
+                styles.sheetActionButtonGhost,
+                isBusy ? styles.answerButtonDisabled : null,
+                pressed && !isBusy ? styles.answerButtonPressed : null
+              ]}
+            >
+              <Text style={styles.sheetActionButtonGhostText}>End Game</Text>
+            </Pressable>
+
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Close action menu"
+              onPress={handleCloseActions}
+              style={({ pressed }) => [styles.sheetCancelButton, pressed ? styles.answerButtonPressed : null]}
+            >
+              <Text style={styles.sheetCancelButtonText}>Cancel</Text>
+            </Pressable>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </Animated.View>
   );
 }
@@ -253,10 +391,10 @@ function formatConfidence(confidence: number | null): string {
 const styles = StyleSheet.create({
   root: {
     width: '100%',
-    gap: 18
+    gap: 20
   },
   headerBlock: {
-    gap: 8
+    gap: 10
   },
   phasePill: {
     alignSelf: 'flex-start',
@@ -282,22 +420,23 @@ const styles = StyleSheet.create({
   },
   title: {
     color: '#f8fafc',
-    fontSize: 28,
+    fontSize: 30,
+    lineHeight: 36,
     fontWeight: '800'
   },
   subtitle: {
-    color: '#cbd5e1',
-    fontSize: 15,
-    lineHeight: 22
+    color: '#dbeafe',
+    fontSize: 16,
+    lineHeight: 24
   },
   questionCard: {
     borderWidth: 1,
-    borderColor: '#1d4ed8',
-    borderRadius: 14,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    gap: 8,
-    backgroundColor: '#0b1c44'
+    borderColor: '#2563eb',
+    borderRadius: 16,
+    paddingHorizontal: 18,
+    paddingVertical: 16,
+    gap: 10,
+    backgroundColor: '#0b1f52'
   },
   busyCard: {
     borderWidth: 1,
@@ -316,9 +455,9 @@ const styles = StyleSheet.create({
     fontWeight: '600'
   },
   helperText: {
-    color: '#93c5fd',
-    fontSize: 13,
-    lineHeight: 19
+    color: '#bfdbfe',
+    fontSize: 14,
+    lineHeight: 20
   },
   cooldownCard: {
     borderRadius: 10,
@@ -335,23 +474,23 @@ const styles = StyleSheet.create({
   },
   questionLabel: {
     color: '#bfdbfe',
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '700'
   },
   questionText: {
     color: '#eff6ff',
-    fontSize: 18,
-    lineHeight: 26,
+    fontSize: 21,
+    lineHeight: 30,
     fontWeight: '700'
   },
   reasoningText: {
     color: '#dbeafe',
-    fontSize: 13,
-    lineHeight: 19
+    fontSize: 14,
+    lineHeight: 20
   },
   metaText: {
     color: '#93c5fd',
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '600'
   },
   errorText: {
@@ -363,13 +502,13 @@ const styles = StyleSheet.create({
   answerGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 10
+    gap: 12
   },
   answerButton: {
-    minWidth: '47%',
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 14,
+    width: '100%',
+    borderRadius: 14,
+    paddingHorizontal: 16,
+    paddingVertical: 15,
     alignItems: 'center'
   },
   answerButtonYes: {
@@ -379,7 +518,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#ef4444'
   },
   answerButtonMaybe: {
-    backgroundColor: '#f59e0b'
+    backgroundColor: '#8b5cf6'
   },
   answerButtonSecondary: {
     backgroundColor: '#1e293b',
@@ -390,7 +529,7 @@ const styles = StyleSheet.create({
     opacity: 0.5
   },
   answerButtonText: {
-    fontSize: 15,
+    fontSize: 17,
     fontWeight: '700'
   },
   answerButtonTextYes: {
@@ -400,7 +539,7 @@ const styles = StyleSheet.create({
     color: '#fff1f2'
   },
   answerButtonTextMaybe: {
-    color: '#451a03'
+    color: '#f3e8ff'
   },
   answerButtonTextSecondary: {
     color: '#e2e8f0'
@@ -409,34 +548,103 @@ const styles = StyleSheet.create({
     transform: [{ scale: 0.98 }]
   },
   footerActions: {
-    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 6
+  },
+  moreActionsGestureArea: {
+    alignItems: 'center',
+    gap: 6
+  },
+  moreActionsButton: {
+    borderRadius: 999,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    backgroundColor: '#111827',
+    borderWidth: 1,
+    borderColor: '#334155',
+    alignItems: 'center'
+  },
+  moreActionsButtonText: {
+    color: '#cbd5e1',
+    fontSize: 13,
+    fontWeight: '600'
+  },
+  moreActionsHint: {
+    color: '#64748b',
+    fontSize: 11,
+    lineHeight: 16
+  },
+  sheetBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(2, 6, 23, 0.55)',
+    justifyContent: 'flex-end'
+  },
+  sheetContainer: {
+    borderTopLeftRadius: 18,
+    borderTopRightRadius: 18,
+    borderWidth: 1,
+    borderColor: '#334155',
+    backgroundColor: '#020617',
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 22,
     gap: 10
   },
-  footerButton: {
-    flex: 1,
+  sheetHandle: {
+    alignSelf: 'center',
+    width: 44,
+    height: 5,
+    borderRadius: 999,
+    backgroundColor: '#334155',
+    marginBottom: 4
+  },
+  sheetTitle: {
+    color: '#f8fafc',
+    fontSize: 17,
+    fontWeight: '700'
+  },
+  sheetSubtitle: {
+    color: '#94a3b8',
+    fontSize: 13,
+    lineHeight: 19
+  },
+  sheetActionButton: {
     borderRadius: 12,
     paddingHorizontal: 14,
     paddingVertical: 12,
     alignItems: 'center'
   },
-  footerButtonSecondary: {
+  sheetActionButtonSecondary: {
     backgroundColor: '#0f172a',
     borderWidth: 1,
     borderColor: '#334155'
   },
-  footerButtonGhost: {
+  sheetActionButtonGhost: {
     backgroundColor: '#111827',
     borderWidth: 1,
     borderColor: '#374151'
   },
-  footerButtonTextSecondary: {
-    color: '#e2e8f0',
-    fontSize: 14,
-    fontWeight: '700'
-  },
-  footerButtonTextGhost: {
+  sheetActionButtonSecondaryText: {
     color: '#cbd5e1',
-    fontSize: 14,
+    fontSize: 13,
+    fontWeight: '600'
+  },
+  sheetActionButtonGhostText: {
+    color: '#94a3b8',
+    fontSize: 13,
+    fontWeight: '600'
+  },
+  sheetCancelButton: {
+    marginTop: 4,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    alignItems: 'center',
+    backgroundColor: '#1e293b'
+  },
+  sheetCancelButtonText: {
+    color: '#e2e8f0',
+    fontSize: 13,
     fontWeight: '700'
   }
 });

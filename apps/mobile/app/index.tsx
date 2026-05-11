@@ -7,6 +7,9 @@ import {
   type ReactElement,
 } from "react";
 import {
+  AccessibilityInfo,
+  Animated,
+  Easing,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -58,6 +61,7 @@ import { WelcomeScreen } from "../src/screens/WelcomeScreen";
 import { buildQuickStartSummary } from "../src/screens/mobileQuickStartSummary";
 import { getTeachingProgressSummary } from "../src/screens/teachingProgress";
 import { useMobileConnectionStatus } from "../src/network/useMobileConnectionStatus";
+import { getPhaseTransitionProfile } from "../src/lib/phaseTransitionProfile";
 import { MobileGameProvider } from "../src/state/MobileGameProvider";
 import type { MobileCharacterCategory } from "../src/state/mobileCategories";
 import { createMobileActionGuard } from "../src/state/mobileActionGuard";
@@ -167,6 +171,7 @@ function MobileShell(): ReactElement {
   const connectionStatus = useMobileConnectionStatus();
   const isOffline = connectionStatus.tone === "offline";
   const meta = PHASE_META[state.phase];
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
   const [preferencesState, setPreferencesState] = useState(
     createMobilePreferencesSessionState,
   );
@@ -193,6 +198,8 @@ function MobileShell(): ReactElement {
   const previousQuestionIdRef = useRef<string | null>(
     state.currentQuestion?.id ?? null,
   );
+  const phaseContentOpacity = useRef(new Animated.Value(1)).current;
+  const phaseContentTranslateY = useRef(new Animated.Value(0)).current;
   const difficulty: Difficulty = preferencesState.difficulty;
   const selectedCategories: MobileCharacterCategory[] =
     preferencesState.selectedCategories;
@@ -205,6 +212,20 @@ function MobileShell(): ReactElement {
     () => getTeachingProgressSummary(teachingLessonIndex),
     [teachingLessonIndex],
   );
+  const phaseTransitionProfile = useMemo(
+    () => getPhaseTransitionProfile(state.phase),
+    [state.phase],
+  );
+
+  useEffect(() => {
+    void AccessibilityInfo.isReduceMotionEnabled()
+      .then((enabled) => {
+        setPrefersReducedMotion(enabled);
+      })
+      .catch(() => {
+        setPrefersReducedMotion(false);
+      });
+  }, []);
 
   useEffect(() => {
     if (!state.isBusy || tapFeedbackTimerStartMsRef.current === null) {
@@ -267,6 +288,39 @@ function MobileShell(): ReactElement {
       clearTimeout(timeoutId);
     };
   }, [state.phase]);
+
+  useEffect(() => {
+    if (prefersReducedMotion) {
+      phaseContentOpacity.setValue(1);
+      phaseContentTranslateY.setValue(0);
+      return;
+    }
+
+    phaseContentOpacity.setValue(phaseTransitionProfile.startOpacity);
+    phaseContentTranslateY.setValue(phaseTransitionProfile.startOffsetY);
+    Animated.parallel([
+      Animated.timing(phaseContentOpacity, {
+        toValue: 1,
+        duration: phaseTransitionProfile.fadeDurationMs,
+        easing: Easing.out(Easing.quad),
+        useNativeDriver: true,
+      }),
+      Animated.timing(phaseContentTranslateY, {
+        toValue: 0,
+        duration: phaseTransitionProfile.slideDurationMs,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [
+    phaseContentOpacity,
+    phaseContentTranslateY,
+    phaseTransitionProfile.fadeDurationMs,
+    phaseTransitionProfile.slideDurationMs,
+    phaseTransitionProfile.startOffsetY,
+    phaseTransitionProfile.startOpacity,
+    prefersReducedMotion,
+  ]);
 
   const beginTapFeedbackTiming = (): void => {
     tapFeedbackTimerStartMsRef.current = startMobilePerfTimer();
@@ -983,23 +1037,33 @@ function MobileShell(): ReactElement {
         >
           <View style={styles.container}>
             <ConnectionStatusBanner />
-            {primaryPhase ?? (
-              <PhaseScaffold
-                phase={state.phase}
-                title={meta.title}
-                subtitle={meta.subtitle}
-                state={state}
-                onDispatch={dispatch}
-                actions={getPhaseActions(state.phase, {
-                  onStartGame,
-                  onAnswer,
-                  onSkip,
-                  onRejectGuess,
-                  onSubmitResult,
-                  onResumeGame,
-                })}
-              />
-            )}
+            <Animated.View
+              style={[
+                styles.phaseContent,
+                {
+                  opacity: phaseContentOpacity,
+                  transform: [{ translateY: phaseContentTranslateY }],
+                },
+              ]}
+            >
+              {primaryPhase ?? (
+                <PhaseScaffold
+                  phase={state.phase}
+                  title={meta.title}
+                  subtitle={meta.subtitle}
+                  state={state}
+                  onDispatch={dispatch}
+                  actions={getPhaseActions(state.phase, {
+                    onStartGame,
+                    onAnswer,
+                    onSkip,
+                    onRejectGuess,
+                    onSubmitResult,
+                    onResumeGame,
+                  })}
+                />
+              )}
+            </Animated.View>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -1229,5 +1293,8 @@ const styles = StyleSheet.create({
     paddingVertical: 24,
     paddingHorizontal: 20,
     justifyContent: "center",
+  },
+  phaseContent: {
+    width: "100%",
   },
 });

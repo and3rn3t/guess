@@ -1,5 +1,6 @@
-import type { ReactElement } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useRef, useState, type ReactElement } from 'react';
+import { AccessibilityInfo, Animated, Pressable, StyleSheet, Text, View } from 'react-native';
+import { triggerImpactHaptic, triggerNotificationHaptic } from '../lib/mobileHaptics';
 
 interface GameOverScreenProps {
   exhausted: boolean;
@@ -18,12 +19,77 @@ export function GameOverScreen({
   onOpenFeedback,
   onOpenStats
 }: Readonly<GameOverScreenProps>): ReactElement {
+  const hasAnnouncedOutcomeRef = useRef(false);
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
+  const celebrationScale = useRef(new Animated.Value(1)).current;
+  const isCelebrationState = !exhausted && !surrendered;
+
   let outcome = 'Run complete. Ready for another round.';
   if (exhausted) {
     outcome = 'No more valid branches remain for this run.';
   } else if (surrendered) {
     outcome = 'You surrendered this run.';
   }
+
+  useEffect(() => {
+    void AccessibilityInfo.isReduceMotionEnabled()
+      .then((enabled) => {
+        setPrefersReducedMotion(enabled);
+      })
+      .catch(() => {
+        setPrefersReducedMotion(false);
+      });
+  }, []);
+
+  useEffect(() => {
+    if (hasAnnouncedOutcomeRef.current) {
+      return;
+    }
+
+    hasAnnouncedOutcomeRef.current = true;
+
+    if (exhausted || surrendered) {
+      triggerNotificationHaptic('warning');
+      return;
+    }
+
+    triggerNotificationHaptic('success');
+  }, [exhausted, surrendered]);
+
+  useEffect(() => {
+    if (!isCelebrationState || prefersReducedMotion) {
+      celebrationScale.setValue(1);
+      return;
+    }
+
+    Animated.sequence([
+      Animated.timing(celebrationScale, {
+        toValue: 1.03,
+        duration: 180,
+        useNativeDriver: true,
+      }),
+      Animated.timing(celebrationScale, {
+        toValue: 1,
+        duration: 180,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [celebrationScale, isCelebrationState, prefersReducedMotion]);
+
+  const handleBackToWelcome = (): void => {
+    triggerImpactHaptic('medium');
+    onBackToWelcome();
+  };
+
+  const handleOpenFeedback = (): void => {
+    triggerImpactHaptic('light');
+    onOpenFeedback();
+  };
+
+  const handleOpenStats = (): void => {
+    triggerImpactHaptic('light');
+    onOpenStats();
+  };
 
   return (
     <View style={styles.root}>
@@ -32,6 +98,13 @@ export function GameOverScreen({
         <Text style={styles.title}>Session Complete</Text>
         <Text style={styles.subtitle}>{outcome}</Text>
       </View>
+
+      {isCelebrationState ? (
+        <Animated.View style={[styles.celebrationCard, { transform: [{ scale: celebrationScale }] }]}> 
+          <Text style={styles.celebrationTitle}>Streak Moment</Text>
+          <Text style={styles.celebrationSubtitle}>Great round. Keep momentum and jump into the next game.</Text>
+        </Animated.View>
+      ) : null}
 
       <View style={styles.summaryCard}>
         <Text style={styles.summaryLabel}>Outcome Flags</Text>
@@ -43,7 +116,7 @@ export function GameOverScreen({
         accessibilityRole="button"
         accessibilityLabel="Back to welcome"
         disabled={isBusy}
-        onPress={onBackToWelcome}
+        onPress={handleBackToWelcome}
         style={[styles.actionButton, styles.actionPrimary, isBusy ? styles.disabled : null]}
       >
         <Text style={styles.actionPrimaryText}>Back To Welcome</Text>
@@ -53,7 +126,7 @@ export function GameOverScreen({
         accessibilityRole="button"
         accessibilityLabel="Open feedback"
         disabled={isBusy}
-        onPress={onOpenFeedback}
+        onPress={handleOpenFeedback}
         style={[styles.actionButton, styles.actionSecondary, isBusy ? styles.disabled : null]}
       >
         <Text style={styles.actionSecondaryText}>Open Feedback</Text>
@@ -63,7 +136,7 @@ export function GameOverScreen({
         accessibilityRole="button"
         accessibilityLabel="Open stats"
         disabled={isBusy}
-        onPress={onOpenStats}
+        onPress={handleOpenStats}
         style={[styles.actionButton, styles.actionGhost, isBusy ? styles.disabled : null]}
       >
         <Text style={styles.actionGhostText}>Open Stats</Text>
@@ -99,6 +172,25 @@ const styles = StyleSheet.create({
     color: '#cbd5e1',
     fontSize: 15,
     lineHeight: 22
+  },
+  celebrationCard: {
+    borderWidth: 1,
+    borderColor: '#14532d',
+    borderRadius: 14,
+    backgroundColor: '#052e16',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    gap: 4
+  },
+  celebrationTitle: {
+    color: '#86efac',
+    fontSize: 13,
+    fontWeight: '700'
+  },
+  celebrationSubtitle: {
+    color: '#dcfce7',
+    fontSize: 13,
+    lineHeight: 19
   },
   summaryCard: {
     borderWidth: 1,

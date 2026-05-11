@@ -8,6 +8,7 @@ export function ConnectionStatusBanner(): ReactElement {
   const status = useMobileConnectionStatus();
   const syncStatus = useMobileSyncStatus();
   const queuedActionCount = useMobileOfflineQueue(status.tone);
+  const isHealthy = status.tone === 'online' && syncStatus === 'synced' && queuedActionCount === 0;
   let queueDetail = status.detail;
   if (queuedActionCount > 0) {
     const suffix = queuedActionCount === 1 ? '' : 's';
@@ -16,9 +17,13 @@ export function ConnectionStatusBanner(): ReactElement {
 
   return (
     <View
-      accessibilityLabel={`${status.label}. ${queueDetail}. Sync state: ${syncStatus}.`}
+      accessibilityLabel={
+        isHealthy
+          ? 'Connected and synced.'
+          : `${status.label}. ${queueDetail}. Sync state: ${syncStatus}.`
+      }
       accessible
-      style={[styles.root, styles[status.tone]]}
+      style={[styles.root, styles[status.tone], isHealthy ? styles.rootHealthy : null]}
     >
       <View style={styles.row}>
         <Text style={styles.label}>{status.label}</Text>
@@ -26,7 +31,7 @@ export function ConnectionStatusBanner(): ReactElement {
           <Text style={styles.syncPillText}>{syncStatus}</Text>
         </View>
       </View>
-      <Text style={styles.detail}>{queueDetail}</Text>
+      {isHealthy ? null : <Text style={styles.detail}>{queueDetail}</Text>}
     </View>
   );
 }
@@ -40,6 +45,10 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     gap: 4,
     marginBottom: 16
+  },
+  rootHealthy: {
+    paddingVertical: 9,
+    marginBottom: 12
   },
   row: {
     flexDirection: 'row',

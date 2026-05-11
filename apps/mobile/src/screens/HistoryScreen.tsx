@@ -1,5 +1,6 @@
-import { useMemo, type ReactElement } from "react";
+import { useMemo, useState, type ReactElement } from "react";
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
+import { triggerImpactHaptic } from "../lib/mobileHaptics";
 import type { MobileHistoryGame } from "../network/mobileGameApi";
 import type { MobileGameState } from "../state/mobileGameState";
 
@@ -22,7 +23,11 @@ export function HistoryScreen({
   onBackToWelcome,
   onRetry,
 }: Readonly<HistoryScreenProps>): ReactElement {
-  const recentGames = useMemo(() => historyGames.slice(0, 8), [historyGames]);
+  const [showAllRecentGames, setShowAllRecentGames] = useState(false);
+  const recentGames = useMemo(
+    () => historyGames.slice(0, showAllRecentGames ? 12 : 4),
+    [historyGames, showAllRecentGames]
+  );
   const wins = useMemo(() => historyGames.filter((game) => game.won).length, [historyGames]);
 
   return (
@@ -85,26 +90,49 @@ export function HistoryScreen({
       </View>
 
       <View style={styles.statsBlock}>
-        <Text style={styles.statsLabel}>Recent Games</Text>
+        <View style={styles.statsHeaderRow}>
+          <Text style={styles.statsLabel}>Recent Games</Text>
+          {historyGames.length > recentGames.length ? (
+            <Text style={styles.statsHint}>Showing {recentGames.length} of {historyGames.length}</Text>
+          ) : null}
+        </View>
         {recentGames.length ? (
-          recentGames.map((game) => (
-            <View key={game.id} style={styles.statItem}>
-              <View style={styles.statMeta}>
-                <Text style={styles.statKey}>{game.characterName}</Text>
-                <Text style={styles.statHint}>
-                  {toTitle(game.difficulty)} · {game.questionsAsked} questions
+          <>
+            {recentGames.map((game) => (
+              <View key={game.id} style={styles.statItem}>
+                <View style={styles.statMeta}>
+                  <Text style={styles.statKey}>{game.characterName}</Text>
+                  <Text style={styles.statHint}>
+                    {toTitle(game.difficulty)} · {game.questionsAsked} questions
+                  </Text>
+                </View>
+                <Text
+                  style={[
+                    styles.statValue,
+                    game.won ? styles.winValue : styles.lossValue,
+                  ]}
+                >
+                  {game.won ? "Won" : "Lost"}
                 </Text>
               </View>
-              <Text
-                style={[
-                  styles.statValue,
-                  game.won ? styles.winValue : styles.lossValue,
-                ]}
+            ))}
+
+            {historyGames.length > 4 ? (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={showAllRecentGames ? "Show fewer recent games" : "Show more recent games"}
+                onPress={() => {
+                  triggerImpactHaptic("light");
+                  setShowAllRecentGames((value) => !value);
+                }}
+                style={[styles.actionButton, styles.actionSecondary]}
               >
-                {game.won ? "Won" : "Lost"}
-              </Text>
-            </View>
-          ))
+                <Text style={[styles.actionLabel, styles.actionLabelSecondary]}>
+                  {showAllRecentGames ? "Show Fewer Games" : "Show More Games"}
+                </Text>
+              </Pressable>
+            ) : null}
+          </>
         ) : (
           <Text style={styles.noDataText}>No completed games yet.</Text>
         )}
@@ -114,7 +142,10 @@ export function HistoryScreen({
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Open stats"
-          onPress={onOpenStats}
+          onPress={() => {
+            triggerImpactHaptic("light");
+            onOpenStats();
+          }}
           style={[styles.actionButton, styles.actionPrimary]}
         >
           <Text style={[styles.actionLabel, styles.actionLabelPrimary]}>
@@ -124,7 +155,10 @@ export function HistoryScreen({
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Back to welcome"
-          onPress={onBackToWelcome}
+          onPress={() => {
+            triggerImpactHaptic("medium");
+            onBackToWelcome();
+          }}
           style={[styles.actionButton, styles.actionSecondary]}
         >
           <Text style={[styles.actionLabel, styles.actionLabelSecondary]}>
@@ -224,6 +258,17 @@ const styles = StyleSheet.create({
     color: "#94a3b8",
     fontSize: 14,
     fontWeight: "600",
+  },
+  statsHeaderRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: 10,
+  },
+  statsHint: {
+    color: "#64748b",
+    fontSize: 12,
+    fontWeight: "500",
   },
   statItem: {
     flexDirection: "row",

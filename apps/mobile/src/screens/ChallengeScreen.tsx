@@ -1,6 +1,7 @@
-import type { ReactElement } from 'react';
+import { useMemo, useState, type ReactElement } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import type { MobileDailyChallenge, MobileDailyLeaderboard, MobileLeaderboardEntry } from '../network/mobileGameApi';
+import { triggerImpactHaptic } from '../lib/mobileHaptics';
 import { SyncStatusBadge } from './SyncStatusBadge';
 
 interface ChallengeScreenProps {
@@ -14,6 +15,14 @@ interface ChallengeScreenProps {
   onBackToWelcome: () => void;
   onOpenHistory: () => void;
   onRetry: () => void;
+}
+
+interface ChallengeLeaderboardProps {
+  leaderboard: MobileDailyLeaderboard | null;
+  isLoading: boolean;
+  leaderboardRows: MobileLeaderboardEntry[];
+  showAllLeaderboardRows: boolean;
+  onToggleRows: () => void;
 }
 
 function LeaderboardRow({ entry }: Readonly<{ entry: MobileLeaderboardEntry }>): ReactElement {
@@ -30,6 +39,46 @@ function LeaderboardRow({ entry }: Readonly<{ entry: MobileLeaderboardEntry }>):
   );
 }
 
+function ChallengeLeaderboard({
+  leaderboard,
+  isLoading,
+  leaderboardRows,
+  showAllLeaderboardRows,
+  onToggleRows
+}: Readonly<ChallengeLeaderboardProps>): ReactElement {
+  const totalRows = leaderboard?.leaderboard.length ?? 0;
+  const isEmpty = totalRows === 0;
+  const canExpand = totalRows > 5;
+
+  return (
+    <View style={styles.lbBlock}>
+      <View style={styles.lbHeaderRow}>
+        <Text style={styles.lbTitle}>Today's Leaderboard</Text>
+        {!isLoading && totalRows > leaderboardRows.length ? (
+          <Text style={styles.lbHint}>Showing {leaderboardRows.length} of {totalRows}</Text>
+        ) : null}
+      </View>
+
+      {isLoading ? <ActivityIndicator color="#f59e0b" style={styles.lbSpinner} /> : null}
+      {!isLoading && isEmpty ? <Text style={styles.lbEmpty}>No completions yet — be the first!</Text> : null}
+      {isLoading ? null : leaderboardRows.map((entry) => <LeaderboardRow key={`${entry.rank}-${entry.userLabel}`} entry={entry} />)}
+
+      {!isLoading && canExpand ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={showAllLeaderboardRows ? 'Show fewer leaderboard entries' : 'Show more leaderboard entries'}
+          onPress={onToggleRows}
+          style={[styles.actionButton, styles.actionSecondary]}
+        >
+          <Text style={styles.actionSecondaryText}>
+            {showAllLeaderboardRows ? 'Show Fewer Entries' : 'Show More Entries'}
+          </Text>
+        </Pressable>
+      ) : null}
+    </View>
+  );
+}
+
 export function ChallengeScreen({
   isBusy,
   errorMessage,
@@ -42,7 +91,20 @@ export function ChallengeScreen({
   onOpenHistory,
   onRetry
 }: Readonly<ChallengeScreenProps>): ReactElement {
+  const [showAllLeaderboardRows, setShowAllLeaderboardRows] = useState(false);
   const today = daily?.date ?? new Date().toISOString().slice(0, 10);
+  const leaderboardRows = useMemo(() => {
+    if (!leaderboard) {
+      return [];
+    }
+
+    return showAllLeaderboardRows ? leaderboard.leaderboard : leaderboard.leaderboard.slice(0, 5);
+  }, [leaderboard, showAllLeaderboardRows]);
+
+  const handleToggleLeaderboardRows = (): void => {
+    triggerImpactHaptic('light');
+    setShowAllLeaderboardRows((value) => !value);
+  };
 
   return (
     <ScrollView style={styles.scroll} contentContainerStyle={styles.root} showsVerticalScrollIndicator={false}>
@@ -50,6 +112,7 @@ export function ChallengeScreen({
         <Text style={styles.phasePill}>DAILY CHALLENGE</Text>
         <Text style={styles.title}>Today's Challenge</Text>
         <Text style={styles.date}>{today}</Text>
+        <Text style={styles.subtitle}>One featured character. One run. Can you solve it in fewer questions?</Text>
       </View>
 
       {isLoading && (
@@ -97,28 +160,27 @@ export function ChallengeScreen({
             <Pressable
               accessibilityRole="button"
               disabled={isBusy}
-              onPress={() => { onStartChallenge(daily.characterId); }}
+              onPress={() => {
+                triggerImpactHaptic('medium');
+                onStartChallenge(daily.characterId);
+              }}
               style={[styles.actionButton, styles.actionChallenge, isBusy && styles.disabled]}
             >
               <Text style={styles.actionChallengeText}>
-                {isBusy ? 'Starting…' : 'Start Challenge'}
+                {isBusy ? 'Starting…' : 'Play Today\'s Challenge'}
               </Text>
             </Pressable>
           )}
         </>
       )}
 
-      {/* Leaderboard */}
-      <View style={styles.lbBlock}>
-        <Text style={styles.lbTitle}>Today's Leaderboard</Text>
-        {isLoading && <ActivityIndicator color="#f59e0b" style={styles.lbSpinner} />}
-        {!isLoading && leaderboard && leaderboard.leaderboard.length === 0 && (
-          <Text style={styles.lbEmpty}>No completions yet — be the first!</Text>
-        )}
-        {!isLoading && leaderboard && leaderboard.leaderboard.map((entry) => (
-          <LeaderboardRow key={`${entry.rank}-${entry.userLabel}`} entry={entry} />
-        ))}
-      </View>
+      <ChallengeLeaderboard
+        leaderboard={leaderboard}
+        isLoading={isLoading}
+        leaderboardRows={leaderboardRows}
+        showAllLeaderboardRows={showAllLeaderboardRows}
+        onToggleRows={handleToggleLeaderboardRows}
+      />
 
       {errorMessage ? <Text style={styles.inlineError}>{errorMessage}</Text> : null}
 
@@ -128,7 +190,10 @@ export function ChallengeScreen({
         <Pressable
           accessibilityRole="button"
           disabled={isBusy}
-          onPress={onOpenHistory}
+          onPress={() => {
+            triggerImpactHaptic('light');
+            onOpenHistory();
+          }}
           style={[styles.actionButton, styles.actionSecondary, isBusy && styles.disabled]}
         >
           <Text style={styles.actionSecondaryText}>Open History</Text>
@@ -136,7 +201,10 @@ export function ChallengeScreen({
         <Pressable
           accessibilityRole="button"
           disabled={isBusy}
-          onPress={onBackToWelcome}
+          onPress={() => {
+            triggerImpactHaptic('light');
+            onBackToWelcome();
+          }}
           style={[styles.actionButton, styles.actionGhost, isBusy && styles.disabled]}
         >
           <Text style={styles.actionGhostText}>Back To Welcome</Text>
@@ -176,6 +244,11 @@ const styles = StyleSheet.create({
     color: '#94a3b8',
     fontSize: 14,
     fontWeight: '500'
+  },
+  subtitle: {
+    color: '#cbd5e1',
+    fontSize: 14,
+    lineHeight: 20
   },
   loadingBlock: {
     flexDirection: 'row',
@@ -258,6 +331,17 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 0.8,
     marginBottom: 4
+  },
+  lbHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: 10
+  },
+  lbHint: {
+    color: '#64748b',
+    fontSize: 12,
+    fontWeight: '500'
   },
   lbSpinner: {
     marginVertical: 8

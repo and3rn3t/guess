@@ -23,6 +23,7 @@ import {
   getMobileReliabilitySummary,
   getMobilePerfSummary,
 } from "../perf/mobilePerfMetrics";
+import { triggerImpactHaptic } from "../lib/mobileHaptics";
 import type { MobileGameState } from "../state/mobileGameState";
 
 interface StatsScreenProps {
@@ -65,15 +66,6 @@ export function StatsScreen({
     () => deriveAchievements(historyGames, streak, stats?.totalGames ?? historyGames.length),
     [historyGames, streak, stats]
   );
-  const perfSummary = getMobilePerfSummary();
-  const reliabilitySummary = getMobileReliabilitySummary();
-  const apiBaseUrl = getMobileApiBaseUrlForDebug();
-  const [apiHealth, setApiHealth] =
-    useState<MobileApiHealthCheckResult | null>(null);
-  const [isCheckingApiHealth, setIsCheckingApiHealth] = useState(false);
-  const [isSharingSnapshot, setIsSharingSnapshot] = useState(false);
-  const diagnosticsSnapshot = buildDiagnosticsSnapshot(perfSummary, reliabilitySummary);
-  const apiHealthPresentation = getApiHealthPresentation(apiHealth);
 
   return (
     <View style={styles.root}>
@@ -172,136 +164,7 @@ export function StatsScreen({
         )}
       </View>
 
-      <View style={styles.metricsBlock}>
-        <Text style={styles.metricLabel}>MP.6 Diagnostics</Text>
-        <View style={styles.metricItem}>
-          <Text style={styles.metricKey}>Tap-to-feedback p95</Text>
-          <Text
-            style={[
-              styles.metricValue,
-              perfSummary.tap_to_feedback.meetsTarget
-                ? styles.metricValuePass
-                : styles.metricValueFail,
-            ]}
-          >
-            {formatMs(perfSummary.tap_to_feedback.p95Ms)} / {perfSummary.tap_to_feedback.thresholdMs}ms
-          </Text>
-        </View>
-        <View style={styles.metricItem}>
-          <Text style={styles.metricKey}>Transition-start p95</Text>
-          <Text
-            style={[
-              styles.metricValue,
-              perfSummary.transition_start.meetsTarget
-                ? styles.metricValuePass
-                : styles.metricValueFail,
-            ]}
-          >
-            {formatMs(perfSummary.transition_start.p95Ms)} / {perfSummary.transition_start.thresholdMs}ms
-          </Text>
-        </View>
-        <View style={styles.metricItem}>
-          <Text style={styles.metricKey}>Feedback-to-next-question p95</Text>
-          <Text
-            style={[
-              styles.metricValue,
-              perfSummary.feedback_to_next_question.meetsTarget
-                ? styles.metricValuePass
-                : styles.metricValueFail,
-            ]}
-          >
-            {formatMs(perfSummary.feedback_to_next_question.p95Ms)} / {perfSummary.feedback_to_next_question.thresholdMs}ms
-          </Text>
-        </View>
-        <View style={styles.metricItem}>
-          <Text style={styles.metricKey}>Transition-complete p95</Text>
-          <Text
-            style={[
-              styles.metricValue,
-              perfSummary.transition_complete.meetsTarget
-                ? styles.metricValuePass
-                : styles.metricValueFail,
-            ]}
-          >
-            {formatMs(perfSummary.transition_complete.p95Ms)} / {perfSummary.transition_complete.thresholdMs}ms
-          </Text>
-        </View>
-        <View style={styles.metricItem}>
-          <Text style={styles.metricKey}>Samples</Text>
-          <Text style={styles.metricValue}>
-            tap {perfSummary.tap_to_feedback.count} · next-q {perfSummary.feedback_to_next_question.count} · transition-start {perfSummary.transition_start.count} · transition-complete {perfSummary.transition_complete.count}
-          </Text>
-        </View>
-        <View style={styles.metricItem}>
-          <Text style={styles.metricKey}>Reliability counters</Text>
-          <Text style={styles.metricValue}>
-            retry {reliabilitySummary.transportRetryCount} · transport fail {reliabilitySummary.transportFailureCount} · server fail {reliabilitySummary.serverFailureCount} · payload fail {reliabilitySummary.validationFailureCount}
-          </Text>
-        </View>
-        <View style={styles.metricItem}>
-          <Text style={styles.metricKey}>API base URL</Text>
-          <Text style={styles.metricValue}>
-            {apiBaseUrl.length > 0 ? apiBaseUrl : "Not configured"}
-          </Text>
-        </View>
-        <View style={styles.metricItem}>
-          <Text style={styles.metricKey}>API health</Text>
-          <Text style={apiHealthPresentation.style}>{apiHealthPresentation.label}</Text>
-        </View>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Check API connectivity"
-          onPress={() => {
-            setIsCheckingApiHealth(true);
-            void checkMobileApiHealth()
-              .then((result) => {
-                setApiHealth(result);
-              })
-              .finally(() => {
-                setIsCheckingApiHealth(false);
-              });
-          }}
-          style={[styles.actionButton, styles.actionSecondary]}
-        >
-          <Text style={[styles.actionLabel, styles.actionLabelSecondary]}>
-            {isCheckingApiHealth ? "Checking API..." : "Check API Connectivity"}
-          </Text>
-        </Pressable>
-        <Text style={styles.metricKey}>Pasteback Snapshot</Text>
-        <Text selectable style={styles.snapshotText}>
-          {diagnosticsSnapshot}
-        </Text>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Share diagnostics snapshot"
-          onPress={() => {
-            setIsSharingSnapshot(true);
-            void Share.share({
-              message: diagnosticsSnapshot,
-              title: "MP.6 Diagnostics Snapshot",
-            }).finally(() => {
-              setIsSharingSnapshot(false);
-            });
-          }}
-          style={[styles.actionButton, styles.actionSecondary]}
-        >
-          <Text style={[styles.actionLabel, styles.actionLabelSecondary]}>
-            {isSharingSnapshot ? "Sharing Snapshot..." : "Share Diagnostics Snapshot"}
-          </Text>
-        </Pressable>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Reset diagnostics samples"
-          onPress={() => {
-            clearMobilePerfMetrics();
-          }}
-          style={[styles.actionButton, styles.actionTertiary]}
-        >
-          <Text style={[styles.actionLabel, styles.actionLabelSecondary]}>
-            Reset Diagnostics Samples
-          </Text>
-        </Pressable>
-      </View>
+      <DiagnosticsSection />
 
       <View style={styles.actionsBlock}>
         <Pressable
@@ -327,6 +190,238 @@ export function StatsScreen({
       </View>
     </View>
   );
+}
+
+function DiagnosticsSection(): ReactElement {
+  const perfSummary = getMobilePerfSummary();
+  const reliabilitySummary = getMobileReliabilitySummary();
+  const apiBaseUrl = getMobileApiBaseUrlForDebug();
+  const [apiHealth, setApiHealth] = useState<MobileApiHealthCheckResult | null>(null);
+  const [isCheckingApiHealth, setIsCheckingApiHealth] = useState(false);
+  const [isSharingSnapshot, setIsSharingSnapshot] = useState(false);
+  const [isDiagnosticsExpanded, setIsDiagnosticsExpanded] = useState(false);
+  const diagnosticsSnapshot = buildDiagnosticsSnapshot(perfSummary, reliabilitySummary);
+  const apiHealthPresentation = getApiHealthPresentation(apiHealth);
+  const diagnosticsFailures = [
+    perfSummary.tap_to_feedback,
+    perfSummary.transition_start,
+    perfSummary.feedback_to_next_question,
+    perfSummary.transition_complete,
+  ].filter((entry) => !entry.meetsTarget).length;
+  const diagnosticsStatusLabel = getDiagnosticsStatusLabel(diagnosticsFailures);
+
+  return (
+    <View style={styles.metricsBlock}>
+      <Text style={styles.metricLabel}>Diagnostics</Text>
+      <View style={styles.metricItem}>
+        <Text style={styles.metricKey}>Perf gate status</Text>
+        <Text
+          style={[
+            styles.metricValue,
+            diagnosticsFailures === 0 ? styles.metricValuePass : styles.metricValueFail,
+          ]}
+        >
+          {diagnosticsStatusLabel}
+        </Text>
+      </View>
+      <View style={styles.metricItem}>
+        <Text style={styles.metricKey}>API health</Text>
+        <Text style={apiHealthPresentation.style}>{apiHealthPresentation.label}</Text>
+      </View>
+
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={isDiagnosticsExpanded ? "Hide advanced diagnostics" : "Show advanced diagnostics"}
+        onPress={() => {
+          triggerImpactHaptic("light");
+          setIsDiagnosticsExpanded((value) => !value);
+        }}
+        style={[styles.actionButton, styles.actionSecondary]}
+      >
+        <Text style={[styles.actionLabel, styles.actionLabelSecondary]}>
+          {isDiagnosticsExpanded ? "Hide Advanced Diagnostics" : "Show Advanced Diagnostics"}
+        </Text>
+      </Pressable>
+
+      {isDiagnosticsExpanded ? (
+        <AdvancedDiagnosticsDetails
+          perfSummary={perfSummary}
+          reliabilitySummary={reliabilitySummary}
+          apiBaseUrl={apiBaseUrl}
+          diagnosticsSnapshot={diagnosticsSnapshot}
+          isCheckingApiHealth={isCheckingApiHealth}
+          isSharingSnapshot={isSharingSnapshot}
+          onCheckApi={() => {
+            setIsCheckingApiHealth(true);
+            void checkMobileApiHealth()
+              .then((result) => {
+                setApiHealth(result);
+              })
+              .finally(() => {
+                setIsCheckingApiHealth(false);
+              });
+          }}
+          onShareSnapshot={() => {
+            setIsSharingSnapshot(true);
+            void Share.share({
+              message: diagnosticsSnapshot,
+              title: "MP.6 Diagnostics Snapshot",
+            }).finally(() => {
+              setIsSharingSnapshot(false);
+            });
+          }}
+          onResetSamples={() => {
+            clearMobilePerfMetrics();
+          }}
+        />
+      ) : null}
+    </View>
+  );
+}
+
+interface AdvancedDiagnosticsDetailsProps {
+  perfSummary: ReturnType<typeof getMobilePerfSummary>;
+  reliabilitySummary: ReturnType<typeof getMobileReliabilitySummary>;
+  apiBaseUrl: string;
+  diagnosticsSnapshot: string;
+  isCheckingApiHealth: boolean;
+  isSharingSnapshot: boolean;
+  onCheckApi: () => void;
+  onShareSnapshot: () => void;
+  onResetSamples: () => void;
+}
+
+function AdvancedDiagnosticsDetails({
+  perfSummary,
+  reliabilitySummary,
+  apiBaseUrl,
+  diagnosticsSnapshot,
+  isCheckingApiHealth,
+  isSharingSnapshot,
+  onCheckApi,
+  onShareSnapshot,
+  onResetSamples,
+}: Readonly<AdvancedDiagnosticsDetailsProps>): ReactElement {
+  return (
+    <View style={styles.advancedBlock}>
+      <View style={styles.metricItem}>
+        <Text style={styles.metricKey}>Tap-to-feedback p95</Text>
+        <Text
+          style={[
+            styles.metricValue,
+            perfSummary.tap_to_feedback.meetsTarget
+              ? styles.metricValuePass
+              : styles.metricValueFail,
+          ]}
+        >
+          {formatMs(perfSummary.tap_to_feedback.p95Ms)} / {perfSummary.tap_to_feedback.thresholdMs}ms
+        </Text>
+      </View>
+      <View style={styles.metricItem}>
+        <Text style={styles.metricKey}>Transition-start p95</Text>
+        <Text
+          style={[
+            styles.metricValue,
+            perfSummary.transition_start.meetsTarget
+              ? styles.metricValuePass
+              : styles.metricValueFail,
+          ]}
+        >
+          {formatMs(perfSummary.transition_start.p95Ms)} / {perfSummary.transition_start.thresholdMs}ms
+        </Text>
+      </View>
+      <View style={styles.metricItem}>
+        <Text style={styles.metricKey}>Feedback-to-next-question p95</Text>
+        <Text
+          style={[
+            styles.metricValue,
+            perfSummary.feedback_to_next_question.meetsTarget
+              ? styles.metricValuePass
+              : styles.metricValueFail,
+          ]}
+        >
+          {formatMs(perfSummary.feedback_to_next_question.p95Ms)} / {perfSummary.feedback_to_next_question.thresholdMs}ms
+        </Text>
+      </View>
+      <View style={styles.metricItem}>
+        <Text style={styles.metricKey}>Transition-complete p95</Text>
+        <Text
+          style={[
+            styles.metricValue,
+            perfSummary.transition_complete.meetsTarget
+              ? styles.metricValuePass
+              : styles.metricValueFail,
+          ]}
+        >
+          {formatMs(perfSummary.transition_complete.p95Ms)} / {perfSummary.transition_complete.thresholdMs}ms
+        </Text>
+      </View>
+      <View style={styles.metricItem}>
+        <Text style={styles.metricKey}>Samples</Text>
+        <Text style={styles.metricValueCompact}>
+          tap {perfSummary.tap_to_feedback.count} · next-q {perfSummary.feedback_to_next_question.count} · transition-start {perfSummary.transition_start.count} · transition-complete {perfSummary.transition_complete.count}
+        </Text>
+      </View>
+      <View style={styles.metricItem}>
+        <Text style={styles.metricKey}>Reliability counters</Text>
+        <Text style={styles.metricValueCompact}>
+          retry {reliabilitySummary.transportRetryCount} · transport fail {reliabilitySummary.transportFailureCount} · server fail {reliabilitySummary.serverFailureCount} · payload fail {reliabilitySummary.validationFailureCount}
+        </Text>
+      </View>
+      <View style={styles.metricItem}>
+        <Text style={styles.metricKey}>API base URL</Text>
+        <Text style={styles.metricValueCompact}>
+          {apiBaseUrl.length > 0 ? apiBaseUrl : "Not configured"}
+        </Text>
+      </View>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Check API connectivity"
+        onPress={onCheckApi}
+        style={[styles.actionButton, styles.actionSecondary]}
+      >
+        <Text style={[styles.actionLabel, styles.actionLabelSecondary]}>
+          {isCheckingApiHealth ? "Checking API..." : "Check API Connectivity"}
+        </Text>
+      </Pressable>
+      <Text style={styles.metricKey}>Pasteback Snapshot</Text>
+      <Text selectable style={styles.snapshotText}>
+        {diagnosticsSnapshot}
+      </Text>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Share diagnostics snapshot"
+        onPress={onShareSnapshot}
+        style={[styles.actionButton, styles.actionSecondary]}
+      >
+        <Text style={[styles.actionLabel, styles.actionLabelSecondary]}>
+          {isSharingSnapshot ? "Sharing Snapshot..." : "Share Diagnostics Snapshot"}
+        </Text>
+      </Pressable>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Reset diagnostics samples"
+        onPress={onResetSamples}
+        style={[styles.actionButton, styles.actionTertiary]}
+      >
+        <Text style={[styles.actionLabel, styles.actionLabelSecondary]}>
+          Reset Diagnostics Samples
+        </Text>
+      </Pressable>
+    </View>
+  );
+}
+
+function getDiagnosticsStatusLabel(diagnosticsFailures: number): string {
+  if (diagnosticsFailures === 0) {
+    return "All targets met";
+  }
+
+  if (diagnosticsFailures === 1) {
+    return "1 target failing";
+  }
+
+  return `${diagnosticsFailures} targets failing`;
 }
 
 function deriveAchievements(
@@ -516,11 +611,25 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "700",
   },
+  metricValueCompact: {
+    color: "#e2e8f0",
+    fontSize: 13,
+    fontWeight: "600",
+    maxWidth: "62%",
+    textAlign: "right",
+    lineHeight: 19,
+  },
   metricValuePass: {
     color: "#4ade80",
   },
   metricValueFail: {
     color: "#f87171",
+  },
+  advancedBlock: {
+    gap: 10,
+    borderTopWidth: 1,
+    borderTopColor: "#334155",
+    paddingTop: 10,
   },
   snapshotText: {
     color: "#e2e8f0",

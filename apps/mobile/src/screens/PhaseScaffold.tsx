@@ -34,16 +34,18 @@ export function PhaseScaffold({
         <Text style={styles.subtitle}>{subtitle}</Text>
       </View>
 
-      <View style={styles.metricsRow}>
-        <Text style={styles.metric}>Session: {state.sessionId ?? 'none'}</Text>
-        <Text style={styles.metric}>Saved Session: {state.lastSessionId ?? 'none'}</Text>
-        <Text style={styles.metric}>Guesses: {state.guessCount}</Text>
-        <Text style={styles.metric}>Guess Confidence: {state.guessConfidence ?? 'n/a'}</Text>
-        <Text style={styles.metric}>Reject Cooldown: {state.rejectCooldownRemaining ?? 'n/a'}</Text>
-        <Text style={styles.metric}>Exhausted: {state.exhausted ? 'yes' : 'no'}</Text>
-        <Text style={styles.metric}>Surrendered: {state.surrendered ? 'yes' : 'no'}</Text>
-        <Text style={styles.metric}>Busy: {state.isBusy ? 'yes' : 'no'}</Text>
-      </View>
+      {__DEV__ && (
+        <View style={styles.metricsRow}>
+          <Text style={styles.metric}>Session: {state.sessionId ?? 'none'}</Text>
+          <Text style={styles.metric}>Saved Session: {state.lastSessionId ?? 'none'}</Text>
+          <Text style={styles.metric}>Guesses: {state.guessCount}</Text>
+          <Text style={styles.metric}>Guess Confidence: {state.guessConfidence ?? 'n/a'}</Text>
+          <Text style={styles.metric}>Reject Cooldown: {state.rejectCooldownRemaining ?? 'n/a'}</Text>
+          <Text style={styles.metric}>Exhausted: {state.exhausted ? 'yes' : 'no'}</Text>
+          <Text style={styles.metric}>Surrendered: {state.surrendered ? 'yes' : 'no'}</Text>
+          <Text style={styles.metric}>Busy: {state.isBusy ? 'yes' : 'no'}</Text>
+        </View>
+      )}
 
       {state.currentQuestion ? (
         <View style={styles.questionBlock}>
