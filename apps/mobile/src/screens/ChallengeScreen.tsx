@@ -2,6 +2,7 @@ import { useMemo, useState, type ReactElement } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import type { MobileDailyChallenge, MobileDailyLeaderboard, MobileLeaderboardEntry } from '../network/mobileGameApi';
 import { triggerImpactHaptic } from '../lib/mobileHaptics';
+import { SecondaryActionsSheet } from './SecondaryActionsSheet';
 import { SyncStatusBadge } from './SyncStatusBadge';
 
 interface ChallengeScreenProps {
@@ -187,28 +188,27 @@ export function ChallengeScreen({
       <SyncStatusBadge />
 
       <View style={styles.actionsBlock}>
-        <Pressable
-          accessibilityRole="button"
-          disabled={isBusy}
-          onPress={() => {
+        <SecondaryActionsSheet
+          primaryLabel="Open History"
+          primaryAccessibilityLabel="Open history"
+          onPrimaryPress={() => {
             triggerImpactHaptic('light');
             onOpenHistory();
           }}
-          style={[styles.actionButton, styles.actionSecondary, isBusy && styles.disabled]}
-        >
-          <Text style={styles.actionSecondaryText}>Open History</Text>
-        </Pressable>
-        <Pressable
-          accessibilityRole="button"
-          disabled={isBusy}
-          onPress={() => {
-            triggerImpactHaptic('light');
-            onBackToWelcome();
-          }}
-          style={[styles.actionButton, styles.actionGhost, isBusy && styles.disabled]}
-        >
-          <Text style={styles.actionGhostText}>Back To Welcome</Text>
-        </Pressable>
+          isPrimaryDisabled={isBusy}
+          secondaryActions={[
+            {
+              key: 'back-to-welcome',
+              label: 'Back To Welcome',
+              accessibilityLabel: 'Back to welcome',
+              onPress: () => {
+                triggerImpactHaptic('medium');
+                onBackToWelcome();
+              },
+            },
+          ]}
+          isSecondaryDisabled={isBusy}
+        />
       </View>
     </ScrollView>
   );
@@ -422,14 +422,6 @@ const styles = StyleSheet.create({
     color: '#e2e8f0',
     fontSize: 15,
     fontWeight: '700'
-  },
-  actionGhost: {
-    backgroundColor: 'transparent'
-  },
-  actionGhostText: {
-    color: '#64748b',
-    fontSize: 14,
-    fontWeight: '600'
   },
   disabled: {
     opacity: 0.5

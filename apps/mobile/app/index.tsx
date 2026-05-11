@@ -944,6 +944,8 @@ function MobileShell(): ReactElement {
       return (
         <CompareScreen
           state={state}
+          stats={statsOverview}
+          historyGames={historyGames}
           onOpenPreferences={() =>
             dispatch({ type: "OPEN_PHASE", phase: "preferences" })
           }

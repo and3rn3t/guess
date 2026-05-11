@@ -1,5 +1,7 @@
 import { useState, type ReactElement } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { triggerImpactHaptic, triggerNotificationHaptic } from '../lib/mobileHaptics';
+import { SecondaryActionsSheet } from './SecondaryActionsSheet';
 import { SyncStatusBadge } from './SyncStatusBadge';
 
 interface FeedbackScreenProps {
@@ -30,20 +32,25 @@ export function FeedbackScreen({
 
   const handleSelectRating = (rating: number): void => {
     setSubmitted(false);
+    triggerImpactHaptic('light');
     setSelectedRating(rating);
   };
 
   const handleSubmit = (): void => {
     if (!sessionId || selectedRating < 1 || selectedRating > 5 || isBusy) {
+      triggerNotificationHaptic('warning');
       return;
     }
 
+    triggerImpactHaptic('medium');
     void onSubmitFeedback(selectedRating, feedbackText).then((success) => {
       if (!success) {
+        triggerNotificationHaptic('error');
         setSubmitted(false);
         return;
       }
 
+      triggerNotificationHaptic('success');
       setSubmitted(true);
       setFeedbackText('');
     });
@@ -111,23 +118,27 @@ export function FeedbackScreen({
         <Text style={styles.actionSubmitText}>{isBusy ? 'Submitting...' : 'Submit Feedback'}</Text>
       </Pressable>
 
-      <Pressable
-        accessibilityRole="button"
-        disabled={isBusy}
-        onPress={onBackToWelcome}
-        style={[styles.actionButton, styles.actionPrimary, isBusy ? styles.disabled : null]}
-      >
-        <Text style={styles.actionPrimaryText}>Back To Welcome</Text>
-      </Pressable>
-
-      <Pressable
-        accessibilityRole="button"
-        disabled={isBusy}
-        onPress={onStartNewGame}
-        style={[styles.actionButton, styles.actionSecondary, isBusy ? styles.disabled : null]}
-      >
-        <Text style={styles.actionSecondaryText}>Start New Game</Text>
-      </Pressable>
+      <SecondaryActionsSheet
+        primaryLabel="Back To Welcome"
+        primaryAccessibilityLabel="Back to welcome"
+        onPrimaryPress={() => {
+          triggerImpactHaptic('medium');
+          onBackToWelcome();
+        }}
+        isPrimaryDisabled={isBusy}
+        secondaryActions={[
+          {
+            key: 'start-new-game',
+            label: 'Start New Game',
+            accessibilityLabel: 'Start new game',
+            onPress: () => {
+              triggerImpactHaptic('light');
+              onStartNewGame();
+            },
+          },
+        ]}
+        isSecondaryDisabled={isBusy}
+      />
 
       {submitted ? <Text style={styles.successText}>Feedback submitted. Thank you.</Text> : null}
       {errorMessage ? <Text style={styles.errorText}>{errorMessage}</Text> : null}
@@ -138,7 +149,7 @@ export function FeedbackScreen({
 const styles = StyleSheet.create({
   root: {
     width: '100%',
-    gap: 14
+    gap: 12
   },
   headerBlock: {
     gap: 8
@@ -168,9 +179,9 @@ const styles = StyleSheet.create({
     borderColor: '#9a3412',
     borderRadius: 14,
     backgroundColor: '#431407',
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    gap: 4
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    gap: 3
   },
   infoTitle: {
     color: '#fdba74',
@@ -192,7 +203,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#334155',
     backgroundColor: '#0f172a',
-    paddingVertical: 10,
+    paddingVertical: 9,
     alignItems: 'center'
   },
   ratingButtonSelected: {
@@ -213,7 +224,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     backgroundColor: '#0f172a',
     color: '#f8fafc',
-    minHeight: 96,
+    minHeight: 88,
     paddingHorizontal: 12,
     paddingVertical: 10,
     textAlignVertical: 'top'
@@ -221,34 +232,16 @@ const styles = StyleSheet.create({
   feedbackHint: {
     color: '#94a3b8',
     fontSize: 12,
-    marginTop: -6
+    marginTop: -4
   },
   actionButton: {
     borderRadius: 12,
     paddingHorizontal: 16,
-    paddingVertical: 14,
+    paddingVertical: 12,
     alignItems: 'center'
-  },
-  actionPrimary: {
-    backgroundColor: '#22c55e'
   },
   actionSubmit: {
     backgroundColor: '#fb923c'
-  },
-  actionSecondary: {
-    backgroundColor: '#0f172a',
-    borderWidth: 1,
-    borderColor: '#334155'
-  },
-  actionPrimaryText: {
-    color: '#052e16',
-    fontSize: 15,
-    fontWeight: '700'
-  },
-  actionSecondaryText: {
-    color: '#e2e8f0',
-    fontSize: 15,
-    fontWeight: '700'
   },
   actionSubmitText: {
     color: '#431407',

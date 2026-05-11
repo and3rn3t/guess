@@ -1,5 +1,7 @@
 import type { ReactElement } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { triggerImpactHaptic } from '../lib/mobileHaptics';
+import { SecondaryActionsSheet } from './SecondaryActionsSheet';
 import {
   MOBILE_CATEGORY_LABELS,
   MOBILE_CHARACTER_CATEGORIES,
@@ -57,6 +59,8 @@ export function PreferencesScreen({
   onOpenTeaching,
   onBackToWelcome
 }: Readonly<PreferencesScreenProps>): ReactElement {
+  const selectedCategoryCount = selectedCategories.length;
+
   return (
     <View style={styles.root}>
       <View style={styles.headerBlock}>
@@ -73,7 +77,10 @@ export function PreferencesScreen({
             return (
               <Pressable
                 key={persona.difficulty}
-                onPress={() => { onSaveDifficulty(persona.difficulty); }}
+                onPress={() => {
+                  triggerImpactHaptic('light');
+                  onSaveDifficulty(persona.difficulty);
+                }}
                 style={[styles.personaCard, isSelected && styles.personaCardSelected]}
                 accessibilityRole="radio"
                 accessibilityState={{ checked: isSelected }}
@@ -97,6 +104,11 @@ export function PreferencesScreen({
 
       <View style={styles.settingsBlock}>
         <Text style={styles.settingsLabel}>Category Focus (Optional)</Text>
+        <Text style={styles.selectionHint}>
+          {selectedCategoryCount === 0
+            ? 'All categories enabled'
+            : `${selectedCategoryCount} categories selected`}
+        </Text>
         <View style={styles.categoryRow}>
           {MOBILE_CHARACTER_CATEGORIES.map((category) => {
             const selected = selectedCategories.includes(category);
@@ -105,6 +117,7 @@ export function PreferencesScreen({
               <Pressable
                 key={category}
                 onPress={() => {
+                  triggerImpactHaptic('light');
                   onToggleCategory(category);
                 }}
                 style={[styles.categoryPill, selected && styles.categoryPillSelected]}
@@ -125,12 +138,25 @@ export function PreferencesScreen({
       </View>
 
       <View style={styles.actionsBlock}>
-        <Pressable onPress={onOpenTeaching} style={[styles.actionButton, styles.actionPrimary]}>
-          <Text style={[styles.actionLabel, styles.actionLabelPrimary]}>Open Teaching</Text>
-        </Pressable>
-        <Pressable onPress={onBackToWelcome} style={[styles.actionButton, styles.actionSecondary]}>
-          <Text style={[styles.actionLabel, styles.actionLabelSecondary]}>Back To Welcome</Text>
-        </Pressable>
+        <SecondaryActionsSheet
+          primaryLabel="Open Teaching"
+          primaryAccessibilityLabel="Open teaching"
+          onPrimaryPress={() => {
+            triggerImpactHaptic('light');
+            onOpenTeaching();
+          }}
+          secondaryActions={[
+            {
+              key: 'back-to-welcome',
+              label: 'Back To Welcome',
+              accessibilityLabel: 'Back to welcome',
+              onPress: () => {
+                triggerImpactHaptic('medium');
+                onBackToWelcome();
+              },
+            },
+          ]}
+        />
       </View>
     </View>
   );
@@ -139,7 +165,7 @@ export function PreferencesScreen({
 const styles = StyleSheet.create({
   root: {
     width: '100%',
-    gap: 22
+    gap: 18
   },
   headerBlock: {
     gap: 8
@@ -165,12 +191,12 @@ const styles = StyleSheet.create({
     lineHeight: 24
   },
   settingsBlock: {
-    gap: 10,
+    gap: 8,
     borderWidth: 1,
     borderColor: '#334155',
     borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
     backgroundColor: '#0f172a'
   },
   settingsLabel: {
@@ -179,7 +205,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     textTransform: 'uppercase',
     letterSpacing: 0.8,
-    marginBottom: 4,
+    marginBottom: 2,
     textAlign: 'center'
   },
   personaRow: {
@@ -189,14 +215,19 @@ const styles = StyleSheet.create({
   categoryRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8
+    gap: 6
+  },
+  selectionHint: {
+    color: '#64748b',
+    fontSize: 12,
+    fontWeight: '500'
   },
   categoryPill: {
     borderWidth: 1,
     borderColor: '#334155',
     borderRadius: 999,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
+    paddingHorizontal: 9,
+    paddingVertical: 7,
     backgroundColor: '#1e293b'
   },
   categoryPillSelected: {
@@ -219,12 +250,12 @@ const styles = StyleSheet.create({
   personaCard: {
     flex: 1,
     alignItems: 'center',
-    gap: 4,
+    gap: 3,
     borderWidth: 1,
     borderColor: '#334155',
     borderRadius: 12,
-    paddingHorizontal: 8,
-    paddingVertical: 12,
+    paddingHorizontal: 6,
+    paddingVertical: 10,
     backgroundColor: '#1e293b'
   },
   personaCardSelected: {
@@ -258,38 +289,13 @@ const styles = StyleSheet.create({
     fontSize: 10,
     textAlign: 'center',
     lineHeight: 14,
-    marginTop: 2
+    marginTop: 1
   },
   personaDescSelected: {
     color: '#7c3aed',
     fontWeight: '500'
   },
   actionsBlock: {
-    gap: 10
-  },
-  actionButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center'
-  },
-  actionPrimary: {
-    backgroundColor: '#7c3aed'
-  },
-  actionSecondary: {
-    backgroundColor: 'transparent',
-    borderWidth: 1,
-    borderColor: '#6b7280'
-  },
-  actionLabel: {
-    fontSize: 16,
-    fontWeight: '700'
-  },
-  actionLabelPrimary: {
-    color: '#ffffff'
-  },
-  actionLabelSecondary: {
-    color: '#d1d5db'
+    gap: 8
   }
 });

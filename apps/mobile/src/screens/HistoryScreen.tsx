@@ -3,6 +3,7 @@ import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-nati
 import { triggerImpactHaptic } from "../lib/mobileHaptics";
 import type { MobileHistoryGame } from "../network/mobileGameApi";
 import type { MobileGameState } from "../state/mobileGameState";
+import { SecondaryActionsSheet } from "./SecondaryActionsSheet";
 
 interface HistoryScreenProps {
   state: MobileGameState;
@@ -139,32 +140,25 @@ export function HistoryScreen({
       </View>
 
       <View style={styles.actionsBlock}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Open stats"
-          onPress={() => {
+        <SecondaryActionsSheet
+          primaryLabel="Open Stats"
+          primaryAccessibilityLabel="Open stats"
+          onPrimaryPress={() => {
             triggerImpactHaptic("light");
             onOpenStats();
           }}
-          style={[styles.actionButton, styles.actionPrimary]}
-        >
-          <Text style={[styles.actionLabel, styles.actionLabelPrimary]}>
-            Open Stats
-          </Text>
-        </Pressable>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Back to welcome"
-          onPress={() => {
-            triggerImpactHaptic("medium");
-            onBackToWelcome();
-          }}
-          style={[styles.actionButton, styles.actionSecondary]}
-        >
-          <Text style={[styles.actionLabel, styles.actionLabelSecondary]}>
-            Back To Welcome
-          </Text>
-        </Pressable>
+          secondaryActions={[
+            {
+              key: "back-to-welcome",
+              label: "Back To Welcome",
+              accessibilityLabel: "Back to welcome",
+              onPress: () => {
+                triggerImpactHaptic("medium");
+                onBackToWelcome();
+              },
+            },
+          ]}
+        />
       </View>
     </View>
   );
@@ -313,9 +307,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  actionPrimary: {
-    backgroundColor: "#7c3aed",
-  },
   actionSecondary: {
     backgroundColor: "transparent",
     borderWidth: 1,
@@ -324,9 +315,6 @@ const styles = StyleSheet.create({
   actionLabel: {
     fontSize: 16,
     fontWeight: "700",
-  },
-  actionLabelPrimary: {
-    color: "#ffffff",
   },
   actionLabelSecondary: {
     color: "#d1d5db",

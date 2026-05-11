@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState, type ReactElement } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { triggerImpactHaptic } from '../lib/mobileHaptics';
 import type { MobileGameState } from '../state/mobileGameState';
+import { SecondaryActionsSheet } from './SecondaryActionsSheet';
 import {
   clampLessonIndex,
   getAdjacentLessonLabel,
@@ -69,6 +71,7 @@ export function TeachingScreen({
             <Pressable
               key={lesson.id}
               onPress={() => {
+                triggerImpactHaptic('light');
                 setActiveLessonIndex(index);
               }}
               style={[
@@ -81,7 +84,7 @@ export function TeachingScreen({
             >
               <Text style={styles.lessonKey}>{lesson.title}</Text>
               <Text style={styles.lessonValue}>
-                {status === 'done' ? 'Done' : status === 'active' ? 'Active' : 'Up next'}
+                {getLessonStatusLabel(status)}
               </Text>
             </Pressable>
           );
@@ -104,6 +107,7 @@ export function TeachingScreen({
         <View style={styles.lessonNavRow}>
           <Pressable
             onPress={() => {
+              triggerImpactHaptic('light');
               setActiveLessonIndex((index) => clampLessonIndex(index - 1));
             }}
             disabled={activeLessonIndex === 0}
@@ -123,6 +127,7 @@ export function TeachingScreen({
           </Pressable>
           <Pressable
             onPress={() => {
+              triggerImpactHaptic('light');
               setActiveLessonIndex((index) => clampLessonIndex(index + 1));
             }}
             disabled={activeLessonIndex >= TEACHING_LESSONS.length - 1}
@@ -156,12 +161,25 @@ export function TeachingScreen({
       </View>
 
       <View style={styles.actionsBlock}>
-        <Pressable onPress={onOpenFeedback} style={[styles.actionButton, styles.actionPrimary]}>
-          <Text style={[styles.actionLabel, styles.actionLabelPrimary]}>Open Feedback</Text>
-        </Pressable>
-        <Pressable onPress={onBackToWelcome} style={[styles.actionButton, styles.actionSecondary]}>
-          <Text style={[styles.actionLabel, styles.actionLabelSecondary]}>Back To Welcome</Text>
-        </Pressable>
+        <SecondaryActionsSheet
+          primaryLabel="Open Feedback"
+          primaryAccessibilityLabel="Open feedback"
+          onPrimaryPress={() => {
+            triggerImpactHaptic('light');
+            onOpenFeedback();
+          }}
+          secondaryActions={[
+            {
+              key: 'back-to-welcome',
+              label: 'Back To Welcome',
+              accessibilityLabel: 'Back to welcome',
+              onPress: () => {
+                triggerImpactHaptic('medium');
+                onBackToWelcome();
+              },
+            },
+          ]}
+        />
       </View>
 
       {state.lastError ? <Text style={styles.errorText}>{state.lastError}</Text> : null}
@@ -323,31 +341,6 @@ const styles = StyleSheet.create({
   actionsBlock: {
     gap: 10
   },
-  actionButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center'
-  },
-  actionPrimary: {
-    backgroundColor: '#7c3aed'
-  },
-  actionSecondary: {
-    backgroundColor: 'transparent',
-    borderWidth: 1,
-    borderColor: '#6b7280'
-  },
-  actionLabel: {
-    fontSize: 16,
-    fontWeight: '700'
-  },
-  actionLabelPrimary: {
-    color: '#ffffff'
-  },
-  actionLabelSecondary: {
-    color: '#d1d5db'
-  },
   errorText: {
     color: '#fca5a5',
     fontSize: 14,
@@ -358,3 +351,15 @@ const styles = StyleSheet.create({
     backgroundColor: '#7f1d1d'
   }
 });
+
+function getLessonStatusLabel(status: ReturnType<typeof getLessonStatus>): string {
+  if (status === 'done') {
+    return 'Done';
+  }
+
+  if (status === 'active') {
+    return 'Active';
+  }
+
+  return 'Up next';
+}

@@ -1,5 +1,6 @@
 import type { ReactElement } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { triggerImpactHaptic, triggerNotificationHaptic } from '../lib/mobileHaptics';
 
 interface ResumeScreenProps {
   isBusy: boolean;
@@ -19,6 +20,7 @@ export function ResumeScreen({
   onDiscard
 }: Readonly<ResumeScreenProps>): ReactElement {
   const hasSession = Boolean(savedSessionId);
+  const resumeStatus = getResumeStatus(hasSession, isOffline);
 
   return (
     <View style={styles.root}>
@@ -31,6 +33,7 @@ export function ResumeScreen({
       <View style={styles.sessionCard}>
         <Text style={styles.sessionLabel}>Saved Session</Text>
         <Text style={styles.sessionValue}>{savedSessionId ?? 'none'}</Text>
+        <Text style={styles.sessionHint}>{resumeStatus}</Text>
       </View>
 
       {errorMessage ? <Text style={styles.errorText}>{errorMessage}</Text> : null}
@@ -44,7 +47,15 @@ export function ResumeScreen({
       <Pressable
         accessibilityRole="button"
         disabled={isBusy || !hasSession || isOffline}
-        onPress={onResume}
+        onPress={() => {
+          if (!hasSession || isOffline) {
+            triggerNotificationHaptic('warning');
+            return;
+          }
+
+          triggerImpactHaptic('medium');
+          onResume();
+        }}
         style={[styles.actionButton, styles.actionPrimary, isBusy || !hasSession || isOffline ? styles.disabled : null]}
       >
         <Text style={styles.actionPrimaryText}>{hasSession ? 'Resume To Playing' : 'No Session To Resume'}</Text>
@@ -53,7 +64,10 @@ export function ResumeScreen({
       <Pressable
         accessibilityRole="button"
         disabled={isBusy}
-        onPress={onDiscard}
+        onPress={() => {
+          triggerImpactHaptic('light');
+          onDiscard();
+        }}
         style={[styles.actionButton, styles.actionSecondary, isBusy ? styles.disabled : null]}
       >
         <Text style={styles.actionSecondaryText}>Discard And Welcome</Text>
@@ -109,6 +123,11 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600'
   },
+  sessionHint: {
+    color: '#c4b5fd',
+    fontSize: 12,
+    fontWeight: '600'
+  },
   errorText: {
     color: '#fecaca',
     fontSize: 14,
@@ -157,3 +176,15 @@ const styles = StyleSheet.create({
     opacity: 0.5
   }
 });
+
+function getResumeStatus(hasSession: boolean, isOffline: boolean): string {
+  if (!hasSession) {
+    return 'No saved session';
+  }
+
+  if (isOffline) {
+    return 'Saved and waiting for reconnect';
+  }
+
+  return 'Ready to resume';
+}
