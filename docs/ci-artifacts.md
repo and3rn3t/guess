@@ -59,8 +59,10 @@ Source: .github/workflows/mobile-ci.yml
 - Artifact: mobile-ci-{run_id}
 - Contents:
   - typecheck.log — mobile TypeScript typecheck output
-  - guardrails.log — boundary violation scan + scorecard gate output
+  - guardrails.log — boundary violation scan + evidence-link guard output
+  - evidence-links.log — canonical mobile evidence-link integrity check (docs refs, repo paths, workflow artifact linkage)
   - reliability-perf-gate.log — mobile Vitest gate for perf budgets, transport resilience, and session durability
+  - mobile-core-flow-e2e.log — Playwright mobile core-flow lane output
   - scorecard-milestone.log — milestone gate result on `main` push events
   - scorecard-production.log — production gate result on `main` push events (warn-only rollout)
   - scorecard-production-status.txt — one-line pass/fail status for production gate telemetry

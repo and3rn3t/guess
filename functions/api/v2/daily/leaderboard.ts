@@ -28,6 +28,15 @@ function isValidDateKey(value: string): boolean {
   return /^\d{4}-\d{2}-\d{2}$/.test(value)
 }
 
+function parseLeaderboardLimit(value: string | null): number | null {
+  if (value === null) return 25
+  const parsed = Number.parseInt(value, 10)
+  if (!Number.isFinite(parsed) || parsed < 1 || parsed > 50) {
+    return null
+  }
+  return parsed
+}
+
 export const onRequestGet: PagesFunction<Env> = async (context) => {
   const requestId = getRequestId(context.request)
   const respond = (response: Response): Response => withRequestId(response, requestId)
@@ -39,6 +48,8 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     const url = new URL(context.request.url)
     const date = url.searchParams.get('date') ?? getUtcDateKey()
     if (!isValidDateKey(date)) return respond(errorResponse('Invalid date query parameter', 400))
+    const limit = parseLeaderboardLimit(url.searchParams.get('limit'))
+    if (limit === null) return respond(errorResponse('Invalid limit query parameter', 400))
 
     const { userId, setCookieHeader } = await getOrCreateUserId(context.request, context.env)
 
@@ -50,8 +61,8 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
            FROM daily_results
           WHERE date = ?
           ORDER BY won DESC, questions_asked ASC, completed_at ASC
-          LIMIT 20`,
-        [date],
+          LIMIT ?`,
+        [date, limit],
       )
     } catch (error) {
       if (!isMissingDailyResultsTableError(error)) throw error

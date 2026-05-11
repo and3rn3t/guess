@@ -498,7 +498,7 @@ function MobileShell(): ReactElement {
       setChallengeLoading(true);
       setChallengeError(null);
 
-      void Promise.all([fetchDailyChallenge(), fetchDailyLeaderboard()])
+      void Promise.all([fetchDailyChallenge(), fetchDailyLeaderboard(undefined, 25)])
         .then(([daily, lb]) => {
           if (cancelled) return;
           setDailyChallenge(daily);

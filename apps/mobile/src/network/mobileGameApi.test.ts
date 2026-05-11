@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   checkMobileApiHealth,
+  fetchDailyLeaderboard,
   fetchHistoryGames,
   getMobileApiBaseUrlForDebug,
   getMobileSyncStatus,
@@ -126,6 +127,36 @@ describe('mobileGameApi GET resilience', () => {
 
     expect(capturedSignal).toBeDefined();
     expect(capturedSignal).toBeInstanceOf(AbortSignal);
+  });
+
+  it('fetches deeper daily leaderboard rows when a larger limit is requested', async () => {
+    const rows = Array.from({ length: 12 }, (_, idx) => ({
+      rank: idx + 1,
+      userLabel: `Player ${idx + 1}`,
+      won: idx % 2 === 0,
+      questionsAsked: idx + 3,
+      completedAt: 1710000000000 + idx,
+      isYou: idx === 3,
+    }));
+
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(
+        JSON.stringify({ date: '2026-05-11', leaderboard: rows }),
+        {
+          status: 200,
+          headers: {
+            'content-type': 'application/json'
+          }
+        }
+      )
+    );
+
+    const result = await fetchDailyLeaderboard('2026-05-11', 25);
+    expect(result.leaderboard).toHaveLength(12);
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining('/api/v2/daily/leaderboard?date=2026-05-11&limit=25'),
+      expect.any(Object),
+    );
   });
 
   it('publishes pending and synced states around API requests', async () => {

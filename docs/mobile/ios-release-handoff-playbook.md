@@ -77,9 +77,8 @@ This section is the MR.2 release gate record.
 
 ### Intentional Web Divergences (Must Be Listed in Release Notes)
 
-- Challenge leaderboard remains summary-first (top-10) on mobile.
-- Describe Yourself remains deferred for a later mobile milestone.
-- Team leaderboard surfaces remain deferred until multi-player session support is prioritized.
+- Challenge leaderboard remains summary-first on mobile (top-10 preview with expandable depth capped at 25 rows).
+- Team leaderboard surfaces are deferred to v1.9+ pending multi-player/team foundations (team identity model, shared team-session contracts, anti-abuse ranking rules, and mobile perf validation).
 
 ## Release Evidence Package
 

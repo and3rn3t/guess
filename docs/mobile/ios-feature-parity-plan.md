@@ -214,7 +214,7 @@ For feature-level status and exception tracking, see `parity-matrix.md`. For act
 
 **Dependencies**: MP.4 complete; Analytics stable.
 
-**Features In**: Daily challenge surface (summary-first design), seasonal challenge leaderboard (top 10, not all), multi-guess game mode.  
+**Features In**: Daily challenge surface (summary-first design), seasonal challenge leaderboard (top-10 preview with expandable depth capped at 25, not full-board), multi-guess game mode.  
 **Features Out**: Full global leaderboard, team-based challenges.
 
 **API Dependencies**:
@@ -223,7 +223,7 @@ For feature-level status and exception tracking, see `parity-matrix.md`. For act
 - `POST /api/v2/challenges/daily/{date}/submit` (submit challenge guess)
 - `GET /api/v2/leaderboards/challenges/seasonal?limit=10` (top 10 leaderboard)
 
-**Surfaces**: Challenge detail screen (mobile-optimized), Challenge leaderboard (top 10 only), Multi-guess mode in Playing screen.
+**Surfaces**: Challenge detail screen (mobile-optimized), Challenge leaderboard (top-10 preview with expandable depth up to 25), Multi-guess mode in Playing screen.
 
 **Quality Gates**:
 

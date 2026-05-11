@@ -50,8 +50,9 @@ An item is only `✅` when all apply:
 
 ## In Progress / Up Next
 
-- ⬜ **Up next:** [MX.2](#mx-2) team leaderboard + social comparison scope decision
-- ⬜ **Next:** [MX.3](#mx-3) challenge leaderboard depth expansion
+- ✅ **Completed:** [MX.3](#mx-3) challenge leaderboard depth expansion (2026-05-11)
+- ✅ **Completed:** [MN.1](#mn-1) native quality gate automation hardening (2026-05-11)
+- ✅ **Completed:** [MX.2](#mx-2) team leaderboard + social comparison scope decision (2026-05-11)
 - ✅ **Completed:** [MX.1](#mx-1) Describe Yourself (mobile) (2026-05-11)
 - ✅ **Completed:** [MN.3](#mn-3) crash + runtime telemetry baseline (2026-05-11)
 - ✅ **Completed:** [MR.2](#mr-2) App Store / TestFlight submission readiness gate (2026-05-11)
@@ -125,7 +126,7 @@ Primary files:
 ### MN.1
 
 **Title:** Native quality gate automation hardening  
-**Status:** ⬜  
+**Status:** ✅ 2026-05-11  
 **Source consolidation:** MB.5 verification baseline + QA/release gates
 
 Done when:
@@ -177,7 +178,13 @@ Done when:
 ### MX.2
 
 **Title:** Team leaderboard + social comparison scope decision  
-**Status:** ⬜
+**Status:** ✅ 2026-05-11
+
+Decision:
+
+- Deferred from the current mobile release train.
+- Target release window: v1.9+ (post-multi-player session foundations).
+- Dependency blockers: team identity/membership model, shared team-session backend contracts, anti-abuse leaderboard rules, and mobile perf budget validation for deeper ranking surfaces.
 
 Done when:
 
@@ -188,12 +195,12 @@ Done when:
 ### MX.3
 
 **Title:** Challenge leaderboard depth expansion  
-**Status:** ⚪
+**Status:** ✅ 2026-05-11
 
 Notes:
 
-- Parked until Wave 1 and Wave 2 are closed.
-- Current mobile divergence (top-10 summary-first leaderboard) remains acceptable unless performance budget allows deeper list rendering.
+- Expanded mobile leaderboard depth to a top-10 summary preview with user-triggered expansion up to 25 rows.
+- Full-board parity remains intentionally deferred for mobile performance and scanability.
 
 ---
 
@@ -233,3 +240,6 @@ Notes:
 | 2026-05-11 | Completed MR.2 release readiness gate with a concrete functional/quality preflight matrix and explicit divergence contract for release notes. | TestFlight/App Store submission decisions now reference a deterministic checklist with branch-truth evidence instead of generic preflight prose. |
 | 2026-05-11 | Completed MN.3 runtime telemetry baseline (global handler + network failure capture + diagnostics visibility). | Mobile release go/no-go now has a concrete in-app stability signal with actionable runtime event context, without waiting on full third-party crash analytics rollout. |
 | 2026-05-11 | Completed MX.1 with a native mobile Describe Yourself flow, local archetype summary, and persistence through `POST /api/v2/events`. | Closes the deferred parity gap with a mobile-first UX while keeping backend compatibility and explicit input validation (minimum answered prompt threshold) before persistence. |
+| 2026-05-11 | Completed MX.2 with an explicit defer decision for team leaderboard + social comparison surfaces. | Current mobile release priorities remain reliability and existing parity features; team leaderboard delivery requires multiplayer/team identity foundations and ranking integrity guardrails not yet present in the mobile stack. |
+| 2026-05-11 | Completed MN.1 by codifying mobile evidence-link checks in CI and guardrails. | Mobile-touching changes now fail predictably when canonical evidence links drift from repository files, workflow artifact outputs, or CI artifact documentation. |
+| 2026-05-11 | Completed MX.3 by expanding challenge leaderboard depth while retaining summary-first mobile UX. | Mobile users now get deeper leaderboard visibility (top-10 preview expandable to 25) without committing to full-board rendering that risks small-screen performance regressions. |

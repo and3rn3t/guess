@@ -16,7 +16,7 @@ This matrix reflects the active branch truth for the current React Native / Expo
 | **Playing Screen** | GamePhaseRouter → PlayingScreen | `screens/PlayingScreen.tsx` | ✅ Shipped | L2 | L2 | Sync-state and resilience affordances are surfaced inline instead of via separate diagnostics-only UI. | andernet | 2026-05-10 | Code: `apps/mobile/src/screens/PlayingScreen.tsx` · Route: `apps/mobile/app/index.tsx` · QA: `docs/mobile/device-validation-checklist.md` |
 | **Guessing Phase** | GamePhaseRouter → GuessReveal | `screens/GuessingScreen.tsx` | ✅ Shipped | L2 | L2 | Multi-guess and reject-guess runtime remains mobile-first but parity-equivalent in outcome. | andernet | 2026-05-10 | Code: `apps/mobile/src/screens/GuessingScreen.tsx` · Route: `apps/mobile/app/index.tsx` · QA: `docs/mobile/device-validation-checklist.md` |
 | **Game Over Screen** | GamePhaseRouter → GameOver | `screens/GameOverScreen.tsx` | ✅ Shipped | L2 | L2 | Result submission is queue-backed for offline safety; native share remains lightweight. | andernet | 2026-05-10 | Code: `apps/mobile/src/screens/GameOverScreen.tsx` · Route: `apps/mobile/app/index.tsx` · QA: `docs/mobile/device-validation-checklist.md` |
-| **Challenge Screen** | GamePhaseRouter → ChallengeView | `screens/ChallengeScreen.tsx` | ✅ Shipped | L2 | L2 | Summary-first; top-10 daily leaderboard; seasonal full-board deferred (no server endpoint). | andernet | 2026-05-10 | Code: `apps/mobile/src/screens/ChallengeScreen.tsx` · Route: `apps/mobile/app/index.tsx` · QA: `docs/mobile/device-validation-checklist.md` |
+| **Challenge Screen** | GamePhaseRouter → ChallengeView | `screens/ChallengeScreen.tsx` | ✅ Shipped | L2 | L2 | Summary-first; top-10 preview with expandable depth (up to 25 rows) for daily leaderboard; seasonal full-board deferred (no server endpoint). | andernet | 2026-05-11 | Code: `apps/mobile/src/screens/ChallengeScreen.tsx` · Route: `apps/mobile/app/index.tsx` · QA: `docs/mobile/device-validation-checklist.md` |
 | **Stats & Streaks** | GamePhaseRouter → StatsRoute | `screens/StatsScreen.tsx` | ✅ Shipped | L2 | L2 | Mobile-first cards and derived streaks; includes MP.6 diagnostics instead of a web-style analytics dashboard. | andernet | 2026-05-10 | Code: `apps/mobile/src/screens/StatsScreen.tsx` · Perf: `apps/mobile/src/perf/mobilePerfMetrics.ts` · QA: `docs/mobile/device-validation-checklist.md` |
 | **Game History** | GamePhaseRouter → HistoryRoute | `screens/HistoryScreen.tsx` | ✅ Shipped | L2 | L2 | Mobile-first recent-session list; full board remains intentionally deferred on small screens. | andernet | 2026-05-10 | Code: `apps/mobile/src/screens/HistoryScreen.tsx` · Route: `apps/mobile/app/index.tsx` · QA: `docs/mobile/device-validation-checklist.md` |
 | **Player Compare** | GamePhaseRouter → CompareRoute | `screens/CompareScreen.tsx` | ✅ Shipped | L2 | L2 | Insight density is reduced for handheld scanability, but percentile, difficulty, and category comparisons are present. | andernet | 2026-05-10 | Code: `apps/mobile/src/screens/CompareScreen.tsx` · Route: `apps/mobile/app/index.tsx` · QA: `docs/mobile/device-validation-checklist.md` |
@@ -54,7 +54,7 @@ This matrix reflects the active branch truth for the current React Native / Expo
 
 | Feature | Exception | Rationale | Decision Date | Status |
 | --- | --- | --- | --- | --- |
-| **Challenge Leaderboard** | Summary-first design (top 10 only, not full board) | Perf/payload optimization for 5–6" screens; full board causes scroll jank. Web shows 100-entry board; mobile shows summary card. | 2026-05-07 | Shipped divergence |
+| **Challenge Leaderboard** | Summary-first design (top-10 preview + expandable depth capped at 25, not full board) | Perf/payload optimization for 5–6" screens; full board causes scroll jank. Web shows 100-entry board; mobile shows summary card with progressive depth. | 2026-05-11 | Shipped divergence |
 
 ---
 
@@ -63,8 +63,7 @@ This matrix reflects the active branch truth for the current React Native / Expo
 | Feature Area | Why Deferred | Target Release | Notes |
 | --- | --- | --- | --- |
 | **Question Manager** | Admin surface; explicitly out of initial scope | MP.9 or later (admin track) | Requires ACL/admin state management not yet ported to mobile. |
-| **Describe Yourself** | Onboarding complexity; lower priority than active gameplay | MP.8 or later | Persona ML training depends on sufficient game data first. |
-| **Team Leaderboards** | Scope expansion; blocked on multi-player session support | Post-MP.7 | Requires shared game session state management (future work). |
+| **Team Leaderboards** | MX.2 defer decision: outside current release train and blocked on team/multi-player foundations. | v1.9+ (post-multi-player session foundations) | Blockers: team identity/membership model, shared team-session API contracts, anti-abuse ranking rules, and mobile perf validation for deeper social ranking surfaces. |
 
 ---
 

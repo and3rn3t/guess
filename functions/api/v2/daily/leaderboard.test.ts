@@ -86,4 +86,17 @@ describe('GET /api/v2/daily/leaderboard', () => {
     const res = await onRequestGet(makeContext('https://example.com/api/v2/daily/leaderboard?date=bad-date'))
     expect(res.status).toBe(400)
   })
+
+  it('returns 400 for an invalid limit parameter', async () => {
+    const res = await onRequestGet(makeContext('https://example.com/api/v2/daily/leaderboard?limit=999'))
+    expect(res.status).toBe(400)
+  })
+
+  it('forwards a valid limit parameter to D1 query', async () => {
+    await onRequestGet(makeContext('https://example.com/api/v2/daily/leaderboard?date=2026-05-01&limit=30'))
+
+    expect(d1QueryMock).toHaveBeenCalledTimes(1)
+    const queryArgs = d1QueryMock.mock.calls[0]?.[2] as unknown[]
+    expect(queryArgs).toEqual(['2026-05-01', 30])
+  })
 })

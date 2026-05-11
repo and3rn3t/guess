@@ -1078,7 +1078,6 @@ function parseDailyLeaderboard(raw: unknown): MobileDailyLeaderboard {
     ? raw.leaderboard
         .map((entry, idx) => parseLeaderboardEntry(entry, idx))
         .filter((e): e is MobileLeaderboardEntry => e !== null)
-        .slice(0, 10)
     : [];
   return { date, leaderboard: rows };
 }
@@ -1088,8 +1087,20 @@ export async function fetchDailyChallenge(): Promise<MobileDailyChallenge> {
   return parseDailyChallenge(payload);
 }
 
-export async function fetchDailyLeaderboard(date?: string): Promise<MobileDailyLeaderboard> {
-  const url = date ? `${ENDPOINTS.dailyLeaderboard}?date=${encodeURIComponent(date)}` : ENDPOINTS.dailyLeaderboard;
+export async function fetchDailyLeaderboard(
+  date?: string,
+  limit?: number,
+): Promise<MobileDailyLeaderboard> {
+  const query: string[] = [];
+  if (date) {
+    query.push(`date=${encodeURIComponent(date)}`);
+  }
+  if (typeof limit === 'number' && Number.isFinite(limit) && limit > 0) {
+    query.push(`limit=${encodeURIComponent(String(Math.floor(limit)))}`);
+  }
+  const url = query.length > 0
+    ? `${ENDPOINTS.dailyLeaderboard}?${query.join('&')}`
+    : ENDPOINTS.dailyLeaderboard;
   const payload = await getJson(url, STATS_READ_TIMEOUT_MS);
   return parseDailyLeaderboard(payload);
 }

@@ -41,6 +41,11 @@ jobs:
           set -o pipefail
           pnpm mobile:guardrails 2>&1 | tee .ci-artifacts/mobile-ci/guardrails.log
 
+      - name: Mobile evidence links gate
+        run: |
+          set -o pipefail
+          pnpm mobile:evidence-links 2>&1 | tee .ci-artifacts/mobile-ci/evidence-links.log
+
       - name: Mobile reliability and perf gate
         run: |
           set -o pipefail
@@ -104,6 +109,7 @@ jobs:
           echo "## Mobile CI" >> $GITHUB_STEP_SUMMARY
           echo "- typecheck.log" >> $GITHUB_STEP_SUMMARY
           echo "- guardrails.log" >> $GITHUB_STEP_SUMMARY
+          echo "- evidence-links.log" >> $GITHUB_STEP_SUMMARY
           echo "- reliability-perf-gate.log" >> $GITHUB_STEP_SUMMARY
           echo "- build-fast.log" >> $GITHUB_STEP_SUMMARY
           echo "- mobile-core-flow-e2e.log" >> $GITHUB_STEP_SUMMARY

@@ -37,6 +37,8 @@ interface ChallengeLeaderboardProps {
   onToggleRows: () => void;
 }
 
+const LEADERBOARD_PREVIEW_COUNT = 10;
+
 function LeaderboardRow({
   entry,
 }: Readonly<{ entry: MobileLeaderboardEntry }>): ReactElement {
@@ -67,7 +69,7 @@ function ChallengeLeaderboard({
 }: Readonly<ChallengeLeaderboardProps>): ReactElement {
   const totalRows = leaderboard?.leaderboard.length ?? 0;
   const isEmpty = totalRows === 0;
-  const canExpand = totalRows > 5;
+  const canExpand = totalRows > LEADERBOARD_PREVIEW_COUNT;
 
   return (
     <View style={styles.lbBlock}>
@@ -138,7 +140,7 @@ export function ChallengeScreen({
 
     return showAllLeaderboardRows
       ? leaderboard.leaderboard
-      : leaderboard.leaderboard.slice(0, 5);
+      : leaderboard.leaderboard.slice(0, LEADERBOARD_PREVIEW_COUNT);
   }, [leaderboard, showAllLeaderboardRows]);
 
   const handleToggleLeaderboardRows = (): void => {

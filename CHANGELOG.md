@@ -29,9 +29,8 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Known Limitations
 
-- **Challenge Leaderboard**: Summary-first design with top-10 only (full board deferred for perf on small screens; web shows 100-entry board).
-- **Describe Yourself**: Deferred to v1.8 (onboarding requires ML training data accumulation).
-- **Team Leaderboards**: Deferred post-1.7 (multi-player session support not yet ported from web).
+- **Challenge Leaderboard**: Summary-first design with a top-10 preview and expandable depth capped at 25 rows (full board deferred for perf on small screens; web shows 100-entry board).
+- **Team Leaderboards**: Deferred to v1.9+ (blocked on team identity/membership model, shared team-session contracts, anti-abuse ranking rules, and mobile perf validation for deeper social ranking views).
 
 ### Infrastructure & CI
 
@@ -49,11 +48,17 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 - **MN.2 mobile core-flow E2E lane** — added `pnpm test:e2e:mobile` (Playwright `mobile-chromium` profile) with core mobile regression coverage for start, answer, guess, game over, daily challenge entry, resume, and feedback submission (`e2e/mobile-core-flow.spec.ts`).
 
-- **MR.2 App Store/TestFlight preflight closure** — documented release-preflight pass matrix (functional + quality) and locked release-note contract for intentional web divergences (challenge leaderboard top-10 summary-first, Describe Yourself deferred, team leaderboards deferred) in `docs/mobile/ios-release-handoff-playbook.md`.
+- **MR.2 App Store/TestFlight preflight closure** — documented release-preflight pass matrix (functional + quality) and locked release-note contract for intentional web divergences (challenge leaderboard top-10 summary-first, team leaderboards deferred) in `docs/mobile/ios-release-handoff-playbook.md`.
 
 - **MN.3 runtime telemetry baseline (initial)** — added mobile runtime telemetry capture for network/runtime failures plus global JS fatal/non-fatal error hooks in the mobile app shell (`apps/mobile/src/perf/mobileRuntimeTelemetry.ts`, `apps/mobile/app/index.tsx`, `apps/mobile/src/network/mobileGameApi.ts`).
 
 - **MN.3 runtime telemetry baseline closure** — release handoff and QA evidence indexes now include runtime telemetry checks as part of mobile stability go/no-go (`docs/mobile/ios-release-handoff-playbook.md`, `docs/mobile/ios-qa-evidence-index.md`).
+
+- **MN.1 native quality gate automation hardening** — added a deterministic mobile evidence-link guard (`scripts/mobile/check-mobile-evidence-links.ts`) and wired it into guardrails + mobile CI (`package.json`, `.github/workflows/mobile-ci.yml`) with artifacted output (`.ci-artifacts/mobile-ci/evidence-links.log`). This now fails mobile-touching checks when canonical evidence links drift from repository files, workflow artifact outputs, or CI artifact documentation.
+
+- **MX.3 challenge leaderboard depth expansion** — expanded mobile challenge leaderboard depth from top-10-only rendering to summary-first top-10 preview with expandable rows (up to 25), added API `limit` support + validation for `GET /api/v2/daily/leaderboard`, and removed client-side hard truncation in mobile parsing (`functions/api/v2/daily/leaderboard.ts`, `apps/mobile/src/network/mobileGameApi.ts`, `apps/mobile/src/screens/ChallengeScreen.tsx`).
+
+- **MX.2 team leaderboard scope decision (defer)** — recorded a defer decision for team leaderboard + social comparison mobile surfaces, with explicit target window (`v1.9+`) and dependency blockers (team identity/membership model, shared team-session backend contracts, anti-abuse ranking rules, mobile perf validation) in roadmap/parity/release docs (`ROADMAP.md`, `docs/mobile/parity-matrix.md`, `docs/mobile/ios-release-handoff-playbook.md`).
 
 - **MR.1 release-documentation closeout** — normalized mobile parity evidence references in `docs/mobile/parity-matrix.md` to a consistent `Code/Route(or State|Perf)/QA` format, updated Xcode handoff canonical read order for the mobile-only roadmap era, and aligned handoff notes with the current MP.6/MP.7 evidence bundle.
 
