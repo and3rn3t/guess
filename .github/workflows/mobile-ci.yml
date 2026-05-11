@@ -106,17 +106,25 @@ jobs:
 
       - uses: ./.github/actions/setup
 
-      - name: Verify EXPO_TOKEN secret exists
-        uses: ./.github/actions/verify-secrets
-        with:
-          names: EXPO_TOKEN
+      - name: Check EXPO_TOKEN availability
+        id: expo-token
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: |
+          if [[ -n "${EXPO_TOKEN:-}" ]]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+            echo "EXPO_TOKEN is configured; EAS preview build enabled."
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Skipping EAS preview build because EXPO_TOKEN is not configured."
+          fi
 
       - name: Setup Expo + EAS CLI
+        if: steps.expo-token.outputs.enabled == 'true'
         run: npm install --global eas-cli@latest
 
       - name: EAS Build — iOS preview
+        if: steps.expo-token.outputs.enabled == 'true'
         working-directory: apps/mobile
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
