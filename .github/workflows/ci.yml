@@ -380,7 +380,7 @@ jobs:
           echo "title=$title" >> "$GITHUB_OUTPUT"
       - name: Deploy to Cloudflare Pages (preview)
         id: deploy
-        uses: cloudflare/wrangler-action@9acf94ace14e7dc412b076f2c5c20b8ce93c79cd # v3
+        uses: cloudflare/wrangler-action@ebbaa1584979971c8614a24965b4405ff95890e0 # v4
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
@@ -459,7 +459,7 @@ jobs:
           subject=$(git log -1 --pretty=%s | LC_ALL=C tr -cd '[:print:]' | tr -d '"')
           echo "subject=$subject" >> "$GITHUB_OUTPUT"
       - name: Deploy to Cloudflare Pages (production)
-        uses: cloudflare/wrangler-action@9acf94ace14e7dc412b076f2c5c20b8ce93c79cd # v3
+        uses: cloudflare/wrangler-action@ebbaa1584979971c8614a24965b4405ff95890e0 # v4
         id: deploy
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
