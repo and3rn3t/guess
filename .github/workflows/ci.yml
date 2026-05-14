@@ -153,7 +153,7 @@ jobs:
           pnpm test:coverage 2>&1 | tee .ci-artifacts/checks-tests/test-coverage.log
       - name: Coverage diff PR comment
         if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
-        uses: davelosert/vitest-coverage-report-action@3c50566c523e04813df28de8f7c48dd97d663f1c # v2
+        uses: davelosert/vitest-coverage-report-action@02f3c2e641286b7fa308cd3e430783103ce6103b # v2
       - name: Upload checks-tests logs
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
@@ -380,7 +380,7 @@ jobs:
           echo "title=$title" >> "$GITHUB_OUTPUT"
       - name: Deploy to Cloudflare Pages (preview)
         id: deploy
-        uses: cloudflare/wrangler-action@9acf94ace14e7dc412b076f2c5c20b8ce93c79cd # v3
+        uses: cloudflare/wrangler-action@ebbaa1584979971c8614a24965b4405ff95890e0 # v4.0.0
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
@@ -459,7 +459,7 @@ jobs:
           subject=$(git log -1 --pretty=%s | LC_ALL=C tr -cd '[:print:]' | tr -d '"')
           echo "subject=$subject" >> "$GITHUB_OUTPUT"
       - name: Deploy to Cloudflare Pages (production)
-        uses: cloudflare/wrangler-action@9acf94ace14e7dc412b076f2c5c20b8ce93c79cd # v3
+        uses: cloudflare/wrangler-action@ebbaa1584979971c8614a24965b4405ff95890e0 # v4.0.0
         id: deploy
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
