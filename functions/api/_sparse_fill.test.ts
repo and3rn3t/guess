@@ -80,6 +80,92 @@ describe('selectGaps', () => {
     expect(out.map((g) => g.characterId)).toEqual(['hot'])
   })
 
+  // ── coverage fallback ─────────────────────────────────────────────────────
+
+  it('falls back to coverage order when popularity candidates are exhausted', () => {
+    // 'popular' has been played; 'sparse' and 'dense' have not.
+    // sparse has 1 stored key; dense has 3 stored keys.
+    // After 'popular' consumes its budget share, fallback should pick 'sparse'
+    // before 'dense' because it has fewer stored keys.
+    const out = selectGaps(
+      [
+        cand('popular', 'anime', 0.9, []),
+        cand('sparse', 'anime', 0, ['hasBlueHair']),
+        cand('dense', 'anime', 0, ['hasBlueHair', 'wearsGlasses', 'isFemale']),
+      ],
+      ATTRS,
+      { totalGapBudget: 100 }
+    )
+    const ids = out.map((g) => g.characterId)
+    expect(ids[0]).toBe('popular')
+    expect(ids.indexOf('sparse')).toBeLessThan(ids.indexOf('dense'))
+  })
+
+  it('coverage fallback breaks ties by id (alphabetical)', () => {
+    // Both cold chars have identical coverage (0 stored keys).
+    // Tie should break by id: 'alpha' before 'zeta'.
+    const out = selectGaps(
+      [
+        cand('zeta', 'anime', 0, []),
+        cand('alpha', 'anime', 0, []),
+      ],
+      ATTRS,
+      { totalGapBudget: 100 }
+    )
+    expect(out.map((g) => g.characterId)).toEqual(['alpha', 'zeta'])
+  })
+
+  it('coverage fallback respects maxGapsPerCharacter', () => {
+    const out = selectGaps(
+      [cand('cold', 'anime', 0, [])],
+      ATTRS,
+      { totalGapBudget: 100, maxGapsPerCharacter: 2 }
+    )
+    expect(out).toHaveLength(1)
+    expect(out[0]!.missingKeys).toHaveLength(2)
+  })
+
+  it('coverage fallback respects totalGapBudget', () => {
+    const out = selectGaps(
+      [
+        cand('a', 'anime', 0, []),
+        cand('b', 'anime', 0, []),
+        cand('c', 'anime', 0, []),
+      ],
+      ATTRS,
+      { totalGapBudget: 5 }
+    )
+    const total = out.reduce((n, g) => n + g.missingKeys.length, 0)
+    expect(total).toBe(5)
+  })
+
+  it('does not fall back when fallbackMode is none', () => {
+    const out = selectGaps(
+      [
+        cand('popular', 'anime', 0.9, ['hasBlueHair', 'wearsGlasses', 'isFemale', 'canFly']), // no gaps
+        cand('cold', 'anime', 0, []),
+      ],
+      ATTRS,
+      { totalGapBudget: 100, fallbackMode: 'none' }
+    )
+    // 'popular' has no gaps; 'cold' has popularity=0 and fallback is off
+    expect(out).toEqual([])
+  })
+
+  it('popularity candidates with gaps are still selected before cold ones', () => {
+    const out = selectGaps(
+      [
+        cand('cold-sparse', 'anime', 0, []),
+        cand('popular-sparse', 'anime', 0.5, []),
+      ],
+      ATTRS,
+      { totalGapBudget: 100 }
+    )
+    const ids = out.map((g) => g.characterId)
+    expect(ids[0]).toBe('popular-sparse')
+    expect(ids[1]).toBe('cold-sparse')
+  })
+
   it('omits already-stored keys from missingKeys', () => {
     const out = selectGaps([cand('a', 'anime', 1, ['hasBlueHair', 'canFly'])], ATTRS, {
       totalGapBudget: 100,
