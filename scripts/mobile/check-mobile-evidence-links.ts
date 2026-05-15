@@ -56,6 +56,10 @@ function looksLikeRepoPath(candidate: string): boolean {
   if (candidate.includes('*') || candidate.includes('{') || candidate.includes('}')) {
     return false;
   }
+  // Skip placeholder paths with date templates (e.g. YYYY-MM-DD-*) — not yet captured evidence
+  if (/YYYY-MM-DD/.test(candidate)) {
+    return false;
+  }
   return REPO_PATH_PREFIXES.some((prefix) => candidate.startsWith(prefix));
 }
 
