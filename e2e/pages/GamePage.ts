@@ -66,7 +66,13 @@ export class GamePage {
   }
 
   async skipQuestion() {
-    await this.page.getByTestId('skip-btn').click()
+    // PlayingScreen has data-testid="skip-btn" (desktop, hidden lg:flex)
+    // AnswerStrip has data-testid="skip-btn-strip" (mobile, lg:hidden)
+    const btn = this.page
+      .getByTestId('skip-btn')
+      .or(this.page.getByTestId('skip-btn-strip'))
+      .filter({ visible: true })
+    await btn.click()
   }
 
   async undoLastAnswer() {

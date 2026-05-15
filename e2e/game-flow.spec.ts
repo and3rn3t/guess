@@ -60,7 +60,11 @@ test.describe("Game flow", () => {
     ).toBeVisible();
   });
 
-  test("can navigate to statistics", async ({ gamePage }) => {
+  test("can navigate to statistics", async ({ gamePage }, testInfo) => {
+    test.skip(
+      testInfo.project.name === "mobile-chromium",
+      "Statistics nav is desktop-only (hidden lg:flex on mobile)",
+    );
     await gamePage.getByRole("button", { name: /statistics/i }).click();
     await expect(gamePage.getByText(/statistics dashboard/i)).toBeVisible();
   });
