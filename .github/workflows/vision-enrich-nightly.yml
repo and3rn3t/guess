@@ -1,0 +1,168 @@
+name: Nightly vision-derived attribute enrichment (DQ.2)
+
+# Processes characters with image_url that have NULL values for visual
+# boolean attributes (wearsCape, hasBeard, isFemale, isRobot, etc.) by
+# running each character's image through GPT-4o-mini vision.
+#
+# Text-only enrichment extracts visual attributes from character descriptions
+# with high error rates. A vision model assessing images directly produces
+# ground-truth quality for appearance attributes.
+#
+# Throughput (defaults: limit=300, concurrency=5):
+#   ~5 parallel calls × ~2-3 s round-trip → ~100-150 chars/min
+#   → 300-char run completes in ~2-3 min (fast; image fetch dominates)
+#   → ~$0.10-0.15/night at gpt-4o-mini vision rates
+#
+# Scheduled after sparse-fill (00:45) and before corroborate (04:00).
+# Lives in GH Actions (not CF Worker) because the OpenAI key is not wired
+# into the Worker environment.
+
+on:
+  schedule:
+    # Daily at 02:30 UTC. After sparse-fill (00:45) and before corroborate (04:00).
+    - cron: '30 2 * * *'
+  workflow_dispatch:
+    inputs:
+      env:
+        description: 'Target environment'
+        required: true
+        default: 'production'
+        type: choice
+        options:
+          - production
+          - preview
+      limit:
+        description: 'Max characters to process per run'
+        required: false
+        default: '300'
+      concurrency:
+        description: 'Parallel vision calls'
+        required: false
+        default: '5'
+      flush_every:
+        description: 'Apply results to D1 every N chars'
+        required: false
+        default: '25'
+      dry_run:
+        description: 'Dry run (skip OpenAI + D1 write)'
+        required: false
+        default: 'false'
+        type: choice
+        options:
+          - 'false'
+          - 'true'
+      model:
+        description: 'OpenAI vision model override (empty = gpt-4o-mini)'
+        required: false
+        default: ''
+
+permissions:
+  contents: read
+
+concurrency:
+  group: vision-enrich-${{ github.event.inputs.env || 'production' }}
+  cancel-in-progress: false
+
+jobs:
+  vision-enrich:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    if: ${{ github.event_name != 'pull_request' }}
+
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+      - uses: ./.github/actions/setup
+      - name: Prepare vision-enrich artifacts
+        run: mkdir -p .ci-artifacts/vision-enrich
+
+      - name: Verify required secrets exist
+        uses: ./.github/actions/verify-secrets
+        with:
+          names: OPENAI_API_KEY CLOUDFLARE_API_TOKEN CLOUDFLARE_ACCOUNT_ID
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+      - name: Run vision attribute enrichment
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          VISION_MODEL: ${{ github.event.inputs.model || '' }}
+        run: |
+          set -o pipefail
+          ENV_FLAG="${{ github.event.inputs.env || 'production' }}"
+          LIMIT="${{ github.event.inputs.limit || '300' }}"
+          CONCURRENCY="${{ github.event.inputs.concurrency || '5' }}"
+          FLUSH_EVERY="${{ github.event.inputs.flush_every || '25' }}"
+          DRY_RUN_FLAG=""
+          if [ "${{ github.event.inputs.dry_run || 'false' }}" = "true" ]; then
+            DRY_RUN_FLAG="--dry-run"
+          fi
+          {
+            echo "env=$ENV_FLAG"
+            echo "limit=$LIMIT"
+            echo "concurrency=$CONCURRENCY"
+            echo "flush_every=$FLUSH_EVERY"
+            echo "dry_run=${{ github.event.inputs.dry_run || 'false' }}"
+            echo "model=${{ github.event.inputs.model || '' }}"
+            echo "sha=${{ github.sha }}"
+          } > .ci-artifacts/vision-enrich/metadata.txt
+          pnpm exec tsx scripts/vision-enrich-characters.ts \
+            --env "$ENV_FLAG" \
+            --limit "$LIMIT" \
+            --concurrency "$CONCURRENCY" \
+            --flush-every "$FLUSH_EVERY" \
+            $DRY_RUN_FLAG \
+            | tee .ci-artifacts/vision-enrich/vision-enrich-output.log
+
+      - name: Upload vision SQL artifacts
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: vision-enrich-sql
+          path: data/vision-enrich/*.sql
+          if-no-files-found: ignore
+          retention-days: 30
+
+      - name: Upload run log
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: vision-enrich-log
+          path: .ci-artifacts/vision-enrich/vision-enrich-output.log
+          if-no-files-found: ignore
+          retention-days: 30
+
+      - name: Upload metadata
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: vision-enrich-metadata
+          path: .ci-artifacts/vision-enrich/metadata.txt
+          if-no-files-found: ignore
+          retention-days: 30
+
+      - name: Vision-enrich summary
+        if: always()
+        run: |
+          {
+            echo "### Vision Attribute Enrichment Results"
+            echo ""
+            if [ -f .ci-artifacts/vision-enrich/vision-enrich-output.log ]; then
+              SUMMARY=$(grep '\[vision-enrich\] SUMMARY' .ci-artifacts/vision-enrich/vision-enrich-output.log | tail -1 || true)
+              SUCCEEDED=$(grep 'succeeded' .ci-artifacts/vision-enrich/vision-enrich-output.log | tail -1 || true)
+              COST=$(grep 'est. cost' .ci-artifacts/vision-enrich/vision-enrich-output.log | tail -1 || true)
+              if [ -n "$SUCCEEDED" ]; then
+                echo "- $SUCCEEDED"
+              fi
+              if [ -n "$COST" ]; then
+                echo "- $COST"
+              fi
+            fi
+            echo ""
+            echo "- Artifact: vision-enrich-sql"
+            echo "- Artifact: vision-enrich-log"
+            echo "- Artifact: vision-enrich-metadata"
+          } >> "$GITHUB_STEP_SUMMARY"

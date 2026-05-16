@@ -14,9 +14,10 @@ name: Nightly sparse-attribute auto-fill (DQ.22)
 
 on:
   schedule:
-    # Daily at 00:45 UTC. Sits 15 min after `reconcile-nightly.yml` so we
-    # don't contend on the same wrangler API token rate-limits.
+    # Twice daily: 00:45 UTC (after reconcile) and 12:45 UTC.
+    # Two runs at 2 000 pairs each fill high-priority (char,attr) gaps faster.
     - cron: '45 0 * * *'
+    - cron: '45 12 * * *'
   workflow_dispatch:
     inputs:
       env:
@@ -30,11 +31,11 @@ on:
       budget:
         description: 'Total (char,attr) pairs to fill this run'
         required: false
-        default: '500'
+        default: '2000'
       max_per_char:
         description: 'Per-character cap'
         required: false
-        default: '50'
+        default: '100'
       days:
         description: 'Popularity lookback window (days)'
         required: false
@@ -50,7 +51,7 @@ concurrency:
 jobs:
   sparse-fill:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 45
     if: ${{ github.event_name != 'pull_request' }}
 
     steps:
@@ -76,8 +77,8 @@ jobs:
         run: |
           set -o pipefail
           ENV_FLAG="${{ github.event.inputs.env || 'production' }}"
-          BUDGET="${{ github.event.inputs.budget || '500' }}"
-          MAX_PER_CHAR="${{ github.event.inputs.max_per_char || '50' }}"
+          BUDGET="${{ github.event.inputs.budget || '2000' }}"
+          MAX_PER_CHAR="${{ github.event.inputs.max_per_char || '100' }}"
           DAYS="${{ github.event.inputs.days || '30' }}"
           {
             echo "env=$ENV_FLAG"

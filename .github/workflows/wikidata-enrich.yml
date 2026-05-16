@@ -1,0 +1,153 @@
+name: Weekly Wikidata SPARQL attribute enrichment (DQ.10)
+
+# For every character ingested from Wikidata (source='wikidata'), queries the
+# public Wikidata SPARQL endpoint for structured, human-curated facts and maps
+# them to boolean attribute keys. Zero LLM cost — Wikidata is free and public.
+#
+# SPARQL-derivable attributes:
+#   isHuman   — P31 (instance of) Q5 / Q15632617 / Q21070568 / Q18599272
+#   isFemale  — P21 (sex/gender) female QIDs, or P31 fictional-female-character
+#   isMale    — P21 (sex/gender) male QIDs, or P31 fictional-male-character
+#   isDeceased — P570 (date of death) exists
+#   isAnimal  — P31 includes Q729 / Q14624489
+#
+# Confidence written: 0.95 (structured source — no hallucination possible).
+# Evidence tag: wikidata:sparql:<QID>:run=<iso>
+#
+# Scheduled weekly (Sunday 03:30 UTC) — after corroborate (04:00) on other days.
+# The Wikidata SPARQL endpoint is rate-limited to ~5 req/s; the script uses a
+# 200ms inter-request delay and batches 50 QIDs per request.
+#
+# Only requires Cloudflare credentials (no OpenAI key).
+
+on:
+  schedule:
+    # Weekly on Sunday at 03:30 UTC.
+    - cron: "30 3 * * 0"
+  workflow_dispatch:
+    inputs:
+      env:
+        description: "Target environment"
+        required: true
+        default: "production"
+        type: choice
+        options:
+          - production
+          - preview
+      limit:
+        description: "Max Wikidata characters to process per run"
+        required: false
+        default: "5000"
+      batch_size:
+        description: "QIDs per SPARQL request (VALUES clause)"
+        required: false
+        default: "50"
+      dry_run:
+        description: "Dry run (skip D1 write)"
+        required: false
+        default: "false"
+        type: choice
+        options:
+          - "false"
+          - "true"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: wikidata-enrich-${{ github.event.inputs.env || 'production' }}
+  cancel-in-progress: false
+
+jobs:
+  wikidata-enrich:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    if: ${{ github.event_name != 'pull_request' }}
+
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+      - uses: ./.github/actions/setup
+      - name: Prepare wikidata-enrich artifacts
+        run: mkdir -p .ci-artifacts/wikidata-enrich
+
+      - name: Verify required secrets exist
+        uses: ./.github/actions/verify-secrets
+        with:
+          names: CLOUDFLARE_API_TOKEN CLOUDFLARE_ACCOUNT_ID
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+      - name: Run Wikidata SPARQL enrichment
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -o pipefail
+          ENV_FLAG="${{ github.event.inputs.env || 'production' }}"
+          LIMIT="${{ github.event.inputs.limit || '5000' }}"
+          BATCH_SIZE="${{ github.event.inputs.batch_size || '50' }}"
+          DRY_RUN_FLAG=""
+          if [ "${{ github.event.inputs.dry_run || 'false' }}" = "true" ]; then
+            DRY_RUN_FLAG="--dry-run"
+          fi
+          {
+            echo "env=$ENV_FLAG"
+            echo "limit=$LIMIT"
+            echo "batch_size=$BATCH_SIZE"
+            echo "dry_run=${{ github.event.inputs.dry_run || 'false' }}"
+            echo "sha=${{ github.sha }}"
+          } > .ci-artifacts/wikidata-enrich/metadata.txt
+          pnpm exec tsx scripts/wikidata-enrich.ts \
+            --env "$ENV_FLAG" \
+            --limit "$LIMIT" \
+            --batch-size "$BATCH_SIZE" \
+            $DRY_RUN_FLAG \
+            | tee .ci-artifacts/wikidata-enrich/wikidata-enrich-output.log
+
+      - name: Upload Wikidata SQL artifacts
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: wikidata-enrich-sql
+          path: data/wikidata-enrich/*.sql
+          if-no-files-found: ignore
+          retention-days: 30
+
+      - name: Upload run log
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: wikidata-enrich-log
+          path: .ci-artifacts/wikidata-enrich/wikidata-enrich-output.log
+          if-no-files-found: ignore
+          retention-days: 30
+
+      - name: Upload metadata
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: wikidata-enrich-metadata
+          path: .ci-artifacts/wikidata-enrich/metadata.txt
+          if-no-files-found: ignore
+          retention-days: 30
+
+      - name: Wikidata-enrich summary
+        if: always()
+        run: |
+          {
+            echo "### Wikidata SPARQL Enrichment Results"
+            echo ""
+            if [ -f .ci-artifacts/wikidata-enrich/wikidata-enrich-output.log ]; then
+              PROCESSED=$(grep 'processed' .ci-artifacts/wikidata-enrich/wikidata-enrich-output.log | tail -1 || true)
+              ERRORS=$(grep 'errors' .ci-artifacts/wikidata-enrich/wikidata-enrich-output.log | tail -1 || true)
+              COST=$(grep 'cost' .ci-artifacts/wikidata-enrich/wikidata-enrich-output.log | tail -1 || true)
+              [ -n "$PROCESSED" ] && echo "- $PROCESSED"
+              [ -n "$ERRORS" ] && echo "- $ERRORS"
+              [ -n "$COST" ] && echo "- $COST"
+            fi
+            echo ""
+            echo "- Artifact: wikidata-enrich-sql"
+            echo "- Artifact: wikidata-enrich-log"
+            echo "- Artifact: wikidata-enrich-metadata"
+          } >> "$GITHUB_STEP_SUMMARY"
