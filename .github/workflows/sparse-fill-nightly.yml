@@ -124,7 +124,16 @@ jobs:
         if: always()
         run: |
           {
-            echo "### Sparse Fill Artifacts"
+            echo "### Sparse Fill Results"
+            echo ""
+            if [ -f .ci-artifacts/sparse-fill/sparse-fill-output.log ]; then
+              SUMMARY=$(grep '\[sparse-fill\] complete:' .ci-artifacts/sparse-fill/sparse-fill-output.log | tail -1 || true)
+              if [ -n "$SUMMARY" ]; then
+                echo "**$SUMMARY**"
+              else
+                echo "- Artifact: sparse-fill-log (see for details)"
+              fi
+            fi
             echo ""
             echo "- Artifact: sparse-fill-sql"
             echo "- Artifact: sparse-fill-log"

@@ -172,7 +172,16 @@ jobs:
         if: always()
         run: |
           {
-            echo "### Bulk Enrichment Artifacts"
+            echo "### Bulk Enrichment Results"
+            echo ""
+            if [ -f .ci-artifacts/bulk-enrich/bulk-enrich-output.log ]; then
+              SUMMARY=$(grep '\[bulk-enrich\] SUMMARY' .ci-artifacts/bulk-enrich/bulk-enrich-output.log | tail -1 || true)
+              if [ -n "$SUMMARY" ]; then
+                echo "**$SUMMARY**"
+              else
+                echo "- Artifact: bulk-enrich-log (see for details)"
+              fi
+            fi
             echo ""
             echo "- Artifact: bulk-enrich-sql"
             echo "- Artifact: bulk-enrich-log"
