@@ -2,12 +2,14 @@ import {
   type Env,
   errorResponse,
   getActorId,
+  getOrCreateUserId,
   getRequestId,
   internalErrorResponse,
   jsonResponse,
   logError,
   parseJsonBodyWithSchema,
   withRequestId,
+  withSetCookie,
 } from "../../_helpers";
 import { SkipRequestSchema } from "../../_schemas";
 import {
@@ -18,6 +20,7 @@ import {
   loadAdaptiveData,
   loadSession,
   saveSessionState,
+  verifySessionOwner,
 } from "../_game-engine";
 import { advanceToNextQuestion } from "./_question-flow";
 import {
@@ -50,13 +53,20 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     if (!parsed.success) return respond(parsed.response);
     const { sessionId } = parsed.data;
 
+    const { userId, setCookieHeader } = await getOrCreateUserId(context.request, context.env);
+    const respond2 = (r: Response): Response => withSetCookie(respond(r), setCookieHeader);
+
     const session = await loadSession(kv, sessionId);
     if (!session) {
-      return respond(errorResponse("Session not found or expired", 404));
+      return respond2(errorResponse("Session not found or expired", 404));
+    }
+
+    if (!verifySessionOwner(session, userId)) {
+      return respond2(errorResponse("Forbidden", 403));
     }
 
     if (!session.currentQuestion) {
-      return respond(errorResponse("No pending question to skip", 400));
+      return respond2(errorResponse("No pending question to skip", 400));
     }
 
     // Record the skipped question so it is excluded from future selection
@@ -101,7 +111,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     if (!nextQuestion) {
       // All questions exhausted — save state and signal the client
       await saveSessionState(kv, session);
-      return respond(
+      return respond2(
         errorResponse("No more questions available to skip to", 409),
       );
     }
@@ -122,7 +132,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       questionNumber: questionCount + 1,
     });
 
-    return respond(
+    return respond2(
       jsonResponse(
         buildQuestionResponse({
           question: nextQuestion,

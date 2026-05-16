@@ -2,7 +2,13 @@ import {
   type Env,
   jsonResponse,
   errorResponse,
+  getActorId,
+  getOrCreateUserId,
+  getRequestId,
+  internalErrorResponse,
   parseJsonBodyWithSchema,
+  withRequestId,
+  withSetCookie,
   logError,
 } from '../../_helpers'
 import { RejectGuessRequestSchema } from '../../_schemas'
@@ -12,6 +18,7 @@ import {
   loadSession,
   saveSessionState,
   loadAdaptiveData,
+  verifySessionOwner,
   BONUS_QUESTIONS_PER_REJECT,
   DIFFICULTY_MAP,
 } from '../_game-engine'
@@ -26,17 +33,30 @@ import { queueRejectSessionSync } from './_turn-effects'
 // exhaustion if no viable candidates remain.
 
 export const onRequestPost: PagesFunction<Env> = async (context) => {
+  const requestId = getRequestId(context.request)
+  const actorId = getActorId(context.request)
+  const url = new URL(context.request.url)
+  const respond = (response: Response): Response => withRequestId(response, requestId)
+  const internalError = (): Response => respond(internalErrorResponse(requestId))
+
   try {
   const kv = context.env.GUESS_KV
-  if (!kv) return errorResponse('KV not configured', 503)
+  if (!kv) return respond(errorResponse('KV not configured', 503))
 
   const parsed = await parseJsonBodyWithSchema(context.request, RejectGuessRequestSchema)
-  if (!parsed.success) return parsed.response
+  if (!parsed.success) return respond(parsed.response)
   const { sessionId, characterId: rejectedCharId } = parsed.data
+
+  const { userId, setCookieHeader } = await getOrCreateUserId(context.request, context.env)
+  const respond2 = (r: Response): Response => withSetCookie(respond(r), setCookieHeader)
 
   const session = await loadSession(kv, sessionId)
   if (!session) {
-    return errorResponse('Session not found or expired', 404)
+    return respond2(errorResponse('Session not found or expired', 404))
+  }
+
+  if (!verifySessionOwner(session, userId)) {
+    return respond2(errorResponse('Forbidden', 403))
   }
 
   // Add rejected character
@@ -66,14 +86,14 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   // Check if any viable candidates remain
   if (filtered.length === 0) {
     await saveSessionState(kv, session)
-    return jsonResponse(
+    return respond2(jsonResponse(
       buildExhaustedResponse({
         message: "I've run out of candidates — you stumped me!",
         questionCount: session.answers.length,
         guessCount: session.guessCount,
         rejectCooldownRemaining: session.postRejectCooldown,
       })
-    )
+    ))
   }
 
   // Select next question
@@ -94,14 +114,14 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   if (!nextQuestion) {
     // No more unanswered questions but candidates remain — exhausted
     await saveSessionState(kv, session)
-    return jsonResponse(
+    return respond2(jsonResponse(
       buildExhaustedResponse({
         message: "I've run out of questions to ask — you stumped me!",
         questionCount: session.answers.length,
         guessCount: session.guessCount,
         rejectCooldownRemaining: session.postRejectCooldown,
       })
-    )
+    ))
   }
 
   const reasoning = generateReasoning(nextQuestion, filtered, session.answers, scoring)
@@ -122,7 +142,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     maxQuestions: session.maxQuestions,
   })
 
-  return jsonResponse(
+  return respond2(jsonResponse(
     buildQuestionResponse({
       question: nextQuestion,
       reasoning,
@@ -132,11 +152,16 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       guessCount: session.guessCount,
       rejectCooldownRemaining: session.postRejectCooldown,
     })
-  )
+  ))
   } catch (err) {
     console.error('POST /api/v2/game/reject-guess error:', err)
-    context.waitUntil(logError(context.env.GUESS_DB, 'reject-guess', 'error', 'reject-guess failed', err))
-    const message = err instanceof Error ? err.message : 'Unknown error'
-    return errorResponse(`Reject-guess failed: ${message}`, 500)
+    context.waitUntil(logError(context.env.GUESS_DB, 'reject-guess', 'error', 'reject-guess failed', err, {
+      requestId,
+      actorId,
+      path: url.pathname,
+      method: context.request.method,
+      status: 500,
+    }))
+    return internalError()
   }
 }

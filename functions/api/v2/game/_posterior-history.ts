@@ -18,4 +18,15 @@ export function updatePosteriorHistory(
 
   session.posteriorHistory.push(topProb)
   session.stepTopTen.push(top10)
+
+  // Bound KV session size: keep only the most recent 30 entries.
+  // At 20 questions/game (easy) this is a no-op; it only kicks in for
+  // unusually long reject-then-continue chains.
+  const MAX_HISTORY = 30
+  if (session.posteriorHistory.length > MAX_HISTORY) {
+    session.posteriorHistory = session.posteriorHistory.slice(-MAX_HISTORY)
+  }
+  if (session.stepTopTen.length > MAX_HISTORY) {
+    session.stepTopTen = session.stepTopTen.slice(-MAX_HISTORY)
+  }
 }

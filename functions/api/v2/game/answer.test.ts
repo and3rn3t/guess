@@ -62,11 +62,13 @@ vi.mock("../../_helpers", () => ({
   parseJsonBodyWithSchema: parseJsonBodyWithSchemaMock,
   getRequestId: getRequestIdMock,
   getActorId: getActorIdMock,
+  getOrCreateUserId: vi.fn().mockResolvedValue({ userId: 'user-123', setCookieHeader: null }),
   withRequestId: (response: Response, requestId: string) => {
     const next = new Response(response.body, response);
     next.headers.set("X-Request-Id", requestId);
     return next;
   },
+  withSetCookie: (response: Response) => response,
   logError: logErrorMock,
 }));
 
@@ -83,6 +85,7 @@ vi.mock("../_game-engine", () => ({
   loadAdaptiveData: loadAdaptiveDataMock,
   getOrBuildCoverageMap: getOrBuildCoverageMapMock,
   buildQuestionOptions: buildQuestionOptionsMock,
+  verifySessionOwner: vi.fn().mockReturnValue(true),
 }));
 
 vi.mock("../_llm-rephrase", () => ({

@@ -143,6 +143,10 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       try {
         const kvData = JSON.parse(kvRaw) as { chainToken?: string }
         if (kvData.chainToken && kvData.chainToken === token) {
+          // Consume the token — remove it from the KV entry so it cannot be replayed.
+          const cleared = { ...kvData, chainToken: undefined }
+          // Fire-and-forget: invalidation failure is non-fatal (token has a short-lived KV TTL anyway)
+          kv.put('admin:enrich-start', JSON.stringify(cleared)).catch(() => {})
           return finalize(await next())
         }
       } catch { /* fall through to normal Basic Auth */ }

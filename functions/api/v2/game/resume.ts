@@ -2,11 +2,13 @@ import {
   type Env,
   jsonResponse,
   errorResponse,
+  getOrCreateUserId,
   parseJsonBody,
   getRequestId,
   getActorId,
   internalErrorResponse,
   withRequestId,
+  withSetCookie,
   d1First,
   d1Query,
   logError,
@@ -25,6 +27,7 @@ import {
   loadCachedQuestions,
   storeCachedQuestions,
   parseAttrsJson,
+  verifySessionOwner,
 } from '../_game-engine'
 import { rephraseQuestionWithCache } from '../_llm-rephrase'
 import type {
@@ -183,6 +186,13 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     return respond(jsonResponse({ expired: true }, 200))
   }
 
+  const { userId, setCookieHeader } = await getOrCreateUserId(context.request, context.env)
+  const respond2 = (r: Response): Response => withSetCookie(respond(r), setCookieHeader)
+
+  if (!verifySessionOwner(session, userId)) {
+    return respond2(errorResponse('Forbidden', 403))
+  }
+
   const filtered = filterPossibleCharacters(session.characters, session.answers, session.rejectedGuesses)
 
   // Rebuild current state for the client
@@ -214,7 +224,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     session.currentQuestion.displayText = rephrased
   }
 
-  return respond(jsonResponse({
+  return respond2(jsonResponse({
     expired: false,
     question: session.currentQuestion,
     reasoning,

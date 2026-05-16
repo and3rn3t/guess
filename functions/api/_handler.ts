@@ -32,7 +32,7 @@
  */
 import {
   type Env,
-  checkRateLimit,
+  checkRateLimitDO,
   errorResponse,
   getActorId,
   getOrCreateUserId,
@@ -97,8 +97,8 @@ export function defineHandler(
         setCookieHeader = result.setCookieHeader
       }
 
-      if (rateLimit !== undefined && kv && userId) {
-        const { allowed } = await checkRateLimit(kv, userId, name, rateLimit)
+      if (rateLimit !== undefined && userId) {
+        const { allowed } = await checkRateLimitDO(env, userId, name, rateLimit)
         if (!allowed) {
           // Apply Set-Cookie to the 429 too — otherwise a freshly minted
           // user-id never reaches the client on rate-limited requests, and

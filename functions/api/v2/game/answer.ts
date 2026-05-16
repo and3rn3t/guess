@@ -1,11 +1,13 @@
 import {
   type Env,
   errorResponse,
+  getOrCreateUserId,
   parseJsonBodyWithSchema,
   getRequestId,
   getActorId,
   internalErrorResponse,
   withRequestId,
+  withSetCookie,
   logError,
 } from '../../_helpers'
 import { AnswerRequestSchema } from '../../_schemas'
@@ -13,6 +15,7 @@ import {
   calculateProbabilities,
   loadSession,
   getOrBuildCoverageMap,
+  verifySessionOwner,
 } from '../_game-engine'
 import { applyAnswerAndFilter } from './_question-flow'
 import { updatePosteriorHistory } from './_posterior-history'
@@ -47,14 +50,21 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   if (!parsed.success) return respond(parsed.response)
   const { sessionId, value } = parsed.data
 
+  const { userId, setCookieHeader } = await getOrCreateUserId(context.request, context.env)
+  const respond2 = (r: Response): Response => withSetCookie(respond(r), setCookieHeader)
+
   // Load session
   const session = await loadSession(kv, sessionId)
   if (!session) {
-    return respond(errorResponse('Session not found or expired', 404))
+    return respond2(errorResponse('Session not found or expired', 404))
+  }
+
+  if (!verifySessionOwner(session, userId)) {
+    return respond2(errorResponse('Forbidden', 403))
   }
 
   if (!session.currentQuestion) {
-    return respond(errorResponse('No pending question to answer', 400))
+    return respond2(errorResponse('No pending question to answer', 400))
   }
 
   const {
@@ -101,7 +111,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     filtered,
   })
   if (contradictionResponse) {
-    return respond(contradictionResponse)
+    return respond2(contradictionResponse)
   }
 
   const questionCount = session.answers.length
@@ -122,13 +132,13 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     readiness: responseReadiness,
   })
   if (readinessGuessResponse) {
-    return respond(readinessGuessResponse)
+    return respond2(readinessGuessResponse)
   }
 
   // Load runtime adaptive data (already in-flight; best-effort)
   const adaptive = await adaptivePromise
 
-  return respond(
+  return respond2(
     await continueWithNextQuestion({
       env: context.env,
       waitUntil: context.waitUntil,

@@ -3,13 +3,13 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 const {
   getActorIdMock,
   getRequestIdMock,
-  checkRateLimitMock,
+  checkRateLimitDOMock,
   getOrCreateUserIdMock,
   logErrorMock,
 } = vi.hoisted(() => ({
   getActorIdMock: vi.fn(),
   getRequestIdMock: vi.fn(),
-  checkRateLimitMock: vi.fn(),
+  checkRateLimitDOMock: vi.fn(),
   getOrCreateUserIdMock: vi.fn(),
   logErrorMock: vi.fn(),
 }))
@@ -17,7 +17,7 @@ const {
 vi.mock('./_helpers', () => ({
   getActorId: getActorIdMock,
   getRequestId: getRequestIdMock,
-  checkRateLimit: checkRateLimitMock,
+  checkRateLimitDO: checkRateLimitDOMock,
   internalErrorResponse: (requestId: string) =>
     new Response(JSON.stringify({ error: 'Internal server error', requestId }), {
       status: 500,
@@ -72,7 +72,7 @@ function makeContext(env: Partial<MockEnv> = {}, request?: Request) {
 }
 
 beforeEach(() => {
-  checkRateLimitMock.mockReset()
+  checkRateLimitDOMock.mockReset()
   getOrCreateUserIdMock.mockReset()
   getRequestIdMock.mockReset()
   getActorIdMock.mockReset()
@@ -155,14 +155,14 @@ describe('defineHandler', () => {
   })
 
   it('returns 429 when rate limit exceeded', async () => {
-    checkRateLimitMock.mockResolvedValueOnce({ allowed: false, remaining: 0 })
+    checkRateLimitDOMock.mockResolvedValueOnce({ allowed: false, remaining: 0 })
     const handler = defineHandler(
       { name: 'test', rateLimit: 10 },
       async () => new Response('ok'),
     )
     const res = await handler(makeContext())
     expect(res.status).toBe(429)
-    expect(checkRateLimitMock).toHaveBeenCalledWith(
+    expect(checkRateLimitDOMock).toHaveBeenCalledWith(
       expect.anything(),
       'user-123',
       'test',
@@ -175,7 +175,7 @@ describe('defineHandler', () => {
       new Response('ok'),
     )
     await handler(makeContext())
-    expect(checkRateLimitMock).not.toHaveBeenCalled()
+    expect(checkRateLimitDOMock).not.toHaveBeenCalled()
   })
 
   it('catches handler errors and returns 500 + logError', async () => {
@@ -231,7 +231,7 @@ describe('defineHandler', () => {
   })
 
   it('catches checkRateLimit failures (e.g. KV outage) as 500 + logError', async () => {
-    checkRateLimitMock.mockRejectedValueOnce(new Error('KV unavailable'))
+    checkRateLimitDOMock.mockRejectedValueOnce(new Error('KV unavailable'))
     const handler = defineHandler(
       { name: 'test', rateLimit: 10 },
       async () => new Response('ok'),
@@ -260,7 +260,7 @@ describe('defineHandler', () => {
       userId: 'fresh-user',
       setCookieHeader: '__gu_id=signed; Path=/',
     })
-    checkRateLimitMock.mockResolvedValueOnce({ allowed: false, remaining: 0 })
+    checkRateLimitDOMock.mockResolvedValueOnce({ allowed: false, remaining: 0 })
     const handler = defineHandler(
       { name: 'test', rateLimit: 10 },
       async () => new Response('ok'),
