@@ -44,6 +44,11 @@ import { fileURLToPath } from "node:url";
 
 // Re-use the existing retry helper — handles 429/503/transient network errors.
 import { withRetry } from "./ingest/rate-limiter.js";
+import {
+  validateAttributes,
+  type AttributeMap,
+  type ConstraintSet,
+} from "../functions/api/_constraints.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -228,6 +233,14 @@ interface FilledCell {
   value: 0 | 1 | null;
 }
 
+interface DisputeRow {
+  characterId: string;
+  attributeKey: string;
+  currentValue: 0 | 1 | null;
+  disputeReason: string;
+  confidence: number;
+}
+
 // ── Load attribute definitions from D1 ───────────────────────────────────────
 console.log("[bulk-enrich] loading attribute definitions from D1 ...");
 const allAttrs = d1<AttributeDef>(
@@ -238,6 +251,20 @@ console.log(`[bulk-enrich]   ${allAttrs.length} active attributes`);
 if (allAttrs.length === 0) {
   console.error("[bulk-enrich] no active attributes found — exiting.");
   process.exit(1);
+}
+
+// DQ.4: load constraint set once for the life of this run.
+const CONSTRAINTS_PATH = path.join(REPO_ROOT, "data", "attribute-constraints.json");
+let constraintSet: ConstraintSet | null = null;
+try {
+  if (existsSync(CONSTRAINTS_PATH)) {
+    constraintSet = JSON.parse(readFileSync(CONSTRAINTS_PATH, "utf8")) as ConstraintSet;
+    console.log(`[bulk-enrich] DQ.4: loaded ${constraintSet.constraints.length} constraints`);
+  }
+} catch (err) {
+  console.warn(
+    `[bulk-enrich] DQ.4: failed to load constraints (${(err as Error).message}) — constraint validation disabled`,
+  );
 }
 
 // ── Category-scoped attr filtering (optimization 1) ───────────────────────────
@@ -448,6 +475,7 @@ async function processBatch(
   categoryAttrs: AttributeDef[],
 ): Promise<{
   filled: FilledCell[];
+  disputes: DisputeRow[];
   promptTokens: number;
   completionTokens: number;
   enrichedCount: number;
@@ -496,7 +524,35 @@ async function processBatch(
     }
   }
 
-  return { filled, promptTokens, completionTokens, enrichedCount };
+  // DQ.4: validate each character's merged attr map against the constraint set.
+  const disputes: DisputeRow[] = [];
+  if (constraintSet) {
+    for (const char of chars) {
+      const attrs = mergedByChar.get(char.id);
+      if (!attrs || Object.keys(attrs).length === 0) continue;
+      const attrMap: AttributeMap = {};
+      for (const [k, v] of Object.entries(attrs)) {
+        attrMap[k] = v === 1 ? true : v === 0 ? false : null;
+      }
+      const violations = validateAttributes(attrMap, constraintSet);
+      for (const v of violations) {
+        disputes.push({
+          characterId: char.id,
+          attributeKey: v.attributeKey,
+          currentValue: attrs[v.attributeKey] ?? null,
+          disputeReason: `[constraint:${v.constraintId}] ${v.reason}`,
+          confidence: 0.95,
+        });
+      }
+    }
+    if (disputes.length > 0) {
+      console.log(
+        `[bulk-enrich]   ${batchLabel} DQ.4: ${disputes.length} constraint violation(s)`,
+      );
+    }
+  }
+
+  return { filled, disputes, promptTokens, completionTokens, enrichedCount };
 }
 
 // ── Worker-pool concurrency ───────────────────────────────────────────────────
@@ -522,6 +578,8 @@ console.log(
 );
 
 const allFilled: FilledCell[] = [];
+const allDisputes: DisputeRow[] = [];
+let totalDisputes = 0;
 let totalPromptTokens = 0;
 let totalCompletionTokens = 0;
 let totalEnriched = 0;
@@ -574,6 +632,18 @@ async function flushAndApply(label: string): Promise<void> {
         )
         .join(",\n") + ";",
     );
+  }
+  // DQ.4: flush constraint disputes alongside attribute rows.
+  if (allDisputes.length > 0) {
+    const disputeBatch = allDisputes.splice(0, allDisputes.length);
+    for (const d of disputeBatch) {
+      const charId = sqlEscape(d.characterId);
+      const attrKey = sqlEscape(d.attributeKey);
+      const reason = sqlEscape(d.disputeReason);
+      sqlLines.push(
+        `INSERT OR IGNORE INTO attribute_disputes (character_id, attribute_key, current_value, dispute_reason, confidence, disputed_by, status) VALUES ('${charId}', '${attrKey}', ${d.currentValue === null ? "NULL" : d.currentValue}, '${reason}', ${d.confidence}, 'constraint-validator', 'open');`,
+      );
+    }
   }
   writeFileSync(outFile, sqlLines.join("\n"));
   console.log(
@@ -665,6 +735,8 @@ async function runWorkerPool(): Promise<void> {
       try {
         const result = await processBatch(chars, label, categoryAttrs);
         allFilled.push(...result.filled);
+        allDisputes.push(...result.disputes);
+        totalDisputes += result.disputes.length;
         totalPromptTokens += result.promptTokens;
         totalCompletionTokens += result.completionTokens;
         totalEnriched += result.enrichedCount;
@@ -735,8 +807,13 @@ const estimatedCostUSD =
 
 console.log(
   `\n[bulk-enrich] complete: ${totalEnriched} chars enriched, ${totalFailed} failed  flushes=${flushCount}` +
+    `\n[bulk-enrich]   DQ.4 constraint disputes: ${totalDisputes}` +
     `\n[bulk-enrich]   tokens: prompt=${totalPromptTokens} completion=${totalCompletionTokens}` +
     `  estimated cost: $${estimatedCostUSD.toFixed(4)}`,
+);
+// Structured summary line for GH Actions step summary parsing.
+console.log(
+  `[bulk-enrich] SUMMARY enriched=${totalEnriched} failed=${totalFailed} disputes=${totalDisputes} cost_usd=${estimatedCostUSD.toFixed(4)}`,
 );
 
 if (totalEnriched === 0) {
