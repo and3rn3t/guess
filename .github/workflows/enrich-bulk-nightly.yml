@@ -19,9 +19,11 @@ name: Nightly bulk character enrichment
 
 on:
   schedule:
-    # Twice daily: 01:00 UTC (after reconcile/sparse-fill) and 13:00 UTC.
-    # Two runs at 800 chars each → 1 600 chars/day (with graceful cutoff safety).
+    # Three times daily: 01:00, 07:00, and 13:00 UTC.
+    # Two hours of separation keeps wrangler API calls from contending.
+    # 2 000 chars × 3 runs = 6 000 chars/day (with graceful cutoff safety).
     - cron: '0 1 * * *'
+    - cron: '0 7 * * *'
     - cron: '0 13 * * *'
   workflow_dispatch:
     inputs:
@@ -36,7 +38,7 @@ on:
       limit:
         description: 'Max characters to enrich this run'
         required: false
-        default: '800'
+        default: '2000'
       batch_size:
         description: 'Characters per LLM call'
         required: false
@@ -44,7 +46,7 @@ on:
       concurrency:
         description: 'Parallel LLM batches'
         required: false
-        default: '3'
+        default: '8'
       attr_chunks:
         description: 'Attribute partitions per batch (mirrors server-side chunking)'
         required: false
@@ -56,7 +58,7 @@ on:
       max_minutes:
         description: 'Stop claiming new batches after N minutes and flush progress'
         required: false
-        default: '55'
+        default: '50'
       dry_run:
         description: 'Dry run (skip OpenAI + D1 write)'
         required: false
@@ -108,12 +110,12 @@ jobs:
         run: |
           set -o pipefail
           ENV_FLAG="${{ github.event.inputs.env || 'production' }}"
-          LIMIT="${{ github.event.inputs.limit || '1000' }}"
+          LIMIT="${{ github.event.inputs.limit || '2000' }}"
           BATCH_SIZE="${{ github.event.inputs.batch_size || '5' }}"
-          CONCURRENCY="${{ github.event.inputs.concurrency || '3' }}"
+          CONCURRENCY="${{ github.event.inputs.concurrency || '8' }}"
           ATTR_CHUNKS="${{ github.event.inputs.attr_chunks || '4' }}"
           FLUSH_EVERY="${{ github.event.inputs.flush_every || '50' }}"
-          MAX_MINUTES="${{ github.event.inputs.max_minutes || '55' }}"
+          MAX_MINUTES="${{ github.event.inputs.max_minutes || '50' }}"
           DRY_RUN_FLAG=""
           if [ "${{ github.event.inputs.dry_run || 'false' }}" = "true" ]; then
             DRY_RUN_FLAG="--dry-run"

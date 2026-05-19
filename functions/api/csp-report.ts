@@ -1,14 +1,23 @@
-import { type Env, logError } from './_helpers'
+import { type Env, checkRateLimitBestEffort, logError } from './_helpers'
 
 // ── POST /api/csp-report ─────────────────────────────────────
 // Receives browser CSP violation reports and stores them in error_logs.
 // Referenced by the Content-Security-Policy `report-uri` directive.
 
 export const onRequestPost: PagesFunction<Env> = async (context) => {
+  // IP-based rate limit: 100 reports/hour per IP to prevent log flooding.
+  const ip =
+    context.request.headers.get('CF-Connecting-IP') ??
+    context.request.headers.get('CF-Ray') ??
+    'unknown'
+  const { allowed } = await checkRateLimitBestEffort(context.env, ip, 'csp-report', 100)
+  if (!allowed) return new Response(null, { status: 429 })
+
   let report: unknown
   try {
     // Browsers send `application/csp-report` (JSON body)
     const text = await context.request.text()
+    if (text.length > 5_000) return new Response(null, { status: 413 })
     report = JSON.parse(text)
   } catch {
     return new Response(null, { status: 400 })

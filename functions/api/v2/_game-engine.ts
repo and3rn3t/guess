@@ -95,6 +95,9 @@ export interface GameSession {
   /** AN.21: top-10 character candidates (id + name) after each answer.
    *  Index i corresponds to session.answers[i]. Used for catastrophic-failure triage. */
   stepTopTen?: Array<Array<{ id: string; name: string }>>
+  /** Owner userId — stamped on second storeSession call in start.ts once known.
+   *  Absent on sessions created before this field was added (legacy). */
+  userId?: string
 }
 
 // ── Server-specific constants ─────────────────────────────────────────────────
@@ -476,6 +479,7 @@ interface LeanSession {
   guessAnalytics?: GuessAnalytics
   variant?: 'control' | 'experiment'
   selector?: 'greedy' | 'mcts'
+  userId?: string
 }
 
 interface GamePool {
@@ -518,6 +522,7 @@ export async function storeSession(kv: KVNamespace, session: GameSession): Promi
     guessAnalytics: session.guessAnalytics,
     variant: session.variant,
     selector: session.selector,
+    userId: session.userId,
   }
   await Promise.all([
     kv.put(poolKey, JSON.stringify(pool), { expirationTtl: SESSION_TTL }),
@@ -559,7 +564,18 @@ export async function loadSession(kv: KVNamespace, sessionId: string): Promise<G
     guessAnalytics: data.guessAnalytics,
     variant: data.variant,
     selector: data.selector,
+    userId: data.userId,
   }
+}
+
+/**
+ * Returns true when the request's userId may access the session.
+ * Sessions without a stored userId (created before ownership was added) pass
+ * through — this avoids breaking live sessions during rollout.
+ */
+export function verifySessionOwner(session: GameSession, requestUserId: string): boolean {
+  if (!session.userId) return true
+  return session.userId === requestUserId
 }
 
 /** Save only mutable session state (answers + currentQuestion). Much smaller write. */
@@ -579,6 +595,7 @@ export async function saveSessionState(kv: KVNamespace, session: GameSession): P
     guessAnalytics: session.guessAnalytics,
     variant: session.variant,
     selector: session.selector,
+    userId: session.userId,
   }
   await kv.put(`game:${session.id}`, JSON.stringify(lean), { expirationTtl: SESSION_TTL })
 }

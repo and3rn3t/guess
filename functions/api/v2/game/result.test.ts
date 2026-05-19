@@ -77,6 +77,7 @@ vi.mock("../_game-engine", () => ({
   deleteSession: deleteSessionMock,
   getBestGuess: getBestGuessMock,
   loadSession: loadSessionMock,
+  verifySessionOwner: vi.fn().mockReturnValue(true),
 }));
 
 import { onRequestPost } from "./result";

@@ -15,7 +15,7 @@ import {
 import { ResultRequestSchema } from "../../_schemas";
 import { computeAhaMoment } from "../../admin/_aha";
 import { buildStepsJson, detectCatastrophicFailure } from "../../admin/_triage";
-import { deleteSession, getBestGuess, loadSession } from "../_game-engine";
+import { deleteSession, getBestGuess, loadSession, verifySessionOwner } from "../_game-engine";
 
 // ── POST /api/v2/game/result ─────────────────────────────────
 // Records game outcome (win/loss) and cleans up the session
@@ -55,6 +55,10 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       context.request,
       context.env,
     );
+
+    if (!verifySessionOwner(session, userId)) {
+      return withSetCookie(respond(errorResponse("Forbidden", 403)), setCookieHeader);
+    }
 
     // Compute aha moment (AN.11): index and magnitude of biggest posterior jump
     const ahaMoment = computeAhaMoment(session.posteriorHistory ?? []);
