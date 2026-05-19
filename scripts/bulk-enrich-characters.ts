@@ -46,6 +46,7 @@ import { fileURLToPath } from "node:url";
 import { withRetry } from "./ingest/rate-limiter.js";
 import {
   validateAttributes,
+  violationToDisputeReason,
   type AttributeMap,
   type ConstraintSet,
 } from "../functions/api/_constraints.js";
@@ -540,7 +541,7 @@ async function processBatch(
           characterId: char.id,
           attributeKey: v.attributeKey,
           currentValue: attrs[v.attributeKey] ?? null,
-          disputeReason: `[constraint:${v.constraintId}] ${v.reason}`,
+          disputeReason: violationToDisputeReason(v),
           confidence: 0.95,
         });
       }
@@ -634,8 +635,9 @@ async function flushAndApply(label: string): Promise<void> {
     );
   }
   // DQ.4: flush constraint disputes alongside attribute rows.
+  let disputeBatch: DisputeRow[] | undefined;
   if (allDisputes.length > 0) {
-    const disputeBatch = allDisputes.splice(0, allDisputes.length);
+    disputeBatch = allDisputes.splice(0, allDisputes.length);
     for (const d of disputeBatch) {
       const charId = sqlEscape(d.characterId);
       const attrKey = sqlEscape(d.attributeKey);
@@ -652,8 +654,9 @@ async function flushAndApply(label: string): Promise<void> {
   try {
     await d1ApplyFile(outFile);
   } catch (err) {
-    // Re-queue cells so a failed flush does not drop already-enriched results.
+    // Re-queue cells and disputes so a failed flush does not drop already-enriched results.
     allFilled.unshift(...cells);
+    if (disputeBatch) allDisputes.unshift(...disputeBatch);
     throw err;
   }
   console.log(`[bulk-enrich] flush #${flushIdx}: applied to D1`);

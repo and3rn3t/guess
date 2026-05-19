@@ -160,7 +160,7 @@ console.log(`[sparse-fill]   ${allChars.length} characters with usable descripti
 const charById = new Map(allChars.map((c) => [c.id, c]))
 
 // ── Load stored attribute keys per character ────────────────────────────────
-console.log('[sparse-fill] loading stored character_attributes (non-null only) ...')
+console.log('[sparse-fill] loading stored character_attributes (including null-stamps) ...')
 interface StoredKey {
   character_id: string
   attribute_key: string
@@ -323,7 +323,12 @@ for (const [category, catGaps] of grouped) {
 
     let parsed: Record<string, Record<string, boolean | null>>
     try {
-      const result = await withRetry(() => callLLM(systemPrompt, userPrompt), 3, 1000)
+      const result = await withRetry(
+        () => callLLM(systemPrompt, userPrompt),
+        3,
+        1000,
+        (err) => /OpenAI (429|503|5\d\d)/.test(err.message)
+      )
       parsed = result.parsed
       totalPromptTokens += result.promptTokens
       totalCompletionTokens += result.completionTokens

@@ -54,11 +54,18 @@ function sleep(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-/** Retry a function with exponential backoff. */
+/** Retry a function with exponential backoff.
+ *
+ * @param shouldRetry Optional predicate — when provided, only retry if it
+ *   returns true for the thrown error.  Use this to fast-fail on permanent
+ *   errors (e.g. 400/401/403) while still retrying transient ones
+ *   (429/503/5xx).
+ */
 export async function withRetry<T>(
   fn: () => Promise<T>,
   maxRetries = 3,
-  baseDelay = 1000
+  baseDelay = 1000,
+  shouldRetry?: (err: Error) => boolean
 ): Promise<T> {
   let lastError: Error | undefined;
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
@@ -66,10 +73,12 @@ export async function withRetry<T>(
       return await fn();
     } catch (err) {
       lastError = err as Error;
-      if (attempt < maxRetries) {
+      if (attempt < maxRetries && (shouldRetry === undefined || shouldRetry(lastError))) {
         const delay = baseDelay * Math.pow(2, attempt);
         console.log(`  Retry ${attempt + 1}/${maxRetries} in ${delay}ms: ${lastError.message}`);
         await sleep(delay);
+      } else {
+        break;
       }
     }
   }
