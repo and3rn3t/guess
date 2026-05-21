@@ -56,6 +56,20 @@ jobs:
           set -o pipefail
           pnpm build:fast 2>&1 | tee .ci-artifacts/mobile-ci/build-fast.log
 
+      - name: Cache Playwright browsers
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
+        id: playwright-cache
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-browsers-${{ hashFiles('**/pnpm-lock.yaml') }}
+
+      - name: Install Playwright browsers
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: npx playwright install chromium
+
+      - name: Install Playwright system dependencies
+        run: npx playwright install-deps chromium
+
       - name: Mobile core flow E2E lane
         run: |
           set -o pipefail
