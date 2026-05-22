@@ -39,17 +39,14 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     return errorResponse('Question not found', 404)
   }
 
-  // Invalidate the questions KV cache so retirement takes effect on the next
+  // Invalidate the questions D1 cache so retirement takes effect on the next
   // game start instead of waiting up to QUESTIONS_CACHE_TTL (1h) for the
   // cached payload to expire.
-  const kv = (context.env as { GUESS_KV?: KVNamespace }).GUESS_KV
-  if (kv) {
-    try {
-      await kv.delete('meta:questions')
-    } catch {
-      // KV delete is best-effort; the next gameStart will still query D1 once
-      // the TTL expires.
-    }
+  try {
+    const { d1CacheDelete } = await import('../../../_d1_cache')
+    await d1CacheDelete(db, 'meta:questions')
+  } catch {
+    // cache delete is best-effort
   }
 
   return jsonResponse({ ok: true, retired: result.meta.changes, reason })

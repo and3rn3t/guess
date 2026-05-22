@@ -1,15 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import { createTestDb, createTestKv, seedAttributeDefinition, type TestDb, type TestKv } from '../api/admin/__tests__/harness'
+import { createTestDb, seedAttributeDefinition, type TestDb } from '../api/admin/__tests__/harness'
 import { runAdminAutomation } from './_automation'
 import { CLOSURE_QUEUE_REPORT_KEY } from '../api/admin/data-quality/_closure_queue'
 import { SOURCE_HEALTH_REPORT_KEY } from '../api/_source_health'
 
 let db: TestDb
-let kv: TestKv
 
 beforeEach(() => {
   db = createTestDb()
-  kv = createTestKv()
 })
 
 afterEach(() => {
@@ -55,7 +53,6 @@ describe('runAdminAutomation', () => {
     const trigger = { cron: '5 0 * * *', scheduledTime: Date.now() }
     const env = {
       GUESS_DB: db.d1 as unknown as D1Database,
-      GUESS_KV: kv as unknown as KVNamespace,
       AUTO_DUPLICATES_BACKFILL: '0',
       AUTO_ENRICH_ONE: '0',
       AUTO_CLOSURE_QUEUE: '0',
@@ -78,7 +75,8 @@ describe('runAdminAutomation', () => {
       .get() as { n: number }
     expect(countAfterSecond.n).toBe(1)
 
-    const reportRaw = await kv.get('admin:automation:last-run', 'json') as { snapshot: string } | null
+    const reportRow = db.raw.prepare("SELECT value FROM kv_cache WHERE key = 'admin:automation:last-run'").get() as { value: string } | null
+    const reportRaw = reportRow ? JSON.parse(reportRow.value) as { snapshot: string } : null
     expect(reportRaw?.snapshot).toBe('skipped')
   })
 
@@ -91,7 +89,6 @@ describe('runAdminAutomation', () => {
     const trigger = { cron: '5 0 * * *', scheduledTime: Date.now() }
     const env = {
       GUESS_DB: db.d1 as unknown as D1Database,
-      GUESS_KV: kv as unknown as KVNamespace,
       AUTO_CAPTURE_DQ_SNAPSHOT: '0',
       AUTO_DUPLICATES_BACKFILL: '0',
       AUTO_ENRICH_ONE: '0',
@@ -131,7 +128,6 @@ describe('runAdminAutomation', () => {
     const trigger = { cron: '5 0 * * *', scheduledTime: Date.now() }
     const env = {
       GUESS_DB: db.d1 as unknown as D1Database,
-      GUESS_KV: kv as unknown as KVNamespace,
       AUTO_CAPTURE_DQ_SNAPSHOT: '0',
       AUTO_DUPLICATES_BACKFILL: '0',
       AUTO_ENRICH_ONE: '0',
@@ -146,10 +142,9 @@ describe('runAdminAutomation', () => {
     expect(summary.sourceHealth.totalCharacters).toBeGreaterThanOrEqual(2)
     expect(summary.sourceHealth.issueCount).toBeGreaterThan(0)
 
-    const report = await kv.get(SOURCE_HEALTH_REPORT_KEY, 'json') as {
-      totals?: { issueCount?: number; totalCharacters?: number; validCharacters?: number }
-    } | null
-    expect(report).not.toBeNull()
+    const reportRow = db.raw.prepare('SELECT value FROM kv_cache WHERE key = ?').get(SOURCE_HEALTH_REPORT_KEY) as { value: string } | null
+    expect(reportRow).not.toBeNull()
+    const report = reportRow ? JSON.parse(reportRow.value) as { totals?: { issueCount?: number; totalCharacters?: number; validCharacters?: number } } : null
     expect(report?.totals?.totalCharacters).toBeGreaterThanOrEqual(2)
     expect(report?.totals?.issueCount).toBeGreaterThan(0)
   })
@@ -177,7 +172,6 @@ describe('runAdminAutomation', () => {
     const trigger = { cron: '5 0 * * *', scheduledTime: Date.now() }
     const env = {
       GUESS_DB: db.d1 as unknown as D1Database,
-      GUESS_KV: kv as unknown as KVNamespace,
       AUTO_CAPTURE_DQ_SNAPSHOT: '1',
       AUTO_DUPLICATES_BACKFILL: '0',
       AUTO_ENRICH_ONE: '0',
@@ -191,12 +185,9 @@ describe('runAdminAutomation', () => {
     expect(summary.closureQueue.totalCandidatePairs).toBeGreaterThan(0)
     expect(summary.closureQueue.totalPairs).toBeGreaterThan(0)
 
-    const report = await kv.get(CLOSURE_QUEUE_REPORT_KEY, 'json') as {
-      summary?: { totalPairs?: number }
-      totalCandidatePairs?: number
-      queue?: Array<{ characterName: string }>
-    } | null
-    expect(report).not.toBeNull()
+    const reportRow = db.raw.prepare('SELECT value FROM kv_cache WHERE key = ?').get(CLOSURE_QUEUE_REPORT_KEY) as { value: string } | null
+    expect(reportRow).not.toBeNull()
+    const report = reportRow ? JSON.parse(reportRow.value) as { summary?: { totalPairs?: number }; totalCandidatePairs?: number; queue?: Array<{ characterName: string }> } : null
     expect(report?.totalCandidatePairs).toBeGreaterThan(0)
     expect(report?.summary?.totalPairs).toBeGreaterThan(0)
     expect(report?.queue?.[0]?.characterName).toBe('Alpha')

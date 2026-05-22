@@ -12,6 +12,7 @@ import {
   jsonResponse,
   withRequestId,
 } from '../_helpers'
+import { d1CacheGet, d1CachePut } from '../_d1_cache'
 
 interface WorkflowProgressRecord {
   activeTo: string | null
@@ -66,11 +67,8 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
   const rate = await checkRateLimitBestEffort(env, actorId, 'admin.workflow-progress.read', 600)
   if (!rate.allowed) return respond(errorResponse('Rate limit exceeded', 429))
 
-  const kv = env.GUESS_ASSETS ?? env.GUESS_KV
-  if (!kv) return respond(errorResponse('KV not configured', 503))
-
-  const raw = await kv.get(WORKFLOW_PROGRESS_KEY, 'json')
-  const stored = parseStored(raw)
+  const raw = await d1CacheGet<StoredWorkflowProgress>(env.GUESS_DB, WORKFLOW_PROGRESS_KEY)
+  const stored = raw ? parseStored(raw) : null
 
   return respond(jsonResponse({
     progress: stored?.progress ?? {},
@@ -88,9 +86,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
   const rate = await checkRateLimitBestEffort(env, actorId, 'admin.workflow-progress.write', 240)
   if (!rate.allowed) return respond(errorResponse('Rate limit exceeded', 429))
-
-  const kv = env.GUESS_ASSETS ?? env.GUESS_KV
-  if (!kv) return respond(errorResponse('KV not configured', 503))
 
   let body: unknown
   try {
@@ -114,7 +109,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     updatedBy: actorId,
   }
 
-  await kv.put(WORKFLOW_PROGRESS_KEY, JSON.stringify(stored))
+  await d1CachePut(env.GUESS_DB, WORKFLOW_PROGRESS_KEY, stored)
 
   return respond(jsonResponse({
     ok: true,

@@ -84,23 +84,13 @@ beforeEach(() => {
 })
 
 describe('defineHandler', () => {
-  it('returns 503 when KV missing and requireKv default', async () => {
-    const handler = defineHandler({ name: 'test' }, async () =>
+  it('handles request and returns 200', async () => {
+    const handler = defineHandler({ name: 'test', requireUser: false }, async () =>
       new Response('ok'),
     )
-    const res = await handler(makeContext({ GUESS_KV: undefined }))
-    expect(res.status).toBe(503)
-    expect(await res.json()).toEqual({ error: 'KV not configured' })
-    expect(res.headers.get('X-Request-Id')).toBe('req-123')
-  })
-
-  it('skips KV check when requireKv: false', async () => {
-    const handler = defineHandler(
-      { name: 'test', requireKv: false, requireUser: false },
-      async () => new Response('ok'),
-    )
-    const res = await handler(makeContext({ GUESS_KV: undefined }))
+    const res = await handler(makeContext({}))
     expect(res.status).toBe(200)
+    expect(res.headers.get('X-Request-Id')).toBe('req-123')
   })
 
   it('passes ctx.userId from getOrCreateUserId', async () => {

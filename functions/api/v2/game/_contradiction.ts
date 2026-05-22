@@ -2,24 +2,26 @@ import {
   generateReasoning,
   saveSessionState,
   type GameSession,
-} from '../_game-engine'
-import { buildContradictionResponse } from './_responses'
+} from "../_game-engine";
+import { buildContradictionResponse } from "./_responses";
 
 export async function rollbackAndBuildContradictionResponse(input: {
-  kv: KVNamespace
-  session: GameSession
+  db: D1Database;
+  session: GameSession;
 }): Promise<ReturnType<typeof buildContradictionResponse>> {
-  const { kv, session } = input
+  const { db, session } = input;
 
-  session.answers.pop()
-  await saveSessionState(kv, session)
+  session.answers.pop();
+  await saveSessionState(db, session);
 
-  const question = session.currentQuestion as NonNullable<GameSession['currentQuestion']>
+  const question = session.currentQuestion as NonNullable<
+    GameSession["currentQuestion"]
+  >;
 
   return buildContradictionResponse({
     question,
     reasoning: generateReasoning(question, session.characters, session.answers),
     remaining: session.characters.length,
     questionCount: session.answers.length,
-  })
+  });
 }

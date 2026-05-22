@@ -1,4 +1,5 @@
 import { type Env, errorResponse } from '../../_helpers'
+import { d1CacheGet } from '../../_d1_cache'
 
 interface LastBatchStats {
   batchId: string
@@ -10,14 +11,13 @@ interface LastBatchStats {
   status: 'success' | 'error'
 }
 
-interface KvJobFlag {
-  queuedAt: number
-  batchId: string
+interface EnrichJobRow {
+  queued_at: number
+  batch_id: string
 }
 
 export const onRequestGet: PagesFunction<Env> = async (context) => {
   const db = context.env.GUESS_DB
-  const kv = context.env.GUESS_KV
   if (!db) return errorResponse('DB not configured', 503)
 
   const encoder = new TextEncoder()
@@ -25,7 +25,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     encoder.encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`)
 
   const snapshot = async () => {
-    const [runs, jobFlagRaw, pendingResult, statsRaw] = await Promise.all([
+    const [runs, jobRow, pendingResult, lastBatchStats] = await Promise.all([
       db.prepare(
         `SELECT pr.id, pr.run_batch, pr.character_id, c.name AS character_name,
                 pr.step, pr.status, pr.error, pr.duration_ms, pr.created_at
@@ -34,38 +34,25 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
          WHERE pr.step = 'enrich'
          ORDER BY pr.created_at DESC LIMIT 100`
       ).all(),
-      kv?.get('admin:enrich-start'),
+      db.prepare(
+        'SELECT queued_at, batch_id FROM enrich_job WHERE expires_at > unixepoch() ORDER BY queued_at DESC LIMIT 1'
+      ).first<EnrichJobRow>(),
       db.prepare(
         `SELECT COUNT(*) AS n FROM characters c
          WHERE NOT EXISTS (
            SELECT 1 FROM character_attributes ca WHERE ca.character_id = c.id LIMIT 1
          )`
       ).first<{ n: number }>(),
-      kv?.get('enrich:last-batch-stats'),
+      d1CacheGet<LastBatchStats>(db, 'enrich:last-batch-stats'),
     ])
 
-    // Parse the KV flag to surface startedAt and activeBatchId to the frontend
-    let jobStartedAt: number | null = null
-    let activeBatchId: string | null = null
-    if (jobFlagRaw) {
-      try {
-        const flag = JSON.parse(jobFlagRaw as string) as KvJobFlag
-        jobStartedAt = flag.queuedAt ?? null
-        activeBatchId = flag.batchId ?? null
-      } catch { /* flag may be a bare string from older versions */ }
-    }
-
-    let lastBatchStats: LastBatchStats | null = null
-    if (statsRaw) {
-      try { lastBatchStats = JSON.parse(statsRaw as string) as LastBatchStats } catch { /* ignore */ }
-    }
     return {
       runs: runs.results,
-      jobActive: !!jobFlagRaw,
-      jobStartedAt,
-      activeBatchId,
+      jobActive: !!jobRow,
+      jobStartedAt: jobRow?.queued_at ?? null,
+      activeBatchId: jobRow?.batch_id ?? null,
       pendingCount: pendingResult?.n ?? 0,
-      lastBatchStats,
+      lastBatchStats: lastBatchStats ?? null,
     }
   }
 

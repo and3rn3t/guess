@@ -35,14 +35,13 @@ interface UploadRequest {
 
 export const onRequestPost: PagesFunction<Env> = async (context) => {
   const db = context.env.GUESS_DB
-  const kv = context.env.GUESS_KV
   if (!db) return errorResponse('D1 not configured', 503)
 
   const body = await parseJsonBody<UploadRequest>(context.request)
   if (!body?.secret) return errorResponse('Missing secret', 401)
 
   // Verify admin secret using constant-time comparison to prevent timing attacks
-  const adminSecret = await kv?.get('admin:secret')
+  const adminSecret = context.env.ADMIN_CREDENTIAL
   if (!adminSecret || !(await timingSafeEqual(body.secret, adminSecret))) {
     return errorResponse('Unauthorized', 403)
   }

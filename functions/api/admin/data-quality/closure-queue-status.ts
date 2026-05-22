@@ -15,6 +15,7 @@ import {
   withRequestId,
 } from '../../_helpers'
 import { CLOSURE_QUEUE_REPORT_KEY, type ClosureQueueReport } from './_closure_queue'
+import { d1CacheGet } from '../../_d1_cache'
 
 interface ClosureQueueStatusResponse {
   report: ClosureQueueReport | null
@@ -31,10 +32,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
   const rate = await checkRateLimitBestEffort(env, actorId, 'admin.data-quality.closure-queue-status.read', 600)
   if (!rate.allowed) return respond(errorResponse('Rate limit exceeded', 429))
 
-  const kv = env.GUESS_ASSETS ?? env.GUESS_KV
-  if (!kv) return respond(errorResponse('KV not configured', 503))
-
-  const report = await kv.get(CLOSURE_QUEUE_REPORT_KEY, 'json') as ClosureQueueReport | null
+  const report = await d1CacheGet<ClosureQueueReport>(env.GUESS_DB, CLOSURE_QUEUE_REPORT_KEY)
 
   const response = respond(
     jsonResponse({

@@ -1,6 +1,6 @@
 name: Adaptive Data Refresh
 
-# Refreshes simulation-derived adaptive data in production KV:
+# Refreshes simulation-derived adaptive data in production D1 kv_cache:
 #   kv:attribute-maybe-rates     — per-attribute maybe-answer rates
 #   kv:attribute-net-gains       — per-attribute average information gain
 #   kv:confusion-discriminators  — discriminating questions for confused character pairs
@@ -118,9 +118,9 @@ jobs:
             .ci-artifacts/adaptive/simulate/metadata-${{ matrix.difficulty }}.txt
           retention-days: 14
 
-  # ── 3. Merge results, compute adaptive data, upload to KV ────
+  # ── 3. Merge results, compute adaptive data, upload to D1 kv_cache ────
   compute-and-upload:
-    name: Compute adaptive data + upload to KV
+    name: Compute adaptive data + upload to D1
     needs: [ simulate ]
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -172,44 +172,50 @@ jobs:
           set -o pipefail
           pnpm simulate:confusion-pairs --input "$PWD/scripts/simulate/data/results-ci-all.jsonl" 2>&1 | tee .ci-artifacts/adaptive/compute/confusion-discriminators.log
 
-      - name: Upload maybe-rates to KV
+      - name: Upload maybe-rates to D1
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
           set -o pipefail
-          pnpm wrangler kv key put \
-            --binding GUESS_KV \
-            --path scripts/simulate/data/maybe-rates.json \
-            --env production \
-            --remote \
-            "kv:attribute-maybe-rates" 2>&1 | tee .ci-artifacts/adaptive/compute/kv-maybe-rates.log
+          python3 -c "
+import json
+with open('scripts/simulate/data/maybe-rates.json') as f:
+    val = json.dumps(json.load(f), separators=(',', ':'))
+escaped = val.replace(\"'\", \"''\")
+print(f\"INSERT OR REPLACE INTO kv_cache (key, value, cached_at) VALUES ('kv:attribute-maybe-rates', '{escaped}', unixepoch());\")
+" > /tmp/kv-upsert-maybe-rates.sql
+          pnpm wrangler d1 execute guess-db --env production --remote --file /tmp/kv-upsert-maybe-rates.sql 2>&1 | tee .ci-artifacts/adaptive/compute/d1-maybe-rates.log
 
-      - name: Upload net-gains to KV
+      - name: Upload net-gains to D1
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
           set -o pipefail
-          pnpm wrangler kv key put \
-            --binding GUESS_KV \
-            --path scripts/simulate/data/net-gains.json \
-            --env production \
-            --remote \
-            "kv:attribute-net-gains" 2>&1 | tee .ci-artifacts/adaptive/compute/kv-net-gains.log
+          python3 -c "
+import json
+with open('scripts/simulate/data/net-gains.json') as f:
+    val = json.dumps(json.load(f), separators=(',', ':'))
+escaped = val.replace(\"'\", \"''\")
+print(f\"INSERT OR REPLACE INTO kv_cache (key, value, cached_at) VALUES ('kv:attribute-net-gains', '{escaped}', unixepoch());\")
+" > /tmp/kv-upsert-net-gains.sql
+          pnpm wrangler d1 execute guess-db --env production --remote --file /tmp/kv-upsert-net-gains.sql 2>&1 | tee .ci-artifacts/adaptive/compute/d1-net-gains.log
 
-      - name: Upload confusion-discriminators to KV
+      - name: Upload confusion-discriminators to D1
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
           set -o pipefail
-          pnpm wrangler kv key put \
-            --binding GUESS_KV \
-            --path scripts/simulate/data/confusion-discriminators.json \
-            --env production \
-            --remote \
-            "kv:confusion-discriminators" 2>&1 | tee .ci-artifacts/adaptive/compute/kv-confusion-discriminators.log
+          python3 -c "
+import json
+with open('scripts/simulate/data/confusion-discriminators.json') as f:
+    val = json.dumps(json.load(f), separators=(',', ':'))
+escaped = val.replace(\"'\", \"''\")
+print(f\"INSERT OR REPLACE INTO kv_cache (key, value, cached_at) VALUES ('kv:confusion-discriminators', '{escaped}', unixepoch());\")
+" > /tmp/kv-upsert-confusion.sql
+          pnpm wrangler d1 execute guess-db --env production --remote --file /tmp/kv-upsert-confusion.sql 2>&1 | tee .ci-artifacts/adaptive/compute/d1-confusion-discriminators.log
 
       - name: Print summary
         run: |
@@ -222,7 +228,7 @@ jobs:
             echo "| ${f}.json | ${SIZE} bytes |" >> "$GITHUB_STEP_SUMMARY"
           done
           echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "Uploaded to: \`kv:attribute-maybe-rates\`, \`kv:attribute-net-gains\`, \`kv:confusion-discriminators\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "Uploaded to: \`kv_cache\` table keys \`kv:attribute-maybe-rates\`, \`kv:attribute-net-gains\`, \`kv:confusion-discriminators\`" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload compute diagnostics
         if: always()

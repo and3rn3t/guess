@@ -22,7 +22,7 @@ const {
   buildQuestionOptionsMock,
   rephraseQuestionMock,
 } = vi.hoisted(() => ({
-  d1RunMock: vi.fn(),
+  d1RunMock: vi.fn().mockResolvedValue(undefined),
   errorResponseMock: vi.fn(
     (message: string, status: number) =>
       new Response(JSON.stringify({ error: message }), { status }),
@@ -171,11 +171,10 @@ const READINESS = {
   rejectCooldownRemaining: 0,
 };
 
-function makeCtx(body: unknown, opts: { kv?: unknown; db?: unknown } = {}) {
+function makeCtx(body: unknown, opts: { db?: unknown } = {}) {
   return {
     env: {
-      GUESS_KV: "kv" in opts ? opts.kv : {},
-      GUESS_DB: "db" in opts ? opts.db : null,
+      GUESS_DB: "db" in opts ? opts.db : {},
     },
     request: new Request("https://example.com/api/v2/game/answer", {
       method: "POST",
@@ -199,10 +198,10 @@ describe("POST /api/v2/game/answer", () => {
     logErrorMock.mockResolvedValue(undefined);
   });
 
-  it("returns 503 when KV is not configured", async () => {
-    const ctx = makeCtx({ sessionId: "x", value: "yes" }, { kv: null });
+  it("returns 503 when D1 is not configured", async () => {
+    const ctx = makeCtx({ sessionId: "x", value: "yes" }, { db: null });
     await onRequestPost(ctx);
-    expect(errorResponseMock).toHaveBeenCalledWith("KV not configured", 503);
+    expect(errorResponseMock).toHaveBeenCalledWith("D1 not configured", 503);
   });
 
   it("returns 400 on schema validation failure", async () => {

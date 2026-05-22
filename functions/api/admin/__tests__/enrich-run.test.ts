@@ -15,20 +15,16 @@ import {
 import {
   buildEnv,
   createTestDb,
-  createTestKv,
   mockOpenAi,
   seedAttributeDefinition,
   seedCharacter,
   type TestDb,
-  type TestKv,
 } from "./harness";
 
 let db: TestDb;
-let kv: TestKv;
 
 beforeEach(() => {
   db = createTestDb();
-  kv = createTestKv();
 });
 
 afterEach(() => {
@@ -145,28 +141,25 @@ describe("parseOpenAIContent", () => {
 // ─── runServerEnrichBatch ──────────────────────────────────────────────────────
 
 describe("runServerEnrichBatch", () => {
-  it("exits early and clears KV when no attribute definitions exist", async () => {
+  it("exits early when no attribute definitions exist", async () => {
     // Migration 0003 seeds attribute_definitions — deactivate them all so this
     // test can exercise the "no active attrs" early-exit path without touching
     // FK-referenced rows.
     db.raw.prepare("UPDATE attribute_definitions SET is_active = 0").run();
-    await kv.put("admin:enrich-start", "active");
     seedCharacter(db, "mario");
-    const env = buildEnv({ db, kv, openaiKey: "sk-test" }) as unknown as Parameters<
+    const env = buildEnv({ db, openaiKey: "sk-test" }) as unknown as Parameters<
       typeof runServerEnrichBatch
     >[0];
 
     await runServerEnrichBatch(env, "batch-1");
 
-    expect(await kv.get("admin:enrich-start")).toBeNull();
     const runs = db.raw
       .prepare("SELECT COUNT(*) AS n FROM pipeline_runs")
       .get() as { n: number };
     expect(runs.n).toBe(0);
   });
 
-  it("exits early and clears KV when no characters need enrichment", async () => {
-    await kv.put("admin:enrich-start", "active");
+  it("exits early when no characters need enrichment", async () => {
     seedAttributeDefinition(db, "isHero");
     // seed mario with an attribute so he is already enriched
     seedCharacter(db, "mario");
@@ -176,12 +169,11 @@ describe("runServerEnrichBatch", () => {
       )
       .run();
 
-    const env = buildEnv({ db, kv, openaiKey: "sk-test" }) as unknown as Parameters<
+    const env = buildEnv({ db, openaiKey: "sk-test" }) as unknown as Parameters<
       typeof runServerEnrichBatch
     >[0];
     await runServerEnrichBatch(env, "batch-2");
 
-    expect(await kv.get("admin:enrich-start")).toBeNull();
     const runs = db.raw
       .prepare("SELECT COUNT(*) AS n FROM pipeline_runs")
       .get() as { n: number };
@@ -202,9 +194,10 @@ describe("runServerEnrichBatch", () => {
     const llmContent = JSON.stringify({ mario: { isHero: true } });
     const { restore } = mockOpenAi({ content: llmContent });
     try {
-      const env = buildEnv({ db, kv, openaiKey: "sk-test" }) as unknown as Parameters<
-        typeof runServerEnrichBatch
-      >[0];
+      const env = buildEnv({
+        db,
+        openaiKey: "sk-test",
+      }) as unknown as Parameters<typeof runServerEnrichBatch>[0];
       await runServerEnrichBatch(env, "new-batch");
     } finally {
       restore();
@@ -230,9 +223,10 @@ describe("runServerEnrichBatch", () => {
     const { restore } = mockOpenAi({ content: llmContent });
 
     try {
-      const env = buildEnv({ db, kv, openaiKey: "sk-test" }) as unknown as Parameters<
-        typeof runServerEnrichBatch
-      >[0];
+      const env = buildEnv({
+        db,
+        openaiKey: "sk-test",
+      }) as unknown as Parameters<typeof runServerEnrichBatch>[0];
       await runServerEnrichBatch(env, "batch-3");
     } finally {
       restore();
@@ -255,11 +249,6 @@ describe("runServerEnrichBatch", () => {
       )
       .get() as { status: string } | undefined;
     expect(run?.status).toBe("success");
-
-    // KV cleared
-    expect(await kv.get("admin:enrich-start")).toBeNull();
-    // Token stats written
-    expect(await kv.get("enrich:last-batch-stats")).toBeTruthy();
   });
 
   it("writes evidence tag on character_attributes rows", async () => {
@@ -270,9 +259,10 @@ describe("runServerEnrichBatch", () => {
     const { restore } = mockOpenAi({ content: llmContent });
 
     try {
-      const env = buildEnv({ db, kv, openaiKey: "sk-test" }) as unknown as Parameters<
-        typeof runServerEnrichBatch
-      >[0];
+      const env = buildEnv({
+        db,
+        openaiKey: "sk-test",
+      }) as unknown as Parameters<typeof runServerEnrichBatch>[0];
       await runServerEnrichBatch(env, "batch-4");
     } finally {
       restore();
@@ -296,9 +286,10 @@ describe("runServerEnrichBatch", () => {
     });
 
     try {
-      const env = buildEnv({ db, kv, openaiKey: "sk-test" }) as unknown as Parameters<
-        typeof runServerEnrichBatch
-      >[0];
+      const env = buildEnv({
+        db,
+        openaiKey: "sk-test",
+      }) as unknown as Parameters<typeof runServerEnrichBatch>[0];
       await runServerEnrichBatch(env, "batch-5");
     } finally {
       restore();
@@ -311,9 +302,6 @@ describe("runServerEnrichBatch", () => {
       .get() as { status: string; error: string | null } | undefined;
     expect(run?.status).toBe("error");
     expect(run?.error).toContain("500");
-
-    // KV cleared even on error
-    expect(await kv.get("admin:enrich-start")).toBeNull();
 
     // No character_attributes written
     const attrs = db.raw
@@ -332,9 +320,10 @@ describe("runServerEnrichBatch", () => {
     const { restore } = mockOpenAi({ content: "{}" });
 
     try {
-      const env = buildEnv({ db, kv, openaiKey: "sk-test" }) as unknown as Parameters<
-        typeof runServerEnrichBatch
-      >[0];
+      const env = buildEnv({
+        db,
+        openaiKey: "sk-test",
+      }) as unknown as Parameters<typeof runServerEnrichBatch>[0];
       await runServerEnrichBatch(env, "batch-6");
     } finally {
       restore();
@@ -371,7 +360,10 @@ describe("runServerEnrichBatch", () => {
     const llmContent = JSON.stringify({ fresh: { isHero: false } });
     const { restore } = mockOpenAi({ content: llmContent });
     try {
-      const env = buildEnv({ db, kv, openaiKey: "sk-test" }) as unknown as Parameters<typeof runServerEnrichBatch>[0];
+      const env = buildEnv({
+        db,
+        openaiKey: "sk-test",
+      }) as unknown as Parameters<typeof runServerEnrichBatch>[0];
       await runServerEnrichBatch(env, "batch-skip");
     } finally {
       restore();
@@ -379,13 +371,17 @@ describe("runServerEnrichBatch", () => {
 
     // 'stuck' was not picked — no new pipeline_run row for it in this batch
     const stuckRun = db.raw
-      .prepare(`SELECT COUNT(*) AS n FROM pipeline_runs WHERE character_id = 'stuck' AND run_batch = 'batch-skip'`)
+      .prepare(
+        `SELECT COUNT(*) AS n FROM pipeline_runs WHERE character_id = 'stuck' AND run_batch = 'batch-skip'`,
+      )
       .get() as { n: number };
     expect(stuckRun.n).toBe(0);
 
     // 'fresh' was processed successfully
     const freshAttr = db.raw
-      .prepare(`SELECT value FROM character_attributes WHERE character_id = 'fresh' AND attribute_key = 'isHero'`)
+      .prepare(
+        `SELECT value FROM character_attributes WHERE character_id = 'fresh' AND attribute_key = 'isHero'`,
+      )
       .get() as { value: number } | undefined;
     expect(freshAttr?.value).toBe(0); // isHero: false → 0
   });
@@ -400,9 +396,10 @@ describe("runServerEnrichBatch", () => {
     const { restore, calls } = mockOpenAi({ content: llmContent });
 
     try {
-      const env = buildEnv({ db, kv, openaiKey: "sk-test" }) as unknown as Parameters<
-        typeof runServerEnrichBatch
-      >[0];
+      const env = buildEnv({
+        db,
+        openaiKey: "sk-test",
+      }) as unknown as Parameters<typeof runServerEnrichBatch>[0];
       await runServerEnrichBatch(env, "batch-7"); // always processes 1 character per invocation
     } finally {
       restore();

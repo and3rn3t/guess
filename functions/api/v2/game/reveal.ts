@@ -3,7 +3,7 @@ import {
   jsonResponse,
   errorResponse,
   parseJsonBody,
-  checkRateLimit,
+  checkRateLimitBestEffort,
   getOrCreateUserId,
   withSetCookie,
   sanitizeString,
@@ -11,8 +11,6 @@ import {
   d1Query,
   d1Run,
   d1Batch,
-  kvGetArray,
-  kvPut,
   logError,
 } from '../../_helpers'
 
@@ -51,8 +49,6 @@ interface CorrectionVote {
 export const onRequestPost: PagesFunction<Env> = async (context) => {
   try {
   const db = context.env.GUESS_DB
-  const kv = context.env.GUESS_KV
-  if (!kv) return errorResponse('KV not configured', 503)
   if (!db) return errorResponse('DB not configured', 503)
 
   const body = await parseJsonBody<RevealRequest>(context.request)
@@ -69,7 +65,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   const characterName = sanitizeString(rawName.trim()).slice(0, 200)
 
   const { userId, setCookieHeader } = await getOrCreateUserId(context.request, context.env)
-  const { allowed } = await checkRateLimit(kv, userId, 'reveals', 10)
+  const { allowed } = await checkRateLimitBestEffort(context.env, userId, 'reveals', 10)
   if (!allowed) return errorResponse('Rate limit exceeded', 429)
 
   // Keep only confident yes/no answers
@@ -150,19 +146,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     // Apply backfills in a batch
     if (backfillStatements.length > 0) {
       await d1Batch(db, backfillStatements).catch(() => { /* non-critical */ })
-    }
-
-    // Queue correction suggestions in KV (one per contradicting attribute)
-    for (const [, vote] of correctionsByAttr) {
-      const key = `corrections:${character.id}`
-      const existing = await kvGetArray<CorrectionVote>(kv, key)
-      // Only add if no system reveal vote already exists for this attribute
-      const alreadyQueued = existing.some(
-        (c) => c.attribute === vote.attribute && c.userId.startsWith('system:reveal:')
-      )
-      if (!alreadyQueued) {
-        await kvPut(kv, key, [...existing, vote])
-      }
     }
   }
 

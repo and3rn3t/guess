@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { buildEnv, createTestDb, createTestKv, invokeHandler, seedAttributeDefinition, seedCharacter } from './harness'
+import { buildEnv, createTestDb, invokeHandler, seedAttributeDefinition, seedCharacter } from './harness'
 import { onRequestGet, onRequestPost } from '../questions/expand'
 
 describe('POST /api/admin/questions/expand', () => {
@@ -15,7 +15,6 @@ describe('POST /api/admin/questions/expand', () => {
 
   it('returns candidate questions in dry-run mode without inserting', async () => {
     const db = createTestDb()
-    const kv = createTestKv()
     try {
       seedAttributeDefinition(db, 'isTimeTraveler', {
         display_text: 'Is Time Traveler',
@@ -39,7 +38,7 @@ describe('POST /api/admin/questions/expand', () => {
         inserted: number
       }>(onRequestPost, {
         method: 'POST',
-        env: buildEnv({ db, kv }),
+        env: buildEnv({ db }),
         body: {
           dryRun: true,
           limit: 10,
@@ -58,7 +57,7 @@ describe('POST /api/admin/questions/expand', () => {
 
       const history = await invokeHandler<{ runs: Array<{ dryRun: boolean; status: string }> }>(onRequestGet, {
         method: 'GET',
-        env: buildEnv({ db, kv }),
+        env: buildEnv({ db }),
       })
       expect(history.status).toBe(200)
       expect(history.body.runs).toHaveLength(1)
@@ -71,7 +70,6 @@ describe('POST /api/admin/questions/expand', () => {
 
   it('inserts generated questions in apply mode', async () => {
     const db = createTestDb()
-    const kv = createTestKv()
     try {
       seedAttributeDefinition(db, 'hasSignatureWeapon', {
         display_text: 'Has Signature Weapon',
@@ -97,7 +95,7 @@ describe('POST /api/admin/questions/expand', () => {
         inserted: number
       }>(onRequestPost, {
         method: 'POST',
-        env: buildEnv({ db, kv }),
+        env: buildEnv({ db }),
         body: {
           dryRun: false,
           limit: 10,
@@ -117,7 +115,7 @@ describe('POST /api/admin/questions/expand', () => {
 
       const history = await invokeHandler<{ runs: Array<{ dryRun: boolean; inserted: number; status: string }> }>(onRequestGet, {
         method: 'GET',
-        env: buildEnv({ db, kv }),
+        env: buildEnv({ db }),
       })
       expect(history.status).toBe(200)
       expect(history.body.runs).toHaveLength(1)
@@ -130,12 +128,11 @@ describe('POST /api/admin/questions/expand', () => {
   })
 
   it('returns empty history when no runs exist', async () => {
-    const kv = createTestKv()
     const db = createTestDb()
     try {
       const res = await invokeHandler<{ ok: boolean; runs: unknown[] }>(onRequestGet, {
         method: 'GET',
-        env: buildEnv({ db, kv }),
+        env: buildEnv({ db }),
       })
       expect(res.status).toBe(200)
       expect(res.body.ok).toBe(true)

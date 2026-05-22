@@ -9,9 +9,10 @@
  *  2. Find characters with no character_attributes rows
  *  3. Call OpenAI (direct — bypasses AI Gateway to ensure AbortController works)
  *  4. Parse response and write to character_attributes
- *  5. Log to pipeline_runs; clear KV job flag when done
+ *  5. Log to pipeline_runs; clear enrich_job row when done
  */
 import { type Env } from '../../_helpers'
+import { d1CachePut } from '../../_d1_cache'
 
 const MODEL = 'gpt-4o-mini'
 // Use direct OpenAI endpoint — the AI Gateway acts as a buffering proxy and
@@ -102,14 +103,16 @@ export function parseOpenAIContent(
  * returns immediately while the LLM call and D1 writes happen in the
  * background (up to the Worker's extended duration limit).
  *
- * The KV flag `admin:enrich-start` is set before calling this and
+ * The enrich_job D1 row is created before calling this and
  * cleared here when the batch completes (success or error) so the SSE
  * stream reflects the job state correctly.
  */
 export async function runServerEnrichBatch(env: Env, batchId: string, origin?: string): Promise<void> {
   const db = env.GUESS_DB
   if (!db || !env.OPENAI_API_KEY) {
-    await env.GUESS_KV?.delete('admin:enrich-start')
+    if (db) {
+      await db.prepare('DELETE FROM enrich_job WHERE batch_id = ?').bind(batchId).run().catch(() => {})
+    }
     return
   }
 
@@ -231,9 +234,10 @@ export async function runServerEnrichBatch(env: Env, batchId: string, origin?: s
     processedStatus = 'success'
 
     // Persist token stats for dashboard (7-day TTL)
-    await env.GUESS_KV?.put(
+    await d1CachePut(
+      db,
       'enrich:last-batch-stats',
-      JSON.stringify({
+      {
         batchId,
         promptTokens,
         completionTokens,
@@ -241,8 +245,8 @@ export async function runServerEnrichBatch(env: Env, batchId: string, origin?: s
         characters: 1,
         runAt: runIso,
         status: 'success',
-      }),
-      { expirationTtl: 604800 },
+      },
+      604800,
     )
   } finally {
     await chainOrClear(env, batchId, origin, foundPending, processedStatus)
@@ -314,9 +318,9 @@ async function callOpenAIChunk(
 
 /**
  * After processing one character, either:
- *  - chain: decrement `remaining` in KV and fire a new Worker invocation
+ *  - chain: decrement `remaining` in D1 and fire a new Worker invocation
  *    (each gets a fresh ~30 s waitUntil() window), OR
- *  - clear: delete the KV flag so the SSE stream shows the job as done.
+ *  - clear: delete the enrich_job row so the SSE stream shows the job as done.
  */
 async function chainOrClear(
   env: Env,
@@ -325,42 +329,52 @@ async function chainOrClear(
   foundPending: boolean,
   _status: 'success' | 'error',
 ): Promise<void> {
-  const kv = env.GUESS_KV
-  if (!kv) return
+  const db = env.GUESS_DB
+  if (!db) return
 
-  // No origin means test/local mode — just clear the flag.
+  // No origin means test/local mode — just clear the job.
   if (!origin) {
-    await kv.delete('admin:enrich-start')
+    await db.prepare('DELETE FROM enrich_job WHERE batch_id = ?').bind(batchId).run().catch(() => {})
     return
   }
 
-  const kvRaw = await kv.get('admin:enrich-start')
-  if (!kvRaw) return // Already cleared by a stop signal.
+  // Look up the current job state
+  const row = await db
+    .prepare(
+      'SELECT id, remaining, chain_token FROM enrich_job WHERE batch_id = ? AND expires_at > unixepoch() LIMIT 1',
+    )
+    .bind(batchId)
+    .first<{ id: number; remaining: number; chain_token: string | null }>()
+    .catch(() => null)
 
-  let kvData: { queuedAt: number; batchId: string; remaining?: number; chainToken?: string }
-  try {
-    kvData = JSON.parse(kvRaw)
-  } catch {
-    await kv.delete('admin:enrich-start')
-    return
-  }
+  if (!row) return // Already cleared by a stop signal.
 
-  const remaining = (kvData.remaining ?? 1) - 1
+  const remaining = row.remaining - 1
 
   // Stop chaining if: no more requested, or this run found nothing to process
   // (all characters already enriched — no point firing empty invocations).
   if (remaining <= 0 || !foundPending) {
-    await kv.delete('admin:enrich-start')
+    await db.prepare('DELETE FROM enrich_job WHERE id = ?').bind(row.id).run().catch(() => {})
     return
   }
 
-  // Persist decremented count before firing the chain so the next invocation
-  // reads the correct remaining value even if it starts before we return.
-  await kv.put(
-    'admin:enrich-start',
-    JSON.stringify({ ...kvData, remaining }),
-    { expirationTtl: 3600 },
-  )
+  // Generate a fresh chain token for the next invocation (single-use)
+  const newChainToken = crypto.randomUUID()
+
+  // Persist decremented count and new token before firing the chain so the
+  // next invocation reads the correct remaining value even if it starts before we return.
+  try {
+    await db
+      .prepare(
+        'UPDATE enrich_job SET remaining = ?, chain_token = ?, chain_token_consumed = 0 WHERE id = ?',
+      )
+      .bind(remaining, newChainToken, row.id)
+      .run()
+  } catch {
+    // If we can't update, don't chain — clear the job so it isn't stuck.
+    await db.prepare('DELETE FROM enrich_job WHERE id = ?').bind(row.id).run().catch(() => {})
+    return
+  }
 
   // Fire a new Pages Function invocation. The new Worker gets its own fresh
   // ~30 s waitUntil() wall-clock budget to process the next character.
@@ -368,11 +382,11 @@ async function chainOrClear(
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'X-Internal-Chain-Token': kvData.chainToken ?? '',
+      'X-Internal-Chain-Token': newChainToken,
     },
     body: JSON.stringify({ action: 'chain', batchId }),
   }).catch(async () => {
-    // Chain fetch failed — clear KV so the job doesn't appear permanently stuck.
-    await kv.delete('admin:enrich-start').catch(() => { /* best-effort */ })
+    // Chain fetch failed — clear job so it doesn't appear permanently stuck.
+    await db.prepare('DELETE FROM enrich_job WHERE id = ?').bind(row.id).run().catch(() => {})
   })
 }

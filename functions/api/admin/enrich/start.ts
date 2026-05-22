@@ -3,14 +3,13 @@ import { runServerEnrichBatch } from './run'
 
 export const onRequestPost: PagesFunction<Env> = async (context) => {
   const { env } = context
-  const kv = env.GUESS_KV
-  if (!kv) return errorResponse('KV not configured', 503)
-
+  const db = env.GUESS_DB
   const body = await parseJsonBody<{ action?: string; limit?: number; batchId?: string }>(context.request)
   const action = body?.action ?? 'start'
 
   if (action === 'stop') {
-    await kv.delete('admin:enrich-start')
+    // Clear all non-expired enrich_job rows
+    await db.prepare('DELETE FROM enrich_job WHERE expires_at > unixepoch()').run().catch(() => {})
     return jsonResponse({ ok: true, message: 'Enrichment job signal cleared' })
   }
 
@@ -27,34 +26,34 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   if (action === 'chain') {
     const chainBatchId = body?.batchId
     if (!chainBatchId) return errorResponse('Missing batchId', 400)
-    const kvRaw = await kv.get('admin:enrich-start')
-    if (!kvRaw) return jsonResponse({ ok: true, message: 'Chain: no active job' })
-    let kvData: { batchId: string }
-    try { kvData = JSON.parse(kvRaw) } catch { return errorResponse('KV parse error', 500) }
-    if (kvData.batchId !== chainBatchId) return errorResponse('batchId mismatch', 403)
+    const row = await db
+      .prepare('SELECT id FROM enrich_job WHERE batch_id = ? AND expires_at > unixepoch() LIMIT 1')
+      .bind(chainBatchId)
+      .first<{ id: number }>()
+    if (!row) return jsonResponse({ ok: true, message: 'Chain: no active job' })
     context.waitUntil(runServerEnrichBatch(env, chainBatchId, origin))
     return jsonResponse({ ok: true, message: 'Chain: next character started' }, 202)
   }
 
   const limit = Math.min(10, Math.max(1, body?.limit ?? 5))
   const batchId = crypto.randomUUID()
-  // chainToken is a single-use secret included in chain requests so _middleware.ts
-  // can let them through without Basic Auth credentials.
   const chainToken = crypto.randomUUID()
+  const expiresAt = Math.floor(Date.now() / 1000) + 3600
 
-  // Set KV flag immediately so SSE stream shows jobActive: true.
-  // `remaining` tracks how many more characters to process after the first.
-  await kv.put(
-    'admin:enrich-start',
-    JSON.stringify({ queuedAt: Date.now(), batchId, remaining: limit, chainToken }),
-    { expirationTtl: 3600 }
-  )
+  // Insert job row — this is what _middleware.ts checks for chain-token auth,
+  // and what chainOrClear queries to decide whether to continue or stop.
+  await db
+    .prepare(
+      'INSERT INTO enrich_job (batch_id, remaining, chain_token, chain_token_consumed, expires_at) VALUES (?, ?, ?, 0, ?)',
+    )
+    .bind(batchId, limit, chainToken, expiresAt)
+    .run()
 
   // Each invocation processes exactly 1 character — chaining handles the rest.
   context.waitUntil(runServerEnrichBatch(env, batchId, origin))
 
   return jsonResponse(
     { ok: true, message: `Enrichment started for up to ${limit} character${limit !== 1 ? 's' : ''}`, batchId },
-    202
+    202,
   )
 }

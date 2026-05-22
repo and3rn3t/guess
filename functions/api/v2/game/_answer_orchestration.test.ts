@@ -94,7 +94,7 @@ describe('_answer_orchestration', () => {
   it('prefetchAdaptiveData returns empty adaptive data when load fails', async () => {
     loadAdaptiveDataMock.mockRejectedValue(new Error('kv unavailable'))
 
-    const adaptive = await prefetchAdaptiveData({} as KVNamespace, undefined)
+    const adaptive = await prefetchAdaptiveData(undefined)
 
     expect(loadAdaptiveDataMock).toHaveBeenCalledOnce()
     expect(adaptive).toEqual(expect.objectContaining({
@@ -110,7 +110,7 @@ describe('_answer_orchestration', () => {
     detectContradictionsMock.mockReturnValue({ hasContradiction: false })
 
     const response = await maybeHandleContradiction({
-      kv: {} as KVNamespace,
+      db: {} as D1Database,
       session: BASE_SESSION as never,
       filtered: [] as never,
     })
@@ -124,13 +124,13 @@ describe('_answer_orchestration', () => {
     rollbackAndBuildContradictionResponseMock.mockResolvedValue({ type: 'contradiction' })
 
     const response = await maybeHandleContradiction({
-      kv: {} as KVNamespace,
+      db: {} as D1Database,
       session: BASE_SESSION as never,
       filtered: [] as never,
     })
 
     expect(rollbackAndBuildContradictionResponseMock).toHaveBeenCalledWith({
-      kv: expect.any(Object),
+      db: expect.any(Object),
       session: BASE_SESSION,
     })
     expect(jsonResponseMock).toHaveBeenCalledWith({ type: 'contradiction' })
@@ -167,7 +167,7 @@ describe('_answer_orchestration', () => {
     finalizeBestGuessForSessionMock.mockResolvedValue({ type: 'guess', id: 'mario' })
 
     const response = await maybeFinalizeReadinessGuess({
-      kv: {} as KVNamespace,
+      db: {} as D1Database,
       session: BASE_SESSION as never,
       filtered: [] as never,
       scoring: {} as never,
@@ -191,7 +191,6 @@ describe('_answer_orchestration', () => {
     const response = await continueWithNextQuestion({
       env: {} as never,
       waitUntil: vi.fn(),
-      kv: {} as KVNamespace,
       db: null,
       session: BASE_SESSION as never,
       filtered: [] as never,
@@ -217,7 +216,6 @@ describe('_answer_orchestration', () => {
     const response = await continueWithNextQuestion({
       env: {} as never,
       waitUntil: vi.fn(),
-      kv: {} as KVNamespace,
       db: {} as D1Database,
       session: BASE_SESSION as never,
       filtered: [] as never,

@@ -30,9 +30,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     respond(internalErrorResponse(requestId));
 
   try {
-    const kv = context.env.GUESS_KV;
     const db = context.env.GUESS_DB;
-    if (!kv) return respond(errorResponse("KV not configured", 503));
+    if (!db) return respond(errorResponse("DB not configured", 503));
 
     const parsed = await parseJsonBodyWithSchema(
       context.request,
@@ -46,7 +45,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     } = parsed.data;
 
     // Load session
-    const session = await loadSession(kv, sessionId);
+    const session = await loadSession(db, sessionId);
     if (!session) {
       return respond(errorResponse("Session not found or expired", 404));
     }
@@ -171,8 +170,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       }
     }
 
-    // Clean up session + pool from KV
-    await deleteSession(kv, sessionId);
+    // Clean up session from D1
+    await deleteSession(db, sessionId);
 
     // Mark D1 backup as completed (non-blocking)
     if (db) {

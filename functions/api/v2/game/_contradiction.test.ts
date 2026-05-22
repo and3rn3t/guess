@@ -48,7 +48,7 @@ describe('rollbackAndBuildContradictionResponse', () => {
   it('pops the latest answer, saves state, and builds contradiction payload', async () => {
     const session = makeSession()
     const response = await rollbackAndBuildContradictionResponse({
-      kv: {} as KVNamespace,
+      db: {} as D1Database,
       session,
     })
 

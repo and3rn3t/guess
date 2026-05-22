@@ -97,7 +97,7 @@ describe('finalizeGuessAndSave', () => {
     }
 
     const response = await finalizeGuessAndSave({
-      kv: {} as KVNamespace,
+      db: {} as D1Database,
       session,
       guess: {
         id: 'a',
@@ -142,7 +142,7 @@ describe('finalizeBestGuessForSession', () => {
   it('returns null when no best guess is available', async () => {
     const session = makeSession()
     const response = await finalizeBestGuessForSession({
-      kv: {} as KVNamespace,
+      db: {} as D1Database,
       session,
       filtered: [],
       scoring: { coverageMap: {}, popularityMap: {} } as never,
@@ -163,7 +163,7 @@ describe('finalizeBestGuessForSession', () => {
     })
 
     const response = await finalizeBestGuessForSession({
-      kv: {} as KVNamespace,
+      db: {} as D1Database,
       session,
       filtered: [{ id: 'a', name: 'Alpha', category: 'test', imageUrl: null, attributes: {} }],
       scoring: { coverageMap: {}, popularityMap: {} } as never,

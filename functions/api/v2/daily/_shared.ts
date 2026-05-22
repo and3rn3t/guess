@@ -62,4 +62,4 @@ export function toUserLabel(userId: string): string {
   return `Player ${userId.slice(0, 8)}`
 }
 
-export type DailyEnv = Pick<Env, 'GUESS_DB' | 'GUESS_KV' | 'COOKIE_SECRET' | 'RATE_LIMITER'>
+export type DailyEnv = Pick<Env, 'GUESS_DB' | 'COOKIE_SECRET' | 'RATE_LIMITER'>

@@ -2,7 +2,7 @@ import {
   type Env,
   ValidationError,
   validateString,
-  checkRateLimit,
+  checkRateLimitBestEffort,
   getOrCreateUserId,
   withSetCookie,
   parseJsonBody,
@@ -15,6 +15,7 @@ import {
   d1Batch,
   logError,
 } from '../_helpers'
+import { d1CacheGet, d1CachePut } from '../_d1_cache'
 import type { CharactersRow, CharacterAttributesRow } from '../_db-types'
 
 // ── Types ────────────────────────────────────────────────────
@@ -31,7 +32,6 @@ const CHARACTERS_CACHE_TTL = 300 // 5 minutes
 
 export const onRequestGet: PagesFunction<Env> = async (context) => {
   const db = context.env.GUESS_DB
-  const kv = context.env.GUESS_KV
   if (!db) return errorResponse('D1 not configured', 503)
 
   const url = new URL(context.request.url)
@@ -79,10 +79,10 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
   // KV cache: unfiltered default-pagination list only (most common request)
   const isDefaultList = !category && !search && offset === 0 && limit === 50
   const cacheKey = 'cache:characters:list'
-  if (isDefaultList && kv) {
-    const cached = await kv.get(cacheKey)
+  if (isDefaultList) {
+    const cached = await d1CacheGet<unknown>(db, cacheKey).catch(() => null)
     if (cached) {
-      return new Response(cached, {
+      return new Response(JSON.stringify(cached), {
         headers: {
           'Content-Type': 'application/json',
           'Cache-Control': CHARACTERS_CACHE_HEADERS,
@@ -109,10 +109,10 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
   const result = { characters, total, limit, offset }
   const json = JSON.stringify(result)
 
-  // Store in KV cache (unfiltered default list only)
-  if (isDefaultList && kv) {
+  // Store in D1 kv_cache (unfiltered default list only)
+  if (isDefaultList) {
     context.waitUntil(
-      kv.put(cacheKey, json, { expirationTtl: CHARACTERS_CACHE_TTL })
+      d1CachePut(db, cacheKey, result, CHARACTERS_CACHE_TTL).catch(() => {})
     )
   }
 
@@ -128,9 +128,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
 export const onRequestPost: PagesFunction<Env> = async (context) => {
   const db = context.env.GUESS_DB
-  const kv = context.env.GUESS_KV
   if (!db) return errorResponse('D1 not configured', 503)
-  if (!kv) return errorResponse('KV not configured', 503)
 
   const body = await parseJsonBody<{
     name?: string
@@ -160,7 +158,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     // Rate limit
     const { userId, setCookieHeader } = await getOrCreateUserId(context.request, context.env)
-    const { allowed } = await checkRateLimit(kv, userId, 'characters-v2', 5)
+    const { allowed } = await checkRateLimitBestEffort(context.env, userId, 'characters-v2', 5)
     if (!allowed) return withSetCookie(errorResponse('Rate limit exceeded. Try again later.', 429), setCookieHeader)
 
     // Duplicate check

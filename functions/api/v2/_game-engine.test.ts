@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect } from 'vitest'
 import {
   calculateProbabilities,
   selectBestQuestion,
@@ -570,16 +570,52 @@ describe('evaluateGuessReadiness', () => {
 
 // ── Session storage ───────────────────────────────────────────
 
-function makeMockKV(): { store: Map<string, string>; kv: KVNamespace } {
-  const store = new Map<string, string>()
-  const kv = {
-    get: vi.fn(async (key: string) => store.get(key) ?? null),
-    put: vi.fn(async (key: string, value: string) => { store.set(key, value) }),
-    delete: vi.fn(async (key: string) => { store.delete(key) }),
-    getWithMetadata: vi.fn(),
-    list: vi.fn(),
-  } as unknown as KVNamespace
-  return { store, kv }
+function makeMockDB(): { store: Map<string, { lean: string; pool: string; expires: number }>; db: D1Database } {
+  const store = new Map<string, { lean: string; pool: string; expires: number }>()
+  const now = () => Math.floor(Date.now() / 1000)
+
+  const db = {
+    prepare: (sql: string) => {
+      const s = sql.trim().toUpperCase()
+      return {
+        bind: (...args: unknown[]) => ({
+          run: async () => {
+            if (s.startsWith('INSERT OR REPLACE INTO SESSION_STATE')) {
+              const [id, lean_json, pool_json, expires_at] = args as [string, string, string, number]
+              store.set(id, { lean: lean_json, pool: pool_json, expires: expires_at })
+            } else if (s.startsWith('UPDATE SESSION_STATE SET LEAN_JSON')) {
+              const [lean_json, ttl, id] = args as [string, number, string]
+              const existing = store.get(id)
+              if (existing) store.set(id, { ...existing, lean: lean_json, expires: now() + ttl })
+            } else if (s.startsWith('DELETE FROM SESSION_STATE')) {
+              const [id] = args as [string]
+              store.delete(id)
+            }
+            return { success: true, meta: {} }
+          },
+          first: async <T>(): Promise<T | null> => {
+            if (s.startsWith('SELECT LEAN_JSON')) {
+              const [id] = args as [string]
+              const row = store.get(id)
+              if (!row || row.expires <= now()) return null
+              return { lean_json: row.lean, pool_json: row.pool } as T
+            }
+            // d1CacheGet: SELECT value FROM kv_cache WHERE key = ?...
+            return null
+          },
+          all: async <T>() => ({ results: [] as T[], success: true, meta: {} }),
+        }),
+        run: async () => ({ success: true, meta: {} }),
+        first: async <T>() => null as T,
+        all: async <T>() => ({ results: [] as T[], success: true, meta: {} }),
+      }
+    },
+    batch: async () => [],
+    exec: async () => ({ count: 0, duration: 0 }),
+    withSession: () => ({}) as D1Database,
+    dump: async () => new ArrayBuffer(0),
+  } as unknown as D1Database
+  return { store, db }
 }
 
 const BASE_SESSION: GameSession = {
@@ -600,10 +636,10 @@ const BASE_SESSION: GameSession = {
 }
 
 describe('storeSession / loadSession', () => {
-  it('stores and retrieves a session in lean format', async () => {
-    const { kv } = makeMockKV()
-    await storeSession(kv, BASE_SESSION)
-    const loaded = await loadSession(kv, 'test-session')
+  it('stores and retrieves a session', async () => {
+    const { db } = makeMockDB()
+    await storeSession(db, BASE_SESSION)
+    const loaded = await loadSession(db, 'test-session')
     expect(loaded).not.toBeNull()
     expect(loaded!.id).toBe('test-session')
     expect(loaded!.characters).toHaveLength(1)
@@ -613,37 +649,14 @@ describe('storeSession / loadSession', () => {
   })
 
   it('returns null when session key is missing', async () => {
-    const { kv } = makeMockKV()
-    const result = await loadSession(kv, 'nonexistent')
+    const { db } = makeMockDB()
+    const result = await loadSession(db, 'nonexistent')
     expect(result).toBeNull()
-  })
-
-  it('returns null when pool key is missing (lean format with missing pool)', async () => {
-    const { store, kv } = makeMockKV()
-    // Write only the lean session (no pool)
-    const lean = { id: 'test-session', poolKey: 'pool:test-session', answers: [], currentQuestion: null, difficulty: 'medium', maxQuestions: 15, createdAt: 1000, rejectedGuesses: [], guessCount: 0, postRejectCooldown: 0 }
-    store.set('game:test-session', JSON.stringify(lean))
-    const result = await loadSession(kv, 'test-session')
-    expect(result).toBeNull()
-  })
-
-  it('returns null for old full-session format (no poolKey)', async () => {
-    const { store, kv } = makeMockKV()
-    // Old format stored full GameSession (with characters) — no separate pool key
-    store.set('game:test-session', JSON.stringify({ ...BASE_SESSION }))
-    // No pool:test-session stored → loadSession should return null
-    const loaded = await loadSession(kv, 'test-session')
-    expect(loaded).toBeNull()
   })
 
   it('defaults missing optional fields to safe values', async () => {
-    const { store, kv } = makeMockKV()
-    // Store pool separately (required for lean format)
-    store.set(
-      'pool:test-session',
-      JSON.stringify({ characters: BASE_SESSION.characters, questions: BASE_SESSION.questions }),
-    )
-    // Lean session without optional guessCount / postRejectCooldown / rejectedGuesses
+    const { store, db } = makeMockDB()
+    // Manually inject a session row with missing optional fields
     const lean = {
       id: 'test-session',
       poolKey: 'pool:test-session',
@@ -653,50 +666,40 @@ describe('storeSession / loadSession', () => {
       maxQuestions: BASE_SESSION.maxQuestions,
       createdAt: BASE_SESSION.createdAt,
     }
-    store.set('game:test-session', JSON.stringify(lean))
-    const loaded = await loadSession(kv, 'test-session')
+    const pool = { characters: BASE_SESSION.characters, questions: BASE_SESSION.questions }
+    store.set('test-session', {
+      lean: JSON.stringify(lean),
+      pool: JSON.stringify(pool),
+      expires: Math.floor(Date.now() / 1000) + 3600,
+    })
+    const loaded = await loadSession(db, 'test-session')
     expect(loaded!.guessCount).toBe(0)
     expect(loaded!.postRejectCooldown).toBe(0)
     expect(loaded!.rejectedGuesses).toEqual([])
   })
-
-  it('stores session with correct TTL', async () => {
-    const { kv } = makeMockKV()
-    await storeSession(kv, BASE_SESSION)
-    const putCalls = (kv.put as ReturnType<typeof vi.fn>).mock.calls
-    for (const call of putCalls) {
-      expect(call[2]).toMatchObject({ expirationTtl: SESSION_TTL })
-    }
-  })
 })
 
 describe('saveSessionState', () => {
-  it('updates mutable state without touching the pool', async () => {
-    const { kv, store } = makeMockKV()
-    await storeSession(kv, BASE_SESSION)
-    const poolSize = JSON.parse(store.get('pool:test-session')!).characters.length
-
+  it('updates mutable state', async () => {
+    const { db } = makeMockDB()
+    await storeSession(db, BASE_SESSION)
     const updated = { ...BASE_SESSION, answers: [{ questionId: 'isHuman', value: 'yes' as const }] }
-    await saveSessionState(kv, updated)
-
-    // Pool should be unchanged
-    expect(JSON.parse(store.get('pool:test-session')!).characters.length).toBe(poolSize)
-    // Game key should have the new answer
-    const lean = JSON.parse(store.get('game:test-session')!)
-    expect(lean.answers).toHaveLength(1)
+    await saveSessionState(db, updated)
+    const loaded = await loadSession(db, 'test-session')
+    expect(loaded!.answers).toHaveLength(1)
   })
 })
 
 describe('deleteSession', () => {
-  it('removes both game and pool keys', async () => {
-    const { kv, store } = makeMockKV()
-    await storeSession(kv, BASE_SESSION)
-    expect(store.has('game:test-session')).toBe(true)
-    expect(store.has('pool:test-session')).toBe(true)
+  it('removes the session so it cannot be loaded', async () => {
+    const { db } = makeMockDB()
+    await storeSession(db, BASE_SESSION)
+    const before = await loadSession(db, 'test-session')
+    expect(before).not.toBeNull()
 
-    await deleteSession(kv, 'test-session')
-    expect(store.has('game:test-session')).toBe(false)
-    expect(store.has('pool:test-session')).toBe(false)
+    await deleteSession(db, 'test-session')
+    const after = await loadSession(db, 'test-session')
+    expect(after).toBeNull()
   })
 })
 

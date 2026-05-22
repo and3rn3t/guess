@@ -25,15 +25,13 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     return errorResponse('Question not found', 404)
   }
 
-  // Invalidate the questions KV cache so the unretired question reappears in
+  // Invalidate the questions D1 cache so the unretired question reappears in
   // the next game without waiting for the 1h cache TTL.
-  const kv = (context.env as { GUESS_KV?: KVNamespace }).GUESS_KV
-  if (kv) {
-    try {
-      await kv.delete('meta:questions')
-    } catch {
-      // best-effort
-    }
+  try {
+    const { d1CacheDelete } = await import('../../../_d1_cache')
+    await d1CacheDelete(db, 'meta:questions')
+  } catch {
+    // best-effort
   }
 
   return jsonResponse({ ok: true, unretired: result.meta.changes })

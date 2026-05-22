@@ -3,21 +3,21 @@
  * Cloudflare Pages middleware.
  *
  * Two responsibilities:
- *   1. Gate /admin* + /api/admin* routes behind HTTP Basic Auth (KV-backed).
+ *   1. Gate /admin* + /api/admin* routes behind HTTP Basic Auth.
  *   2. Emit one Workers Analytics Engine data point per request to
  *      `WORKER_TAIL` (I.4 fallback — Pages doesn't support tail_consumers,
  *      so we time `next()` inline and write the same schema the Tail Worker
  *      would have produced).
  *
- * The KV value supports two formats so credentials can be rotated without
- * a deploy:
+ * Admin credential is read from the `ADMIN_CREDENTIAL` Cloudflare secret
+ * (no KV required). Supported formats:
  *   1. `sha256:<hex-digest-of-"user:pass">` (preferred) — stores only a
- *      digest, so a KV read alone does not yield plaintext.
+ *      digest, so a secret read alone does not yield plaintext.
  *   2. plain `"user:pass"` (legacy) — still accepted for backward compat.
  *
- * To rotate to the hashed format, run:
+ * To generate the hashed format:
  *   echo -n 'user:pass' | shasum -a 256 | awk '{print "sha256:"$1}'
- * and store that string in KV under `admin:basic-auth`.
+ * Store that string as the ADMIN_CREDENTIAL secret in the Cloudflare dashboard.
  *
  * Returns 401 + WWW-Authenticate on failure → triggers native browser dialog.
  */
@@ -28,7 +28,8 @@ import {
 } from './_request_metrics'
 
 interface Env {
-  GUESS_KV: KVNamespace
+  ADMIN_CREDENTIAL?: string
+  GUESS_DB: D1Database
   WORKER_TAIL?: AnalyticsEngineDataset
 }
 
@@ -126,43 +127,36 @@ export const onRequest: PagesFunction<Env> = async (context) => {
     }
   }
 
-  const kv = env.GUESS_KV
-  if (!kv) {
-    // No KV — fail closed (deny all)
+  const storedCredential = env.ADMIN_CREDENTIAL
+  if (!storedCredential) {
+    // Credential not configured — fail closed (deny all admin access)
     return finalize(unauthorizedResponse())
   }
 
   // Internal enrichment chain bypass — lets run.ts fire a new Worker
   // invocation without needing to store or replay Basic Auth credentials.
-  // Only fires when the X-Internal-Chain-Token header is present, so normal
-  // admin requests are unaffected (no extra KV lookup).
+  // Only fires when the X-Internal-Chain-Token header is present.
   if (isAdminPath && request.headers.has('X-Internal-Chain-Token')) {
     const token = request.headers.get('X-Internal-Chain-Token')!
-    const kvRaw = await kv.get('admin:enrich-start').catch(() => null)
-    if (kvRaw) {
-      try {
-        const kvData = JSON.parse(kvRaw) as { chainToken?: string }
-        if (kvData.chainToken && kvData.chainToken === token) {
-          // Consume the token — remove it from the KV entry so it cannot be replayed.
-          const cleared = { ...kvData, chainToken: undefined }
-          // Fire-and-forget: invalidation failure is non-fatal (token has a short-lived KV TTL anyway)
-          kv.put('admin:enrich-start', JSON.stringify(cleared)).catch(() => {})
-          return finalize(await next())
-        }
-      } catch { /* fall through to normal Basic Auth */ }
-    }
-  }
+    try {
+      // Look up an unconsumed chain token that has not yet expired
+      const row = await env.GUESS_DB
+        .prepare(
+          'SELECT id FROM enrich_job WHERE chain_token = ? AND chain_token_consumed = 0 AND expires_at > unixepoch() LIMIT 1'
+        )
+        .bind(token)
+        .first<{ id: number }>()
 
-  // Read stored credential — accepts `sha256:<hex>` or legacy plaintext.
-  let storedCredential: string | null
-  try {
-    storedCredential = await kv.get('admin:basic-auth')
-  } catch {
-    // KV transient error — fail closed
-    return finalize(unauthorizedResponse())
-  }
-  if (!storedCredential) {
-    return finalize(unauthorizedResponse())
+      if (row) {
+        // Mark consumed — fire-and-forget (non-fatal if it fails)
+        env.GUESS_DB
+          .prepare('UPDATE enrich_job SET chain_token_consumed = 1 WHERE id = ?')
+          .bind(row.id)
+          .run()
+          .catch(() => {})
+        return finalize(await next())
+      }
+    } catch { /* fall through to normal Basic Auth */ }
   }
 
   // Parse Authorization header
@@ -180,7 +174,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
 
   const valid = await credentialMatches(providedCredential, storedCredential)
 
-  // Rate limiting: track per-IP failures in KV (15-minute window, 10-attempt cap)
+  // Rate limiting: track per-IP failures in D1 kv_cache (15-minute window, 10-attempt cap)
   const ip =
     request.headers.get('CF-Connecting-IP') ??
     request.headers.get('X-Forwarded-For')?.split(',')[0].trim() ??
@@ -188,21 +182,33 @@ export const onRequest: PagesFunction<Env> = async (context) => {
   const failKey = `auth:fails:${ip}`
 
   if (!valid) {
-    const failCount = parseInt((await kv.get(failKey)) ?? '0', 10)
-    await kv.put(failKey, String(failCount + 1), { expirationTtl: 900 })
-    if (failCount + 1 >= 10) {
-      return finalize(
-        new Response('Too many failed login attempts. Try again later.', {
-          status: 429,
-          headers: { 'Content-Type': 'text/plain', 'Retry-After': '900' },
-        })
-      )
-    }
+    let failCount: number
+    try {
+      const now = Math.floor(Date.now() / 1000)
+      const row = await env.GUESS_DB
+        .prepare('SELECT value FROM kv_cache WHERE key = ? AND (expires_at IS NULL OR expires_at > ?)')
+        .bind(failKey, now)
+        .first<{ value: string }>()
+      failCount = row ? parseInt(row.value, 10) || 0 : 0
+      const newCount = failCount + 1
+      await env.GUESS_DB
+        .prepare('INSERT OR REPLACE INTO kv_cache (key, value, cached_at, expires_at) VALUES (?, ?, ?, ?)')
+        .bind(failKey, String(newCount), now, now + 900)
+        .run()
+      if (newCount >= 10) {
+        return finalize(
+          new Response('Too many failed login attempts. Try again later.', {
+            status: 429,
+            headers: { 'Content-Type': 'text/plain', 'Retry-After': '900' },
+          })
+        )
+      }
+    } catch { /* best-effort — proceed to 401 even if D1 write fails */ }
     return finalize(unauthorizedResponse())
   }
 
-  // Clear failure counter on successful auth
-  await kv.delete(failKey)
+  // Clear failure counter on successful auth (fire-and-forget)
+  env.GUESS_DB.prepare('DELETE FROM kv_cache WHERE key = ?').bind(failKey).run().catch(() => {})
 
   try {
     return finalize(await next())

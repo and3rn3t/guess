@@ -1,5 +1,5 @@
 import {
-  checkRateLimit,
+  checkRateLimitBestEffort,
   d1Run,
   type Env,
   errorResponse,
@@ -32,8 +32,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
   try {
     const db = context.env.GUESS_DB;
-    const kv = context.env.GUESS_KV;
-    if (!db || !kv) return respond(errorResponse("D1/KV not configured", 503));
+    if (!db) return respond(errorResponse("D1 not configured", 503));
 
     // Enforce body size limit before parsing
     const contentLength = parseInt(
@@ -50,7 +49,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     );
 
     // Rate limit: 20 flushes/hour per user — each flush can contain up to 50 events
-    const { allowed } = await checkRateLimit(kv, userId, "events_flush", 20);
+    const { allowed } = await checkRateLimitBestEffort(context.env, userId, "events_flush", 20);
     if (!allowed) {
       return respond(
         withSetCookie(

@@ -14,6 +14,7 @@ import {
   withRequestId,
 } from '../_helpers'
 import { SOURCE_HEALTH_REPORT_KEY, type SourceHealthReport } from '../_source_health'
+import { d1CacheGet } from '../_d1_cache'
 
 interface SourceHealthStatusResponse {
   report: SourceHealthReport | null
@@ -30,10 +31,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
   const rate = await checkRateLimitBestEffort(env, actorId, 'admin.source-health-status.read', 600)
   if (!rate.allowed) return respond(errorResponse('Rate limit exceeded', 429))
 
-  const kv = env.GUESS_ASSETS ?? env.GUESS_KV
-  if (!kv) return respond(errorResponse('KV not configured', 503))
-
-  const report = await kv.get(SOURCE_HEALTH_REPORT_KEY, 'json') as SourceHealthReport | null
+  const report = await d1CacheGet<SourceHealthReport>(env.GUESS_DB, SOURCE_HEALTH_REPORT_KEY)
 
   const response = respond(
     jsonResponse({

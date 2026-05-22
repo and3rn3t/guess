@@ -289,12 +289,11 @@ export async function handleMerge(context: Parameters<PagesFunction<Env>>[0]): P
     .run()
 
   // Best-effort cache bust so the engine drops the merged question on next start.
-  if (context.env.GUESS_KV) {
-    try {
-      await context.env.GUESS_KV.delete('meta:questions')
-    } catch {
-      // Non-fatal; engine will pick up the change after the 1h TTL expires.
-    }
+  try {
+    const { d1CacheDelete } = await import('../../../_d1_cache')
+    await d1CacheDelete(context.env.GUESS_DB, 'meta:questions')
+  } catch {
+    // Non-fatal; engine will pick up the change after the 1h TTL expires.
   }
 
   return jsonResponse({

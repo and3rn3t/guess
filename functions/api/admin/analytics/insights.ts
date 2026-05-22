@@ -7,6 +7,7 @@
  * Protected by the Basic auth gate in functions/_middleware.ts.
  */
 import { type Env, jsonResponse, errorResponse, getCompletionsEndpoint, getLlmHeaders } from '../../_helpers'
+import { d1CacheGet, d1CachePut } from '../../_d1_cache'
 
 interface EventSummaryItem {
   event_type: string
@@ -26,12 +27,12 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
   const { summary = [], totalGames7d = 0, bustCache = false } = body
 
-  const kv = env.GUESS_ASSETS ?? null
+  const db = env.GUESS_DB
   const cacheKey = 'admin:analytics-insights'
 
-  if (!bustCache && kv) {
-    const cached = await kv.get(cacheKey)
-    if (cached) return jsonResponse(JSON.parse(cached))
+  if (!bustCache) {
+    const cached = await d1CacheGet<{ insights: string; generated_at: number }>(db, cacheKey)
+    if (cached) return jsonResponse(cached)
   }
 
   const summaryText = summary
@@ -71,9 +72,7 @@ Be specific and data-driven. If there's insufficient data, say so briefly.`
 
     const result = { insights: text, generated_at: Date.now() }
 
-    if (kv) {
-      await kv.put(cacheKey, JSON.stringify(result), { expirationTtl: 21600 })
-    }
+    await d1CachePut(db, cacheKey, result, 21600)
 
     return jsonResponse(result)
   } catch (e) {

@@ -5,6 +5,7 @@ import {
   d1Query,
   d1First,
 } from '../_helpers'
+import { d1CacheGet, d1CachePut } from '../_d1_cache'
 
 // ── GET /api/v2/stats ────────────────────────────────────────
 // Database overview + game statistics from D1
@@ -13,15 +14,10 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
   const db = context.env.GUESS_DB
   if (!db) return errorResponse('D1 not configured', 503)
 
-  // ── KV cache: return cached stats if available ───────────
-  const kv = context.env.GUESS_KV
-  if (kv) {
-    const cached = await kv.get('cache:stats')
-    if (cached) {
-      return new Response(cached, {
-        headers: { 'Content-Type': 'application/json' },
-      })
-    }
+  // D1 kv_cache: return cached stats if available
+  const cached = await d1CacheGet<unknown>(db, 'cache:stats').catch(() => null)
+  if (cached) {
+    return jsonResponse(cached)
   }
 
   const [characters, attributes, questions, byCategory, bySource] = await Promise.all([
@@ -290,12 +286,10 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     // sim_game_stats may not exist yet
   }
 
-  // ── KV cache: store result with 5-minute TTL ─────────────
-  if (kv) {
-    context.waitUntil(
-      kv.put('cache:stats', JSON.stringify(result), { expirationTtl: 300 })
-    )
-  }
+  // D1 kv_cache: store result with 5-minute TTL
+  context.waitUntil(
+    d1CachePut(db, 'cache:stats', result, 300).catch(() => {})
+  )
 
   return jsonResponse(result)
 }

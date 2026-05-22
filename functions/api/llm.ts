@@ -5,8 +5,6 @@ import {
   getLlmHeaders,
   getOrCreateUserId,
   withSetCookie,
-  kvGetObject,
-  kvPut,
   sanitizeString,
   logError,
 } from "./_helpers";
@@ -14,17 +12,10 @@ import { recordLLMUsage, type RetryOutcome } from "./_llm_metrics";
 
 const MAX_PROMPT_LENGTH = 50_000;
 const ALLOWED_MODELS = ["gpt-4o", "gpt-4o-mini"];
+
 const MAX_RETRIES = 2;
 const RETRY_DELAYS = [1000, 3000];
 const CACHE_MAX_AGE = 86400; // 24 hours (seconds)
-
-interface CostRecord {
-  promptTokens: number;
-  completionTokens: number;
-  calls: number;
-}
-
-/** SHA-256 hash for cache keys */
 async function sha256CacheKey(str: string): Promise<string> {
   const encoded = new TextEncoder().encode(str);
   const hashBuffer = await crypto.subtle.digest("SHA-256", encoded);
@@ -120,29 +111,6 @@ function validateBody(body: {
   return null;
 }
 
-/** Track token usage costs in KV */
-async function trackTokenUsage(
-  kv: KVNamespace,
-  userId: string,
-  usage: {
-    prompt_tokens: number;
-    completion_tokens: number;
-    total_tokens: number;
-  },
-): Promise<void> {
-  const dateKey = new Date().toISOString().slice(0, 10);
-  const costKey = `costs:${userId}:${dateKey}`;
-  const existing = (await kvGetObject<CostRecord>(kv, costKey)) || {
-    promptTokens: 0,
-    completionTokens: 0,
-    calls: 0,
-  };
-  existing.promptTokens += usage.prompt_tokens;
-  existing.completionTokens += usage.completion_tokens;
-  existing.calls++;
-  await kvPut(kv, costKey, existing);
-}
-
 /** Check per-user rate limit using cookie-based user ID, returning 429 Response or null */
 async function enforceRateLimit(
   request: Request,
@@ -236,7 +204,6 @@ interface ProcessSuccessInput {
       total_tokens: number;
     };
   };
-  kv: KVNamespace | undefined;
   cacheKey: string;
   request: Request;
   env: Env;
@@ -248,7 +215,6 @@ interface ProcessSuccessInput {
 /** Process successful OpenAI response: cache + track tokens + return */
 async function processSuccess({
   data,
-  kv,
   cacheKey,
   request,
   env,
@@ -278,12 +244,7 @@ async function processSuccess({
 
   if (data.usage) {
     responseHeaders["X-Token-Usage"] = JSON.stringify(data.usage);
-    if (kv) {
-      await trackTokenUsage(kv, userId, data.usage).catch(() => {});
-    }
-    // I.2: write one Analytics Engine data point per call. Replaces the
-    // brittle `costs:{userId}:{date}` KV pattern as the source of truth
-    // for cost dashboards (KV write above is kept short-term for back-compat).
+    // Analytics Engine is the source of truth for cost dashboards
     recordLLMUsage(env.LLM_COSTS, {
       model,
       userId,
@@ -372,8 +333,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     );
   }
 
-  const kv = context.env.GUESS_KV;
-
   // Parse body
   let body: {
     prompt?: string;
@@ -400,10 +359,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   };
 
   // Rate limiting
-  if (kv) {
-    const rateLimited = await enforceRateLimit(context.request, context.env);
-    if (rateLimited) return rateLimited;
-  }
+  const rateLimited = await enforceRateLimit(context.request, context.env);
+  if (rateLimited) return rateLimited;
 
   // Check edge cache
   const cacheKey = await sha256CacheKey(
@@ -448,7 +405,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     return processSuccess({
       data,
-      kv,
       cacheKey,
       request: context.request,
       env: context.env,

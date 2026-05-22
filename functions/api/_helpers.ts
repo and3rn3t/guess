@@ -2,9 +2,9 @@
 
 export interface Env {
   OPENAI_API_KEY: string
-  GUESS_KV: KVNamespace
-  /** Optional KV used for admin dashboard caches. */
-  GUESS_ASSETS?: KVNamespace
+  /** Admin panel credential — stored as a Cloudflare secret.
+   *  Format: `sha256:<hex-digest-of-"user:pass">` (preferred) or plain `"user:pass"`. */
+  ADMIN_CREDENTIAL?: string
   GUESS_DB: D1Database
   GUESS_IMAGES: R2Bucket
   CLOUDFLARE_AI_GATEWAY?: string
@@ -83,28 +83,10 @@ export class ValidationError extends Error {
   }
 }
 
-/** Simple per-user rate limiting via KV. Returns true if allowed, false if rate-limited. */
-export async function checkRateLimit(
-  kv: KVNamespace,
-  userId: string,
-  action: string,
-  maxPerHour: number
-): Promise<{ allowed: boolean; remaining: number }> {
-  const hour = Math.floor(Date.now() / 3_600_000)
-  const key = `ratelimit:${action}:${userId}:${hour}`
-
-  const current = parseInt((await kv.get(key)) || '0', 10)
-  if (current >= maxPerHour) {
-    return { allowed: false, remaining: 0 }
-  }
-
-  await kv.put(key, String(current + 1), { expirationTtl: 7200 })
-  return { allowed: true, remaining: maxPerHour - current - 1 }
-}
-
 /**
  * Atomic per-user rate limiting via Durable Objects (BI.5).
- * Falls back to the KV-based limiter if RATE_LIMITER binding is unavailable.
+ * Fails open (allows the request) when RATE_LIMITER binding is unavailable
+ * (e.g. local dev / preview without the DO configured).
  */
 export async function checkRateLimitDO(
   env: Env,
@@ -113,8 +95,8 @@ export async function checkRateLimitDO(
   maxPerHour: number
 ): Promise<{ allowed: boolean; remaining: number }> {
   if (!env.RATE_LIMITER) {
-    // Fallback for local dev / preview environments without the DO binding
-    return checkRateLimit(env.GUESS_KV, userId, action, maxPerHour)
+    // No DO binding — fail open in dev/preview environments
+    return { allowed: true, remaining: maxPerHour }
   }
   const id = env.RATE_LIMITER.idFromName(`${action}:${userId}`)
   const stub = env.RATE_LIMITER.get(id)
@@ -124,14 +106,14 @@ export async function checkRateLimitDO(
   return res.json<{ allowed: boolean; remaining: number }>()
 }
 
-/** Best-effort rate limiting: when bindings are missing, allow by default. */
+/** Best-effort rate limiting: fails open when RATE_LIMITER binding is absent. */
 export async function checkRateLimitBestEffort(
   env: Env,
   subjectId: string,
   action: string,
   maxPerHour: number,
 ): Promise<{ allowed: boolean; remaining: number }> {
-  if (!env.RATE_LIMITER && !env.GUESS_KV) {
+  if (!env.RATE_LIMITER) {
     return { allowed: true, remaining: maxPerHour }
   }
   return checkRateLimitDO(env, subjectId, action, maxPerHour)
@@ -303,34 +285,6 @@ export function errorResponse(message: string, status: number): Response {
 /** Standardized internal 500 response payload with requestId for support correlation. */
 export function internalErrorResponse(requestId: string): Response {
   return jsonResponse({ error: 'Internal server error', requestId }, 500)
-}
-
-/** Read a JSON array from KV, returning empty array if key doesn't exist */
-export async function kvGetArray<T>(kv: KVNamespace, key: string): Promise<T[]> {
-  const raw = await kv.get(key)
-  if (!raw) return []
-  try {
-    const parsed = JSON.parse(raw)
-    return Array.isArray(parsed) ? parsed : []
-  } catch {
-    return []
-  }
-}
-
-/** Read a JSON object from KV, returning null if key doesn't exist */
-export async function kvGetObject<T>(kv: KVNamespace, key: string): Promise<T | null> {
-  const raw = await kv.get(key)
-  if (!raw) return null
-  try {
-    return JSON.parse(raw) as T
-  } catch {
-    return null
-  }
-}
-
-/** Write a JSON value to KV */
-export async function kvPut(kv: KVNamespace, key: string, value: unknown): Promise<void> {
-  await kv.put(key, JSON.stringify(value))
 }
 
 /** Validate that a value is a valid CharacterCategory */

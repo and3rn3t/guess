@@ -12,6 +12,7 @@ import {
   jsonResponse,
   withRequestId,
 } from '../_helpers'
+import { d1CacheGet } from '../_d1_cache'
 
 const AUTOMATION_REPORT_KEY = 'admin:automation:last-run'
 
@@ -30,10 +31,8 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
   const rate = await checkRateLimitBestEffort(env, actorId, 'admin.automation-status.read', 600)
   if (!rate.allowed) return respond(errorResponse('Rate limit exceeded', 429))
 
-  const kv = env.GUESS_ASSETS ?? env.GUESS_KV
-  if (!kv) return respond(errorResponse('KV not configured', 503))
-
-  const report = await kv.get(AUTOMATION_REPORT_KEY, 'json')
+  const db = env.GUESS_DB
+  const report = await d1CacheGet<unknown>(db, AUTOMATION_REPORT_KEY)
 
   const response = respond(
     jsonResponse({

@@ -8,6 +8,7 @@
  * Protected by the Basic auth gate in functions/_middleware.ts.
  */
 import { type Env, jsonResponse, errorResponse } from '../_helpers'
+import { d1CachePut } from '../_d1_cache'
 
 interface EnrichmentSummary {
   total: number
@@ -77,9 +78,6 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 }
 
 export const onRequestPost: PagesFunction<Env> = async (context) => {
-  const kv = context.env.GUESS_KV
-  if (!kv) return errorResponse('KV not configured', 503)
-
   const db = context.env.GUESS_DB
   if (!db) return errorResponse('D1 not configured', 503)
 
@@ -95,9 +93,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   }
 
   if (characterIds) {
-    await kv.put('admin:enrich-retry-ids', JSON.stringify({ requestedAt: Date.now(), characterIds }), {
-      expirationTtl: 3600,
-    })
+    await d1CachePut(db, 'admin:enrich-retry-ids', JSON.stringify({ requestedAt: Date.now(), characterIds }), 3600)
     return jsonResponse({ ok: true, queued: characterIds.length })
   }
 
@@ -109,10 +105,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   const count = result?.total ?? 0
   if (count === 0) return jsonResponse({ ok: true, queued: 0, message: 'All characters already enriched' })
 
-  // Set a KV flag that the enrichment CLI/pipeline checks
-  await kv.put('admin:enrich-retry', JSON.stringify({ requestedAt: Date.now(), count }), {
-    expirationTtl: 3600,
-  })
+  // Set a D1 cache flag that the enrichment CLI/pipeline checks
+  await d1CachePut(db, 'admin:enrich-retry', JSON.stringify({ requestedAt: Date.now(), count }), 3600)
 
   return jsonResponse({ ok: true, queued: count })
 }

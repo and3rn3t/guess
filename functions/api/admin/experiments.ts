@@ -12,6 +12,7 @@
  * Protected by the Basic auth gate in functions/_middleware.ts.
  */
 import { type Env, jsonResponse, errorResponse } from '../_helpers'
+import { d1ConfigGetMulti, d1ConfigSet } from '../_d1_cache'
 
 interface ArmRow {
   variant: string | null
@@ -81,7 +82,6 @@ function wald95(wins: number, n: number): number {
 
 export const onRequestGet: PagesFunction<Env> = async (context) => {
   const db = context.env.GUESS_DB
-  const kv = context.env.GUESS_KV
   if (!db) return errorResponse('DB not configured', 503)
 
   const url = new URL(context.request.url)
@@ -139,36 +139,25 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     }
   })
 
-  // Live KV configuration — null when KV is unbound (local dev without `cf:dev`).
-  let config: {
-    pct: number
-    selector: string | null
-    weights: string | null
-    activeWeights: string | null
-    autoTuneEnabled: boolean
-  } = {
-    pct: 0,
-    selector: null,
-    weights: null,
-    activeWeights: null,
-    autoTuneEnabled: false,
-  }
-  if (kv) {
-    const [pctStr, selectorStr, weightsStr, activeStr, killStr] = await Promise.all([
-      kv.get('ab:experiment-pct'),
-      kv.get('ab:experiment-selector'),
-      kv.get('ab:experiment-weights'),
-      kv.get('engine:weights-active'),
-      kv.get('engine:auto-tune-enabled'),
-    ])
-    const pct = pctStr ? Number.parseInt(pctStr, 10) : 0
-    config = {
-      pct: Number.isFinite(pct) ? pct : 0,
-      selector: selectorStr,
-      weights: weightsStr,
-      activeWeights: activeStr,
-      autoTuneEnabled: typeof killStr === 'string' && killStr.trim().toLowerCase() === 'true',
-    }
+  // Live experiment configuration from engine_config D1 table.
+  const cfgMap = await d1ConfigGetMulti(db, [
+    'ab:experiment-pct',
+    'ab:experiment-selector',
+    'ab:experiment-weights',
+    'engine:weights-active',
+    'engine:auto-tune-enabled',
+  ]).catch(() => new Map<string, string>())
+
+  const pctStr = cfgMap.get('ab:experiment-pct') ?? null
+  const pct = pctStr ? Number.parseInt(pctStr, 10) : 0
+  const config = {
+    pct: Number.isFinite(pct) ? pct : 0,
+    selector: cfgMap.get('ab:experiment-selector') ?? null,
+    weights: cfgMap.get('ab:experiment-weights') ?? null,
+    activeWeights: cfgMap.get('engine:weights-active') ?? null,
+    autoTuneEnabled:
+      typeof cfgMap.get('engine:auto-tune-enabled') === 'string' &&
+      (cfgMap.get('engine:auto-tune-enabled') ?? '').trim().toLowerCase() === 'true',
   }
 
   return jsonResponse({
@@ -194,8 +183,8 @@ interface UpdateBody {
 }
 
 export const onRequestPost: PagesFunction<Env> = async (context) => {
-  const kv = context.env.GUESS_KV
-  if (!kv) return errorResponse('KV not configured', 503)
+  const db = context.env.GUESS_DB
+  if (!db) return errorResponse('DB not configured', 503)
 
   let body: UpdateBody
   try {
@@ -210,7 +199,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     if (!Number.isInteger(body.pct) || body.pct < 0 || body.pct > 100) {
       return errorResponse('pct must be an integer 0-100', 400)
     }
-    await kv.put('ab:experiment-pct', String(body.pct))
+    await d1ConfigSet(db, 'ab:experiment-pct', String(body.pct))
     updates.push('pct')
   }
 
@@ -218,7 +207,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     if (body.selector !== 'greedy' && body.selector !== 'mcts') {
       return errorResponse("selector must be 'greedy' or 'mcts'", 400)
     }
-    await kv.put('ab:experiment-selector', body.selector)
+    await d1ConfigSet(db, 'ab:experiment-selector', body.selector)
     updates.push('selector')
   }
 
@@ -226,7 +215,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     if (typeof body.autoTuneEnabled !== 'boolean') {
       return errorResponse('autoTuneEnabled must be boolean', 400)
     }
-    await kv.put('engine:auto-tune-enabled', body.autoTuneEnabled ? 'true' : 'false')
+    await d1ConfigSet(db, 'engine:auto-tune-enabled', body.autoTuneEnabled ? 'true' : 'false')
     updates.push('autoTuneEnabled')
   }
 

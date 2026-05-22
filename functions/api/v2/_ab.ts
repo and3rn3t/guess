@@ -1,17 +1,17 @@
 // A/B variant assignment for engine experiments.
 //
-// Reads three KV flags written by the admin panel:
-//   kv:ab:experiment-pct       — string, 0-100 percent of new sessions to bucket into experiment
-//   kv:ab:experiment-selector  — 'greedy' | 'mcts' | (anything else falls back to default)
-//   kv:ab:experiment-weights   — JSON ScoringWeights override (optional, future use)
+// Reads four engine_config keys written by the admin panel:
+//   ab:experiment-pct       — string, 0-100 percent of new sessions to bucket into experiment
+//   ab:experiment-selector  — 'greedy' | 'mcts' | (anything else falls back to default)
 //
 // Also supports a dedicated rollout flag for question expansion:
-//   kv:ff:question_expansion_v1_pct       — string, 0-100
-//   kv:ff:question_expansion_v1_selector  — 'greedy' | 'mcts'
+//   ff:question_expansion_v1_pct       — string, 0-100
+//   ff:question_expansion_v1_selector  — 'greedy' | 'mcts'
 //
 // Bucketing is deterministic per (userId, day) so a single user gets a stable
 // variant within a day — prevents the same user flipping between variants
 // across consecutive games.
+import { d1ConfigGetMulti } from '../_d1_cache'
 
 export type EngineVariant = 'control' | 'experiment'
 export type EngineSelector = 'greedy' | 'mcts'
@@ -45,16 +45,15 @@ function isSelector(s: string | null): s is EngineSelector {
 
 /** Decide which engine variant + selector to assign to a new session. */
 export async function assignVariant(
-  kv: KVNamespace,
+  db: D1Database,
   userId: string
 ): Promise<VariantAssignment> {
-  // All reads in parallel; keys may be null on a cold KV.
-  const [pctStr, selectorStr, questionExpansionPctStr, questionExpansionSelectorStr] = await Promise.all([
-    kv.get(KV_PCT),
-    kv.get(KV_SELECTOR),
-    kv.get(KV_QE_PCT),
-    kv.get(KV_QE_SELECTOR),
-  ])
+  // All reads in a single D1 query
+  const configMap = await d1ConfigGetMulti(db, [KV_PCT, KV_SELECTOR, KV_QE_PCT, KV_QE_SELECTOR])
+  const pctStr = configMap.get(KV_PCT) ?? null
+  const selectorStr = configMap.get(KV_SELECTOR) ?? null
+  const questionExpansionPctStr = configMap.get(KV_QE_PCT) ?? null
+  const questionExpansionSelectorStr = configMap.get(KV_QE_SELECTOR) ?? null
 
   // Dedicated Phase 4 rollout flag uses stable per-user bucketing so users
   // stay in one cohort across days and difficulties.

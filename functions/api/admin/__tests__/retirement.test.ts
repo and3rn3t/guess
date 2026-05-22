@@ -5,11 +5,9 @@ import { onRequestPost as onUnretirePost } from '../questions/[key]/unretire'
 import {
   buildEnv,
   createTestDb,
-  createTestKv,
   invokeHandler,
   seedAttributeDefinition,
   type TestDb,
-  type TestKv,
 } from './harness'
 
 interface QueueResponse {
@@ -70,11 +68,9 @@ function seedSkipEvent(db: TestDb, questionId: string, count: number): void {
 }
 
 let db: TestDb
-let kv: TestKv
 
 beforeEach(() => {
   db = createTestDb()
-  kv = createTestKv()
 })
 
 afterEach(() => {
@@ -83,7 +79,7 @@ afterEach(() => {
 
 describe('GET /api/admin/questions/retirement-queue', () => {
   it('returns empty live queue when no question_attempts exist', async () => {
-    const env = buildEnv({ db, kv })
+    const env = buildEnv({ db })
     const res = await invokeHandler<QueueResponse>(onRetirementQueueGet, {
       env,
       method: 'GET',
@@ -108,7 +104,7 @@ describe('GET /api/admin/questions/retirement-queue', () => {
     seedAttempt(db, 'q-good', 'isHuman', 'yes', 10)
     seedAttempt(db, 'q-good', 'isHuman', 'no', 10)
 
-    const env = buildEnv({ db, kv })
+    const env = buildEnv({ db })
     const res = await invokeHandler<QueueResponse>(onRetirementQueueGet, {
       env,
       method: 'GET',
@@ -129,7 +125,7 @@ describe('GET /api/admin/questions/retirement-queue', () => {
 
     db.raw.prepare(`UPDATE questions SET retired_at = ? WHERE id = ?`).run(Date.now(), 'q-1')
 
-    const env = buildEnv({ db, kv })
+    const env = buildEnv({ db })
     const res = await invokeHandler<QueueResponse>(onRetirementQueueGet, {
       env,
       method: 'GET',
@@ -144,7 +140,7 @@ describe('GET /api/admin/questions/retirement-queue', () => {
     seedAttempt(db, 'q-noise', 'isHero', 'no', 1)
     seedSkipEvent(db, 'q-noise', 100) // huge skip → would dominate without minShown
 
-    const env = buildEnv({ db, kv })
+    const env = buildEnv({ db })
     const res = await invokeHandler<QueueResponse>(onRetirementQueueGet, {
       env,
       method: 'GET',
@@ -164,7 +160,7 @@ describe('GET /api/admin/questions/retirement-queue', () => {
       .prepare(`UPDATE questions SET retired_at = ?, retired_reason = ? WHERE id = ?`)
       .run(9000, 'fresh retire', 'q-new')
 
-    const env = buildEnv({ db, kv })
+    const env = buildEnv({ db })
     const res = await invokeHandler<QueueResponse>(onRetirementQueueGet, {
       env,
       method: 'GET',
@@ -180,11 +176,10 @@ describe('GET /api/admin/questions/retirement-queue', () => {
 })
 
 describe('POST /api/admin/questions/:key/retire', () => {
-  it('marks the question retired and invalidates KV cache', async () => {
+  it('marks the question retired', async () => {
     seedQuestion(db, 'q-1', 'isHero', 'Is hero?')
-    await kv.put('meta:questions', JSON.stringify([{ id: 'q-1', text: 'Is hero?' }]))
 
-    const env = buildEnv({ db, kv })
+    const env = buildEnv({ db })
     const res = await invokeHandler<{ ok: boolean; retired: number; reason: string | null }>(
       onRetirePost,
       {
@@ -204,12 +199,10 @@ describe('POST /api/admin/questions/:key/retire', () => {
       .get('q-1') as { retired_at: number; retired_reason: string }
     expect(row.retired_at).toBeGreaterThan(0)
     expect(row.retired_reason).toBe('too vague')
-
-    expect(kv._store.has('meta:questions')).toBe(false)
   })
 
   it('returns 404 when no questions match the key', async () => {
-    const env = buildEnv({ db, kv })
+    const env = buildEnv({ db })
     const res = await invokeHandler(onRetirePost, {
       env,
       method: 'POST',
@@ -222,7 +215,7 @@ describe('POST /api/admin/questions/:key/retire', () => {
 
   it('rejects oversized reasons', async () => {
     seedQuestion(db, 'q-1', 'isHero', 'Is hero?')
-    const env = buildEnv({ db, kv })
+    const env = buildEnv({ db })
     const res = await invokeHandler(onRetirePost, {
       env,
       method: 'POST',
@@ -235,14 +228,13 @@ describe('POST /api/admin/questions/:key/retire', () => {
 })
 
 describe('POST /api/admin/questions/:key/unretire', () => {
-  it('clears retired_at + retired_reason and invalidates KV cache', async () => {
+  it('clears retired_at + retired_reason', async () => {
     seedQuestion(db, 'q-1', 'isHero', 'Is hero?')
     db.raw
       .prepare(`UPDATE questions SET retired_at = ?, retired_reason = 'old' WHERE id = ?`)
       .run(Date.now(), 'q-1')
-    await kv.put('meta:questions', JSON.stringify([]))
 
-    const env = buildEnv({ db, kv })
+    const env = buildEnv({ db })
     const res = await invokeHandler<{ ok: boolean; unretired: number }>(onUnretirePost, {
       env,
       method: 'POST',
@@ -258,12 +250,10 @@ describe('POST /api/admin/questions/:key/unretire', () => {
       .get('q-1') as { retired_at: number | null; retired_reason: string | null }
     expect(row.retired_at).toBeNull()
     expect(row.retired_reason).toBeNull()
-
-    expect(kv._store.has('meta:questions')).toBe(false)
   })
 
   it('returns 404 for unknown key', async () => {
-    const env = buildEnv({ db, kv })
+    const env = buildEnv({ db })
     const res = await invokeHandler(onUnretirePost, {
       env,
       method: 'POST',

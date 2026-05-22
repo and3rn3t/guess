@@ -4,12 +4,11 @@ import {
   getActorId,
   getRequestId,
   jsonResponse,
-  kvGetArray,
-  kvPut,
   logError,
   parseJsonBodyWithSchema,
   withRequestId,
 } from '../../_helpers'
+import { d1CacheGet, d1CachePut } from '../../_d1_cache'
 import { z } from 'zod'
 
 const BodySchema = z.object({
@@ -129,13 +128,13 @@ function selectTargets(rows: CoverageRow[], limit: number): CoverageRow[] {
 }
 
 async function appendRunHistory(
-  kv: KVNamespace | undefined,
+  db: D1Database | undefined,
   entry: ExpansionRunHistoryEntry,
 ): Promise<void> {
-  if (!kv) return
-  const runs = await kvGetArray<ExpansionRunHistoryEntry>(kv, RUN_HISTORY_KEY)
+  if (!db) return
+  const runs = (await d1CacheGet<ExpansionRunHistoryEntry[]>(db, RUN_HISTORY_KEY)) ?? []
   runs.unshift(entry)
-  await kvPut(kv, RUN_HISTORY_KEY, runs.slice(0, RUN_HISTORY_MAX))
+  await d1CachePut(db, RUN_HISTORY_KEY, runs.slice(0, RUN_HISTORY_MAX))
 }
 
 interface ExpansionOptions {
@@ -259,7 +258,7 @@ async function runExpansion(options: ExpansionOptions): Promise<ExpansionResult>
 
 export const onRequestGet: PagesFunction<Env> = async (context) => {
   const requestId = getRequestId(context.request)
-  const runs = await kvGetArray<ExpansionRunHistoryEntry>(context.env.GUESS_KV, RUN_HISTORY_KEY)
+  const runs = (await d1CacheGet<ExpansionRunHistoryEntry[]>(context.env.GUESS_DB, RUN_HISTORY_KEY)) ?? []
   return withRequestId(
     jsonResponse({
       ok: true,
@@ -299,7 +298,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       dryRun,
     })
 
-    await appendRunHistory(env.GUESS_KV, {
+    await appendRunHistory(env.GUESS_DB, {
       requestId,
       actorId,
       dryRun,
@@ -326,7 +325,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       requestId,
     )
   } catch (err) {
-    void appendRunHistory(env.GUESS_KV, {
+    void appendRunHistory(env.GUESS_DB, {
       requestId,
       actorId,
       dryRun,

@@ -7,11 +7,9 @@
 import { describe, expect, it, beforeEach } from 'vitest'
 import {
   createTestDb,
-  createTestKv,
   invokeHandler,
   seedAttributeDefinition,
   type TestDb,
-  type TestKv,
 } from './harness'
 import {
   serializeEmbedding,
@@ -111,16 +109,14 @@ function makeMockAi(): MockAi {
 
 describe('GET /api/admin/questions/duplicates', () => {
   let db: TestDb
-  let kv: TestKv
   beforeEach(() => {
     db = createTestDb()
-    kv = createTestKv()
     resetTables(db)
   })
 
   it('returns 503 when the DB binding is missing', async () => {
     const res = await invokeHandler(duplicatesGet, {
-      env: { GUESS_DB: undefined as never, GUESS_KV: kv as never } as never,
+      env: { GUESS_DB: undefined as never } as never,
       method: 'GET',
     })
     expect(res.status).toBe(503)
@@ -131,7 +127,7 @@ describe('GET /api/admin/questions/duplicates', () => {
     const res = await invokeHandler<{ pairs: unknown[]; totalQuestions: number; totalEmbedded: number }>(
       duplicatesGet,
       {
-        env: { GUESS_DB: db.d1, GUESS_KV: kv } as never,
+        env: { GUESS_DB: db.d1 } as never,
         method: 'GET',
       },
     )
@@ -158,7 +154,7 @@ describe('GET /api/admin/questions/duplicates', () => {
     const res = await invokeHandler<{ pairs: Array<{ pairKey: string; similarity: number }> }>(
       duplicatesGet,
       {
-        env: { GUESS_DB: db.d1, GUESS_KV: kv } as never,
+        env: { GUESS_DB: db.d1 } as never,
         method: 'GET',
         url: 'https://example.com/api/admin/questions/duplicates?threshold=0.95',
       },
@@ -175,7 +171,7 @@ describe('GET /api/admin/questions/duplicates', () => {
       )
       .run('isHero::isProtagonist', 'isHero', 'isProtagonist', 0.99)
     const res2 = await invokeHandler<{ pairs: unknown[] }>(duplicatesGet, {
-      env: { GUESS_DB: db.d1, GUESS_KV: kv } as never,
+      env: { GUESS_DB: db.d1 } as never,
       method: 'GET',
       url: 'https://example.com/api/admin/questions/duplicates?threshold=0.95',
     })
@@ -184,7 +180,7 @@ describe('GET /api/admin/questions/duplicates', () => {
 
   it('clamps threshold to [0.5, 0.999]', async () => {
     const res = await invokeHandler<{ threshold: number }>(duplicatesGet, {
-      env: { GUESS_DB: db.d1, GUESS_KV: kv } as never,
+      env: { GUESS_DB: db.d1 } as never,
       method: 'GET',
       url: 'https://example.com/api/admin/questions/duplicates?threshold=2.5',
     })
@@ -204,17 +200,15 @@ describe('POST /api/admin/questions/duplicates fallback', () => {
 
 describe('POST /api/admin/questions/duplicates/backfill', () => {
   let db: TestDb
-  let kv: TestKv
   beforeEach(() => {
     db = createTestDb()
-    kv = createTestKv()
     resetTables(db)
   })
 
   it('returns 503 when the AI binding is missing', async () => {
     seedQuestion(db, 'isHero', 'Is this character a hero?')
     const res = await invokeHandler(backfillPost, {
-      env: { GUESS_DB: db.d1, GUESS_KV: kv } as never,
+      env: { GUESS_DB: db.d1 } as never,
       method: 'POST',
       body: {},
     })
@@ -230,7 +224,7 @@ describe('POST /api/admin/questions/duplicates/backfill', () => {
       [paddedVec(1), paddedVec(2)],
     )
     const res = await invokeHandler<{ embedded: number }>(backfillPost, {
-      env: { GUESS_DB: db.d1, GUESS_KV: kv, AI: ai.binding } as never,
+      env: { GUESS_DB: db.d1, AI: ai.binding } as never,
       method: 'POST',
       body: { limit: 10 },
     })
@@ -247,7 +241,7 @@ describe('POST /api/admin/questions/duplicates/backfill', () => {
     seedEmbedding(db, 'isHero', paddedVec(1), 'Is this character a hero?')
     const ai = makeMockAi()
     const res = await invokeHandler<{ embedded: number }>(backfillPost, {
-      env: { GUESS_DB: db.d1, GUESS_KV: kv, AI: ai.binding } as never,
+      env: { GUESS_DB: db.d1, AI: ai.binding } as never,
       method: 'POST',
       body: { limit: 10 },
     })
@@ -262,7 +256,7 @@ describe('POST /api/admin/questions/duplicates/backfill', () => {
     const ai = makeMockAi()
     ai.setVectors(['Is this character a hero?'], [paddedVec(1)])
     const res = await invokeHandler<{ embedded: number }>(backfillPost, {
-      env: { GUESS_DB: db.d1, GUESS_KV: kv, AI: ai.binding } as never,
+      env: { GUESS_DB: db.d1, AI: ai.binding } as never,
       method: 'POST',
       body: { limit: 9999 },
     })
@@ -273,16 +267,14 @@ describe('POST /api/admin/questions/duplicates/backfill', () => {
 
 describe('POST /api/admin/questions/duplicates/dismiss', () => {
   let db: TestDb
-  let kv: TestKv
   beforeEach(() => {
     db = createTestDb()
-    kv = createTestKv()
     resetTables(db)
   })
 
   it('rejects requests missing pairKey', async () => {
     const res = await invokeHandler(dismissPost, {
-      env: { GUESS_DB: db.d1, GUESS_KV: kv } as never,
+      env: { GUESS_DB: db.d1 } as never,
       method: 'POST',
       body: {},
     })
@@ -291,7 +283,7 @@ describe('POST /api/admin/questions/duplicates/dismiss', () => {
 
   it('canonicalises pairKey order and persists', async () => {
     const res = await invokeHandler<{ pairKey: string }>(dismissPost, {
-      env: { GUESS_DB: db.d1, GUESS_KV: kv } as never,
+      env: { GUESS_DB: db.d1 } as never,
       method: 'POST',
       body: { pairKey: 'isVillain::isEvil', similarity: 0.97, reason: 'opposite polarity' },
     })
@@ -307,16 +299,14 @@ describe('POST /api/admin/questions/duplicates/dismiss', () => {
 
 describe('POST /api/admin/questions/duplicates/merge', () => {
   let db: TestDb
-  let kv: TestKv
   beforeEach(() => {
     db = createTestDb()
-    kv = createTestKv()
     resetTables(db)
   })
 
   it('rejects when source/target equal', async () => {
     const res = await invokeHandler(mergePost, {
-      env: { GUESS_DB: db.d1, GUESS_KV: kv } as never,
+      env: { GUESS_DB: db.d1 } as never,
       method: 'POST',
       body: { sourceKey: 'isHero', targetKey: 'isHero' },
     })
@@ -326,19 +316,19 @@ describe('POST /api/admin/questions/duplicates/merge', () => {
   it('returns 404 when either question is missing', async () => {
     seedQuestion(db, 'isHero', 'Is this a hero?')
     const res = await invokeHandler(mergePost, {
-      env: { GUESS_DB: db.d1, GUESS_KV: kv } as never,
+      env: { GUESS_DB: db.d1 } as never,
       method: 'POST',
       body: { sourceKey: 'isHero', targetKey: 'isVillain' },
     })
     expect(res.status).toBe(404)
   })
 
-  it('retires the source, auto-dismisses the pair, and busts the KV cache', async () => {
+  it('retires the source, auto-dismisses the pair, and busts the D1 cache', async () => {
     seedQuestion(db, 'isHero', 'Is this a hero?')
     seedQuestion(db, 'isProtagonist', 'Is this the protagonist?')
-    kv._store.set('meta:questions', { value: 'cached' })
+    db.raw.prepare(`INSERT OR REPLACE INTO kv_cache (key, value) VALUES (?, ?)`).run('meta:questions', '"cached"')
     const res = await invokeHandler<{ retired: string; target: string }>(mergePost, {
-      env: { GUESS_DB: db.d1, GUESS_KV: kv } as never,
+      env: { GUESS_DB: db.d1 } as never,
       method: 'POST',
       body: { sourceKey: 'isProtagonist', targetKey: 'isHero', reason: 'same idea' },
     })
@@ -357,6 +347,9 @@ describe('POST /api/admin/questions/duplicates/merge', () => {
       .get() as { pair_key: string }
     expect(dismissed.pair_key).toBe('isHero::isProtagonist')
 
-    expect(kv._store.has('meta:questions')).toBe(false)
+    const cacheRow = db.raw
+      .prepare(`SELECT key FROM kv_cache WHERE key = ?`)
+      .get('meta:questions') as { key: string } | undefined
+    expect(cacheRow).toBeUndefined()
   })
 })

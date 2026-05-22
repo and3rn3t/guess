@@ -7,6 +7,7 @@
  * Protected by the Basic auth gate in functions/_middleware.ts.
  */
 import { type Env, jsonResponse, errorResponse, getCompletionsEndpoint, getLlmHeaders } from '../_helpers'
+import { d1CacheGet, d1CachePut } from '../_d1_cache'
 
 interface SparseAttr {
   key: string
@@ -29,16 +30,10 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   const db = env.GUESS_DB
   if (!db) return errorResponse('DB not configured', 503)
 
-  const kv = env.GUESS_ASSETS ?? null
-
-  // Check KV cache first
+  // Check D1 kv_cache first
   const cacheKey = 'admin:coverage-priority'
-  if (kv) {
-    const cached = await kv.get(cacheKey)
-    if (cached) {
-      return jsonResponse(JSON.parse(cached))
-    }
-  }
+  const cached = await d1CacheGet<{ items: CoveragePriorityItem[]; generated_at: number }>(db, cacheKey)
+  if (cached) return jsonResponse(cached)
 
   // Query sparse attributes (high null %, at least 5 characters with known value)
   const rows = await db.prepare(`
@@ -115,9 +110,7 @@ Return ONLY valid JSON:
     }
 
     // Cache for 6h
-    if (kv) {
-      await kv.put(cacheKey, JSON.stringify(result), { expirationTtl: 21600 })
-    }
+    await d1CachePut(db, cacheKey, result, 21600)
 
     return jsonResponse(result)
   } catch (e) {

@@ -7,7 +7,6 @@ import type { ServerQuestion, ReasoningExplanation, Answer } from './_game-engin
 
 const ENV: Env = {
   OPENAI_API_KEY: 'sk-test',
-  GUESS_KV: {} as KVNamespace,
   GUESS_DB: {} as D1Database,
   GUESS_IMAGES: {} as R2Bucket,
 }

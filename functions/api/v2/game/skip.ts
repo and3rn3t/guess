@@ -43,8 +43,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     respond(internalErrorResponse(requestId));
 
   try {
-    const kv = context.env.GUESS_KV;
-    if (!kv) return respond(errorResponse("KV not configured", 503));
+    const db = context.env.GUESS_DB;
+    if (!db) return respond(errorResponse("D1 not configured", 503));
 
     const parsed = await parseJsonBodyWithSchema(
       context.request,
@@ -53,10 +53,14 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     if (!parsed.success) return respond(parsed.response);
     const { sessionId } = parsed.data;
 
-    const { userId, setCookieHeader } = await getOrCreateUserId(context.request, context.env);
-    const respond2 = (r: Response): Response => withSetCookie(respond(r), setCookieHeader);
+    const { userId, setCookieHeader } = await getOrCreateUserId(
+      context.request,
+      context.env,
+    );
+    const respond2 = (r: Response): Response =>
+      withSetCookie(respond(r), setCookieHeader);
 
-    const session = await loadSession(kv, sessionId);
+    const session = await loadSession(db, sessionId);
     if (!session) {
       return respond2(errorResponse("Session not found or expired", 404));
     }
@@ -88,8 +92,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const probs = calculateProbabilities(filtered, session.answers, scoring);
 
     // Load runtime adaptive data (parallel — best-effort, failures are non-fatal)
-    const db = context.env.GUESS_DB;
-    const adaptive = await loadAdaptiveData(kv, db);
+    const adaptive = await loadAdaptiveData(db);
 
     // Select next question, excluding all previously skipped ones
     const availableQuestions = session.questions.filter(
@@ -110,7 +113,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     if (!nextQuestion) {
       // All questions exhausted — save state and signal the client
-      await saveSessionState(kv, session);
+      await saveSessionState(db, session);
       return respond2(
         errorResponse("No more questions available to skip to", 409),
       );
@@ -125,7 +128,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     await advanceToNextQuestion({
       env: context.env,
-      kv,
+      db,
       session,
       nextQuestion,
       reasoning,

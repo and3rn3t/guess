@@ -50,6 +50,7 @@ import {
   parseJsonBodyWithSchema,
   withRequestId,
 } from "../_helpers";
+import { d1CacheGet, d1CachePut } from "../_d1_cache";
 import { z } from "zod";
 
 const AttributeValueSchema = z.union([z.boolean(), z.null()]);
@@ -147,29 +148,22 @@ function getPopularCharactersCacheKey(category: string): string {
 
 /**
  * Fetch live attribute statistics from the database.
- * Checks KV cache first (30-minute TTL), then queries DB, then caches result.
+ * Checks D1 kv_cache first (30-minute TTL), then queries DB, then caches result.
  */
 async function fetchAttributeStats(
   db: D1Database,
-  kv: KVNamespace | undefined,
   attributeKeys: string[],
 ): Promise<Map<string, AttributeStats>> {
   if (!db || attributeKeys.length === 0) return new Map();
 
   const cacheKey = getAttributeStatsCacheKey(attributeKeys);
 
-  // Try KV cache first
-  if (kv) {
-    try {
-      const cached = await kv.get(cacheKey);
-      if (cached) {
-        const data = JSON.parse(cached) as Array<[string, AttributeStats]>;
-        return new Map(data);
-      }
-    } catch (err) {
-      // If KV fails, just continue to DB query
-      console.error("KV cache read failed:", err);
-    }
+  // Try D1 kv_cache first
+  try {
+    const cached = await d1CacheGet<Array<[string, AttributeStats]>>(db, cacheKey);
+    if (cached) return new Map(cached);
+  } catch {
+    // If cache read fails, fall through to DB query
   }
 
   try {
@@ -213,13 +207,11 @@ async function fetchAttributeStats(
     }
 
     // Cache the result for 30 minutes
-    if (kv && stats.size > 0) {
+    if (stats.size > 0) {
       try {
-        const data = Array.from(stats.entries());
-        await kv.put(cacheKey, JSON.stringify(data), { expirationTtl: 1800 });
-      } catch (err) {
-        // If KV write fails, continue without caching
-        console.error("KV cache write failed:", err);
+        await d1CachePut(db, cacheKey, Array.from(stats.entries()), 1800);
+      } catch {
+        // If cache write fails, continue without caching
       }
     }
 
@@ -233,12 +225,11 @@ async function fetchAttributeStats(
 
 /**
  * Fetch the most popular characters from the same category.
- * Checks KV cache first (15-minute TTL), then queries DB, then caches result.
+ * Checks D1 kv_cache first (15-minute TTL), then queries DB, then caches result.
  * Includes their top attributes for reference/grounding.
  */
 async function fetchPopularCharactersInCategory(
   db: D1Database,
-  kv: KVNamespace | undefined,
   category: string,
   limit: number = 5,
 ): Promise<PopularCharacterExample[]> {
@@ -246,17 +237,12 @@ async function fetchPopularCharactersInCategory(
 
   const cacheKey = getPopularCharactersCacheKey(category);
 
-  // Try KV cache first
-  if (kv) {
-    try {
-      const cached = await kv.get(cacheKey);
-      if (cached) {
-        return JSON.parse(cached) as PopularCharacterExample[];
-      }
-    } catch (err) {
-      // If KV fails, just continue to DB query
-      console.error("KV cache read failed:", err);
-    }
+  // Try D1 kv_cache first
+  try {
+    const cached = await d1CacheGet<PopularCharacterExample[]>(db, cacheKey);
+    if (cached) return cached;
+  } catch {
+    // If cache read fails, fall through to DB query
   }
 
   try {
@@ -292,14 +278,11 @@ async function fetchPopularCharactersInCategory(
     }
 
     // Cache the result for 15 minutes
-    if (kv && examples.length > 0) {
+    if (examples.length > 0) {
       try {
-        await kv.put(cacheKey, JSON.stringify(examples), {
-          expirationTtl: 900,
-        });
-      } catch (err) {
-        // If KV write fails, continue without caching
-        console.error("KV cache write failed:", err);
+        await d1CachePut(db, cacheKey, examples, 900);
+      } catch {
+        // If cache write fails, continue without caching
       }
     }
 
@@ -400,14 +383,13 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
   // Fetch live attribute statistics and popular characters in parallel
   const db = env.GUESS_DB;
-  const kv = env.GUESS_KV;
   const attributeKeys = availableAttributes.map((a) => a.key);
   const [liveStats, popularChars] = await Promise.all([
     db
-      ? fetchAttributeStats(db, kv, attributeKeys)
+      ? fetchAttributeStats(db, attributeKeys)
       : Promise.resolve(new Map()),
     db && category
-      ? fetchPopularCharactersInCategory(db, kv, category, 5)
+      ? fetchPopularCharactersInCategory(db, category, 5)
       : Promise.resolve([]),
   ]);
 

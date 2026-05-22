@@ -11,6 +11,7 @@
  * are in functions/api/admin/characters/[id].ts
  */
 import { type Env, jsonResponse, errorResponse } from '../_helpers'
+import { d1CacheGet, d1CachePut } from '../_d1_cache'
 import type { CharactersRow } from '../_db-types'
 
 export interface AdminCharacter {
@@ -28,26 +29,23 @@ export interface AdminCharacter {
 }
 
 /**
- * Fetch total active attributes, using KV cache (24hr TTL).
+ * Fetch total active attributes, using D1 cache (24hr TTL).
  * This value changes infrequently, so caching reduces DB load significantly.
  */
 async function getTotalAttributesCached(
   db: D1Database,
-  kv: KVNamespace | undefined,
 ): Promise<number> {
   const cacheKey = 'admin:total-attributes'
 
-  // Try KV cache first
-  if (kv) {
-    try {
-      const cached = await kv.get(cacheKey)
-      if (cached) {
-        const value = parseInt(cached, 10)
-        if (!Number.isNaN(value)) return value
-      }
-    } catch (err) {
-      console.error('KV cache read failed:', err)
+  // Try D1 cache first
+  try {
+    const cached = await d1CacheGet<string>(db, cacheKey)
+    if (cached) {
+      const value = parseInt(cached, 10)
+      if (!Number.isNaN(value)) return value
     }
+  } catch (err) {
+    console.error('D1 cache read failed:', err)
   }
 
   try {
@@ -57,12 +55,10 @@ async function getTotalAttributesCached(
     const total = result?.total ?? 1
 
     // Cache for 24 hours
-    if (kv) {
-      try {
-        await kv.put(cacheKey, String(total), { expirationTtl: 86400 })
-      } catch (err) {
-        console.error('KV cache write failed:', err)
-      }
+    try {
+      await d1CachePut(db, cacheKey, String(total), 86400)
+    } catch (err) {
+      console.error('D1 cache write failed:', err)
     }
 
     return total
@@ -74,7 +70,6 @@ async function getTotalAttributesCached(
 
 export const onRequestGet: PagesFunction<Env> = async (context) => {
   const db = context.env.GUESS_DB
-  const kv = context.env.GUESS_KV
   if (!db) return errorResponse('D1 not configured', 503)
 
   const url = new URL(context.request.url)
@@ -88,7 +83,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
   const order = url.searchParams.get('order') === 'asc' ? 'ASC' : 'DESC'
 
   // Fetch total attributes (cached)
-  const totalAttributes = await getTotalAttributesCached(db, kv)
+  const totalAttributes = await getTotalAttributesCached(db)
 
   const conditions: string[] = []
   const params: (string | number)[] = []

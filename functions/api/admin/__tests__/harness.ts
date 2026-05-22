@@ -321,20 +321,17 @@ export function createTestR2(): TestR2 {
 
 export interface BuildEnvOptions {
   db?: TestDb
-  kv?: TestKv
-  /** Same KV instance used for `GUESS_ASSETS` — many handlers cache here. */
-  assets?: TestKv
   r2?: TestR2
   openaiKey?: string
+  adminSecret?: string
 }
 
 export function buildEnv(opts: BuildEnvOptions = {}): Record<string, unknown> {
   return {
     GUESS_DB: opts.db?.d1,
-    GUESS_KV: opts.kv,
-    GUESS_ASSETS: opts.assets ?? opts.kv,
     GUESS_IMAGES: opts.r2,
     OPENAI_API_KEY: opts.openaiKey ?? '',
+    ADMIN_CREDENTIAL: opts.adminSecret,
   }
 }
 

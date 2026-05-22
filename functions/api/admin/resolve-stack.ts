@@ -39,17 +39,16 @@ const FRAME_RX = /\/assets\/([\w.-]+\.js):(\d+):(\d+)/
 export const onRequestPost: PagesFunction<Env> = async (context) => {
   const { env } = context
   if (!env.GUESS_IMAGES) return errorResponse('R2 not configured', 503)
-  if (!env.GUESS_KV) return errorResponse('KV not configured', 503)
 
   const parsed = await parseJsonBodyWithSchema(context.request, BodySchema)
   if (!parsed.success) return parsed.response
   const { stack } = parsed.data
 
-  const sha = parsed.data.sha ?? (await env.GUESS_KV.get('deploy:current-sha'))
+  const sha = parsed.data.sha
   if (!sha) {
     return errorResponse(
-      'No deploy SHA recorded — pass `sha` in the request body or run a deploy that uploads sourcemaps.',
-      404,
+      'No deploy SHA — pass `sha` in the request body.',
+      400,
     )
   }
 

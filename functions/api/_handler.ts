@@ -59,8 +59,6 @@ export interface HandlerCtx {
 export interface HandlerOptions {
   /** Used for log scope and as the rate-limit bucket key. */
   name: string
-  /** When `true` (default), returns 503 if `env.GUESS_KV` is missing. */
-  requireKv?: boolean
   /** When `true` (default), loads the signed-cookie user-id and writes Set-Cookie. */
   requireUser?: boolean
   /** Optional per-user rate limit (max requests per hour for the `name` bucket). */
@@ -71,21 +69,16 @@ export function defineHandler(
   options: HandlerOptions,
   handler: (ctx: HandlerCtx) => Promise<Response>,
 ): PagesFunction<Env> {
-  const { name, requireKv = true, requireUser = true, rateLimit } = options
+  const { name, requireUser = true, rateLimit } = options
 
   return async (context) => {
     const { env, request } = context
-    const kv = env.GUESS_KV
     const requestId = getRequestId(request)
     const actorId = getActorId(request)
     const url = new URL(request.url)
 
     const respond = (response: Response, setCookieHeader?: string): Response =>
       withRequestId(withSetCookie(response, setCookieHeader), requestId)
-
-    if (requireKv && !kv) {
-      return respond(errorResponse('KV not configured', 503))
-    }
 
     try {
       let userId = ''

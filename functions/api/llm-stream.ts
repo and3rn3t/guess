@@ -3,7 +3,7 @@ import {
   getCompletionsEndpoint,
   getLlmHeaders,
   getOrCreateUserId,
-  checkRateLimit,
+  checkRateLimitBestEffort,
   sanitizeString,
   logError,
 } from './_helpers'
@@ -37,8 +37,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     return Response.json({ error: 'LLM not configured', code: 'NO_API_KEY' }, { status: 500 })
   }
 
-  const kv = context.env.GUESS_KV
-
   let body: { prompt?: string; model?: string; systemPrompt?: string }
   try {
     body = await context.request.json()
@@ -62,9 +60,9 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   }
 
   // Rate limiting (shares budget with /api/llm)
-  if (kv) {
+  {
     const { userId } = await getOrCreateUserId(context.request, context.env)
-    const { allowed } = await checkRateLimit(kv, userId, 'llm', 60)
+    const { allowed } = await checkRateLimitBestEffort(context.env, userId, 'llm', 60)
     if (!allowed) {
     return Response.json({ error: 'Rate limit exceeded', code: 'RATE_LIMITED' }, { status: 429 })
     }

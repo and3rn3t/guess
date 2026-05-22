@@ -130,10 +130,9 @@ const REASONING = {
   topCandidates: [],
 };
 
-function makeContext(body: unknown, opts: { kv?: unknown; db?: unknown } = {}) {
+function makeContext(body: unknown, opts: { db?: unknown } = {}) {
   return {
     env: {
-      GUESS_KV: "kv" in opts ? opts.kv : {},
       GUESS_DB: "db" in opts ? opts.db : {},
     },
     request: new Request("https://example.com/api/v2/game/start", {
@@ -190,15 +189,15 @@ describe("POST /api/v2/game/start", () => {
     d1RunMock.mockResolvedValue(undefined);
   });
 
-  it("returns 503 when D1 or KV binding is missing", async () => {
+  it("returns 503 when D1 binding is missing", async () => {
     const ctx = makeContext(
       { categories: [], difficulty: "medium" },
-      { kv: null, db: {} },
+      { db: null },
     );
 
     await onRequestPost(ctx);
 
-    expect(errorResponseMock).toHaveBeenCalledWith("D1/KV not configured", 503);
+    expect(errorResponseMock).toHaveBeenCalledWith("D1 not configured", 503);
   });
 
   it("returns parser response when schema validation fails", async () => {
@@ -255,7 +254,7 @@ describe("POST /api/v2/game/start", () => {
 
     expect(response.status).toBe(200);
     expect(storeSessionMock).toHaveBeenCalled();
-    expect(assignVariantMock).toHaveBeenCalledWith(ctx.env.GUESS_KV, "u-1");
+    expect(assignVariantMock).toHaveBeenCalledWith(ctx.env.GUESS_DB, "u-1");
     expect(withSetCookieMock).toHaveBeenCalled();
     expect(jsonResponseMock).toHaveBeenCalledWith(
       expect.objectContaining({

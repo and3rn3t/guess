@@ -95,7 +95,7 @@ describe('advanceToNextQuestion', () => {
 
     await advanceToNextQuestion({
       env: {} as never,
-      kv: {} as KVNamespace,
+      db: {} as D1Database,
       session,
       nextQuestion,
       reasoning,
@@ -130,7 +130,7 @@ describe('advanceToNextQuestion', () => {
 
     await advanceToNextQuestion({
       env: {} as never,
-      kv: {} as KVNamespace,
+      db: {} as D1Database,
       session,
       nextQuestion,
       reasoning,
@@ -230,7 +230,6 @@ describe('persistAndSyncAnswerTurn', () => {
 
     await persistAndSyncAnswerTurn({
       env: {} as never,
-      kv: {} as KVNamespace,
       db: {} as D1Database,
       waitUntil,
       session,

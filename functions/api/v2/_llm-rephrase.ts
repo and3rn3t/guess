@@ -1,4 +1,5 @@
 import { getCompletionsEndpoint, getLlmHeaders, logError, type Env } from '../_helpers'
+import { d1CacheGet, d1CachePut } from '../_d1_cache'
 import type { Answer, ServerQuestion, ReasoningExplanation } from './_game-engine'
 
 /** Persona-specific voice instructions for the rephrase system prompt. */
@@ -119,18 +120,18 @@ Rephrase this question.`
   }
 }
 
-// ── KV-cached rephrase for first questions ───────────────────────────────────
+// ── D1-cached rephrase for first questions ──────────────────────────────────
 // The first question (answers.length === 0) has no game context, so the rephrased
 // text is safe to reuse across sessions. Storing it avoids LLM calls on cache hits.
 
 const REPHRASE_ATTR_PREFIX = 'rephrase:attr:'
 const REPHRASE_ATTR_TTL = 86400 // 24 hours
 
-/** Like rephraseQuestion but caches the result in KV when there are no answers yet
+/** Like rephraseQuestion but caches the result in D1 kv_cache when there are no answers yet
  *  (context-free first question). On a cache hit the LLM call is skipped entirely. */
 export async function rephraseQuestionWithCache(
   env: Env,
-  kv: KVNamespace,
+  db: D1Database,
   question: ServerQuestion,
   answers: Answer[],
   reasoning: ReasoningExplanation,
@@ -143,7 +144,7 @@ export async function rephraseQuestionWithCache(
   const personaKey = persona ?? 'watson'
 
   if (isCacheable) {
-    const cached = await kv.get(`${REPHRASE_ATTR_PREFIX}${question.attribute}:${personaKey}`)
+    const cached = await d1CacheGet<string>(db, `${REPHRASE_ATTR_PREFIX}${question.attribute}:${personaKey}`).catch(() => null)
     if (cached) return cached
   }
 
@@ -151,7 +152,7 @@ export async function rephraseQuestionWithCache(
 
   if (rephrased && isCacheable) {
     // Fire-and-forget — not critical if it fails
-    kv.put(`${REPHRASE_ATTR_PREFIX}${question.attribute}:${personaKey}`, rephrased, { expirationTtl: REPHRASE_ATTR_TTL }).catch(() => {})
+    d1CachePut(db, `${REPHRASE_ATTR_PREFIX}${question.attribute}:${personaKey}`, rephrased, REPHRASE_ATTR_TTL).catch(() => {})
   }
 
   return rephrased
