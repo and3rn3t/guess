@@ -5,10 +5,7 @@
  */
 import { errorResponse } from './_helpers'
 
-const GONE_RESPONSE = errorResponse(
-  'This endpoint has been removed. Use /api/v2/characters instead.',
-  410,
-)
+const GONE_MSG = 'This endpoint has been removed. Use /api/v2/characters instead.'
 
-export const onRequestGet = (): Response => GONE_RESPONSE
-export const onRequestPost = (): Response => GONE_RESPONSE
+export const onRequestGet = (): Response => errorResponse(GONE_MSG, 410)
+export const onRequestPost = (): Response => errorResponse(GONE_MSG, 410)
