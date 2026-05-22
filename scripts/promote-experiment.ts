@@ -57,19 +57,6 @@ function d1<T>(sql: string): T[] {
   return parsed[0]?.results ?? []
 }
 
-function kvGet(key: string): string | null {
-  try {
-    const out = execFileSync(
-      'npx',
-      ['wrangler', 'kv', 'key', 'get', '--binding', 'GUESS_KV', '--env', ENV_FLAG, '--remote', key],
-      { encoding: 'utf8' }
-    )
-    return out.trim() || null
-  } catch {
-    return null
-  }
-}
-
 /** Pooled standard error of the difference in two proportions. */
 function pooledSE(wA: number, nA: number, wB: number, nB: number): number {
   if (nA <= 0 || nB <= 0) return 0
@@ -133,12 +120,12 @@ async function main(): Promise<void> {
   summary.zSigmas = zSigmas
   summary.questionsDelta = qDelta
 
-  const candidateRaw = kvGet('ab:experiment-weights')
+  const candidateRaw = d1<{value: string}>(`SELECT value FROM engine_config WHERE key = 'ab:experiment-weights' LIMIT 1`)[0]?.value ?? null
   if (!candidateRaw) {
     summary.action = 'skip'
     summary.reason = 'no_candidate_weights'
     fs.writeFileSync(path.join(OUT_DIR, 'summary.json'), JSON.stringify(summary, null, 2))
-    console.log('[promote] kv:ab:experiment-weights is empty — nothing to promote')
+    console.log('[promote] engine_config ab:experiment-weights is empty — nothing to promote')
     return
   }
 

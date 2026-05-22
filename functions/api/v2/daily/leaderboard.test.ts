@@ -50,7 +50,6 @@ function makeContext(url = 'https://example.com/api/v2/daily/leaderboard') {
   return {
     env: {
       GUESS_DB: {},
-      GUESS_KV: {},
       COOKIE_SECRET: 'secret',
     },
     request: new Request(url, { method: 'GET' }),

@@ -22,7 +22,7 @@
  *   npx tsx scripts/simulate/confusion-pairs.ts --top-attrs 10        # attrs per character
  *
  * Output format: Record<string, string[]>  (characterId → discriminating attribute list)
- * Store in KV:   wrangler kv key put --binding GUESS_KV "kv:confusion-discriminators" <json>
+ * Store in D1: INSERT OR REPLACE INTO kv_cache (key, value, cached_at) VALUES ('kv:confusion-discriminators', '<json>', unixepoch());
  */
 
 import { createReadStream, readFileSync, writeFileSync, readdirSync, existsSync } from 'node:fs'
@@ -258,5 +258,6 @@ for (const [charId] of topConfusedChars) {
 
 writeFileSync(OUTPUT_FILE, JSON.stringify(output, null, 2))
 console.log(`\nWrote discriminators for ${Object.keys(output).length} characters to: ${OUTPUT_FILE}`)
-console.log(`\nTo upload to KV (production):`)
-console.log(`  cat "${OUTPUT_FILE}" | npx wrangler kv key put --binding GUESS_KV "kv:confusion-discriminators" --stdin --env production`)
+console.log(`\nTo upload to D1 kv_cache (production):`)
+console.log(`  python3 -c 'import json,sys; v=json.dumps(json.load(open(sys.argv[1])), separators=(",",":")); print("INSERT OR REPLACE INTO kv_cache (key, value, cached_at) VALUES (" + repr("kv:confusion-discriminators") + ", " + repr(v) + ", unixepoch());")' "${OUTPUT_FILE}" > /tmp/upsert.sql`)
+console.log('  npx wrangler d1 execute guess-db --env production --remote --file /tmp/upsert.sql')

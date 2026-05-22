@@ -51,14 +51,12 @@ vi.mock('./_helpers', () => ({
 import { defineHandler, type HandlerCtx } from './_handler'
 
 interface MockEnv {
-  GUESS_KV: { get: () => Promise<null>; put: () => Promise<void> } | undefined
   GUESS_DB: { prepare: () => unknown } | undefined
 }
 
 function makeContext(env: Partial<MockEnv> = {}, request?: Request) {
   return {
     env: {
-      GUESS_KV: 'GUESS_KV' in env ? env.GUESS_KV : { get: vi.fn(), put: vi.fn() },
       GUESS_DB: 'GUESS_DB' in env ? env.GUESS_DB : { prepare: vi.fn() },
     },
     request: request ?? new Request('https://example.com/api/test'),

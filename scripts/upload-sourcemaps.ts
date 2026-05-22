@@ -10,8 +10,6 @@
  *   3. Strips the trailing `//# sourceMappingURL=` line from the matching `.js`
  *      file so browsers don't 404 chasing a missing map.
  *
- * Records the active commit SHA into KV `deploy:current-sha` so the admin
- * resolver knows which directory to read from.
  *
  * Usage (run automatically via `pnpm deploy` / `pnpm deploy:preview`):
  *   tsx scripts/upload-sourcemaps.ts --env=preview
@@ -108,15 +106,6 @@ function uploadMap(env: 'production' | 'preview', sha: string, file: string): vo
   )
 }
 
-function writeShaToKV(env: 'production' | 'preview', sha: string): void {
-  assertSafeSha(sha)
-  execFileSync(
-    'wrangler',
-    ['kv', 'key', 'put', 'deploy:current-sha', sha, '--binding=GUESS_KV', `--env=${env}`, '--remote'],
-    { stdio: 'inherit' },
-  )
-}
-
 function main(): void {
   const env = getEnv()
   const sha = getCommitSha()
@@ -143,8 +132,7 @@ function main(): void {
     unlinkSync(fullMapPath)
   }
 
-  writeShaToKV(env, sha)
-  console.log(`[upload-sourcemaps] ✓ uploaded ${maps.length} maps to maps/${sha}/ and recorded sha in KV`)
+  console.log(`[upload-sourcemaps] ✓ uploaded ${maps.length} maps to maps/${sha}/`)
 }
 
 main()

@@ -190,10 +190,10 @@ Source: .github/workflows/real-data-aggregate.yml
 - Contents:
   - metadata.txt
   - aggregate.log
-  - kv-attribute-trust.log
-  - kv-character-popularity.log
-  - kv-question-empirical-gain.log
-  - kv-question-quality-penalty.log
+  - d1-attribute-trust.log
+  - d1-character-popularity.log
+  - d1-question-empirical-gain.log
+  - d1-question-quality-penalty.log
   - d1-character-confusions.log
   - attribute-trust.json
   - character-popularity.json

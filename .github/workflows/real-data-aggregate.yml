@@ -1,8 +1,9 @@
 name: Real-game signal aggregation
 
-# Aggregates real-game telemetry from D1 into adaptive KV blobs that the
+# Aggregates real-game telemetry from D1 into adaptive data that the
 # engine consumes at runtime (kv:attribute-trust, kv:character-popularity,
-# kv:question-empirical-gain, kv:question-quality-penalty) and into the character_confusions table.
+# kv:question-empirical-gain, kv:question-quality-penalty stored in kv_cache)
+# and into the character_confusions table.
 #
 # Mirrors .github/workflows/adaptive-data-refresh.yml but sources its data
 # from production D1 instead of simulation runs. Cloudflare Pages does not
@@ -57,61 +58,73 @@ jobs:
           } > .ci-artifacts/real-aggregate/metadata.txt
           npx tsx scripts/aggregate-real-game-signals.ts --env "$ENV_FLAG" --days "$DAYS" 2>&1 | tee .ci-artifacts/real-aggregate/aggregate.log
 
-      - name: Upload attribute-trust to KV
+      - name: Upload attribute-trust to D1 kv_cache
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
           set -o pipefail
           ENV_FLAG="${{ github.event.inputs.env || 'production' }}"
-          pnpm wrangler kv key put \
-            --binding GUESS_KV \
-            --path data/real/attribute-trust.json \
-            --env "$ENV_FLAG" \
-            --remote \
-            "kv:attribute-trust" 2>&1 | tee .ci-artifacts/real-aggregate/kv-attribute-trust.log
+          DB_NAME=$([ "$ENV_FLAG" = "production" ] && echo "guess-db" || echo "guess-db-preview")
+          python3 -c "
+import json
+with open('data/real/attribute-trust.json') as f:
+    val = json.dumps(json.load(f), separators=(',', ':'))
+escaped = val.replace(\"'\", \"''\")
+print(f\"INSERT OR REPLACE INTO kv_cache (key, value, cached_at) VALUES ('kv:attribute-trust', '{escaped}', unixepoch());\")
+" > /tmp/kv-upsert-attribute-trust.sql
+          pnpm wrangler d1 execute "$DB_NAME" --env "$ENV_FLAG" --remote --file /tmp/kv-upsert-attribute-trust.sql 2>&1 | tee .ci-artifacts/real-aggregate/d1-attribute-trust.log
 
-      - name: Upload character-popularity to KV
+      - name: Upload character-popularity to D1 kv_cache
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
           set -o pipefail
           ENV_FLAG="${{ github.event.inputs.env || 'production' }}"
-          pnpm wrangler kv key put \
-            --binding GUESS_KV \
-            --path data/real/character-popularity.json \
-            --env "$ENV_FLAG" \
-            --remote \
-            "kv:character-popularity" 2>&1 | tee .ci-artifacts/real-aggregate/kv-character-popularity.log
+          DB_NAME=$([ "$ENV_FLAG" = "production" ] && echo "guess-db" || echo "guess-db-preview")
+          python3 -c "
+import json
+with open('data/real/character-popularity.json') as f:
+    val = json.dumps(json.load(f), separators=(',', ':'))
+escaped = val.replace(\"'\", \"''\")
+print(f\"INSERT OR REPLACE INTO kv_cache (key, value, cached_at) VALUES ('kv:character-popularity', '{escaped}', unixepoch());\")
+" > /tmp/kv-upsert-character-popularity.sql
+          pnpm wrangler d1 execute "$DB_NAME" --env "$ENV_FLAG" --remote --file /tmp/kv-upsert-character-popularity.sql 2>&1 | tee .ci-artifacts/real-aggregate/d1-character-popularity.log
 
-      - name: Upload question-empirical-gain to KV
+      - name: Upload question-empirical-gain to D1 kv_cache
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
           set -o pipefail
           ENV_FLAG="${{ github.event.inputs.env || 'production' }}"
-          pnpm wrangler kv key put \
-            --binding GUESS_KV \
-            --path data/real/question-empirical-gain.json \
-            --env "$ENV_FLAG" \
-            --remote \
-            "kv:question-empirical-gain" 2>&1 | tee .ci-artifacts/real-aggregate/kv-question-empirical-gain.log
+          DB_NAME=$([ "$ENV_FLAG" = "production" ] && echo "guess-db" || echo "guess-db-preview")
+          python3 -c "
+import json
+with open('data/real/question-empirical-gain.json') as f:
+    val = json.dumps(json.load(f), separators=(',', ':'))
+escaped = val.replace(\"'\", \"''\")
+print(f\"INSERT OR REPLACE INTO kv_cache (key, value, cached_at) VALUES ('kv:question-empirical-gain', '{escaped}', unixepoch());\")
+" > /tmp/kv-upsert-question-empirical-gain.sql
+          pnpm wrangler d1 execute "$DB_NAME" --env "$ENV_FLAG" --remote --file /tmp/kv-upsert-question-empirical-gain.sql 2>&1 | tee .ci-artifacts/real-aggregate/d1-question-empirical-gain.log
 
-      - name: Upload question-quality-penalty to KV
+      - name: Upload question-quality-penalty to D1 kv_cache
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
           set -o pipefail
           ENV_FLAG="${{ github.event.inputs.env || 'production' }}"
-          pnpm wrangler kv key put \
-            --binding GUESS_KV \
-            --path data/real/question-quality-penalty.json \
-            --env "$ENV_FLAG" \
-            --remote \
-            "kv:question-quality-penalty" 2>&1 | tee .ci-artifacts/real-aggregate/kv-question-quality-penalty.log
+          DB_NAME=$([ "$ENV_FLAG" = "production" ] && echo "guess-db" || echo "guess-db-preview")
+          python3 -c "
+import json
+with open('data/real/question-quality-penalty.json') as f:
+    val = json.dumps(json.load(f), separators=(',', ':'))
+escaped = val.replace(\"'\", \"''\")
+print(f\"INSERT OR REPLACE INTO kv_cache (key, value, cached_at) VALUES ('kv:question-quality-penalty', '{escaped}', unixepoch());\")
+" > /tmp/kv-upsert-question-quality-penalty.sql
+          pnpm wrangler d1 execute "$DB_NAME" --env "$ENV_FLAG" --remote --file /tmp/kv-upsert-question-quality-penalty.sql 2>&1 | tee .ci-artifacts/real-aggregate/d1-question-quality-penalty.log
 
       - name: Apply character-confusions UPSERTs to D1
         env:
@@ -144,7 +157,7 @@ jobs:
             fi
           done
           echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "Uploaded to: \`kv:attribute-trust\`, \`kv:character-popularity\`, \`kv:question-empirical-gain\`, \`kv:question-quality-penalty\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "Uploaded to: \`kv_cache\` table keys \`kv:attribute-trust\`, \`kv:character-popularity\`, \`kv:question-empirical-gain\`, \`kv:question-quality-penalty\`" >> "$GITHUB_STEP_SUMMARY"
           if [ -f data/real/character-confusions.sql ]; then
             LINES=$(grep -c '^INSERT' data/real/character-confusions.sql || echo 0)
             echo "Upserted **${LINES}** rows into \`character_confusions\`." >> "$GITHUB_STEP_SUMMARY"

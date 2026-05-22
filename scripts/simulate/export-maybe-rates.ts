@@ -16,7 +16,7 @@
  *   npx tsx scripts/simulate/export-maybe-rates.ts --min-samples 50  # require ≥50 samples
  *
  * Output format: Record<string, number>  (attribute → maybe rate 0–1)
- * Store in KV:   wrangler kv key put --binding GUESS_KV "kv:attribute-maybe-rates" <json>
+ * Store in D1: INSERT OR REPLACE INTO kv_cache (key, value, cached_at) VALUES ('kv:attribute-maybe-rates', '<json>', unixepoch());
  */
 
 import { createReadStream, writeFileSync, readdirSync, existsSync } from 'node:fs'
@@ -170,5 +170,6 @@ if (rates.length > 0) {
 
 writeFileSync(OUTPUT_FILE, JSON.stringify(maybeRates, null, 2))
 console.log(`\nWrote ${retained} attribute rates to: ${OUTPUT_FILE}`)
-console.log(`\nTo upload to KV (production):`)
-console.log(`  cat "${OUTPUT_FILE}" | npx wrangler kv key put --binding GUESS_KV "kv:attribute-maybe-rates" --stdin --env production`)
+console.log(`\nTo upload to D1 kv_cache (production):`)
+console.log(`  python3 -c 'import json,sys; v=json.dumps(json.load(open(sys.argv[1])), separators=(",",":")); print("INSERT OR REPLACE INTO kv_cache (key, value, cached_at) VALUES (" + repr("kv:attribute-maybe-rates") + ", " + repr(v) + ", unixepoch());")' "${OUTPUT_FILE}" > /tmp/upsert.sql`)
+console.log('  npx wrangler d1 execute guess-db --env production --remote --file /tmp/upsert.sql')

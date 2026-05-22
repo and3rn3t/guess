@@ -19,7 +19,7 @@
  *   npx tsx scripts/simulate/export-net-gains.ts --min-samples 30
  *
  * Output format: Record<string, number>  (attribute → net gain 0–1, normalized)
- * Store in KV:   wrangler kv key put --binding GUESS_KV "kv:attribute-net-gains" <json>
+ * Store in D1: INSERT OR REPLACE INTO kv_cache (key, value, cached_at) VALUES ('kv:attribute-net-gains', '<json>', unixepoch());
  */
 
 import { createReadStream, writeFileSync, readdirSync, existsSync } from 'node:fs'
@@ -181,5 +181,6 @@ for (const r of rawGains.slice(-15).reverse()) {
 
 writeFileSync(OUTPUT_FILE, JSON.stringify(netGains, null, 2))
 console.log(`\nWrote ${rawGains.length} attribute net gains to: ${OUTPUT_FILE}`)
-console.log(`\nTo upload to KV (production):`)
-console.log(`  cat "${OUTPUT_FILE}" | npx wrangler kv key put --binding GUESS_KV "kv:attribute-net-gains" --stdin --env production`)
+console.log(`\nTo upload to D1 kv_cache (production):`)
+console.log(`  python3 -c 'import json,sys; v=json.dumps(json.load(open(sys.argv[1])), separators=(",",":")); print("INSERT OR REPLACE INTO kv_cache (key, value, cached_at) VALUES (" + repr("kv:attribute-net-gains") + ", " + repr(v) + ", unixepoch());")' "${OUTPUT_FILE}" > /tmp/upsert.sql`)
+console.log('  npx wrangler d1 execute guess-db --env production --remote --file /tmp/upsert.sql')

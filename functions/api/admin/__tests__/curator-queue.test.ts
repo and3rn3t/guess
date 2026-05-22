@@ -14,10 +14,6 @@ describe('/api/admin/curator-queue', () => {
 
     mockEnv = {
       GUESS_DB: mockDb,
-      GUESS_KV: {
-        get: vi.fn().mockResolvedValue(null),
-        put: vi.fn().mockResolvedValue(null),
-      },
     } as any  
 
     vi.clearAllMocks()

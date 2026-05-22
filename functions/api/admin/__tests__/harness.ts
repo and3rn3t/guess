@@ -5,8 +5,6 @@
  *   - createTestDb(): an in-memory better-sqlite3 instance loaded with every
  *     migration in `migrations/000*.sql`, exposed through a thin facade that
  *     mimics the Cloudflare D1Database API the handlers consume.
- *   - createTestKv(): a Map-backed KVNamespace stub with the subset of the API
- *     the admin handlers use (get/put/delete/list).
  *   - invokeHandler(): builds a synthetic PagesFunction context (env, request,
  *     params, waitUntil) and calls the handler, returning the Response plus the
  *     parsed JSON body for assertions.
@@ -211,64 +209,6 @@ export function createTestDb(): TestDb {
 // ───────────────────────────────────────────────────────────────────────────────
 // KV stub
 // ───────────────────────────────────────────────────────────────────────────────
-
-interface KvEntry {
-  value: string
-  expiration?: number
-}
-
-export interface TestKv {
-  get(
-    key: string,
-    type?: 'text' | 'json' | { type: 'text' } | { type: 'json' },
-  ): Promise<unknown>
-  put(key: string, value: string, options?: { expirationTtl?: number }): Promise<void>
-  delete(key: string): Promise<void>
-  list<T = unknown>(options?: {
-    prefix?: string
-  }): Promise<{ keys: Array<{ name: string; metadata?: T }>; list_complete: boolean }>
-  /** Test-only: access the backing store. */
-  _store: Map<string, KvEntry>
-}
-
-export function createTestKv(initial?: Record<string, string>): TestKv {
-  const store = new Map<string, KvEntry>()
-  if (initial) {
-    for (const [k, v] of Object.entries(initial)) store.set(k, { value: v })
-  }
-
-  const kv: TestKv = {
-    _store: store,
-    async get(key, type) {
-      const entry = store.get(key)
-      if (!entry) return null
-      const wantsJson =
-        type === 'json' || (typeof type === 'object' && type !== null && type.type === 'json')
-      if (wantsJson) {
-        try {
-          return JSON.parse(entry.value)
-        } catch {
-          return null
-        }
-      }
-      return entry.value
-    },
-    async put(key, value, _options) {
-      store.set(key, { value })
-    },
-    async delete(key) {
-      store.delete(key)
-    },
-    async list(options) {
-      const prefix = options?.prefix ?? ''
-      const keys = [...store.keys()]
-        .filter((k) => k.startsWith(prefix))
-        .map((name) => ({ name }))
-      return { keys, list_complete: true }
-    },
-  }
-  return kv
-}
 
 // ───────────────────────────────────────────────────────────────────────────────
 // R2 stub (only used by resolve-stack)

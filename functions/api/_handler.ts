@@ -2,7 +2,7 @@
  * Wrapper for Pages Function handlers that absorbs the four bits of boilerplate
  * every route in `functions/api/**` repeats:
  *
- *   1. KV-presence check (returns 503 when GUESS_KV is missing)
+ *   1. D1-presence check (returns 503 when GUESS_DB is missing)
  *   2. Loading the signed-cookie user-id (and writing Set-Cookie on response)
  *   3. Per-user rate limit (when configured)
  *   4. try/catch around the handler with `logError(...)` and a 500 response

@@ -82,32 +82,8 @@ function d1<T>(sql: string): T[] {
   return parsed[0]?.results ?? [];
 }
 
-function kvGet(key: string): string | null {
-  try {
-    const out = execFileSync(
-      "npx",
-      [
-        "wrangler",
-        "kv",
-        "key",
-        "get",
-        "--binding",
-        "GUESS_KV",
-        "--env",
-        ENV_FLAG,
-        "--remote",
-        key,
-      ],
-      { encoding: "utf8" },
-    );
-    return out.trim() || null;
-  } catch {
-    return null;
-  }
-}
-
 function loadActiveWeights(): Weights {
-  const raw = kvGet("engine:weights-active");
+  const raw = d1<{value: string}>(`SELECT value FROM engine_config WHERE key = 'engine:weights-active' LIMIT 1`)[0]?.value ?? null;
   if (!raw) return { ...DEFAULTS };
   try {
     const parsed = JSON.parse(raw) as Partial<Weights>;

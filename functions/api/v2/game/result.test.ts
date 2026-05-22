@@ -138,7 +138,6 @@ describe("POST /api/v2/game/result", () => {
     const response = await onRequestPost({
       env: {
         GUESS_DB: {} as D1Database,
-        GUESS_KV: {} as KVNamespace,
       },
       request: new Request("https://example.com/api/v2/game/result", {
         method: "POST",

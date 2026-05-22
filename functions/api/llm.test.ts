@@ -46,7 +46,6 @@ function makeContext(body: Record<string, unknown>) {
   return {
     env: {
       OPENAI_API_KEY: 'test-key',
-      GUESS_KV: {},
       GUESS_DB: {},
       GUESS_IMAGES: {},
       LLM_COSTS: {},

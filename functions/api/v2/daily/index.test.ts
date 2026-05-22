@@ -58,7 +58,6 @@ function makeContext(method: 'GET' | 'POST', body?: unknown) {
   return {
     env: {
       GUESS_DB: {},
-      GUESS_KV: {},
       COOKIE_SECRET: 'secret',
     },
     request: new Request('https://example.com/api/v2/daily', {

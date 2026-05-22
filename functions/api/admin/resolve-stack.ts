@@ -7,7 +7,7 @@
  *
  * Body: { stack: string, sha?: string }
  *   - `stack`: the raw `.stack` string from an `error_logs.detail` row.
- *   - `sha`:   optional. Defaults to KV `deploy:current-sha`.
+ *   - `sha`:   required. Commit SHA identifying which R2 directory to read from.
  *
  * Response: { sha, frames: Array<ResolvedFrame> }
  *
