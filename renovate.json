@@ -4,6 +4,21 @@
     "config:recommended",
     "helpers:pinGitHubActionDigests"
   ],
+  "timezone": "America/New_York",
+  "semanticCommits": "enabled",
+  "semanticCommitType": "chore",
+  "semanticCommitScope": "deps",
+  "prConcurrentLimit": 5,
+  "osvVulnerabilityAlerts": true,
+  "vulnerabilityAlerts": {
+    "labels": ["security"],
+    "automerge": true
+  },
+  "lockFileMaintenance": {
+    "enabled": true,
+    "schedule": ["before 6am on the first day of the month"],
+    "automerge": true
+  },
   "packageRules": [
     {
       "description": "Group and automerge GitHub Actions minor/patch updates",
@@ -49,6 +64,30 @@
       "matchPackagePatterns": ["^vite", "^@vitejs", "^vitest", "^@vitest"],
       "groupName": "Vite & Vitest",
       "automerge": false
+    },
+    {
+      "description": "Group Playwright packages — review manually",
+      "matchPackagePatterns": ["^playwright", "^@playwright"],
+      "groupName": "Playwright",
+      "automerge": false
+    },
+    {
+      "description": "Group Tailwind packages — review manually",
+      "matchPackagePatterns": ["^tailwindcss", "^@tailwindcss"],
+      "groupName": "Tailwind CSS",
+      "automerge": false
+    },
+    {
+      "description": "Group Expo and React Native packages — review manually",
+      "matchPackagePatterns": ["^expo", "^react-native", "^@react-native"],
+      "groupName": "Expo & React Native",
+      "automerge": false
+    },
+    {
+      "description": "Never automerge major version bumps; require manual review",
+      "matchUpdateTypes": ["major"],
+      "automerge": false,
+      "dependencyDashboardApproval": true
     }
   ]
 }
