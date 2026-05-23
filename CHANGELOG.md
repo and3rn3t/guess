@@ -6,6 +6,14 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [Unreleased]
+
+### Changed
+
+- **`scripts/ingest/enrich.ts` refactor (RF.1)** — split the 1213-line enrichment orchestrator into five focused modules (1213 → 478 lines, -61%). New modules under `scripts/ingest/enrich/`: `prompts.ts` (LLM prompt builders, 78 lines), `llm-client.ts` (OpenAI + OpenRouter clients, rate limiter, consensus merge, 136 lines), `storage.ts` (schema init, attribute defs, pending-character query, result persistence, response parsing, 341 lines), `adversarial.ts` (skeptic-LLM dispute validation + dispute SQL upload, 172 lines), `upload-sql.ts` (changelog appender + `character_attributes` upload SQL, 111 lines). Added 21 characterization tests (6 prompts + 7 llm-client + 8 storage). All public exports preserved for back-compat (`run.ts`, `discover-attributes.ts`). Complexity guard updated: new ceiling 520 lines for `enrich.ts`, 400 for `storage.ts`. Vitest config extended to include `scripts/**/*.test.ts`.
+
+---
+
 ## [1.8.0] - 2026-05-22
 
 ### Changed

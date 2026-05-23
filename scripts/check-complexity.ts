@@ -54,7 +54,8 @@ const rules: FileRule[] = [
   { path: 'functions/api/v2/_game-engine.ts', maxLines: 800, maxOwnImports: 20 },
   { path: 'packages/game-engine/src/question-selection.ts', maxLines: 490, maxOwnImports: 12 },
   { path: 'scripts/ingest/run.ts', maxLines: 320, maxOwnImports: 22 },
-  { path: 'scripts/ingest/enrich.ts', maxLines: 1280, maxOwnImports: 16 },
+  { path: 'scripts/ingest/enrich.ts', maxLines: 520, maxOwnImports: 14 },
+  { path: 'scripts/ingest/enrich/storage.ts', maxLines: 400, maxOwnImports: 10 },
 ];
 
 const AUTO_SCAN_DIRS = ['src', 'functions', 'scripts', 'packages'];

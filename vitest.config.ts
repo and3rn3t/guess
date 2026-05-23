@@ -20,6 +20,7 @@ export default defineConfig({
       'apps/mobile/src/**/*.test.tsx',
       'functions/**/*.test.ts',
       'packages/**/*.test.ts',
+      'scripts/**/*.test.ts',
       'tail-worker/**/*.test.ts',
     ],
     coverage: {
