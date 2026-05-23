@@ -1,6 +1,6 @@
 import { KV_CHARACTERS_CACHE, KV_QUESTIONS_CACHE, SYNC_CACHE_TTL } from './constants'
 import { httpClient } from './http'
-import type { Character, Question, Difficulty } from './types'
+import type { Character, Question } from './types'
 import { SyncCharacterRowSchema } from './schemas'
 
 export type SyncStatus = 'synced' | 'pending' | 'error' | 'offline'
@@ -43,7 +43,6 @@ export async function fetchGlobalCharacters(): Promise<Character[]> {
 
 export async function submitCharacter(
   character: Omit<Character, 'id' | 'createdBy' | 'createdAt'>,
-  newQuestions?: Array<{ text: string; attribute: string }>
 ): Promise<{ success: boolean; error?: string }> {
   try {
     const res = await httpClient.request('/api/v2/characters', {
@@ -59,11 +58,6 @@ export async function submitCharacter(
     if (!res.ok) {
       const data = (await res.json().catch(() => ({ error: 'Unknown error' }))) as { error?: string }
       return { success: false, error: data.error || `HTTP ${res.status}` }
-    }
-
-    // Submit any associated new questions
-    if (newQuestions?.length) {
-      await submitQuestions(newQuestions)
     }
 
     // Invalidate cache
@@ -88,66 +82,6 @@ export async function fetchGlobalQuestions(): Promise<Question[]> {
     return getStaleCache<Question[]>(KV_QUESTIONS_CACHE) || []
   }
 }
-
-export async function submitQuestions(
-  questions: Array<{ text: string; attribute: string }>
-): Promise<void> {
-  for (const q of questions) {
-    try {
-      await httpClient.postJson('/api/questions', q)
-    } catch {
-      // Fire-and-forget — don't block on individual question failures
-    }
-  }
-}
-
-// ===== Stats =====
-
-export async function recordGameResult(
-  characterId: string,
-  won: boolean,
-  questionsAsked: number,
-  difficulty: Difficulty
-): Promise<void> {
-  try {
-    await httpClient.postJson('/api/stats', {
-      characterId,
-      won,
-      questionsAsked,
-      difficulty,
-    })
-  } catch {
-    // Fire-and-forget
-  }
-}
-
-
-
-// ===== Corrections =====
-
-export async function submitCorrection(
-  characterId: string,
-  attribute: string,
-  currentValue: boolean | null,
-  suggestedValue: boolean
-): Promise<{ success: boolean; autoApplied?: boolean; error?: string }> {
-  try {
-    const res = await httpClient.request('/api/corrections', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ characterId, attribute, currentValue, suggestedValue }),
-    })
-    if (!res.ok) {
-      const data = (await res.json().catch(() => ({ error: 'Unknown error' }))) as { error?: string }
-      return { success: false, error: data.error }
-    }
-    return (await res.json()) as { success: boolean; autoApplied?: boolean }
-  } catch {
-    return { success: false, error: 'Network error' }
-  }
-}
-
-
 
 // ===== Sync Status =====
 

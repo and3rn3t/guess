@@ -319,7 +319,7 @@ Primary database for the server-side engine and character catalog.
 
 All game-session and automation-report data previously stored in KV has been migrated to D1 (`kv_cache` and `session_state` tables via migration `0047_kv_migration.sql`). The `_d1_cache.ts` helper provides `d1CacheGet`/`d1CachePut`/`d1ConfigGet*` utilities for D1-backed cache access. `GUESS_KV` and `GUESS_ASSETS` bindings have been removed from `wrangler.toml`.
 
-Legacy v1 API endpoints (`/api/characters`, `/api/questions`, `/api/corrections`, `/api/stats`, `/api/sync`) that stored data in KV are sunset-marked with `Deprecation: true` / `Sunset: 2027-01-01` headers.
+Legacy v1 API endpoints (`/api/characters`, `/api/questions`, `/api/corrections`, `/api/stats`, `/api/sync`) have been fully removed (RF.3). Their last form was 410 Gone stubs; the route files no longer exist. All callers must use the `/api/v2/*` successors.
 
 ### Daily challenge persistence
 
@@ -361,15 +361,9 @@ so re-embeds are skipped when the question copy hasn't drifted.
 
 ## API Endpoints
 
-### v1 — KV-Based (Legacy)
+### v1 — Removed
 
-| Endpoint | Method | Purpose |
-|---|---|---|
-| `/api/characters` | GET, POST | List/create user characters |
-| `/api/questions` | GET, POST | List/create user questions |
-| `/api/corrections` | GET, POST | Attribute correction voting |
-| `/api/stats` | GET, POST | Player statistics |
-| `/api/sync` | GET, POST | Settings & history sync |
+The legacy KV-backed endpoints (`/api/characters`, `/api/questions`, `/api/corrections`, `/api/stats`, `/api/sync`) have been removed entirely as of RF.3. Use the `/api/v2/*` successors below.
 
 ### v2 — D1-Backed
 

@@ -31,43 +31,6 @@ const defaultLiveOps = {
 }
 
 export const handlers = [
-  // v1 endpoints
-  http.get('/api/characters', () => {
-    return HttpResponse.json(defaultCharacters)
-  }),
-
-  http.post('/api/characters', () => {
-    return HttpResponse.json({ success: true })
-  }),
-
-  http.get('/api/questions', () => {
-    return HttpResponse.json(defaultQuestions)
-  }),
-
-  http.post('/api/questions', () => {
-    return HttpResponse.json({ success: true })
-  }),
-
-  http.get('/api/stats', () => {
-    return HttpResponse.json({ games: 0, wins: 0 })
-  }),
-
-  http.post('/api/stats', () => {
-    return HttpResponse.json({ success: true })
-  }),
-
-  http.post('/api/corrections', () => {
-    return HttpResponse.json({ success: true, autoApplied: false })
-  }),
-
-  http.get('/api/sync', () => {
-    return HttpResponse.json({})
-  }),
-
-  http.post('/api/sync', () => {
-    return HttpResponse.json({ success: true })
-  }),
-
   // LLM endpoints
   http.post('/api/llm', () => {
     return new HttpResponse('{"answer": "test"}', {

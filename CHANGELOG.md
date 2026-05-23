@@ -8,6 +8,10 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Removed
+
+- **Legacy `/api/*` v1 endpoints (RF.3)** — fully deleted `functions/api/characters.ts`, `functions/api/questions.ts`, `functions/api/corrections.ts`, `functions/api/stats.ts`, `functions/api/sync.ts` (all were 410 Gone stubs after the KV removal). Removed dead client helpers `submitQuestions`, `recordGameResult`, `submitCorrection` from `src/lib/sync.ts`, and the `newQuestions` parameter from `submitCharacter` (no production callers). Pruned matching MSW handlers and obsolete test cases. ARCHITECTURE.md API reference updated.
+
 ### Changed
 
 - **`functions/api/v2/_game-engine.ts` refactor (RF.2)** — split the 745-line server-engine module into four focused sub-modules (745 → 306 lines, -59%). New modules under `functions/api/v2/`: `_engine-types.ts` (server-side types + constants, 110 lines), `_session-store.ts` (`storeSession`/`loadSession`/`verifySessionOwner`/`saveSessionState`/`deleteSession` D1 persistence, 186 lines), `_adaptive.ts` (per-turn `loadAdaptiveData` parallel D1 fetch + auto-tune weight validation, 177 lines), `_questions-cache.ts` (questions D1 cache helpers, 23 lines). Main file now contains only typed wrappers (`calculateProbabilities`, `selectBestQuestion`, `generateReasoning`, `shouldMakeGuess`, `evaluateGuessReadiness`, `getBestGuess`, `getBestGuessResult`, `detectContradictions`, `filterPossibleCharacters`), `parseAttrsJson`, `getOrBuildCoverageMap`, and `buildQuestionOptions`. All 26 existing import sites preserved via back-compat re-exports. Complexity guard ceiling tightened to 340 lines.
