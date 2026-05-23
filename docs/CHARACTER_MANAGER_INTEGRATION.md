@@ -4,13 +4,13 @@ This doc tracks the integration work for the Character Manager enhancement set.
 
 ## Delivered
 
-1. Added quick filters and batch action UI wiring in [src/components/admin/routes/CharactersRoute.tsx](src/components/admin/routes/CharactersRoute.tsx).
-2. Added enhancement components in [src/components/admin/CharacterManagerEnhancements.tsx](src/components/admin/CharacterManagerEnhancements.tsx).
-3. Added helper utilities in [src/lib/admin/characterFilters.ts](src/lib/admin/characterFilters.ts).
-4. Extended sort support in [functions/api/admin/characters.ts](functions/api/admin/characters.ts):
+1. Added quick filters and batch action UI wiring in [src/components/admin/routes/CharactersRoute.tsx](../src/components/admin/routes/CharactersRoute.tsx).
+2. Added enhancement components in [src/components/admin/CharacterManagerEnhancements.tsx](../src/components/admin/CharacterManagerEnhancements.tsx).
+3. Added helper utilities in [src/lib/admin/characterFilters.ts](../src/lib/admin/characterFilters.ts).
+4. Extended sort support in [functions/api/admin/characters.ts](../functions/api/admin/characters.ts):
 	- `needsWork`
 	- `recentlyAdded`
-5. Added category PATCH support in [functions/api/admin/characters/[id]/index.ts](functions/api/admin/characters/[id]/index.ts).
+5. Added category PATCH support in [functions/api/admin/characters/[id]/index.ts](../functions/api/admin/characters/[id]/index.ts).
 
 ## Behavior Notes
 

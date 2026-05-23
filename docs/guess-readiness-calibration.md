@@ -20,7 +20,7 @@ Use this after the readiness changes have enough real traffic behind them. The g
 
 ## What To Change
 
-- If `strict_readiness_win_pct` is low and `forced_guess_rate` is low, raise the readiness bar in [functions/api/v2/_game-engine.ts](functions/api/v2/_game-engine.ts) and [src/lib/gameEngine.ts](src/lib/gameEngine.ts).
+- If `strict_readiness_win_pct` is low and `forced_guess_rate` is low, raise the readiness bar in [functions/api/v2/_game-engine.ts](../functions/api/v2/_game-engine.ts) and [src/lib/gameEngine.ts](../src/lib/gameEngine.ts).
 - If `forced_guess_rate` is high and `max_question_guess_rate` is also high, improve late-game question separation before lowering readiness thresholds.
 - If `high_certainty_win_pct` is low, tighten the `highCertainty` condition before touching the broader readiness curve.
 - If games are accurate but feel too long, look at `questions_remaining_at_guess` and difficulty breakdowns before weakening confidence thresholds globally.

@@ -146,19 +146,13 @@ jobs:
             echo "| File | Lines/Max | % Used | Headroom |"
             echo "|------|-----------|--------|----------|"
             if [ -f .ci-artifacts/checks-static/complexity-report.json ]; then
-              node --input-type=module <<'JS'
-                import { readFileSync } from 'node:fs';
-                const { entries } = JSON.parse(readFileSync('.ci-artifacts/checks-static/complexity-report.json', 'utf-8'));
-                const governed = entries
-                  .filter(e => e.maxLines < 1000 || e.lineHeadroom >= 0)
-                  .filter(e => e.lineHeadroom >= 0)
-                  .sort((a, b) => a.lineHeadroom - b.lineHeadroom)
-                  .slice(0, 5);
-                for (const e of governed) {
-                  const pct = Math.round((e.lines / e.maxLines) * 100);
-                  console.log(`| \`${e.file}\` | ${e.lines}/${e.maxLines} | ${pct}% | ${e.lineHeadroom} lines |`);
-                }
-JS
+              jq -r '
+                [.entries[] | select(.lineHeadroom != null and .lineHeadroom >= 0)] |
+                sort_by(.lineHeadroom) | .[0:5][] |
+                "| `" + .file + "` | " + (.lines|tostring) + "/" + (.maxLines|tostring) +
+                " | " + ((.lines / .maxLines * 100 | floor)|tostring) + "% | " +
+                (.lineHeadroom|tostring) + " lines |"
+              ' .ci-artifacts/checks-static/complexity-report.json
             else
               echo "_complexity-report.json not found_"
             fi

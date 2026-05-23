@@ -2,7 +2,7 @@
 
 > Portfolio project — the goal is a delightful, frictionless experience and a showcase of creative AI integration. Not monetized; not mass-scale. Every item here should make the game *more fun* or *less annoying*, not more complex.
 
-**Current version**: 1.4.0 — See [CHANGELOG.md](CHANGELOG.md) for what's shipped.
+**Current version**: 1.4.0 — See [CHANGELOG.md](../CHANGELOG.md) for what's shipped.
 
 ---
 

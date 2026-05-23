@@ -2,13 +2,13 @@
 
 > Portfolio project — the goal is a delightful, frictionless experience and a showcase of creative AI integration. Not monetized; not mass-scale. Every item here should make the game *more fun* or *less annoying*, not more complex.
 
-**Current version**: 1.6.1 — see [CHANGELOG.md](CHANGELOG.md) for what's shipped.
+**Current version**: 1.6.1 — see [CHANGELOG.md](../CHANGELOG.md) for what's shipped.
 
 **Companion docs**
 
-- [docs/ROADMAP-icebox.md](docs/ROADMAP-icebox.md) — long-tail explorations, pipe dreams, and moonshots (no timelines).
-- [docs/ROADMAP-archive-v1.5.md](docs/ROADMAP-archive-v1.5.md) — full prior roadmap snapshot before this cleanup.
-- [docs/ROADMAP-archive-v1.4.md](docs/ROADMAP-archive-v1.4.md) — earlier annotated archive.
+- [docs/ROADMAP-icebox.md](ROADMAP-icebox.md) — long-tail explorations, pipe dreams, and moonshots (no timelines).
+- [docs/ROADMAP-archive-v1.5.md](ROADMAP-archive-v1.5.md) — full prior roadmap snapshot before this cleanup.
+- [docs/ROADMAP-archive-v1.4.md](ROADMAP-archive-v1.4.md) — earlier annotated archive.
 
 ---
 
@@ -126,13 +126,13 @@ An item is `✅` only when **all** of these are true:
 - [ ] Both builds green: `pnpm build && pnpm build:worker`.
 - [ ] CHANGELOG.md updated under the next unreleased version (or current if patch).
 - [ ] Roadmap row updated to `✅ YYYY-MM-DD` in the same commit as the work.
-- [ ] Any new env var, binding, secret, or migration is documented in [ARCHITECTURE.md](ARCHITECTURE.md) (or the relevant doc) **and** mirrored in `wrangler.toml` / `.dev.vars.example`.
+- [ ] Any new env var, binding, secret, or migration is documented in [ARCHITECTURE.md](../ARCHITECTURE.md) (or the relevant doc) **and** mirrored in `wrangler.toml` / `.dev.vars.example`.
 
 ### Where things live
 
 - **Active execution path** → [Now](#now) (the 5 waves). Pull from here.
 - **Reference catalog** → the themed sections below Now (Infrastructure, Database, AI & LLM, Hardening, DX, Enrichment, Admin, etc.). These hold the full description of every numbered item; the wave tables only carry the short rationale. Click an item ID (e.g. `DX.11`) and search the doc for it to get full context.
-- **Not scheduled / parked / wild ideas** → [docs/ROADMAP-icebox.md](docs/ROADMAP-icebox.md). Promote into a section here when an idea earns scheduling.
+- **Not scheduled / parked / wild ideas** → [docs/ROADMAP-icebox.md](ROADMAP-icebox.md). Promote into a section here when an idea earns scheduling.
 - **Why we did or didn't do something** → [Decision Log](#decision-log). Append-only, most recent at bottom. One row per non-obvious choice.
 
 ### Commit conventions for roadmap edits
@@ -462,7 +462,7 @@ Schema evolution and new migrations. Latest applied is `0044_daily_results.sql` 
 | C.8 | **Semantic character search in teaching mode** | When the player types a name, embed in real time and return the 3 most similar existing characters: "Did you mean: *Black Widow*, *Black Panther*, or *Black Adam*?" Prevents duplicate submissions without requiring exact match. |
 | A.7 | **Attribute fingerprint** | Per-character 3–5 word phrase generated at enrichment time, stored in `characters.fingerprint`: *"caped Gotham billionaire vigilante"*, *"web-slinging Queens high-schooler"*. Surfaced in `GuessReveal` as a one-glance summary of why the AI landed there. Generated in batch; cached indefinitely. |
 
-> **Multi-modal `/identify`** (uploading a photo so the AI deduces the character) is tracked as moonshot M.8 in [docs/ROADMAP-icebox.md](docs/ROADMAP-icebox.md#moonshots).
+> **Multi-modal `/identify`** (uploading a photo so the AI deduces the character) is tracked as moonshot M.8 in [docs/ROADMAP-icebox.md](ROADMAP-icebox.md#moonshots).
 
 ---
 
@@ -549,7 +549,7 @@ Real gaps in observability, security posture, sharing surface, and operational d
 
 ## UI / UX
 
-Larger experimental items (View Transitions API, Document PiP, WebXR, ambient sound, on-device LLM APIs, etc.) are in [docs/ROADMAP-icebox.md](docs/ROADMAP-icebox.md#experimental-ui--emerging-web-tech).
+Larger experimental items (View Transitions API, Document PiP, WebXR, ambient sound, on-device LLM APIs, etc.) are in [docs/ROADMAP-icebox.md](ROADMAP-icebox.md#experimental-ui--emerging-web-tech).
 
 ### Near-Term Polish (1–2 days each)
 
@@ -649,7 +649,7 @@ Underused browser capabilities with low implementation cost and high demo value.
 
 ## Developer Experience
 
-Larger DX explorations (Storybook catalog, Zod contracts, Pact, Stryker, dev container, Turborepo, etc.) are in [docs/ROADMAP-icebox.md](docs/ROADMAP-icebox.md#dx-pipe-dreams).
+Larger DX explorations (Storybook catalog, Zod contracts, Pact, Stryker, dev container, Turborepo, etc.) are in [docs/ROADMAP-icebox.md](ROADMAP-icebox.md#dx-pipe-dreams).
 
 ### Test, Lint & Verification
 
@@ -714,7 +714,7 @@ Larger DX explorations (Storybook catalog, Zod contracts, Pact, Stryker, dev con
 | DX.39 | **PR template + auto-labeler** | Low | `.github/pull_request_template.md` with sections for Summary / Why / Testing / Migrations / Rollback. `actions/labeler` auto-applies labels based on changed paths (`area:engine`, `area:admin`, `area:enrichment`, `area:db`). Filters and metrics for free. |
 | DX.40 | **Codespaces / dev container** | Low | `.devcontainer/devcontainer.json` boots a ready-to-code environment in GitHub Codespaces: node 22, pnpm, wrangler, all extensions. "I'd love to contribute but I'm on Windows" friction → zero. Listed in icebox before; recategorize as low-effort win. |
 | DX.41 | **Inline TODO indexer** | Low | `pnpm todos` greps `TODO`/`FIXME`/`HACK` across the repo and writes a sorted markdown table to `docs/todos.md` with file links + line numbers + author from blame. CI fails if a TODO is older than 90 days without a tracking issue. |
-| <a id="dx-42"></a>DX.42 | **AGENTS.md for AI pair programming** ✅ 2026-04-30 | Low | Shipped: [AGENTS.md](AGENTS.md) at repo root mirrors `.github/copilot-instructions.md`, points at ROADMAP.md → In Progress block as the canonical entry point for Cursor/Claude/Aider/Copilot. |
+| <a id="dx-42"></a>DX.42 | **AGENTS.md for AI pair programming** ✅ 2026-04-30 | Low | Shipped: [AGENTS.md](../AGENTS.md) at repo root mirrors `.github/copilot-instructions.md`, points at ROADMAP.md → In Progress block as the canonical entry point for Cursor/Claude/Aider/Copilot. |
 | DX.43 | **Deterministic engine playground** | Medium | `pnpm engine:play <seed>` opens a TUI (via `ink`) where you can step through a game one question at a time against the real engine, see the full reasoning panel inline, and replay any `game_id` from `game_history_details`. Debugging a tricky engine call in the actual UI takes 20 clicks; this takes one command. |
 | DX.44 | **`@guess/eslint-config` shared config** | Low | Extract the project's ESLint setup into a tiny internal package. Pre-emptive — only worth it if a second app ever shares this codebase, but trivial to do now and demonstrates monorepo discipline. |
 | DX.45 | **Performance budget per route** | Medium | `playwright` collects per-route LCP / TTI / JS payload size and writes to `metrics/{route}.json`. Compare against budget; CI annotation on regression. Pairs with H.10 Lighthouse CI but at finer granularity (each player route + each admin route). |
@@ -725,7 +725,7 @@ Larger DX explorations (Storybook catalog, Zod contracts, Pact, Stryker, dev con
 
 The enrichment pipeline today is a manual, local-machine process: `run-enrich.sh` → `ingest/run.ts enrich` → local `better-sqlite3` staging DB → GPT-4o-mini → `data/enrich-cache/` → `upload-enrichment.ts` → D1 + R2.
 
-Larger architectural moves (Cloudflare Workflows migration, agentic enrichment, Fandom adapter, model routing, AutoRAG) live in [docs/ROADMAP-icebox.md](docs/ROADMAP-icebox.md#enrichment-big-projects).
+Larger architectural moves (Cloudflare Workflows migration, agentic enrichment, Fandom adapter, model routing, AutoRAG) live in [docs/ROADMAP-icebox.md](ROADMAP-icebox.md#enrichment-big-projects).
 
 **Ownership rule:** Data-quality policy, gates, and completion criteria are canonical in the Data Quality section; Enrichment tracks implementation mechanics that feed those DQ-owned outcomes.
 
@@ -813,7 +813,7 @@ Larger architectural moves (Cloudflare Workflows migration, agentic enrichment, 
 
 ## Admin Panel
 
-Larger pipe-dream screens (Real-Time Game Observatory, Health Vitals Board, Character Knowledge Graph, Attribute DNA Matrix, Cost Observatory, etc.) are in [docs/ROADMAP-icebox.md](docs/ROADMAP-icebox.md#admin-panel-pipe-dreams).
+Larger pipe-dream screens (Real-Time Game Observatory, Health Vitals Board, Character Knowledge Graph, Attribute DNA Matrix, Cost Observatory, etc.) are in [docs/ROADMAP-icebox.md](ROADMAP-icebox.md#admin-panel-pipe-dreams).
 
 ### Polish & Wiring Audit
 
@@ -937,7 +937,7 @@ The shell ships 24 routes across three sidebar groups (Tools / Data / Pipeline).
 | 2026-04 | Hardening & Hygiene section added | Gap audit surfaced 16 concrete items spanning SEO/sharing (no OG image, no robots/sitemap), observability (no Cron Worker entry, no source map upload, no CSP report viewer, no Lighthouse CI), resilience (no corrupt-session recovery, no teaching-mode moderation or per-IP throttle), privacy (no data export/delete), and accessibility (no end-to-end WCAG audit, no surface for the `difficulty` column from migration 0030). Component test coverage backfill (DX.16) and pre-commit secret scanning (DX.17) added under DX. `/about` + `/credits`, light theme + toggle, and a daily-challenge global leaderboard added under Portfolio Polish |
 | 2026-04 | Status column added to wave tables | Per user preference, every wave-table row now carries a `Status` column (⬜ not started · 🟡 in progress · ✅ YYYY-MM-DD when shipped) updated in the same commit as the work itself. Same convention codified in user memory — applies to every future roadmap pull |
 | 2026-04 | Roadmap promoted to runbook | Added a top-level `How to use this roadmap` section spelling out the pull-loop, status protocol, universal Definition of Done, file/section ownership map, and commit conventions for roadmap edits. Added an `In Progress / Up Next` callout at the top of Now as the single source of truth for "what's next?" — the first thing any future Copilot session reads. Reference catalog vs. active execution path now explicitly separated so the doc scales without future agents getting lost in the themed sections |
-| 2026-04 | Roadmap actionability hardened | Three follow-on refinements landed together: (1) added a `Done when` column to all 4 wave tables — every row now has a verifiable acceptance signal so "is this shipped?" is unambiguous; (2) injected stable HTML anchors (`<a id="dq-1"></a>` etc.) on the 35 themed-section rows referenced by waves, and rewrote wave row IDs as clickable links — Cmd-click an ID in a wave row to jump to its full description; (3) created [AGENTS.md](AGENTS.md) at repo root as the canonical entry point for AI agents (and humans), pointing at ROADMAP.md → In Progress block as the first read. Together these change the roadmap from a reference doc into a runbook future Copilot sessions can execute against |
+| 2026-04 | Roadmap actionability hardened | Three follow-on refinements landed together: (1) added a `Done when` column to all 4 wave tables — every row now has a verifiable acceptance signal so "is this shipped?" is unambiguous; (2) injected stable HTML anchors (`<a id="dq-1"></a>` etc.) on the 35 themed-section rows referenced by waves, and rewrote wave row IDs as clickable links — Cmd-click an ID in a wave row to jump to its full description; (3) created [AGENTS.md](../AGENTS.md) at repo root as the canonical entry point for AI agents (and humans), pointing at ROADMAP.md → In Progress block as the first read. Together these change the roadmap from a reference doc into a runbook future Copilot sessions can execute against |
 | 2026-04 | I.4 split into Tail Worker scaffolding + inline Pages fallback | First attempt at I.4 added `[[env.*.tail_consumers]]` blocks to the root `wrangler.toml`, which broke the CI deploy: Cloudflare Pages projects reject that key ("Configuration file for Pages projects does not support tail_consumers") and offer no equivalent dashboard wiring. Rather than block I.4 indefinitely, kept the standalone `guess-tail` Worker scaffolding (pure mapper + tests + dataset) for the eventual Pages→Workers migration and shipped an inline fallback: `functions/_middleware.ts` wraps `next()` with a wall-clock timer and writes one AE row per request to the same `WORKER_TAIL` binding using a path-equivalent schema. Net result: AN.29 / AN.30 unblocked today, no hot-path regression, scaffolding ready to flip on once Pages supports `tail_consumers` |
 | 2026-04 | DX.10 changesets replaced with tag-driven release workflow | The original DX.10 plan ("add changesets, PRs drop a changeset file, GH Action commits the changelog and tags") had been live since v1.4 but never actually worked: the root `guess` package isn't in `pnpm-workspace.yaml` (which only contains `packages/*`), so `changeset version` always errored with "package guess which is not in the workspace". v1.4 / v1.5 / v1.6 were all hand-tagged. Replaced with a tag-driven flow: `.github/workflows/release.yml` fires on `v*.*.*` push (or manual `workflow_dispatch` with a tag input), extracts the matching `## [X.Y.Z]` section from CHANGELOG.md via `awk`, and creates/updates the GitHub release. Helper script `scripts/cut-release.ts` (`pnpm release patch\|minor\|major\|X.Y.Z`) handles the local side: bumps version, slots `[Unreleased]` under a dated heading, commits, tags, pushes. `@changesets/cli` and `.changeset/` removed |
 | 2026-05 | Maintenance sweep (chore) | Retired deprecated `getUserId(request)` server helper — all 3 call sites migrated to `getOrCreateUserId`+`withSetCookie`; as a side-effect this fixes the missing `Set-Cookie` header on LLM cache-HIT and POST-character 201 success responses. Converted `migrations/0011b_composite_indexes.sql` to a no-op comment (it was an exact duplicate of 0011 with `IF NOT EXISTS`). Dropped stray default `React` import from `CharactersRoute.tsx` (React 19 automatic JSX runtime). Added `// reason:` prose to every bare `// eslint-disable react-hooks/exhaustive-deps` site so suppressions are self-documenting. `pnpm validate` 914/914, both builds green |
