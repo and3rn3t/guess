@@ -1,0 +1,53 @@
+{
+  "$schema": "https://unpkg.com/knip@latest/schema.json",
+  "entry": [
+    "src/main.tsx",
+    "index.html",
+    "vite.config.ts",
+    "vitest.config.ts",
+    "playwright.config.ts",
+    "eslint.config.js",
+    "tailwind.config.js",
+    "commitlint.config.mjs",
+    "lint-staged.config.mjs",
+    "functions/**/*.ts!",
+    "scripts/**/*.ts!",
+    "tail-worker/index.ts"
+  ],
+  "project": [
+    "src/**/*.{ts,tsx}",
+    "functions/**/*.ts",
+    "scripts/**/*.ts",
+    "tail-worker/**/*.ts"
+  ],
+  "ignore": [
+    "src/components/ui/**",
+    "**/*.d.ts",
+    "data/**",
+    "dist/**",
+    "coverage/**",
+    "playwright-report/**",
+    "test-results/**",
+    ".ci-artifacts/**",
+    "migrations/**"
+  ],
+  "ignoreDependencies": [
+    "tw-animate-css",
+    "sharp",
+    "swagger-ui-dist"
+  ],
+  "workspaces": {
+    "packages/game-engine": {
+      "entry": ["src/index.ts"],
+      "project": ["src/**/*.ts"]
+    },
+    "packages/app-core": {
+      "entry": ["src/index.ts"],
+      "project": ["src/**/*.ts"]
+    },
+    "apps/mobile": {
+      "entry": ["src/App.tsx", "app.config.ts", "babel.config.js"],
+      "project": ["src/**/*.{ts,tsx}"]
+    }
+  }
+}

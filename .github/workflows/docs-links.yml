@@ -27,7 +27,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     env:
-      DOCS_LINKS_ENFORCE: 'false' # TODO: promote to 'true' after fixing broken links (see lychee artifact)
+      DOCS_LINKS_ENFORCE: 'true' # DX.20 — enabled 2026-05-23
     permissions:
       contents: read
     steps:
@@ -48,7 +48,21 @@ jobs:
             --retry-wait-time 2
             --max-retries 2
             --accept 200,206,429
-            "**/*.md"
+            --exclude 'localhost'
+            --exclude '127\.0\.0\.1'
+            --exclude 'example\.com'
+            --exclude '^#'
+            --exclude-path 'node_modules'
+            --exclude-path 'dist'
+            --exclude-path 'migrations'
+            --exclude-path 'data'
+            "docs/**/*.md"
+            "ROADMAP.md"
+            "ARCHITECTURE.md"
+            "README.md"
+            "CHANGELOG.md"
+            "SECURITY.md"
+            "AGENTS.md"
 
       # Warn-only rollout: do not block merges until the baseline is stable.
       - name: Check links (warn-only)
@@ -65,7 +79,21 @@ jobs:
             --retry-wait-time 2
             --max-retries 2
             --accept 200,206,429
-            "**/*.md"
+            --exclude 'localhost'
+            --exclude '127\.0\.0\.1'
+            --exclude 'example\.com'
+            --exclude '^#'
+            --exclude-path 'node_modules'
+            --exclude-path 'dist'
+            --exclude-path 'migrations'
+            --exclude-path 'data'
+            "docs/**/*.md"
+            "ROADMAP.md"
+            "ARCHITECTURE.md"
+            "README.md"
+            "CHANGELOG.md"
+            "SECURITY.md"
+            "AGENTS.md"
 
       - name: Save lychee output
         if: always()

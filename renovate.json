@@ -13,6 +13,42 @@
       "automerge": true,
       "automergeType": "pr",
       "minimumReleaseAge": "3 days"
+    },
+    {
+      "description": "Group all non-major dev dependency patches/minors into one weekly PR",
+      "matchDepTypes": ["devDependencies"],
+      "matchUpdateTypes": ["minor", "patch"],
+      "excludePackagePatterns": ["^cloudflare", "^@cloudflare", "^react", "^react-dom", "^vite", "^@vitejs"],
+      "groupName": "dev dependency updates",
+      "schedule": ["before 6am on Monday"],
+      "automerge": true,
+      "automergeType": "pr",
+      "minimumReleaseAge": "3 days"
+    },
+    {
+      "description": "Automerge security patches immediately regardless of scope",
+      "matchCategories": ["security"],
+      "automerge": true,
+      "automergeType": "pr",
+      "minimumReleaseAge": "0 days"
+    },
+    {
+      "description": "Group Cloudflare packages — review manually",
+      "matchPackagePatterns": ["^cloudflare", "^@cloudflare", "^wrangler"],
+      "groupName": "Cloudflare",
+      "automerge": false
+    },
+    {
+      "description": "Group React packages — review manually",
+      "matchPackageNames": ["react", "react-dom", "@types/react", "@types/react-dom"],
+      "groupName": "React",
+      "automerge": false
+    },
+    {
+      "description": "Group Vite/Vitest packages — review manually",
+      "matchPackagePatterns": ["^vite", "^@vitejs", "^vitest", "^@vitest"],
+      "groupName": "Vite & Vitest",
+      "automerge": false
     }
   ]
 }

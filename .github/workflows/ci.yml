@@ -120,6 +120,11 @@ jobs:
         run: |
           set -o pipefail
           pnpm refactor:guard 2>&1 | tee .ci-artifacts/checks-static/refactor-guard.log
+      - name: Dead code check (knip)
+        # Warn-only until the baseline is clean. Remove '|| true' to promote to a hard gate.
+        run: |
+          set -o pipefail
+          pnpm knip --reporter compact 2>&1 | tee .ci-artifacts/checks-static/knip.log || true
       - name: Upload checks-static logs
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
@@ -134,7 +139,7 @@ jobs:
             echo "### Checks-Static Artifacts"
             echo ""
             echo "- Artifact: ci-checks-static-logs"
-            echo "- Files: lint.log, typecheck.log, dq-sla-check.log, mobile-guardrails.log, openapi-generate.log, openapi-validate.log, openapi-check.log, refactor-guard.log"
+            echo "- Files: lint.log, typecheck.log, dq-sla-check.log, mobile-guardrails.log, openapi-generate.log, openapi-validate.log, openapi-check.log, refactor-guard.log, knip.log"
           } >> "$GITHUB_STEP_SUMMARY"
 
   # ── Test coverage (parallel to checks-static) ───────────────
@@ -258,6 +263,8 @@ jobs:
         run: |
           find dist/assets -type f -name '*.js' -exec du -k {} + | sort -rn > .ci-artifacts/build/js-asset-sizes-kb.txt
           find dist/assets -type f -name '*.css' -exec du -k {} + | sort -rn > .ci-artifacts/build/css-asset-sizes-kb.txt
+          # Copy bundle visualizer report alongside other build logs
+          cp dist/stats.html .ci-artifacts/build/bundle-stats.html 2>/dev/null || true
 
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
@@ -279,7 +286,7 @@ jobs:
             echo ""
             echo "- Artifact: dist"
             echo "- Artifact: ci-build-logs"
-            echo "- Files: build.log, worker-build.log, bundle-size.log, named-chunk-budgets.log, js-asset-sizes-kb.txt, css-asset-sizes-kb.txt"
+            echo "- Files: build.log, worker-build.log, bundle-size.log, named-chunk-budgets.log, js-asset-sizes-kb.txt, css-asset-sizes-kb.txt, bundle-stats.html"
           } >> "$GITHUB_STEP_SUMMARY"
 
   # ── DB checks: type drift + migration idempotency ──────────

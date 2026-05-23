@@ -1,0 +1,65 @@
+# Automatically applied by .github/workflows/labeler.yml on every PR.
+# Labels are created in the GitHub UI first if they don't exist.
+
+area:engine:
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'packages/game-engine/**'
+      - 'src/lib/gameEngine.ts'
+      - 'src/hooks/useGameState.ts'
+      - 'src/hooks/useServerGame.ts'
+
+area:admin:
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'src/components/admin/**'
+      - 'functions/api/admin/**'
+      - 'src/lib/admin/**'
+
+area:enrichment:
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'scripts/ingest/**'
+      - 'scripts/enrich*.ts'
+      - 'scripts/sparse-fill*.ts'
+      - 'scripts/reconcile*.ts'
+      - 'scripts/corroborate*.ts'
+      - 'scripts/snapshot*.ts'
+      - 'scripts/data-quality/**'
+      - 'data/**'
+
+area:db:
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'migrations/**'
+      - 'functions/api/_db-types.ts'
+      - 'scripts/generate-db-types.ts'
+      - 'scripts/validate-migrations.ts'
+      - 'scripts/create-migration.ts'
+
+area:mobile:
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'apps/mobile/**'
+      - 'packages/app-core/**'
+      - 'scripts/mobile/**'
+      - 'docs/mobile/**'
+
+area:ci:
+  - changed-files:
+    - any-glob-to-any-file:
+      - '.github/**'
+      - 'renovate.json'
+      - '.husky/**'
+      - 'commitlint.config.mjs'
+      - 'lint-staged.config.mjs'
+
+area:frontend:
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'src/**'
+      - 'index.html'
+      - 'vite.config.ts'
+      - 'tailwind.config.js'
+      - 'components.json'
+      - 'public/**'

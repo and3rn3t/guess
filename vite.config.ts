@@ -2,6 +2,7 @@ import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react-swc";
 import { defineConfig } from "vite";
 import { resolve } from 'node:path'
+import { visualizer } from 'rollup-plugin-visualizer'
 
 const projectRoot = process.env.PROJECT_ROOT || import.meta.dirname
 
@@ -10,6 +11,7 @@ export default defineConfig({
   plugins: [
     react(),
     tailwindcss(),
+    visualizer({ filename: 'dist/stats.html', gzipSize: true, brotliSize: true, open: false }),
   ],
   resolve: {
     alias: {
