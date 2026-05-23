@@ -51,7 +51,7 @@ const rules: FileRule[] = [
   { path: 'src/hooks/useServerGame.ts', maxLines: 430, maxOwnImports: 12 },
   { path: 'functions/api/v2/game/start.ts', maxLines: 320, maxOwnImports: 12 },
   { path: 'functions/api/v2/game/answer.ts', maxLines: 360, maxOwnImports: 12 },
-  { path: 'functions/api/v2/_game-engine.ts', maxLines: 800, maxOwnImports: 20 },
+  { path: 'functions/api/v2/_game-engine.ts', maxLines: 340, maxOwnImports: 20 },
   { path: 'packages/game-engine/src/question-selection.ts', maxLines: 490, maxOwnImports: 12 },
   { path: 'scripts/ingest/run.ts', maxLines: 320, maxOwnImports: 22 },
   { path: 'scripts/ingest/enrich.ts', maxLines: 520, maxOwnImports: 14 },
