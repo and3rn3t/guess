@@ -1,7 +1,7 @@
 {
-  "$comment": "DQ.1 \u2014 Golden character regression set. See ROADMAP.md \u2192 DQ.1 and ARCHITECTURE.md \u2192 'Data Quality Gate'. Each character lists only attributes the curator is highly confident about (true/false). Null/ambiguous attributes are intentionally omitted. The harness in `scripts/golden-regression.ts` runs the production enrichment prompt against these characters and fails when accuracy drops >`thresholdPct` below 100%.",
+  "$comment": "DQ.1 — Golden character regression set. See ROADMAP.md → DQ.1 and ARCHITECTURE.md → 'Data Quality Gate'. Each character lists only attributes the curator is highly confident about (true/false). Null/ambiguous attributes are intentionally omitted. The harness in `scripts/golden-regression.ts` runs the production enrichment prompt against these characters and fails when accuracy drops >`thresholdPct` below 100%.",
   "version": 1,
-  "thresholdPct": 3.0,
+  "thresholdPct": 3,
   "characters": [
     {
       "id": "superman",
@@ -451,7 +451,7 @@
       "id": "pikachu",
       "name": "Pikachu",
       "category": "anime",
-      "description": "Iconic Electric-type Pok\u00e9mon, mascot of the Pok\u00e9mon franchise (Game Freak / Nintendo, 1996).",
+      "description": "Iconic Electric-type Pokémon, mascot of the Pokémon franchise (Game Freak / Nintendo, 1996).",
       "expected": {
         "canFly": false,
         "canGenerateElectricity": true,
@@ -466,7 +466,6 @@
         "isFromJapan": true,
         "isHuman": false,
         "isIconic": true,
-        "isVideoGameCharacter": true,
         "isVillain": false
       }
     },
@@ -558,7 +557,7 @@
       "id": "mario",
       "name": "Mario",
       "category": "videogame",
-      "description": "Italian plumber and Nintendo's mascot, hero of the Super Mario series (1981\u2013).",
+      "description": "Italian plumber and Nintendo's mascot, hero of the Super Mario series (1981–).",
       "expected": {
         "canFly": false,
         "hasFacialHair": true,
@@ -573,7 +572,6 @@
         "isIconic": true,
         "isMale": true,
         "isProtagonist": true,
-        "isVideoGameCharacter": true,
         "isVillain": false,
         "isWizard": false,
         "wearsHat": true
@@ -593,7 +591,6 @@
         "isHero": true,
         "isHuman": true,
         "isMale": true,
-        "isVideoGameCharacter": true,
         "isVillain": false,
         "wearsHat": true
       }
@@ -602,7 +599,7 @@
       "id": "link",
       "name": "Link",
       "category": "videogame",
-      "description": "Hylian protagonist of Nintendo's The Legend of Zelda series (1986\u2013).",
+      "description": "Hylian protagonist of Nintendo's The Legend of Zelda series (1986–).",
       "expected": {
         "canFly": false,
         "hasBlondeHair": true,
@@ -617,7 +614,6 @@
         "isMale": true,
         "isMute": true,
         "isProtagonist": true,
-        "isVideoGameCharacter": true,
         "isVillain": false,
         "wearsHat": true
       }
@@ -638,7 +634,6 @@
         "isHero": true,
         "isMale": false,
         "isRoyalty": true,
-        "isVideoGameCharacter": true,
         "isVillain": false
       }
     },
@@ -646,7 +641,7 @@
       "id": "sonic",
       "name": "Sonic the Hedgehog",
       "category": "videogame",
-      "description": "Anthropomorphic blue hedgehog with super-speed, mascot of SEGA's Sonic series (1991\u2013).",
+      "description": "Anthropomorphic blue hedgehog with super-speed, mascot of SEGA's Sonic series (1991–).",
       "expected": {
         "canFly": false,
         "canTalk": true,
@@ -660,7 +655,6 @@
         "isIconic": true,
         "isMale": true,
         "isProtagonist": true,
-        "isVideoGameCharacter": true,
         "isVillain": false
       }
     },
@@ -668,7 +662,7 @@
       "id": "master-chief",
       "name": "Master Chief",
       "category": "videogame",
-      "description": "John-117, super-soldier protagonist of the Halo franchise (Bungie / 343 Industries, 2001\u2013).",
+      "description": "John-117, super-soldier protagonist of the Halo franchise (Bungie / 343 Industries, 2001–).",
       "expected": {
         "canFly": false,
         "hasArmor": true,
@@ -681,7 +675,6 @@
         "isHuman": true,
         "isMale": true,
         "isProtagonist": true,
-        "isVideoGameCharacter": true,
         "isVillain": false,
         "wearsMask": true
       }
@@ -690,7 +683,7 @@
       "id": "lara-croft",
       "name": "Lara Croft",
       "category": "videogame",
-      "description": "British archaeologist-adventurer of Eidos's Tomb Raider series (1996\u2013).",
+      "description": "British archaeologist-adventurer of Eidos's Tomb Raider series (1996–).",
       "expected": {
         "canFly": false,
         "hasMagicPowers": false,
@@ -704,7 +697,6 @@
         "isIconic": true,
         "isMale": false,
         "isRich": true,
-        "isVideoGameCharacter": true,
         "isVillain": false
       }
     },
@@ -712,7 +704,7 @@
       "id": "kratos",
       "name": "Kratos",
       "category": "videogame",
-      "description": "Spartan demigod and protagonist of Sony's God of War series (2005\u2013).",
+      "description": "Spartan demigod and protagonist of Sony's God of War series (2005–).",
       "expected": {
         "canFly": false,
         "hasBeard": true,
@@ -726,15 +718,14 @@
         "isGod": true,
         "isHuman": false,
         "isImmortal": true,
-        "isMale": true,
-        "isVideoGameCharacter": true
+        "isMale": true
       }
     },
     {
       "id": "mickey-mouse",
       "name": "Mickey Mouse",
       "category": "cartoon",
-      "description": "Anthropomorphic mouse, official mascot of The Walt Disney Company (1928\u2013).",
+      "description": "Anthropomorphic mouse, official mascot of The Walt Disney Company (1928–).",
       "expected": {
         "canFly": false,
         "canTalk": true,
@@ -766,7 +757,6 @@
         "isAlien": false,
         "isFemale": true,
         "isFromCartoon": false,
-        "isFromMovie": true,
         "isHero": true,
         "isHuman": true,
         "isMale": false,
@@ -839,7 +829,7 @@
       "id": "spongebob-squarepants",
       "name": "SpongeBob SquarePants",
       "category": "cartoon",
-      "description": "Anthropomorphic sea sponge living in Bikini Bottom; Nickelodeon series (1999\u2013).",
+      "description": "Anthropomorphic sea sponge living in Bikini Bottom; Nickelodeon series (1999–).",
       "expected": {
         "canBreatheUnderwater": true,
         "canSwim": true,
@@ -861,7 +851,7 @@
       "id": "harry-potter",
       "name": "Harry Potter",
       "category": "books",
-      "description": "Boy wizard, protagonist of J.K. Rowling's Harry Potter series (1997\u20132007).",
+      "description": "Boy wizard, protagonist of J.K. Rowling's Harry Potter series (1997–2007).",
       "expected": {
         "canFly": false,
         "hasGlasses": true,
@@ -871,8 +861,6 @@
         "hasWeapon": true,
         "isAlien": false,
         "isFemale": false,
-        "isFromBook": true,
-        "isFromMovie": true,
         "isHero": true,
         "isHuman": true,
         "isIconic": true,
@@ -895,8 +883,6 @@
         "hasWeapon": true,
         "isAlien": false,
         "isFemale": true,
-        "isFromBook": true,
-        "isFromMovie": true,
         "isHero": true,
         "isHuman": true,
         "isIntelligent": true,
@@ -919,8 +905,6 @@
         "isBald": true,
         "isCruel": true,
         "isFemale": false,
-        "isFromBook": true,
-        "isFromMovie": true,
         "isHero": false,
         "isHuman": true,
         "isMale": true,
@@ -932,16 +916,14 @@
       "id": "frodo-baggins",
       "name": "Frodo Baggins",
       "category": "books",
-      "description": "Hobbit ringbearer of J.R.R. Tolkien's The Lord of the Rings (1954\u201355).",
+      "description": "Hobbit ringbearer of J.R.R. Tolkien's The Lord of the Rings (1954–55).",
       "expected": {
         "canFly": false,
         "hasMagicPowers": false,
         "hasSuperpowers": false,
         "isAlien": false,
         "isFemale": false,
-        "isFromBook": true,
         "isFromFantasyWorld": true,
-        "isFromMovie": true,
         "isHero": true,
         "isHuman": false,
         "isMale": true,
@@ -964,9 +946,7 @@
         "hasWeapon": true,
         "isAlien": false,
         "isFemale": false,
-        "isFromBook": true,
         "isFromFantasyWorld": true,
-        "isFromMovie": true,
         "isHero": true,
         "isHuman": false,
         "isMale": true,
@@ -988,7 +968,6 @@
         "hasSuperpowers": false,
         "isAlien": false,
         "isFemale": false,
-        "isFromBook": true,
         "isFromFantasyWorld": true,
         "isHero": true,
         "isHuman": false,
@@ -1010,9 +989,7 @@
         "hasWeapon": true,
         "isAlien": false,
         "isFemale": false,
-        "isFromBook": true,
         "isFromFantasyWorld": true,
-        "isFromMovie": true,
         "isHero": true,
         "isHuman": true,
         "isMale": true,
@@ -1025,7 +1002,7 @@
       "id": "darth-vader",
       "name": "Darth Vader",
       "category": "movies",
-      "description": "Anakin Skywalker, fallen Jedi turned Sith Lord in Lucasfilm's Star Wars (1977\u2013).",
+      "description": "Anakin Skywalker, fallen Jedi turned Sith Lord in Lucasfilm's Star Wars (1977–).",
       "expected": {
         "canFly": false,
         "hasArmor": true,
@@ -1037,7 +1014,6 @@
         "isBald": true,
         "isCyborg": true,
         "isFemale": false,
-        "isFromMovie": true,
         "isHero": false,
         "isHuman": true,
         "isIconic": true,
@@ -1059,7 +1035,6 @@
         "hasWeapon": true,
         "isAlien": false,
         "isFemale": false,
-        "isFromMovie": true,
         "isHero": true,
         "isHuman": true,
         "isMale": true,
@@ -1080,7 +1055,6 @@
         "isAlien": true,
         "isBald": true,
         "isFemale": false,
-        "isFromMovie": true,
         "isHero": true,
         "isHuman": false,
         "isIconic": true,
@@ -1094,7 +1068,7 @@
       "id": "sherlock-holmes",
       "name": "Sherlock Holmes",
       "category": "books",
-      "description": "Consulting detective created by Arthur Conan Doyle (1887\u2013).",
+      "description": "Consulting detective created by Arthur Conan Doyle (1887–).",
       "expected": {
         "canFly": false,
         "hasMagicPowers": false,
@@ -1102,7 +1076,6 @@
         "isAlien": false,
         "isDetective": true,
         "isFemale": false,
-        "isFromBook": true,
         "isHero": true,
         "isHuman": true,
         "isIconic": true,
@@ -1125,9 +1098,7 @@
         "hasWeapon": true,
         "isAlien": false,
         "isFemale": true,
-        "isFromBook": true,
         "isFromDystopia": true,
-        "isFromMovie": true,
         "isHero": true,
         "isHuman": true,
         "isMale": false,
@@ -1139,7 +1110,7 @@
       "id": "homer-simpson",
       "name": "Homer Simpson",
       "category": "cartoon",
-      "description": "Patriarch of The Simpsons, animated sitcom by Matt Groening (1989\u2013).",
+      "description": "Patriarch of The Simpsons, animated sitcom by Matt Groening (1989–).",
       "expected": {
         "canFly": false,
         "hasCatchphrase": true,

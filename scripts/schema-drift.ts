@@ -135,6 +135,8 @@ function checkSchemaShape(schema: AttrDef[]): { keys: Set<string> } {
 function readMigrationKeys(): { keys: Set<string>; perFile: Map<string, Set<string>> } {
   const keys = new Set<string>();
   const perFile = new Map<string, Set<string>>();
+  // Keys explicitly removed from attribute_definitions by a later DELETE migration.
+  const deletedKeys = new Set<string>();
   if (!existsSync(MIGRATIONS_DIR)) {
     err(`Migrations directory missing: ${MIGRATIONS_DIR}`);
     return { keys, perFile };
@@ -142,11 +144,30 @@ function readMigrationKeys(): { keys: Set<string>; perFile: Map<string, Set<stri
   // Match: INSERT INTO attribute_definitions (key, ...) VALUES ('someKey', ...
   // Be permissive about whitespace and column count.
   const insertRe = /INSERT\s+(?:OR\s+\w+\s+)?INTO\s+attribute_definitions[^;]*?VALUES\s*\(\s*'([a-zA-Z0-9_]+)'/gi;
-  for (const file of readdirSync(MIGRATIONS_DIR)) {
-    if (!file.endsWith('.sql')) continue;
+  // Match keys inside: DELETE FROM attribute_definitions WHERE key IN ('a', 'b', ...)
+  const deleteRe = /DELETE\s+FROM\s+attribute_definitions\s+WHERE\s+key\s+IN\s*\(([^)]+)\)/gi;
+  const quotedKeyRe = /'([a-zA-Z0-9_]+)'/g;
+
+  const sqlFiles = readdirSync(MIGRATIONS_DIR).filter((f) => f.endsWith('.sql')).sort();
+
+  for (const file of sqlFiles) {
     const full = path.join(MIGRATIONS_DIR, file);
     const text = readFileSync(full, 'utf-8');
+
+    // Collect deleted keys from this file.
+    let dm: RegExpExecArray | null;
+    deleteRe.lastIndex = 0;
+    while ((dm = deleteRe.exec(text)) !== null) {
+      const inClause = dm[1];
+      quotedKeyRe.lastIndex = 0;
+      let qm: RegExpExecArray | null;
+      while ((qm = quotedKeyRe.exec(inClause)) !== null) {
+        deletedKeys.add(qm[1]);
+      }
+    }
+
     const fileKeys = new Set<string>();
+    insertRe.lastIndex = 0;
     let m: RegExpExecArray | null;
     while ((m = insertRe.exec(text)) !== null) {
       fileKeys.add(m[1]);
@@ -154,6 +175,17 @@ function readMigrationKeys(): { keys: Set<string>; perFile: Map<string, Set<stri
     }
     if (fileKeys.size > 0) perFile.set(file, fileKeys);
   }
+
+  // Remove keys that were explicitly deleted by a later migration — they are
+  // intentionally absent from the schema cache and should not trigger drift errors.
+  for (const k of deletedKeys) {
+    keys.delete(k);
+    for (const [file, fileKeys] of perFile) {
+      fileKeys.delete(k);
+      if (fileKeys.size === 0) perFile.delete(file);
+    }
+  }
+
   return { keys, perFile };
 }
 
