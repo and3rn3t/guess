@@ -116,6 +116,10 @@ jobs:
           pnpm openapi:generate 2>&1 | tee .ci-artifacts/checks-static/openapi-generate.log
           pnpm openapi:validate 2>&1 | tee .ci-artifacts/checks-static/openapi-validate.log
           pnpm openapi:check 2>&1 | tee .ci-artifacts/checks-static/openapi-check.log
+      - name: Refactor boundary guard
+        run: |
+          set -o pipefail
+          pnpm refactor:guard 2>&1 | tee .ci-artifacts/checks-static/refactor-guard.log
       - name: Upload checks-static logs
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
@@ -130,7 +134,7 @@ jobs:
             echo "### Checks-Static Artifacts"
             echo ""
             echo "- Artifact: ci-checks-static-logs"
-            echo "- Files: lint.log, typecheck.log, dq-sla-check.log, mobile-guardrails.log, openapi-generate.log, openapi-validate.log, openapi-check.log"
+            echo "- Files: lint.log, typecheck.log, dq-sla-check.log, mobile-guardrails.log, openapi-generate.log, openapi-validate.log, openapi-check.log, refactor-guard.log"
           } >> "$GITHUB_STEP_SUMMARY"
 
   # ── Test coverage (parallel to checks-static) ───────────────

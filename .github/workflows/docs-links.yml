@@ -27,7 +27,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     env:
-      DOCS_LINKS_ENFORCE: 'false'
+      DOCS_LINKS_ENFORCE: 'true'
     permissions:
       contents: read
     steps:

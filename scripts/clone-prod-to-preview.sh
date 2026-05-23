@@ -1,4 +1,4 @@
-#!/usr/bin/env zsh
+#!/usr/bin/env bash
 # Clone game content tables from production D1 → preview D1.
 #
 # What is synced:   characters, character_attributes, questions, attribute_definitions

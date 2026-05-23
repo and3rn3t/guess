@@ -29,13 +29,18 @@ on:
         required: false
         default: '30'
 
-permissions:
-  contents: read
+concurrency:
+  group: real-data-aggregate
+  cancel-in-progress: false # only one aggregation run at a time; older run must finish
+
+permissions: {}
 
 jobs:
   aggregate:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    permissions:
+      contents: read
 
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6

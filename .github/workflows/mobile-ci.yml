@@ -19,10 +19,15 @@ concurrency:
   group: mobile-ci-${{ github.ref }}
   cancel-in-progress: true
 
+permissions: {}
+
 jobs:
   checks:
     name: Type-check + guardrails
     runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
@@ -51,9 +56,49 @@ jobs:
           set -o pipefail
           pnpm mobile:reliability-gate 2>&1 | tee .ci-artifacts/mobile-ci/reliability-perf-gate.log
 
+      - name: Upload static check logs
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: mobile-ci-checks-${{ github.run_id }}
+          path: .ci-artifacts/mobile-ci/
+          if-no-files-found: ignore
+
+      - name: Step summary
+        if: always()
+        run: |
+          {
+            echo "### Mobile CI — Static Checks"
+            echo ""
+            status() { [ -f "$1" ] && echo "✅" || echo "❌"; }
+            echo "| Step | Result |"
+            echo "|------|--------|"
+            echo "| Type-check | $(status .ci-artifacts/mobile-ci/typecheck.log) |"
+            echo "| Guardrails | $(status .ci-artifacts/mobile-ci/guardrails.log) |"
+            echo "| Evidence links | $(status .ci-artifacts/mobile-ci/evidence-links.log) |"
+            echo "| Reliability gate | $(status .ci-artifacts/mobile-ci/reliability-perf-gate.log) |"
+            echo ""
+            echo "Artifact: \`mobile-ci-checks-${{ github.run_id }}\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  e2e:
+    name: Mobile E2E
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: [checks]
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          fetch-depth: 2
+
+      - uses: ./.github/actions/setup
+
       - name: Build web preview for mobile E2E lane
         run: |
           set -o pipefail
+          mkdir -p .ci-artifacts/mobile-ci
           pnpm build:fast 2>&1 | tee .ci-artifacts/mobile-ci/build-fast.log
 
       - name: Cache Playwright browsers
@@ -109,35 +154,44 @@ jobs:
             echo "::warning::Mobile production scorecard gate did not pass (warn-only rollout). See scorecard-production.log"
           fi
 
-      - name: Upload CI artifacts
+      - name: Upload E2E artifacts
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
-          name: mobile-ci-${{ github.run_id }}
+          name: mobile-ci-e2e-${{ github.run_id }}
           path: .ci-artifacts/mobile-ci/
           if-no-files-found: ignore
 
       - name: Step summary
         if: always()
         run: |
-          echo "## Mobile CI" >> $GITHUB_STEP_SUMMARY
-          echo "- typecheck.log" >> $GITHUB_STEP_SUMMARY
-          echo "- guardrails.log" >> $GITHUB_STEP_SUMMARY
-          echo "- evidence-links.log" >> $GITHUB_STEP_SUMMARY
-          echo "- reliability-perf-gate.log" >> $GITHUB_STEP_SUMMARY
-          echo "- build-fast.log" >> $GITHUB_STEP_SUMMARY
-          echo "- mobile-core-flow-e2e.log" >> $GITHUB_STEP_SUMMARY
-          echo "- e2e/playwright-report" >> $GITHUB_STEP_SUMMARY
-          echo "- e2e/test-results" >> $GITHUB_STEP_SUMMARY
-          echo "- scorecard-milestone.log (main pushes only)" >> $GITHUB_STEP_SUMMARY
-          echo "- scorecard-production.log (main pushes only, warn-only)" >> $GITHUB_STEP_SUMMARY
-          echo "- scorecard-production-status.txt" >> $GITHUB_STEP_SUMMARY
+          {
+            echo "### Mobile CI — E2E"
+            echo ""
+            status() { [ -f "$1" ] && echo "✅" || echo "❌"; }
+            echo "| Step | Result |"
+            echo "|------|--------|"
+            echo "| Build | $(status .ci-artifacts/mobile-ci/build-fast.log) |"
+            echo "| E2E tests | $(status .ci-artifacts/mobile-ci/mobile-core-flow-e2e.log) |"
+            if [[ "${{ github.ref }}" == "refs/heads/main" && "${{ github.event_name }}" == "push" ]]; then
+              echo "| Scorecard milestone | $(status .ci-artifacts/mobile-ci/scorecard-milestone.log) |"
+              PROD_STATUS="⚠️ not run"
+              [ -f .ci-artifacts/mobile-ci/scorecard-production-status.txt ] && \
+                PROD_STATUS="$(cat .ci-artifacts/mobile-ci/scorecard-production-status.txt)"
+              echo "| Scorecard production | $PROD_STATUS |"
+            fi
+            echo ""
+            echo "Artifact: \`mobile-ci-e2e-${{ github.run_id }}\`"
+          } >> "$GITHUB_STEP_SUMMARY"
 
   eas-build:
     name: EAS Build (preview)
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     needs: checks
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 

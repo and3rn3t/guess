@@ -97,30 +97,16 @@ jobs:
             $EXTRA_FLAGS \
             | tee .ci-artifacts/corroborate/corroborate-output.log
 
-      - name: Upload disputes SQL artifact
+      - name: Collect disputes SQL into artifacts dir
         if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
-        with:
-          name: corroboration-disputes-sql
-          path: data/corroboration/disputes-*.sql
-          if-no-files-found: ignore
-          retention-days: 30
+        run: cp -f data/corroboration/disputes-*.sql .ci-artifacts/corroborate/ 2>/dev/null || true
 
-      - name: Upload run log
+      - name: Upload corroborate artifacts
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
-          name: corroborate-log
-          path: .ci-artifacts/corroborate/corroborate-output.log
-          if-no-files-found: ignore
-          retention-days: 30
-
-      - name: Upload corroboration metadata
-        if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
-        with:
-          name: corroborate-metadata
-          path: .ci-artifacts/corroborate/metadata.txt
+          name: corroborate-artifacts
+          path: .ci-artifacts/corroborate/
           if-no-files-found: ignore
           retention-days: 30
 
@@ -130,7 +116,5 @@ jobs:
           {
             echo "### Corroboration Artifacts"
             echo ""
-            echo "- Artifact: corroboration-disputes-sql"
-            echo "- Artifact: corroborate-log"
-            echo "- Artifact: corroborate-metadata"
+            echo "- Artifact: corroborate-artifacts (log, metadata, disputes SQL)"
           } >> "$GITHUB_STEP_SUMMARY"

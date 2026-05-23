@@ -19,7 +19,7 @@ on:
   schedule:
     # Sundays 04:00 UTC. After the daily aggregator and well clear of peak
     # traffic windows.
-    - cron: '0 4 * * 0'
+    - cron: '0 5 * * 0' # Sunday 05:00 UTC — after corroborate (was 04:00, collided with corroborate)
   workflow_dispatch:
     inputs:
       env:
@@ -47,14 +47,25 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
       - uses: ./.github/actions/setup
 
+      - name: Prepare self-tune artifacts
+        run: |
+          mkdir -p .ci-artifacts/engine-self-tune
+          {
+            echo "env=${{ github.event.inputs.env || 'production' }}"
+            echo "days=${{ github.event.inputs.days || '7' }}"
+            echo "sha=${{ github.sha }}"
+          } > .ci-artifacts/engine-self-tune/metadata.txt
+
       - name: Run self-tune grid search
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
+          set -o pipefail
           ENV_FLAG="${{ github.event.inputs.env || 'production' }}"
           DAYS="${{ github.event.inputs.days || '7' }}"
-          npx tsx scripts/self-tune-weights.ts --env "$ENV_FLAG" --days "$DAYS"
+          npx tsx scripts/self-tune-weights.ts --env "$ENV_FLAG" --days "$DAYS" \
+            2>&1 | tee .ci-artifacts/engine-self-tune/self-tune.log
 
       - name: Upload candidate weights to D1 engine_config
         if: hashFiles('data/self-tune/weights-candidate.json') != ''
@@ -62,6 +73,7 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
+          set -o pipefail
           ENV_FLAG="${{ github.event.inputs.env || 'production' }}"
           DB_NAME=$([ "$ENV_FLAG" = "production" ] && echo "guess-db" || echo "guess-db-preview")
           ACTION=$(jq -r '.action' data/self-tune/summary.json)
@@ -84,9 +96,11 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
+          set -o pipefail
           ENV_FLAG="${{ github.event.inputs.env || 'production' }}"
           DAYS="${{ github.event.inputs.days || '7' }}"
-          npx tsx scripts/promote-experiment.ts --env "$ENV_FLAG" --days "$DAYS"
+          npx tsx scripts/promote-experiment.ts --env "$ENV_FLAG" --days "$DAYS" \
+            2>&1 | tee .ci-artifacts/engine-self-tune/promote.log
 
       - name: Promote weights to engine:weights-active
         if: hashFiles('data/promotion/weights-active.json') != ''
@@ -94,6 +108,7 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
+          set -o pipefail
           ENV_FLAG="${{ github.event.inputs.env || 'production' }}"
           DB_NAME=$([ "$ENV_FLAG" = "production" ] && echo "guess-db" || echo "guess-db-preview")
           VAL=$(jq -c '.' data/promotion/weights-active.json)
@@ -103,25 +118,44 @@ jobs:
           # Reset experiment back to 0% — the candidate is now control.
           pnpm wrangler d1 execute "$DB_NAME" --env "$ENV_FLAG" --remote --command "INSERT OR REPLACE INTO engine_config (key, value, updated_at) VALUES ('ab:experiment-pct', '0', unixepoch())"
 
+      - name: Collect output artifacts
+        if: always()
+        run: |
+          cp -f data/self-tune/summary.json .ci-artifacts/engine-self-tune/self-tune-summary.json 2>/dev/null || true
+          cp -f data/promotion/summary.json .ci-artifacts/engine-self-tune/promotion-summary.json 2>/dev/null || true
+
+      - name: Upload self-tune artifacts
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: engine-self-tune-artifacts
+          path: .ci-artifacts/engine-self-tune/
+          retention-days: 14
+
       - name: Job summary
         if: always()
         run: |
           {
-            echo "## Self-tune"
+            echo "### Engine Self-Tune"
+            echo ""
+            echo "- Artifact: engine-self-tune-artifacts"
+            echo "- Files: metadata.txt, self-tune.log, promote.log, self-tune-summary.json, promotion-summary.json"
+            echo ""
             if [ -f data/self-tune/summary.json ]; then
+              echo "#### Self-tune result"
               echo '```json'
               cat data/self-tune/summary.json
               echo '```'
             else
-              echo '_no summary written_'
+              echo "_No self-tune summary written_"
             fi
             echo ""
-            echo "## Promotion"
             if [ -f data/promotion/summary.json ]; then
+              echo "#### Promotion result"
               echo '```json'
               cat data/promotion/summary.json
               echo '```'
             else
-              echo '_no summary written_'
+              echo "_No promotion summary written_"
             fi
           } >> "$GITHUB_STEP_SUMMARY"

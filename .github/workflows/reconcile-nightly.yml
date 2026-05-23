@@ -14,7 +14,7 @@ on:
     # Tier 1 daily (top played + high disagreement)
     - cron: "30 0 * * *"
     # Tier 2 weekly (Sunday UTC)
-    - cron: "0 1 * * 0"
+    - cron: "0 1 * * 4" # Thursday 01:00 UTC (was Sunday — moved to spread nightly load)
     # Tier 3 monthly (day 1 UTC)
     - cron: "30 1 1 * *"
   workflow_dispatch:
@@ -100,7 +100,7 @@ jobs:
             RISK_TIER="$INPUT_TIER"
           elif [ "$SCHEDULE" = "30 0 * * *" ]; then
             RISK_TIER="tier1"
-          elif [ "$SCHEDULE" = "0 1 * * 0" ]; then
+          elif [ "$SCHEDULE" = "0 1 * * 4" ]; then
             RISK_TIER="tier2"
           elif [ "$SCHEDULE" = "30 1 1 * *" ]; then
             RISK_TIER="tier3"
@@ -145,50 +145,9 @@ jobs:
             --batch-size "$BATCH" \
             | tee .ci-artifacts/reconcile/reconcile-output.log
 
-      - name: Upload drift SQL artifact
+      - name: Collect drift SQL into artifacts dir
         if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
-        with:
-          name: attribute-drift-sql
-          path: data/reconcile/*.sql
-          if-no-files-found: ignore
-          retention-days: 30
-
-      - name: Upload run log
-        if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
-        with:
-          name: reconcile-log
-          path: .ci-artifacts/reconcile/reconcile-output.log
-          if-no-files-found: ignore
-          retention-days: 30
-
-      - name: Upload risk-tier log
-        if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
-        with:
-          name: reconcile-risk-tier-log
-          path: .ci-artifacts/reconcile/risk-tier.log
-          if-no-files-found: ignore
-          retention-days: 30
-
-      - name: Upload risk-tier sample
-        if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
-        with:
-          name: reconcile-risk-tier-sample
-          path: .ci-artifacts/reconcile/risk-tier-sample.json
-          if-no-files-found: ignore
-          retention-days: 30
-
-      - name: Upload reconcile metadata
-        if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
-        with:
-          name: reconcile-metadata
-          path: .ci-artifacts/reconcile/metadata.txt
-          if-no-files-found: ignore
-          retention-days: 30
+        run: cp -f data/reconcile/*.sql .ci-artifacts/reconcile/ 2>/dev/null || true
 
       - name: Capture post-reconcile perf baseline
         if: always()
@@ -203,28 +162,6 @@ jobs:
             --env "$ENV_FLAG" \
             --out .ci-artifacts/reconcile/perf-baseline-post.md \
             | tee .ci-artifacts/reconcile/perf-baseline-post.log
-
-      - name: Upload pre-reconcile perf baseline
-        if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
-        with:
-          name: reconcile-perf-baseline-pre
-          path: |
-            .ci-artifacts/reconcile/perf-baseline-pre.md
-            .ci-artifacts/reconcile/perf-baseline-pre.log
-          if-no-files-found: ignore
-          retention-days: 30
-
-      - name: Upload post-reconcile perf baseline
-        if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
-        with:
-          name: reconcile-perf-baseline-post
-          path: |
-            .ci-artifacts/reconcile/perf-baseline-post.md
-            .ci-artifacts/reconcile/perf-baseline-post.log
-          if-no-files-found: ignore
-          retention-days: 30
 
       - name: Summarize perf baseline deltas
         if: always()
@@ -328,20 +265,18 @@ jobs:
 
           cat .ci-artifacts/reconcile/perf-baseline-delta.md >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Upload perf baseline delta summary
+      - name: Upload reconcile artifacts
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
-          name: reconcile-perf-baseline-delta
-          path: |
-            .ci-artifacts/reconcile/perf-baseline-delta.md
-            .ci-artifacts/reconcile/perf-baseline-delta.log
+          name: reconcile-artifacts
+          path: .ci-artifacts/reconcile/
           if-no-files-found: ignore
           retention-days: 30
 
-      - name: Generate weekly completeness report (Sundays + tier2 dispatch)
+      - name: Generate weekly completeness report (Thursdays + tier2 dispatch)
         if: |
-          github.event.schedule == '0 1 * * 0' ||
+          github.event.schedule == '0 1 * * 4' ||
           github.event.inputs.risk_tier == 'tier2'
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -358,7 +293,7 @@ jobs:
       - name: Upload weekly quality report
         if: |
           always() &&
-          (github.event.schedule == '0 1 * * 0' ||
+          (github.event.schedule == '0 1 * * 4' ||
            github.event.inputs.risk_tier == 'tier2')
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
@@ -373,15 +308,8 @@ jobs:
           {
             echo "### Reconcile Artifacts"
             echo ""
-            echo "- Artifact: attribute-drift-sql"
-            echo "- Artifact: reconcile-log"
-            echo "- Artifact: reconcile-risk-tier-log"
-            echo "- Artifact: reconcile-risk-tier-sample"
-            echo "- Artifact: reconcile-metadata"
-            echo "- Artifact: reconcile-perf-baseline-pre"
-            echo "- Artifact: reconcile-perf-baseline-post"
-            echo "- Artifact: reconcile-perf-baseline-delta"
-            if [[ "${{ github.event.schedule }}" == "0 1 * * 0" ]] || [[ "${{ github.event.inputs.risk_tier }}" == "tier2" ]]; then
+            echo "- Artifact: reconcile-artifacts (logs, metadata, drift SQL, perf baselines, delta)"
+            if [[ "${{ github.event.schedule }}" == "0 1 * * 4" ]] || [[ "${{ github.event.inputs.risk_tier }}" == "tier2" ]]; then
               echo "- Artifact: weekly-quality-report"
             fi
           } >> "$GITHUB_STEP_SUMMARY"

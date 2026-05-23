@@ -2,6 +2,15 @@ name: Online Validation
 
 on:
   workflow_dispatch:
+    inputs:
+      enforce:
+        description: 'Fail if completeness gate fails (true) or warn-only (false)'
+        required: false
+        default: 'false'
+        type: choice
+        options:
+          - 'false'
+          - 'true'
   push:
     branches: [main]
     paths:
@@ -41,7 +50,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
-      DQ_COMPLETENESS_ENFORCE: 'false'
+      DQ_COMPLETENESS_ENFORCE: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.enforce || 'false' }}
     permissions:
       contents: read
     steps:
