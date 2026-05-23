@@ -42,6 +42,14 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed
+
+- **Complexity guard hardening (DX.43)** — upgraded `scripts/check-complexity.ts` with `--report` flag (emits `.ci-artifacts/checks-static/complexity-report.json`), auto-scan of all `{src,functions,scripts,packages}/**` for ungoverned hotspots >400 lines (warnings, never fails), `--ratchet` flag for ceiling refresh (manual only), renamed `maxImports` → `maxOwnImports`. Added 4 new governed files: `PlayingScreen.tsx`, `GameOver.tsx`, `_game-engine.ts`, `packages/game-engine/src/question-selection.ts`. CI now uploads `complexity-report.json` and adds a top-5-closest-to-ceiling table to `$GITHUB_STEP_SUMMARY`.
+
+- **`GamePhaseRouter.tsx` refactor** — extracted all 6 static-phase lazy-loaded renderers (teaching, describeYourself, manage, stats, history, compare) into `src/components/phases/StaticPhaseContent.tsx`. Router now 273 lines (was 428, ceiling 430). New ceiling: 330.
+
+- **`functions/api/v2/game/start.ts` refactor** — extracted `DIFFICULTY_TO_PERSONA`, `parseTrivia`, `loadQuestionsWithRetirementFallback`, and `QuestionRow` type into `functions/api/v2/game/_start_helpers.ts`. Handler now 299 lines (was 338, ceiling 340). New ceiling: 320.
+
 ---
 
 ## [1.8.0] - 2026-05-22

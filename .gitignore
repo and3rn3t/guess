@@ -96,6 +96,7 @@ apps/mobile/ios/**/xcuserdata/
 
 # Local-only CI diagnostics produced by ad-hoc checks
 .ci-artifacts/checks-local/
+.ci-artifacts/checks-static/complexity-report.json
 
 # nohup output
 nohup.out

@@ -119,7 +119,7 @@ jobs:
       - name: Refactor boundary guard
         run: |
           set -o pipefail
-          pnpm refactor:guard 2>&1 | tee .ci-artifacts/checks-static/refactor-guard.log
+          pnpm refactor:guard --report 2>&1 | tee .ci-artifacts/checks-static/refactor-guard.log
       - name: Dead code check (knip)
         # Warn-only until the baseline is clean. Remove '|| true' to promote to a hard gate.
         run: |
@@ -139,7 +139,29 @@ jobs:
             echo "### Checks-Static Artifacts"
             echo ""
             echo "- Artifact: ci-checks-static-logs"
-            echo "- Files: lint.log, typecheck.log, dq-sla-check.log, mobile-guardrails.log, openapi-generate.log, openapi-validate.log, openapi-check.log, refactor-guard.log, knip.log"
+            echo "- Files: lint.log, typecheck.log, dq-sla-check.log, mobile-guardrails.log, openapi-generate.log, openapi-validate.log, openapi-check.log, refactor-guard.log, knip.log, complexity-report.json"
+            echo ""
+            echo "### Complexity Guard — Top 5 Closest to Ceiling"
+            echo ""
+            echo "| File | Lines/Max | % Used | Headroom |"
+            echo "|------|-----------|--------|----------|"
+            if [ -f .ci-artifacts/checks-static/complexity-report.json ]; then
+              node --input-type=module <<'JS'
+                import { readFileSync } from 'node:fs';
+                const { entries } = JSON.parse(readFileSync('.ci-artifacts/checks-static/complexity-report.json', 'utf-8'));
+                const governed = entries
+                  .filter(e => e.maxLines < 1000 || e.lineHeadroom >= 0)
+                  .filter(e => e.lineHeadroom >= 0)
+                  .sort((a, b) => a.lineHeadroom - b.lineHeadroom)
+                  .slice(0, 5);
+                for (const e of governed) {
+                  const pct = Math.round((e.lines / e.maxLines) * 100);
+                  console.log(`| \`${e.file}\` | ${e.lines}/${e.maxLines} | ${pct}% | ${e.lineHeadroom} lines |`);
+                }
+JS
+            else
+              echo "_complexity-report.json not found_"
+            fi
           } >> "$GITHUB_STEP_SUMMARY"
 
   # ── Test coverage (parallel to checks-static) ───────────────

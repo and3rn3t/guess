@@ -2,39 +2,11 @@ import { GameOver } from "@/components/GameOver";
 import { GuessReveal } from "@/components/GuessReveal";
 import { PlayingScreen } from "@/components/PlayingScreen";
 import { WelcomeScreen } from "@/components/WelcomeScreen";
-import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
+import { StaticPhaseContent } from "@/components/phases/StaticPhaseContent";
 import { useGameContext } from "@/contexts/GameContext";
-import { DEFAULT_CHARACTERS, DEFAULT_QUESTIONS } from "@/lib/database";
+import { DEFAULT_QUESTIONS } from "@/lib/database";
 import { AnimatePresence, motion } from "motion/react";
-import { lazy, Suspense, useEffect, useRef, type ReactNode } from "react";
-
-const TeachingMode = lazy(() =>
-  import("@/components/TeachingMode").then((m) => ({ default: m.TeachingMode })),
-);
-const DescribeYourselfScreen = lazy(() =>
-  import("@/components/DescribeYourselfScreen").then((m) => ({
-    default: m.DescribeYourselfScreen,
-  })),
-);
-const QuestionManager = lazy(() =>
-  import("@/components/QuestionManager").then((m) => ({
-    default: m.QuestionManager,
-  })),
-);
-const StatsDashboard = lazy(() =>
-  import("@/components/StatsDashboard").then((m) => ({
-    default: m.StatsDashboard,
-  })),
-);
-const CharacterComparison = lazy(() =>
-  import("@/components/CharacterComparison").then((m) => ({
-    default: m.CharacterComparison,
-  })),
-);
-const GameHistory = lazy(() =>
-  import("@/components/GameHistory").then((m) => ({ default: m.GameHistory })),
-);
+import { useEffect, useRef, type ReactNode } from "react";
 
 /**
  * Routes the current game phase to its screen.
@@ -63,7 +35,6 @@ export function GamePhaseRouter() {
     globalStats,
     gameHistory,
     gamesPlayed,
-    statsLoading,
     hasSavedSession,
     resumeSession,
     clearSession,
@@ -98,8 +69,6 @@ export function GamePhaseRouter() {
     handleCopyLink,
     handleReveal,
     handleSubmitFeedback,
-    handleAddCharacter,
-    handleAddQuestions,
   } = useGameContext();
 
   const {
@@ -281,130 +250,6 @@ export function GamePhaseRouter() {
       ? animatedPhaseManifest[animatedPhase]()
       : null;
 
-  const staticPhaseManifest: Partial<
-    Record<typeof gamePhase, () => ReactNode>
-  > = {
-    teaching: () => (
-      <div className="max-w-2xl mx-auto">
-        <Suspense fallback={<Skeleton className="h-96 w-full" />}>
-          <TeachingMode
-            answers={answers}
-            existingCharacters={characters || DEFAULT_CHARACTERS}
-            onAddCharacter={handleAddCharacter}
-            onAddQuestions={handleAddQuestions}
-            onPlayAgain={() => void startGame()}
-            onGoHome={() => navigate("welcome")}
-          />
-        </Suspense>
-      </div>
-    ),
-    describeYourself: () => (
-      <div className="max-w-xl mx-auto">
-        <Suspense fallback={<Skeleton className="h-96 w-full" />}>
-          <DescribeYourselfScreen
-            questions={questions || DEFAULT_QUESTIONS}
-            characters={activeCharacters}
-            persona={persona}
-            onClose={() => navigate("welcome")}
-          />
-        </Suspense>
-      </div>
-    ),
-    manage: () => (
-      <div className="max-w-4xl mx-auto space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-3xl font-bold text-foreground">
-              Question Pool Manager
-            </h2>
-            <p className="text-muted-foreground mt-1">
-              Generate new questions from user-taught characters
-            </p>
-          </div>
-          <Button onClick={() => navigate("welcome")} variant="outline">
-            Back to Game
-          </Button>
-        </div>
-        <Suspense fallback={<Skeleton className="h-96 w-full" />}>
-          <QuestionManager
-            characters={characters || DEFAULT_CHARACTERS}
-            questions={questions || DEFAULT_QUESTIONS}
-            onAddQuestions={handleAddQuestions}
-          />
-        </Suspense>
-        <div className="bg-card/50 backdrop-blur-sm border border-border/50 rounded-lg p-6">
-          <h3 className="text-lg font-semibold text-foreground mb-3">
-            Current Statistics
-          </h3>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-            <div className="bg-background/50 rounded-lg p-4">
-              <div className="text-2xl font-bold text-accent">
-                {(characters || DEFAULT_CHARACTERS).length}
-              </div>
-              <div className="text-sm text-muted-foreground">
-                Total Characters
-              </div>
-            </div>
-            <div className="bg-background/50 rounded-lg p-4">
-              <div className="text-2xl font-bold text-accent">
-                {(questions || DEFAULT_QUESTIONS).length}
-              </div>
-              <div className="text-sm text-muted-foreground">
-                Total Questions
-              </div>
-            </div>
-            <div className="bg-background/50 rounded-lg p-4">
-              <div className="text-2xl font-bold text-accent">
-                {
-                  (characters || DEFAULT_CHARACTERS).filter((c) =>
-                    c.id.startsWith("char-"),
-                  ).length
-                }
-              </div>
-              <div className="text-sm text-muted-foreground">
-                User-Taught
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    ),
-    stats: () => (
-      <div className="max-w-4xl mx-auto">
-        <Suspense fallback={<Skeleton className="h-96 w-full" />}>
-          <StatsDashboard
-            stats={globalStats}
-            loading={statsLoading}
-            onBack={() => navigate("welcome")}
-          />
-        </Suspense>
-      </div>
-    ),
-    history: () => (
-      <div className="max-w-4xl mx-auto">
-        <Suspense fallback={<Skeleton className="h-96 w-full" />}>
-          <GameHistory
-            history={gameHistory}
-            loading={statsLoading}
-            onBack={() => navigate("welcome")}
-          />
-        </Suspense>
-      </div>
-    ),
-    compare: () => (
-      <div className="max-w-4xl mx-auto">
-        <Suspense fallback={<Skeleton className="h-96 w-full" />}>
-          <CharacterComparison
-            characters={characters || DEFAULT_CHARACTERS}
-            onBack={() => navigate("welcome")}
-          />
-        </Suspense>
-      </div>
-    ),
-  };
-
-  const staticContent = staticPhaseManifest[gamePhase]?.() ?? null;
-
   return (
     <div ref={containerRef} tabIndex={-1} className="outline-none">
       <AnimatePresence mode="wait">
@@ -421,7 +266,7 @@ export function GamePhaseRouter() {
         )}
       </AnimatePresence>
 
-      {staticContent}
+      <StaticPhaseContent phase={gamePhase} />
     </div>
   );
 }

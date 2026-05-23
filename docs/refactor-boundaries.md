@@ -88,7 +88,12 @@ Not allowed responsibilities:
 ## Refactor Guardrails
 
 - Complexity guard script: `scripts/check-complexity.ts`
-- Validation command must run the guard: `pnpm refactor:guard`
+- Validation command: `pnpm refactor:guard` (run via `pnpm validate:fast` and in CI)
+- Report mode: `pnpm refactor:guard --report` — emits `.ci-artifacts/checks-static/complexity-report.json` and prints top-5 files closest to their ceiling
+- Ratchet mode: `pnpm refactor:guard --ratchet` — prints suggested new ceilings (current + 10% grace). **Manual only, never run in CI.** Copy output back into the `rules` array.
+- Metrics tracked: `lines` (total), `ownImports` (top-level import statements)
+- Auto-scan: any `.ts`/`.tsx` file in `{src,functions,scripts,packages}` with >400 lines that is not in the explicit `rules` list emits an ungoverned-hotspot warning (never fails; visible in `--report` output)
+- Exclusions from auto-scan: test files, `src/lib/seed/`, `scripts/openapi/lib.ts` (expected-large data/generated)
 - Characterization tests should be added before extracting new boundaries.
 
 ## Change Protocol
