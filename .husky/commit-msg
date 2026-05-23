@@ -12,4 +12,4 @@ case "$COMMIT_MSG" in
     ;;
 esac
 
-npx --no -- commitlint --edit "$1"
+pnpm exec commitlint --edit "$1"
