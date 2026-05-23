@@ -66,13 +66,9 @@ jobs:
           set -o pipefail
           ENV_FLAG="${{ github.event.inputs.env || 'production' }}"
           DB_NAME=$([ "$ENV_FLAG" = "production" ] && echo "guess-db" || echo "guess-db-preview")
-          python3 -c "
-import json
-with open('data/real/attribute-trust.json') as f:
-    val = json.dumps(json.load(f), separators=(',', ':'))
-escaped = val.replace(\"'\", \"''\")
-print(f\"INSERT OR REPLACE INTO kv_cache (key, value, cached_at) VALUES ('kv:attribute-trust', '{escaped}', unixepoch());\")
-" > /tmp/kv-upsert-attribute-trust.sql
+          VAL=$(jq -c '.' data/real/attribute-trust.json)
+          ESCAPED=$(printf '%s' "$VAL" | sed "s/'/''/g")
+          echo "INSERT OR REPLACE INTO kv_cache (key, value, cached_at) VALUES ('kv:attribute-trust', '${ESCAPED}', unixepoch());" > /tmp/kv-upsert-attribute-trust.sql
           pnpm wrangler d1 execute "$DB_NAME" --env "$ENV_FLAG" --remote --file /tmp/kv-upsert-attribute-trust.sql 2>&1 | tee .ci-artifacts/real-aggregate/d1-attribute-trust.log
 
       - name: Upload character-popularity to D1 kv_cache
@@ -83,13 +79,9 @@ print(f\"INSERT OR REPLACE INTO kv_cache (key, value, cached_at) VALUES ('kv:att
           set -o pipefail
           ENV_FLAG="${{ github.event.inputs.env || 'production' }}"
           DB_NAME=$([ "$ENV_FLAG" = "production" ] && echo "guess-db" || echo "guess-db-preview")
-          python3 -c "
-import json
-with open('data/real/character-popularity.json') as f:
-    val = json.dumps(json.load(f), separators=(',', ':'))
-escaped = val.replace(\"'\", \"''\")
-print(f\"INSERT OR REPLACE INTO kv_cache (key, value, cached_at) VALUES ('kv:character-popularity', '{escaped}', unixepoch());\")
-" > /tmp/kv-upsert-character-popularity.sql
+          VAL=$(jq -c '.' data/real/character-popularity.json)
+          ESCAPED=$(printf '%s' "$VAL" | sed "s/'/''/g")
+          echo "INSERT OR REPLACE INTO kv_cache (key, value, cached_at) VALUES ('kv:character-popularity', '${ESCAPED}', unixepoch());" > /tmp/kv-upsert-character-popularity.sql
           pnpm wrangler d1 execute "$DB_NAME" --env "$ENV_FLAG" --remote --file /tmp/kv-upsert-character-popularity.sql 2>&1 | tee .ci-artifacts/real-aggregate/d1-character-popularity.log
 
       - name: Upload question-empirical-gain to D1 kv_cache
@@ -100,13 +92,9 @@ print(f\"INSERT OR REPLACE INTO kv_cache (key, value, cached_at) VALUES ('kv:cha
           set -o pipefail
           ENV_FLAG="${{ github.event.inputs.env || 'production' }}"
           DB_NAME=$([ "$ENV_FLAG" = "production" ] && echo "guess-db" || echo "guess-db-preview")
-          python3 -c "
-import json
-with open('data/real/question-empirical-gain.json') as f:
-    val = json.dumps(json.load(f), separators=(',', ':'))
-escaped = val.replace(\"'\", \"''\")
-print(f\"INSERT OR REPLACE INTO kv_cache (key, value, cached_at) VALUES ('kv:question-empirical-gain', '{escaped}', unixepoch());\")
-" > /tmp/kv-upsert-question-empirical-gain.sql
+          VAL=$(jq -c '.' data/real/question-empirical-gain.json)
+          ESCAPED=$(printf '%s' "$VAL" | sed "s/'/''/g")
+          echo "INSERT OR REPLACE INTO kv_cache (key, value, cached_at) VALUES ('kv:question-empirical-gain', '${ESCAPED}', unixepoch());" > /tmp/kv-upsert-question-empirical-gain.sql
           pnpm wrangler d1 execute "$DB_NAME" --env "$ENV_FLAG" --remote --file /tmp/kv-upsert-question-empirical-gain.sql 2>&1 | tee .ci-artifacts/real-aggregate/d1-question-empirical-gain.log
 
       - name: Upload question-quality-penalty to D1 kv_cache
@@ -117,13 +105,9 @@ print(f\"INSERT OR REPLACE INTO kv_cache (key, value, cached_at) VALUES ('kv:que
           set -o pipefail
           ENV_FLAG="${{ github.event.inputs.env || 'production' }}"
           DB_NAME=$([ "$ENV_FLAG" = "production" ] && echo "guess-db" || echo "guess-db-preview")
-          python3 -c "
-import json
-with open('data/real/question-quality-penalty.json') as f:
-    val = json.dumps(json.load(f), separators=(',', ':'))
-escaped = val.replace(\"'\", \"''\")
-print(f\"INSERT OR REPLACE INTO kv_cache (key, value, cached_at) VALUES ('kv:question-quality-penalty', '{escaped}', unixepoch());\")
-" > /tmp/kv-upsert-question-quality-penalty.sql
+          VAL=$(jq -c '.' data/real/question-quality-penalty.json)
+          ESCAPED=$(printf '%s' "$VAL" | sed "s/'/''/g")
+          echo "INSERT OR REPLACE INTO kv_cache (key, value, cached_at) VALUES ('kv:question-quality-penalty', '${ESCAPED}', unixepoch());" > /tmp/kv-upsert-question-quality-penalty.sql
           pnpm wrangler d1 execute "$DB_NAME" --env "$ENV_FLAG" --remote --file /tmp/kv-upsert-question-quality-penalty.sql 2>&1 | tee .ci-artifacts/real-aggregate/d1-question-quality-penalty.log
 
       - name: Apply character-confusions UPSERTs to D1

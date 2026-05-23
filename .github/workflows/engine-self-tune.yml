@@ -66,13 +66,9 @@ jobs:
           DB_NAME=$([ "$ENV_FLAG" = "production" ] && echo "guess-db" || echo "guess-db-preview")
           ACTION=$(jq -r '.action' data/self-tune/summary.json)
           if [ "$ACTION" = "propose" ]; then
-            python3 -c "
-import json, sys
-with open('data/self-tune/weights-candidate.json') as f:
-    val = json.dumps(json.load(f), separators=(',', ':'))
-escaped = val.replace(\"'\", \"''\")
-print(f\"INSERT OR REPLACE INTO engine_config (key, value, updated_at) VALUES ('ab:experiment-weights', '{escaped}', unixepoch());\")
-" > /tmp/self-tune-weights.sql
+            VAL=$(jq -c '.' data/self-tune/weights-candidate.json)
+            ESCAPED=$(printf '%s' "$VAL" | sed "s/'/''/g")
+            echo "INSERT OR REPLACE INTO engine_config (key, value, updated_at) VALUES ('ab:experiment-weights', '${ESCAPED}', unixepoch());" > /tmp/self-tune-weights.sql
             pnpm wrangler d1 execute "$DB_NAME" --env "$ENV_FLAG" --remote --file /tmp/self-tune-weights.sql
             # Bump rollout to 10% if currently at 0
             CURRENT_PCT=$(pnpm wrangler d1 execute "$DB_NAME" --env "$ENV_FLAG" --remote --command "SELECT value FROM engine_config WHERE key = 'ab:experiment-pct'" --json 2>/dev/null | jq -r '.[0].results[0].value // "0"')
@@ -100,12 +96,9 @@ print(f\"INSERT OR REPLACE INTO engine_config (key, value, updated_at) VALUES ('
         run: |
           ENV_FLAG="${{ github.event.inputs.env || 'production' }}"
           DB_NAME=$([ "$ENV_FLAG" = "production" ] && echo "guess-db" || echo "guess-db-preview")
-          python3 -c "
-import json
-with open('data/promotion/weights-active.json') as f:
-    val = json.dumps(json.load(f), separators=(',', ':'))
-escaped = val.replace(\"'\", \"''\")
-print(f\"INSERT OR REPLACE INTO engine_config (key, value, updated_at) VALUES ('engine:weights-active', '{escaped}', unixepoch());\")" > /tmp/promote-weights.sql
+          VAL=$(jq -c '.' data/promotion/weights-active.json)
+          ESCAPED=$(printf '%s' "$VAL" | sed "s/'/''/g")
+          echo "INSERT OR REPLACE INTO engine_config (key, value, updated_at) VALUES ('engine:weights-active', '${ESCAPED}', unixepoch());" > /tmp/promote-weights.sql
           pnpm wrangler d1 execute "$DB_NAME" --env "$ENV_FLAG" --remote --file /tmp/promote-weights.sql
           # Reset experiment back to 0% — the candidate is now control.
           pnpm wrangler d1 execute "$DB_NAME" --env "$ENV_FLAG" --remote --command "INSERT OR REPLACE INTO engine_config (key, value, updated_at) VALUES ('ab:experiment-pct', '0', unixepoch())"

@@ -178,13 +178,9 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
           set -o pipefail
-          python3 -c "
-import json
-with open('scripts/simulate/data/maybe-rates.json') as f:
-    val = json.dumps(json.load(f), separators=(',', ':'))
-escaped = val.replace(\"'\", \"''\")
-print(f\"INSERT OR REPLACE INTO kv_cache (key, value, cached_at) VALUES ('kv:attribute-maybe-rates', '{escaped}', unixepoch());\")
-" > /tmp/kv-upsert-maybe-rates.sql
+          VAL=$(jq -c '.' scripts/simulate/data/maybe-rates.json)
+          ESCAPED=$(printf '%s' "$VAL" | sed "s/'/''/g")
+          echo "INSERT OR REPLACE INTO kv_cache (key, value, cached_at) VALUES ('kv:attribute-maybe-rates', '${ESCAPED}', unixepoch());" > /tmp/kv-upsert-maybe-rates.sql
           pnpm wrangler d1 execute guess-db --env production --remote --file /tmp/kv-upsert-maybe-rates.sql 2>&1 | tee .ci-artifacts/adaptive/compute/d1-maybe-rates.log
 
       - name: Upload net-gains to D1
@@ -193,13 +189,9 @@ print(f\"INSERT OR REPLACE INTO kv_cache (key, value, cached_at) VALUES ('kv:att
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
           set -o pipefail
-          python3 -c "
-import json
-with open('scripts/simulate/data/net-gains.json') as f:
-    val = json.dumps(json.load(f), separators=(',', ':'))
-escaped = val.replace(\"'\", \"''\")
-print(f\"INSERT OR REPLACE INTO kv_cache (key, value, cached_at) VALUES ('kv:attribute-net-gains', '{escaped}', unixepoch());\")
-" > /tmp/kv-upsert-net-gains.sql
+          VAL=$(jq -c '.' scripts/simulate/data/net-gains.json)
+          ESCAPED=$(printf '%s' "$VAL" | sed "s/'/''/g")
+          echo "INSERT OR REPLACE INTO kv_cache (key, value, cached_at) VALUES ('kv:attribute-net-gains', '${ESCAPED}', unixepoch());" > /tmp/kv-upsert-net-gains.sql
           pnpm wrangler d1 execute guess-db --env production --remote --file /tmp/kv-upsert-net-gains.sql 2>&1 | tee .ci-artifacts/adaptive/compute/d1-net-gains.log
 
       - name: Upload confusion-discriminators to D1
@@ -208,13 +200,9 @@ print(f\"INSERT OR REPLACE INTO kv_cache (key, value, cached_at) VALUES ('kv:att
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
           set -o pipefail
-          python3 -c "
-import json
-with open('scripts/simulate/data/confusion-discriminators.json') as f:
-    val = json.dumps(json.load(f), separators=(',', ':'))
-escaped = val.replace(\"'\", \"''\")
-print(f\"INSERT OR REPLACE INTO kv_cache (key, value, cached_at) VALUES ('kv:confusion-discriminators', '{escaped}', unixepoch());\")
-" > /tmp/kv-upsert-confusion.sql
+          VAL=$(jq -c '.' scripts/simulate/data/confusion-discriminators.json)
+          ESCAPED=$(printf '%s' "$VAL" | sed "s/'/''/g")
+          echo "INSERT OR REPLACE INTO kv_cache (key, value, cached_at) VALUES ('kv:confusion-discriminators', '${ESCAPED}', unixepoch());" > /tmp/kv-upsert-confusion.sql
           pnpm wrangler d1 execute guess-db --env production --remote --file /tmp/kv-upsert-confusion.sql 2>&1 | tee .ci-artifacts/adaptive/compute/d1-confusion-discriminators.log
 
       - name: Print summary
