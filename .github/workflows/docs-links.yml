@@ -52,12 +52,13 @@ jobs:
             --exclude '127\.0\.0\.1'
             --exclude 'example\.com'
             --exclude 'fast-check\.io'
+            --exclude 'platform\.openai\.com'
+            --exclude 'apps/mobile/ios'
             --exclude '^#'
             --exclude-path 'node_modules'
             --exclude-path 'dist'
             --exclude-path 'migrations'
             --exclude-path 'data'
-            --exclude-path 'apps/mobile/ios'
             "docs/**/*.md"
             "ROADMAP.md"
             "ARCHITECTURE.md"
@@ -85,12 +86,13 @@ jobs:
             --exclude '127\.0\.0\.1'
             --exclude 'example\.com'
             --exclude 'fast-check\.io'
+            --exclude 'platform\.openai\.com'
+            --exclude 'apps/mobile/ios'
             --exclude '^#'
             --exclude-path 'node_modules'
             --exclude-path 'dist'
             --exclude-path 'migrations'
             --exclude-path 'data'
-            --exclude-path 'apps/mobile/ios'
             "docs/**/*.md"
             "ROADMAP.md"
             "ARCHITECTURE.md"
