@@ -44,6 +44,7 @@ Think of a character. The AI asks strategic yes/no questions, uses Bayesian prob
 - **Touch-Optimized UI** — Gradient answer buttons (emerald/rose/amber/slate), spring-physics guess reveal with animated rings, confetti win screen, answer history pills with stagger animation
 - **Offline Support** — PWA with service worker caching for offline gameplay
 - **Sound Effects** — Web Audio API tone synthesis (no audio files needed)
+- **Describe Yourself** — 10 first-person questions map your own traits to the closest matching character in the database
 
 ## Tech Stack
 
@@ -51,7 +52,7 @@ Think of a character. The AI asks strategic yes/no questions, uses Bayesian prob
 |---|---|
 | Framework | React 19 · TypeScript (strict) · Vite 8 |
 | Styling | Tailwind CSS v4 · shadcn/ui · motion/react |
-| Data | Cloudflare D1 (SQLite) · KV · R2 |
+| Data | Cloudflare D1 (SQLite) · R2 |
 | AI | OpenAI GPT-4o via Cloudflare AI Gateway |
 | Platform | Cloudflare Pages + Workers |
 | Testing | Vitest · Playwright · MSW |

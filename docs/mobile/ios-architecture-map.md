@@ -1,4 +1,4 @@
-# iOS Architecture Map (SwiftUI-First)
+# iOS Architecture Map (React Native / Expo)
 
 Effective date: 2026-05-09
 

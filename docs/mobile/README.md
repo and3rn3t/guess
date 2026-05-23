@@ -33,7 +33,7 @@ Canonical planning sources:
 - [ios-feature-parity-plan.md](ios-feature-parity-plan.md): active parity baseline for delivery history (MP.1-MP.7) and documentation track.
 - [parity-matrix.md](parity-matrix.md): feature-by-feature parity state, divergence register, and evidence links.
 - [ios-documentation-program.md](ios-documentation-program.md): documentation backlog, ownership, and acceptance gates.
-- [ios-architecture-map.md](ios-architecture-map.md): SwiftUI-first architecture boundaries and implementation sequencing.
+- [ios-architecture-map.md](ios-architecture-map.md): Architecture boundaries, implementation layers, and sequencing (React Native / Expo).
 - [ios-screen-spec-pack.md](ios-screen-spec-pack.md): implementation-ready specs for all player-facing screens.
 - [ios-api-contract-reference.md](ios-api-contract-reference.md): mobile-facing API request/response and retry semantics.
 - [ios-qa-evidence-index.md](ios-qa-evidence-index.md): milestone evidence checklist and artifact index.

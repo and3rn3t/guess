@@ -34,9 +34,9 @@
 └──────────────────────────────────────────────────────────┘
 ```
 
-**Tech stack**: React 19 · TypeScript (strict) · Vite 7 · Tailwind CSS v4 · shadcn/ui · Framer Motion · Cloudflare Pages/Workers/D1/KV/R2
+**Tech stack**: React 19 · TypeScript (strict) · Vite 8 · Tailwind CSS v4 · shadcn/ui · motion/react · Cloudflare Pages/Workers/D1/R2
 
-Mobile iOS track: SwiftUI-first parity delivery with shared backend contracts and shared game semantics. See `docs/mobile/ios-architecture-map.md` and `docs/mobile/ios-feature-parity-plan.md`.
+Mobile iOS track: React Native / Expo parity delivery with shared backend contracts and shared game semantics. See `docs/mobile/ios-architecture-map.md` and `docs/mobile/ios-feature-parity-plan.md`.
 
 ---
 
@@ -185,6 +185,24 @@ migrations/                    # D1 SQLite migrations
 ├── 0028_dedup_attributes.sql  # Deduplicate attribute pairs; deactivate zero-info attributes
 ├── 0029_fill_missing_questions.sql  # Fill questions rows for active attributes missing them
 ├── 0030_question_difficulty.sql     # difficulty column on questions (easy/medium/hard)
+├── 0031_character_confusions.sql    # Character pair confusion tracking (from real games)
+├── 0032_question_attempts.sql       # Per-question shown/answer-mix tracking
+├── 0033_game_stats_variant.sql      # difficulty_variant column on game_stats
+├── 0034_evidence_trail.sql          # Nullable evidence column on character_attributes (provenance tags)
+├── 0035_agreement_score.sql         # agreement_score + agreement_signals columns on character_attributes
+├── 0036_data_quality_snapshots.sql  # Daily data-quality snapshot capture
+├── 0037_attribute_drift.sql         # Attribute value drift detection
+├── 0038_alerts.sql                  # Anomaly alert table (nightly cron writes; optional webhook)
+├── 0039_question_retirement.sql     # retired_at + retired_reason columns on questions
+├── 0040_attribute_embeddings.sql    # attribute_embeddings + question_dedup_dismissed (Workers AI)
+├── 0041_aha_moment.sql              # aha_attr + aha_jump columns on game_stats
+├── 0042_triage_queue.sql            # Catastrophic-failure replay queue
+├── 0043_character_trivia.sql        # Nullable trivia column on characters (JSON array)
+├── 0043_question_metadata.sql       # Question metadata extension
+├── 0044_daily_results.sql           # Daily challenge results (date + user_id PK)
+├── 0045_closure_queue_snapshot_metrics.sql  # Closure queue lane counts in data_quality_snapshots
+├── 0046_curation_queue.sql          # Curator closure queue table
+├── 0047_kv_migration.sql            # KV → D1: kv_cache + session_state tables
 └── chunks/                    # Split data imports (chunk_001–053.sql)
 ```
 
@@ -192,7 +210,7 @@ migrations/                    # D1 SQLite migrations
 
 ## Mobile Architecture (iOS)
 
-The active iOS direction is SwiftUI-first.
+The active iOS implementation is React Native / Expo (SwiftUI was an earlier exploration). Player-facing screens live in `apps/mobile/src/screens/**`; the app shell is `apps/mobile/app/index.tsx`.
 
 - Use native presentation and interaction patterns for player-facing screens.
 - Reuse backend/API contracts and shared game semantics, not web UI primitives.
@@ -202,9 +220,7 @@ Primary references:
 
 - `docs/mobile/ios-architecture-map.md` for layers, boundaries, and implementation sequence.
 - `docs/mobile/ios-feature-parity-plan.md` for MP milestone gates.
-- `docs/mobile/parity-matrix.md` for feature-level parity truth and evidence links.
-
-Generated Expo iOS artifacts may still exist during transition, but parity status is tracked against active branch implementation and validated through the mobile docs program.
+- `docs/mobile/parity-matrix.md` for feature-level parity truth and evidence links (all MP.1–MP.7 milestones closed ✅ 2026-05-10).
 
 ---
 
@@ -293,18 +309,17 @@ Additional phases: `manage`, `demo`, `stats`, `compare`, `coverage`, `recommende
 
 Primary database for the server-side engine and character catalog.
 
-**Tables**: `characters`, `character_attributes`, `questions`, `question_coverage`, `attribute_definitions`, `game_stats`, `game_plays`, `game_sessions`, `game_reveals`, `attribute_disputes`, `proposed_attributes`, `error_logs`, `client_events`, `attribute_embeddings`, `question_dedup_dismissed`, `alerts`
+**Tables**: `characters`, `character_attributes`, `questions`, `question_coverage`, `attribute_definitions`, `game_stats`, `game_plays`, `game_sessions`, `game_reveals`, `attribute_disputes`, `proposed_attributes`, `error_logs`, `client_events`, `attribute_embeddings`, `question_dedup_dismissed`, `alerts`, `character_confusions`, `question_attempts`, `data_quality_snapshots`, `attribute_drift`, `question_retirement`, `aha_moment` (columns on `game_stats`), `triage_queue`, `character_trivia` (column on `characters`), `question_metadata`, `daily_results`, `closure_queue_snapshot_metrics`, `curation_queue`, `kv_cache`, `session_state`
 
 - 187 DEFAULT_CHARACTERS seeded via migrations
 - 53K+ ingested characters from AniList, WikiData, TMDB, IGDB, ComicVine
 - Character pool for server games: top 500 by popularity with ≥5 non-null attributes
 
-### KV
+### KV (Removed)
 
-Key-value store for game sessions and user data.
+All game-session and automation-report data previously stored in KV has been migrated to D1 (`kv_cache` and `session_state` tables via migration `0047_kv_migration.sql`). The `_d1_cache.ts` helper provides `d1CacheGet`/`d1CachePut`/`d1ConfigGet*` utilities for D1-backed cache access. `GUESS_KV` and `GUESS_ASSETS` bindings have been removed from `wrangler.toml`.
 
-- `game:{sessionId}` — Active game session (character pool, questions, answers; 1hr TTL)
-- v1 API endpoints store characters, questions, stats, corrections
+Legacy v1 API endpoints (`/api/characters`, `/api/questions`, `/api/corrections`, `/api/stats`, `/api/sync`) that stored data in KV are sunset-marked with `Deprecation: true` / `Sunset: 2027-01-01` headers.
 
 ### Daily challenge persistence
 
@@ -446,7 +461,7 @@ maintenance workloads behind env flags so operators can stage rollout safely:
   `AUTO_RETIRE_MIN_SCORE` (default 0.9), `AUTO_RETIRE_MIN_SHOWN` (default 20),
   and `AUTO_RETIRE_WINDOW_DAYS` (default 30).
 
-Each run writes a summary report to KV (`admin:automation:last-run`, 7-day TTL)
+Each run writes a summary report to D1 (`kv_cache` table, key `admin:automation:last-run`)
 and logs a `cron.automation` event for `wrangler tail` observability.
 
 ### Data Quality Gate (DQ.1)
@@ -766,4 +781,4 @@ Required keys are documented in `.dev.vars.example`. Run `pnpm doctor` to verify
 | State | `useKV` for persistence, `useReducer` for game state, local React state for ephemeral UI |
 | Icons | Phosphor Icons (`@phosphor-icons/react`), Lucide for shadcn defaults |
 | Charts | Recharts + D3 |
-| Animations | Framer Motion, respect `prefers-reduced-motion` |
+| Animations | motion/react (`motion/react`), respect `prefers-reduced-motion` |

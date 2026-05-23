@@ -42,6 +42,10 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+---
+
+## [1.8.0] - 2026-05-22
+
 ### Changed
 
 - **Full KV removal** — eliminated all `GUESS_KV` and `GUESS_ASSETS` KV bindings from handlers, tests, and CI workflows. Game sessions, engine config, source-health reports, closure-queue reports, and automation run reports now persist in D1 (`kv_cache`, `engine_config`, `session_state` tables via migration `0047_kv_migration.sql`). New `_d1_cache.ts` helper provides `d1CacheGet`/`d1CachePut`/`d1ConfigGet*` utilities. `wrangler.toml` bindings removed; test harness updated accordingly.

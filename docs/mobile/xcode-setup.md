@@ -1,6 +1,6 @@
 # Xcode Setup (apps/mobile)
 
-This project currently uses Expo + React Native as a reset baseline. The active delivery direction is SwiftUI-first for iOS parity, with Expo artifacts treated as transitional scaffolding.
+This project uses Expo + React Native. The active delivery platform is React Native / Expo for iOS parity, with native screens in `apps/mobile/src/screens/**`.
 
 Planning references:
 

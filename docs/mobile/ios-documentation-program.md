@@ -2,7 +2,7 @@
 
 Effective date: 2026-05-09
 
-This document defines the documentation backlog and acceptance gates for the SwiftUI-first iOS parity effort.
+This document defines the documentation backlog and acceptance gates for the iOS parity effort (React Native / Expo implementation).
 
 ## Purpose
 
@@ -49,7 +49,7 @@ Done when:
 
 ### D.2 Architecture Reference
 
-Goal: document SwiftUI-first architecture with clear boundaries.
+Goal: document React Native / Expo architecture with clear boundaries.
 
 Done when:
 

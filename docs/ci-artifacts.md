@@ -272,6 +272,37 @@ Source: .github/workflows/enrich-bulk-nightly.yml
 - Artifact: bulk-enrich-metadata
   - metadata.txt
 
+### Schema drift detector
+
+Source: .github/workflows/schema-drift.yml
+
+- No artifacts uploaded — exits non-zero on drift; inspect the workflow log directly.
+- Use when: `pnpm schema:check` fails in CI (attribute schema ↔ migrations ↔ golden set out of sync).
+
+### Corroborate nightly
+
+Source: .github/workflows/corroborate-nightly.yml
+
+- Artifact: corroboration-disputes-sql
+  - disputes-*.sql (generated dispute SQL, ready to apply)
+- Artifact: corroborate-log
+  - corroborate-output.log
+- Artifact: corroborate-metadata
+  - metadata.txt
+- Use when: player-answer corroboration run fails or generated SQL needs review before applying.
+
+### Adaptive data refresh
+
+Source: .github/workflows/adaptive-data-refresh.yml
+
+- Artifact: adaptive-export-diagnostics
+  - export.log, metadata.txt (simulation data export)
+- Artifact: adaptive-simulate-diagnostics-{difficulty}
+  - simulate-{difficulty}.log, metadata-{difficulty}.txt (per-difficulty simulation run)
+- Artifact: adaptive-compute-diagnostics
+  - merge.log, maybe-rates.log, net-gains.log (signal computation)
+- Use when: adaptive weight refresh, maybe-rate, or net-gain aggregation fails mid-pipeline.
+
 ## How to access artifacts
 
 1. Open the workflow run in GitHub Actions.
