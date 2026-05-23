@@ -4,6 +4,10 @@
   "version": "1.7.0",
   "type": "module",
   "packageManager": "pnpm@10.33.4",
+  "engines": {
+    "node": ">=22.0.0",
+    "pnpm": ">=10.0.0"
+  },
   "scripts": {
     "dev": "vite",
     "clean": "pnpm clean:root",
@@ -208,6 +212,12 @@
     "wrangler": "^4.86.0"
   },
   "size-limit": [
+    {
+      "name": "app",
+      "path": "dist/assets/index-*.js",
+      "limit": "80 kB",
+      "gzip": true
+    },
     {
       "name": "vendor-react",
       "path": "dist/assets/vendor-react-*.js",

@@ -16,6 +16,7 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': resolve(projectRoot, 'src'),
+      '@guess/app-core': resolve(projectRoot, 'packages/app-core/src/index.ts'),
       '@guess/game-engine': resolve(projectRoot, 'packages/game-engine/src/index.ts'),
     }
   },

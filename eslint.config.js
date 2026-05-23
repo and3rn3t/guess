@@ -11,7 +11,7 @@ export default tseslint.config(
     extends: [js.configs.recommended, ...tseslint.configs.recommended],
     files: ['**/*.{ts,tsx}'],
     languageOptions: {
-      ecmaVersion: 2020,
+      ecmaVersion: 'latest',
       globals: globals.browser,
     },
     plugins: {
@@ -36,10 +36,23 @@ export default tseslint.config(
   },
   {
     // Cloudflare Workers — no React rules, service-worker globals
-    files: ['functions/**/*.ts'],
+    files: ['functions/**/*.ts', 'tail-worker/**/*.ts'],
     languageOptions: {
-      ecmaVersion: 2020,
+      ecmaVersion: 'latest',
       globals: { ...globals.browser, ...globals.serviceworker },
+    },
+    rules: {
+      'react-hooks/rules-of-hooks': 'off',
+      'react-hooks/exhaustive-deps': 'off',
+      'react-refresh/only-export-components': 'off',
+    },
+  },
+  {
+    // Node.js scripts — run via tsx in Node, not in the browser
+    files: ['scripts/**/*.ts'],
+    languageOptions: {
+      ecmaVersion: 'latest',
+      globals: { ...globals.node },
     },
     rules: {
       'react-hooks/rules-of-hooks': 'off',
