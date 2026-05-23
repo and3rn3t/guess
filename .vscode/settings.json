@@ -95,6 +95,10 @@
   // SweetPad / Xcode
   "lldb.library": "/Applications/Xcode.app/Contents/SharedFrameworks/LLDB.framework/Versions/A/LLDB",
 
+  // Git — raise command timeout so the pre-push hook (pnpm validate:fast ~25s) can finish.
+  // Default is 10000ms which causes VS Code sync to cancel before the hook completes.
+  "git.commandTimeout": 60000,
+
   // Integrated terminal ergonomics
   "terminal.integrated.defaultProfile.osx": "zsh",
   "terminal.integrated.fontFamily": "JetBrainsMono Nerd Font",
