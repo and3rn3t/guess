@@ -1,7 +1,9 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { ConfettiBurst } from "@/components/ConfettiBurst";
+import { EvidenceLog } from "@/components/GameOver/EvidenceLog";
+import { GameOverFeedback } from "@/components/GameOver/GameOverFeedback";
+import { GameOverReveal, type RevealResult } from "@/components/GameOver/GameOverReveal";
 import { llmStream, LlmError } from "@/lib/llm";
 import { narrativeExplanation_v1 } from "@/lib/prompts";
 import { buildShareEmoji } from "@/lib/sharing";
@@ -17,14 +19,8 @@ import {
   XCircle,
 } from "@phosphor-icons/react";
 import { motion } from "motion/react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
-
-interface RevealResult {
-  found: boolean;
-  characterName?: string | null;
-  attributesFilled?: number;
-}
 
 interface GameOverProps {
   won: boolean;
@@ -77,15 +73,6 @@ export function GameOver({
 }: Readonly<GameOverProps>) {
   const [narrative, setNarrative] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
-  const [revealInput, setRevealInput] = useState("");
-  const [revealStatus, setRevealStatus] = useState<
-    "idle" | "loading" | "done"
-  >("idle");
-  const [revealResult, setRevealResult] = useState<RevealResult | null>(null);
-  const [feedbackRating, setFeedbackRating] = useState<number>(0);
-  const [feedbackText, setFeedbackText] = useState("");
-  const [feedbackStatus, setFeedbackStatus] = useState<"idle" | "loading" | "done">("idle");
-  const revealInputRef = useRef<HTMLInputElement>(null);
 
   const emojiText =
     character && answeredQuestions
@@ -116,35 +103,6 @@ export function GameOver({
       toast.success("Copied to clipboard!");
     } catch {
       toast.error("Could not copy to clipboard");
-    }
-  };
-
-  const handleRevealSubmit = async () => {
-    if (!onReveal || revealInput.trim().length === 0 || revealStatus !== "idle")
-      return;
-    setRevealStatus("loading");
-    try {
-      const result = await onReveal(revealInput.trim());
-      setRevealResult(result);
-    } catch {
-      setRevealResult({ found: false });
-    } finally {
-      setRevealStatus("done");
-    }
-  };
-
-  const handleFeedbackSubmit = async () => {
-    if (!onSubmitFeedback || feedbackRating < 1 || feedbackStatus !== "idle") {
-      return;
-    }
-    setFeedbackStatus("loading");
-    try {
-      await onSubmitFeedback(feedbackRating, feedbackText.trim() || undefined);
-      setFeedbackStatus("done");
-      toast.success("Thanks for the feedback!");
-    } catch {
-      setFeedbackStatus("idle");
-      toast.error("Could not save feedback right now.");
     }
   };
 
@@ -302,38 +260,9 @@ export function GameOver({
           )}
 
           {/* Case File — answer history in monospace */}
-          {answeredQuestions && answeredQuestions.length > 0 && (() => {
-            const maxElim = Math.max(...answeredQuestions.map((q) => q.eliminated ?? 0));
-            const decisiveIdx = maxElim > 0
-              ? answeredQuestions.findIndex((q) => (q.eliminated ?? 0) === maxElim)
-              : -1;
-            return (
-              <div className="rounded-xl border border-border/60 bg-secondary/10 p-4 text-left">
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-3">Evidence Log</p>
-                <ul className="space-y-1 max-h-48 overflow-y-auto">
-                  {answeredQuestions.map((q, i) => {
-                    const icon = q.answer === 'yes' ? '✓' : q.answer === 'no' ? '✗' : '?';
-                    const label = q.answer === 'yes' ? 'YES' : q.answer === 'no' ? 'NO' : 'MBE';
-                    const color = q.answer === 'yes' ? 'text-emerald-400' : q.answer === 'no' ? 'text-rose-400' : 'text-amber-400';
-                    const isDecisive = i === decisiveIdx;
-                    return (
-                      <li
-                        key={i}
-                        className={`flex gap-2 text-xs leading-relaxed font-mono${isDecisive ? ' rounded px-1 -mx-1 bg-accent/10 border border-accent/20' : ''}`}
-                        title={isDecisive ? `Most decisive — eliminated ${maxElim} candidates` : undefined}
-                      >
-                        <span className={`shrink-0 font-bold ${color}`}>{icon} {label}</span>
-                        <span className="text-foreground/70 truncate">{q.question}</span>
-                        {isDecisive && (
-                          <span className="ml-auto shrink-0 text-accent font-bold" aria-label="Most decisive question">★</span>
-                        )}
-                      </li>
-                    );
-                  })}
-                </ul>
-              </div>
-            );
-          })()}
+          {answeredQuestions && answeredQuestions.length > 0 && (
+            <EvidenceLog answeredQuestions={answeredQuestions} />
+          )}
 
           {(narrative || isStreaming) && (
             <div className="text-left bg-linear-to-br from-accent/10 to-primary/5 rounded-xl p-4 border border-accent/30 border-l-4 border-l-accent">
@@ -345,131 +274,11 @@ export function GameOver({
           )}
 
           {onSubmitFeedback && (
-            <div className="bg-linear-to-br from-secondary/20 to-secondary/5 rounded-xl p-4 border border-border/60 text-left space-y-3">
-              <p className="text-sm font-medium text-foreground">How was this round?</p>
-              {feedbackStatus === "done" ? (
-                <p className="text-xs text-muted-foreground">Feedback saved. This helps tune question quality.</p>
-              ) : (
-                <>
-                  <div className="grid grid-cols-5 gap-2" role="radiogroup" aria-label="Game rating">
-                    {[1, 2, 3, 4, 5].map((rating) => (
-                      <Button
-                        key={rating}
-                        type="button"
-                        variant={feedbackRating === rating ? "default" : "outline"}
-                        className="h-10"
-                        onClick={() => setFeedbackRating(rating)}
-                        aria-pressed={feedbackRating === rating}
-                      >
-                        {rating}
-                      </Button>
-                    ))}
-                  </div>
-                  <Input
-                    value={feedbackText}
-                    onChange={(e) => setFeedbackText(e.target.value)}
-                    placeholder="Optional: what felt off or great?"
-                    maxLength={300}
-                    disabled={feedbackStatus === "loading"}
-                  />
-                  <Button
-                    type="button"
-                    onClick={() => void handleFeedbackSubmit()}
-                    disabled={feedbackRating < 1 || feedbackStatus === "loading"}
-                    className="w-full sm:w-auto"
-                  >
-                    {feedbackStatus === "loading" ? "Saving feedback..." : "Send Feedback"}
-                  </Button>
-                </>
-              )}
-            </div>
+            <GameOverFeedback onSubmitFeedback={onSubmitFeedback} />
           )}
 
           {/* Reveal section — ask what the user was thinking of when AI lost */}
-          {!won && onReveal && (
-            <div className="bg-linear-to-br from-primary/8 to-secondary/5 rounded-xl p-4 border border-primary/30 text-left space-y-3">
-              {revealStatus === "done" && revealResult ? (
-                <motion.div
-                  initial={{ opacity: 0, y: 4 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="text-center space-y-1"
-                >
-                  {revealResult.found ? (
-                    <>
-                      <p className="text-sm font-medium text-foreground">
-                        Got it —{" "}
-                        <span className="text-accent">
-                          {revealResult.characterName}
-                        </span>
-                        !
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {revealResult.attributesFilled
-                          ? `Used your answers to fill in ${revealResult.attributesFilled} attribute${revealResult.attributesFilled === 1 ? "" : "s"}. I'll be smarter next time!`
-                          : "Your answers have been recorded to help me improve!"}
-                      </p>
-                    </>
-                  ) : (
-                    <>
-                      <p className="text-sm font-medium text-foreground">
-                        Thanks for telling me!
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {revealInput} isn&apos;t in my database yet — your
-                        answers have been logged so they can be added.
-                      </p>
-                    </>
-                  )}
-                </motion.div>
-              ) : (
-                <>
-                  <p className="text-sm font-medium text-foreground">
-                    Who were you thinking of?
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    Your answer helps train me for future games.
-                  </p>
-                  <form
-                    className="flex gap-2"
-                    onSubmit={(e) => {
-                      e.preventDefault();
-                      void handleRevealSubmit();
-                    }}
-                  >
-                    <Input
-                      ref={revealInputRef}
-                      value={revealInput}
-                      onChange={(e) => setRevealInput(e.target.value)}
-                      placeholder="Character name…"
-                      disabled={revealStatus === "loading"}
-                      className="h-11 text-base"
-                      maxLength={200}
-                      autoComplete="off"
-                      inputMode="text"
-                      enterKeyHint="done"
-                      autoCapitalize="words"
-                      autoCorrect="on"
-                      onFocus={(e) => {
-                        const el = e.currentTarget;
-                        setTimeout(() => el.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 300);
-                      }}
-                    />
-                    <Button
-                      type="submit"
-                      size="sm"
-                      disabled={
-                        revealInput.trim().length === 0 ||
-                        revealStatus === "loading"
-                      }
-                      className="shrink-0"
-                    >
-                      {revealStatus === "loading" ? "Saving…" : "Submit"}
-                    </Button>
-                  </form>
-                </>
-              )}
-            </div>
-          )}
+          {!won && onReveal && <GameOverReveal onReveal={onReveal} />}
 
           {(questionsAsked != null || remainingCharacters != null || guessesUsed != null) && (
             <p className="text-sm text-muted-foreground font-mono">

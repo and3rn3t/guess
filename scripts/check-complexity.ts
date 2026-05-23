@@ -44,10 +44,10 @@ const __dirname = path.dirname(__filename);
 const repoRoot = path.resolve(__dirname, '..');
 
 const rules: FileRule[] = [
-  { path: 'src/App.tsx', maxLines: 620, maxOwnImports: 36 },
+  { path: 'src/App.tsx', maxLines: 500, maxOwnImports: 36 },
   { path: 'src/components/GamePhaseRouter.tsx', maxLines: 330, maxOwnImports: 14 },
   { path: 'src/components/PlayingScreen.tsx', maxLines: 600, maxOwnImports: 26 },
-  { path: 'src/components/GameOver.tsx', maxLines: 660, maxOwnImports: 26 },
+  { path: 'src/components/GameOver.tsx', maxLines: 480, maxOwnImports: 26 },
   { path: 'src/hooks/useServerGame.ts', maxLines: 430, maxOwnImports: 12 },
   { path: 'functions/api/v2/game/start.ts', maxLines: 320, maxOwnImports: 12 },
   { path: 'functions/api/v2/game/answer.ts', maxLines: 360, maxOwnImports: 12 },

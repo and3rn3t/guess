@@ -1,0 +1,72 @@
+// Builds the GameContext value object — extracted from App.tsx (RF.4).
+// Pure composition hook: wraps the giant useMemo so App.tsx stays a thin shell.
+
+import type { GameContextValue } from "@/contexts/GameContext";
+import { useMemo } from "react";
+
+/** Memoize the GameContext value. All fields flow through the dep array,
+ *  matching the prior inline useMemo in App.tsx for behaviour parity. */
+export function useGameContextValue(args: GameContextValue): GameContextValue {
+  return useMemo<GameContextValue>(
+    () => ({ ...args }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [
+      args.game,
+      args.dispatch,
+      args.navigate,
+      args.difficulty,
+      args.setDifficulty,
+      args.categories,
+      args.setCategories,
+      args.persona,
+      args.maxQuestions,
+      args.characters,
+      args.questions,
+      args.activeCharacters,
+      args.serverTotal,
+      args.serverReadiness,
+      args.effectiveRemaining,
+      args.confidence,
+      args.globalStats,
+      args.gameHistory,
+      args.gamesPlayed,
+      args.statsLoading,
+      args.hasSavedSession,
+      args.resumeSession,
+      args.clearSession,
+      args.online,
+      args.eliminatedCount,
+      args.remainingHistoryRef,
+      args.isNewPersonalBest,
+      args.personalBest,
+      args.dailyStreak,
+      args.achievements,
+      args.weeklyRecap,
+      args.dailyChallenge,
+      args.dailyLeaderboard,
+      args.dailyLoading,
+      args.dailyError,
+      args.refreshDailyChallenge,
+      args.showOnboarding,
+      args.setShowOnboarding,
+      args.startGame,
+      args.startDailyChallenge,
+      args.handleAnswer,
+      args.handleSkip,
+      args.handleGiveUp,
+      args.handleCorrectGuess,
+      args.handleIncorrectGuess,
+      args.handleRejectGuess,
+      args.retryAfterReject,
+      args.serverLastError,
+      args.clearServerError,
+      args.retryServerAction,
+      args.handleShare,
+      args.handleCopyLink,
+      args.handleReveal,
+      args.handleSubmitFeedback,
+      args.handleAddCharacter,
+      args.handleAddQuestions,
+    ],
+  );
+}

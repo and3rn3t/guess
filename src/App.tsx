@@ -2,17 +2,8 @@ import { AppHeader } from "@/components/AppHeader";
 import { BottomNav } from "@/components/BottomNav";
 import { ChallengeView } from "@/components/ChallengeView";
 import { GamePhaseRouter } from "@/components/GamePhaseRouter";
+import { QuitDialog } from "@/components/QuitDialog";
 import { GameContext } from "@/contexts/GameContext";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import { useAchievements } from "@/hooks/useAchievements";
 import { useAdaptiveDifficulty } from "@/hooks/useAdaptiveDifficulty";
 import { useAppLifecycleEffects } from "@/hooks/useAppLifecycleEffects";
@@ -21,6 +12,7 @@ import { useDailyChallenge } from "@/hooks/useDailyChallenge";
 import { useDailyChallengeGameFlow } from "@/hooks/useDailyChallengeGameFlow";
 import { useEliminationTracker } from "@/hooks/useEliminationTracker";
 import { useGameActions } from "@/hooks/useGameActions";
+import { useGameContextValue } from "@/hooks/useGameContextValue";
 import { useGameState } from "@/hooks/useGameState";
 import { useGlobalStats } from "@/hooks/useGlobalStats";
 import { useInstallPrompt } from "@/hooks/useInstallPrompt";
@@ -31,6 +23,7 @@ import { useServerGame } from "@/hooks/useServerGame";
 import { useSound } from "@/hooks/useSound";
 import { useSWUpdate } from "@/hooks/useSWUpdate";
 import { useSyncStatus } from "@/hooks/useSyncStatus";
+import { useThemeMode } from "@/hooks/useThemeMode";
 import { useWakeLock } from "@/hooks/useWakeLock";
 import { useWeeklyRecap } from "@/hooks/useWeeklyRecap";
 import { DEFAULT_CHARACTERS, DEFAULT_QUESTIONS } from "@/lib/database";
@@ -41,23 +34,19 @@ import {
   PRIMARY_NAV_PHASES,
 } from "@/lib/constants";
 import type { SharePayload } from "@/lib/sharing";
-import type {
-  Character,
-  CharacterCategory,
-  Difficulty,
-  Question,
-} from "@/lib/types";
 import {
   DIFFICULTIES,
   DIFFICULTY_TO_PERSONA,
   sanitizeCategories,
+  type Character,
+  type CharacterCategory,
+  type Difficulty,
+  type Question,
 } from "@/lib/types";
 import { startViewTransition } from "@/lib/view-transitions";
 import { motion } from "motion/react";
-import { useTheme } from "next-themes";
 import { useCallback, useMemo, useState } from "react";
 import { Toaster } from "sonner";
-const THEME_ORDER = ["dark", "light", "system"] as const;
 
 function App() {
   // ========== PERSISTENT STATE ==========
@@ -146,7 +135,7 @@ function App() {
   const { muted, toggle: toggleMute } = useSound();
   const [showQuitDialog, setShowQuitDialog] = useState(false);
   const syncStatus = useSyncStatus();
-  const { theme, setTheme } = useTheme();
+  const { theme, toggleTheme } = useThemeMode();
   const online = useOnlineStatus();
   const [isNewPersonalBest, setIsNewPersonalBest] = useState(false);
   const { eliminatedCount, remainingHistoryRef, reset: resetElimination } =
@@ -161,12 +150,6 @@ function App() {
 
   // Adaptive difficulty suggestion — show once per session when win rate ≥ 80% over last 10 games
   useAdaptiveDifficulty(gamePhase, difficulty, gameHistory, setDifficulty);
-
-  const toggleTheme = useCallback(() => {
-    const currentIndex = THEME_ORDER.indexOf((theme as (typeof THEME_ORDER)[number]) ?? "dark");
-    const nextTheme = THEME_ORDER[(currentIndex + 1) % THEME_ORDER.length];
-    setTheme(nextTheme);
-  }, [theme, setTheme]);
 
   const activeCharacters = characters || DEFAULT_CHARACTERS;
   const confidence = reasoning?.confidence ?? 0;
@@ -277,124 +260,64 @@ function App() {
     }
   }
 
-  const gameContextValue = useMemo(
-    () => ({
-      game,
-      dispatch,
-      navigate,
-      difficulty,
-      setDifficulty,
-      categories,
-      setCategories,
-      persona,
-      maxQuestions,
-      characters,
-      questions,
-      activeCharacters,
-      serverTotal,
-      serverReadiness,
-      effectiveRemaining,
-      confidence,
-      globalStats,
-      gameHistory,
-      gamesPlayed,
-      statsLoading,
-      hasSavedSession,
-      resumeSession,
-      clearSession,
-      online,
-      eliminatedCount,
-      remainingHistoryRef,
-      isNewPersonalBest,
-      personalBest,
-      dailyStreak,
-      achievements,
-      weeklyRecap,
-      dailyChallenge,
-      dailyLeaderboard,
-      dailyLoading,
-      dailyError,
-      refreshDailyChallenge,
-      showOnboarding,
-      setShowOnboarding,
-      startGame: startStandardGame,
-      startDailyChallenge,
-      handleAnswer,
-      handleSkip,
-      handleGiveUp: handleSurrender,
-      handleCorrectGuess,
-      handleIncorrectGuess,
-      handleRejectGuess,
-      retryAfterReject,
-      serverLastError,
-      clearServerError,
-      retryServerAction,
-      handleShare,
-      handleCopyLink,
-      handleReveal,
-      handleSubmitFeedback: submitPostGameFeedback,
-      handleAddCharacter,
-      handleAddQuestions,
-    }),
-    [
-      game,
-      dispatch,
-      navigate,
-      difficulty,
-      setDifficulty,
-      categories,
-      setCategories,
-      persona,
-      maxQuestions,
-      characters,
-      questions,
-      activeCharacters,
-      serverTotal,
-      serverReadiness,
-      effectiveRemaining,
-      confidence,
-      globalStats,
-      gameHistory,
-      gamesPlayed,
-      statsLoading,
-      hasSavedSession,
-      resumeSession,
-      clearSession,
-      online,
-      eliminatedCount,
-      remainingHistoryRef,
-      isNewPersonalBest,
-      personalBest,
-      dailyStreak,
-      achievements,
-      weeklyRecap,
-      dailyChallenge,
-      dailyLeaderboard,
-      dailyLoading,
-      dailyError,
-      refreshDailyChallenge,
-      showOnboarding,
-      setShowOnboarding,
-      startStandardGame,
-      startDailyChallenge,
-      handleAnswer,
-      handleSkip,
-      handleSurrender,
-      handleCorrectGuess,
-      handleIncorrectGuess,
-      handleRejectGuess,
-      retryAfterReject,
-      serverLastError,
-      clearServerError,
-      retryServerAction,
-      handleShare,
-      handleCopyLink,
-      handleReveal,
-      submitPostGameFeedback,
-      handleAddCharacter,
-      handleAddQuestions,
-    ],
-  );
+  const gameContextValue = useGameContextValue({
+    game,
+    dispatch,
+    navigate,
+    difficulty,
+    setDifficulty,
+    categories,
+    setCategories,
+    persona,
+    maxQuestions,
+    characters,
+    questions,
+    activeCharacters,
+    serverTotal,
+    serverReadiness,
+    effectiveRemaining,
+    confidence,
+    globalStats,
+    gameHistory,
+    gamesPlayed,
+    statsLoading,
+    hasSavedSession,
+    resumeSession,
+    clearSession,
+    online,
+    eliminatedCount,
+    remainingHistoryRef,
+    isNewPersonalBest,
+    personalBest,
+    dailyStreak,
+    achievements,
+    weeklyRecap,
+    dailyChallenge,
+    dailyLeaderboard,
+    dailyLoading,
+    dailyError,
+    refreshDailyChallenge,
+    showOnboarding,
+    setShowOnboarding,
+    startGame: startStandardGame,
+    startDailyChallenge,
+    handleAnswer,
+    handleSkip,
+    handleGiveUp: handleSurrender,
+    handleCorrectGuess,
+    handleIncorrectGuess,
+    handleRejectGuess,
+    retryAfterReject,
+    serverLastError,
+    clearServerError,
+    retryServerAction,
+    handleShare,
+    handleCopyLink,
+    handleReveal,
+    handleSubmitFeedback: submitPostGameFeedback,
+    handleAddCharacter,
+    handleAddQuestions,
+  });
 
   // Challenge view is a standalone screen — render before the main layout
   if (gamePhase === "challenge" && challenge) {
@@ -487,35 +410,12 @@ function App() {
         </div>
       </div>
 
-      <AlertDialog open={showQuitDialog} onOpenChange={setShowQuitDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>End this game?</AlertDialogTitle>
-            <AlertDialogDescription>
-              <strong>Give Up</strong> records your session and asks what you were thinking of — same as a regular loss.
-              <br />
-              <strong>Quit</strong> abandons the game without saving anything.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter className="flex-col sm:flex-row gap-2">
-            <AlertDialogCancel className="sm:mr-auto">
-              Keep Playing
-            </AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleSurrender}
-              className="bg-amber-500 hover:bg-amber-600 text-white border-0"
-            >
-              Give Up
-            </AlertDialogAction>
-            <AlertDialogAction
-              onClick={() => navigate("welcome")}
-              className="bg-destructive hover:bg-destructive/90 text-destructive-foreground border-0"
-            >
-              Quit Without Saving
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <QuitDialog
+        open={showQuitDialog}
+        onOpenChange={setShowQuitDialog}
+        onSurrender={handleSurrender}
+        onQuit={() => navigate("welcome")}
+      />
     </>
   );
 }
