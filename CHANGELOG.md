@@ -6,41 +6,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
-## [1.7.0] - 2026-05-10
-
-### Added
-
-- **Complete iOS Parity (MP.1-MP.7)** — all 12 core features now shipped at L2 UX quality: Welcome, Playing, Guessing, Game Over, Challenge, Stats, History, Compare, Resume, Preferences, Teaching, Feedback. Parity matrix finalized with device evidence, handoff docs prepared for iOS team.
-
-- **Reliability Hardening** — offline-first UI with airplane-mode support, network resilience with jittered retry (1 retry, 250ms + jitter), per-operation timeouts (8s writes, 12s reads), AsyncStorage session durability for cold-start recovery.
-
-- **Performance Instrumentation** — in-app p50/p95 timing metrics for tap-to-feedback, transition-start, feedback-to-next-question; all meet mobile thresholds (≤100ms, ≤150ms, ≤450ms). Device evidence: tap 31.6ms, transition 32.1ms, feedback 29.8ms.
-
-- **Diagnostics & Observability** — Stats screen now exposes MP.6 diagnostics card with live p95 values, sample counts, threshold evaluation, and shareable snapshot for field validation. Sync badge and connection banner provide real-time network state visibility.
-
-### Improved
-
-- Connection status monitoring with tone-based offline detection (online/limited/offline) via expo-network.
-- Sync-state broadcasting (synced/pending/offline/error) integrated into gameplay screens.
-- GET transport retry with jitter to reduce collision storms and improve reconnect success rates.
-- Session resume cold-start recovery via AsyncStorage persistence — session ID survives app force-quit.
-- Low-bandwidth warning modal alerts users on cellular/limited networks.
-- Offline mutation queue (result + feedback) with AsyncStorage durability and reconnect-triggered flush.
-
-### Known Limitations
-
-- **Challenge Leaderboard**: Summary-first design with a top-10 preview and expandable depth capped at 25 rows (full board deferred for perf on small screens; web shows 100-entry board).
-- **Team Leaderboards**: Deferred to v1.9+ (blocked on team identity/membership model, shared team-session contracts, anti-abuse ranking rules, and mobile perf validation for deeper social ranking views).
-
-### Infrastructure & CI
-
-- New `pnpm mobile:reliability-gate` CI gate: 55 tests covering perf budgets, transport resilience, session durability, offline queue behavior. Gates mobile-ci workflow before merge.
-- Device evidence: Physical iPhone validation (2026-05-10) with performance p95 capture and offline airplane-mode no-crash pass.
-- Xcode handoff documentation finalized (`xcode-claude-memory-handoff.md`, `ios-release-handoff-playbook.md`) with edge cases, divergences, and MP.7 closure checklist.
-
----
-
-## [Unreleased]
+## [1.8.0] - 2026-05-22
 
 ### Changed
 
@@ -49,12 +15,6 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **`GamePhaseRouter.tsx` refactor** — extracted all 6 static-phase lazy-loaded renderers (teaching, describeYourself, manage, stats, history, compare) into `src/components/phases/StaticPhaseContent.tsx`. Router now 273 lines (was 428, ceiling 430). New ceiling: 330.
 
 - **`functions/api/v2/game/start.ts` refactor** — extracted `DIFFICULTY_TO_PERSONA`, `parseTrivia`, `loadQuestionsWithRetirementFallback`, and `QuestionRow` type into `functions/api/v2/game/_start_helpers.ts`. Handler now 299 lines (was 338, ceiling 340). New ceiling: 320.
-
----
-
-## [1.8.0] - 2026-05-22
-
-### Changed
 
 - **Full KV removal** — eliminated all `GUESS_KV` and `GUESS_ASSETS` KV bindings from handlers, tests, and CI workflows. Game sessions, engine config, source-health reports, closure-queue reports, and automation run reports now persist in D1 (`kv_cache`, `engine_config`, `session_state` tables via migration `0047_kv_migration.sql`). New `_d1_cache.ts` helper provides `d1CacheGet`/`d1CachePut`/`d1ConfigGet*` utilities. `wrangler.toml` bindings removed; test harness updated accordingly.
 
@@ -253,6 +213,40 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **Admin toast feedback standardization (AP.17)** — standardized mutation feedback across all admin routes using `sonner` toasts. Every mutation now shows `toast.success(...)` on success and `toast.error(...)` on failure instead of silent reloads or inline banners. Routes updated: `DisputesRoute` (dismiss, resolve, AI verdict), `ProposedAttrsRoute` (approve/reject), `CommunityRoute` (apply/dismiss), `RetirementQueueRoute` (retire with Undo action button, unretire), `DuplicatesRoute` (backfill, merge, dismiss — removed inline `statusMsg` banner), `QuestionsRoute` (save edit), `ErrorLogsRoute` (clear all, clear old), `EnrichmentRoute` (bulk retry, single retry — removed inline `retryMsg` banner), `ExperimentsRoute` (config update), and `CharactersRoute` (delete, re-enrich, validate). Load errors retain their inline `Alert` banners; only action-mutation feedback moves to toasts.
 
 - **Cron-driven admin refinement automation** — nightly `runScheduled` now invokes `functions/cron/_automation.ts` after anomaly checks to run guarded maintenance workflows: data-quality snapshot capture (max one row/day), duplicate-question embedding backfill via Workers AI, a one-step server-side enrichment kick when idle, and an optional auto-retire lane for low-signal questions (`AUTO_RETIRE_ENABLED`, default off). Each run now records total + per-step timing (`durationMs`, `stepDurationsMs`) and per-step error fields (`errorCount`, `stepErrors`) before writing the 7-day KV report at `admin:automation:last-run`; operational logs emit `cron.automation`. Added `GET /api/admin/automation-status` and wired Mission Control to render an "Automation Pulse" card from that report. Added focused tests in `functions/cron/_automation.test.ts`, `functions/api/admin/__tests__/automation-status.test.ts`, and extended `functions/cron/index.test.ts` for dispatch verification. Default automation flags are now explicit in `wrangler.toml` for both production and preview envs.
+
+## [1.7.0] - 2026-05-10
+
+### Added
+
+- **Complete iOS Parity (MP.1-MP.7)** — all 12 core features now shipped at L2 UX quality: Welcome, Playing, Guessing, Game Over, Challenge, Stats, History, Compare, Resume, Preferences, Teaching, Feedback. Parity matrix finalized with device evidence, handoff docs prepared for iOS team.
+
+- **Reliability Hardening** — offline-first UI with airplane-mode support, network resilience with jittered retry (1 retry, 250ms + jitter), per-operation timeouts (8s writes, 12s reads), AsyncStorage session durability for cold-start recovery.
+
+- **Performance Instrumentation** — in-app p50/p95 timing metrics for tap-to-feedback, transition-start, feedback-to-next-question; all meet mobile thresholds (≤100ms, ≤150ms, ≤450ms). Device evidence: tap 31.6ms, transition 32.1ms, feedback 29.8ms.
+
+- **Diagnostics & Observability** — Stats screen now exposes MP.6 diagnostics card with live p95 values, sample counts, threshold evaluation, and shareable snapshot for field validation. Sync badge and connection banner provide real-time network state visibility.
+
+### Improved
+
+- Connection status monitoring with tone-based offline detection (online/limited/offline) via expo-network.
+- Sync-state broadcasting (synced/pending/offline/error) integrated into gameplay screens.
+- GET transport retry with jitter to reduce collision storms and improve reconnect success rates.
+- Session resume cold-start recovery via AsyncStorage persistence — session ID survives app force-quit.
+- Low-bandwidth warning modal alerts users on cellular/limited networks.
+- Offline mutation queue (result + feedback) with AsyncStorage durability and reconnect-triggered flush.
+
+### Known Limitations
+
+- **Challenge Leaderboard**: Summary-first design with a top-10 preview and expandable depth capped at 25 rows (full board deferred for perf on small screens; web shows 100-entry board).
+- **Team Leaderboards**: Deferred to v1.9+ (blocked on team identity/membership model, shared team-session contracts, anti-abuse ranking rules, and mobile perf validation for deeper social ranking views).
+
+### Infrastructure & CI
+
+- New `pnpm mobile:reliability-gate` CI gate: 55 tests covering perf budgets, transport resilience, session durability, offline queue behavior. Gates mobile-ci workflow before merge.
+- Device evidence: Physical iPhone validation (2026-05-10) with performance p95 capture and offline airplane-mode no-crash pass.
+- Xcode handoff documentation finalized (`xcode-claude-memory-handoff.md`, `ios-release-handoff-playbook.md`) with edge cases, divergences, and MP.7 closure checklist.
+
+---
 
 ## [1.6.1] - 2026-05-03
 
