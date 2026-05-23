@@ -480,11 +480,6 @@
     "categories": "[\"anime\"]"
   },
   {
-    "key": "isFromBook",
-    "displayText": "From Book",
-    "categories": "[\"books\"]"
-  },
-  {
     "key": "isFromCartoon",
     "displayText": "From Cartoon",
     "categories": "[\"cartoons\"]"
@@ -638,11 +633,6 @@
     "key": "isFromMountains",
     "displayText": "From Mountains",
     "categories": null
-  },
-  {
-    "key": "isFromMovie",
-    "displayText": "From Movie",
-    "categories": "[\"movies\"]"
   },
   {
     "key": "isFromMusicalGenre",
@@ -1043,11 +1033,6 @@
     "key": "isVampire",
     "displayText": "Vampire",
     "categories": null
-  },
-  {
-    "key": "isVideoGameCharacter",
-    "displayText": "Video Game Character",
-    "categories": "[\"video-games\"]"
   },
   {
     "key": "isVillain",

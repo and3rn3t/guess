@@ -36,7 +36,6 @@ import { fileURLToPath } from 'node:url'
 import {
   buildSystemPrompt,
   buildUserPrompt,
-  loadAttributeDefinitions,
   type AttributeDef,
 } from './ingest/enrich.js'
 import {
@@ -185,8 +184,17 @@ console.log(
   `[sparse-fill]   ${storedRows.length} stored cells (including null-stamps) across ${storedByChar.size} characters`
 )
 
-// ── Load attribute schema, group by category ────────────────────────────────
-const allAttrs: AttributeDef[] = loadAttributeDefinitions()
+// ── Load attribute schema from D1 (live — avoids stale local cache causing FK failures) ────
+console.log('[sparse-fill] loading attribute_definitions from D1 (is_active = 1) ...')
+interface AttrDefRow {
+  key: string
+  display_text: string
+  categories: string | null
+}
+const allAttrs: AttributeDef[] = d1<AttrDefRow>(
+  `SELECT key, display_text, categories FROM attribute_definitions WHERE is_active = 1 ORDER BY key`
+).map((r) => ({ key: r.key, displayText: r.display_text, categories: r.categories }))
+console.log(`[sparse-fill]   ${allAttrs.length} active attribute defs loaded from D1`)
 const keysByCategory = new Map<string, string[]>()
 for (const c of allChars) if (!keysByCategory.has(c.category)) keysByCategory.set(c.category, [])
 for (const a of allAttrs) {
