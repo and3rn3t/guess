@@ -1,0 +1,78 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema",
+  "description": "Phase 0 baseline for Wave AI (AI.0). All metric fields start as null/TODO and must be populated from the Cloudflare AI Gateway + LLM_COSTS Analytics Engine dashboards before AI.1 ships, so later items have a measurable before/after. Refreshed at the close of every Wave-AI phase.",
+  "captured_at": "2026-05-25T00:00:00Z",
+  "captured_by": "AI.0 — initial scaffold",
+  "window_days": 30,
+  "cost": {
+    "daily_usd_total": null,
+    "daily_usd_by_route_model": {
+      "_format": "{ '<route>::<model>': <usd_per_day_avg_30d> }",
+      "_todo": "Query LLM_COSTS: SELECT route, model, SUM(cost_usd)/30 FROM llm_costs WHERE timestamp > NOW() - INTERVAL '30 days' GROUP BY route, model ORDER BY 3 DESC LIMIT 5"
+    },
+    "enrichment_usd_per_character_last_run": null
+  },
+  "gateway_cache": {
+    "hit_ratio_by_route": {
+      "_format": "{ '<route>': <0.0-1.0> }",
+      "_todo": "Pull from AI Gateway dashboard → andernet-ai (prod) → Analytics → Cached %.",
+      "_note": "Expected 0 for every route at baseline because AI.1 (cf-aig-cache-ttl) has not shipped yet."
+    }
+  },
+  "latency_ms": {
+    "_routes": ["/api/llm", "/api/llm-stream", "/api/v2/game/answer", "/api/admin/questions/duplicates"],
+    "by_route": {
+      "/api/llm": { "p50": null, "p95": null, "p99": null },
+      "/api/llm-stream": { "p50": null, "p95": null, "p99": null },
+      "/api/v2/game/answer": { "p50": null, "p95": null, "p99": null },
+      "/api/admin/questions/duplicates": { "p50": null, "p95": null, "p99": null }
+    },
+    "_todo": "Query WORKER_TAIL: SELECT route, quantileExact(0.5)(duration_ms), quantileExact(0.95)(duration_ms), quantileExact(0.99)(duration_ms) FROM worker_tail WHERE timestamp > NOW() - INTERVAL '30 days' AND route IN (...) GROUP BY route"
+  },
+  "workers_ai": {
+    "binding": "AI",
+    "daily_quota_neurons": 10000,
+    "neurons_per_day_avg_30d": null,
+    "pct_of_free_quota": null,
+    "_todo": "Pull from Cloudflare Workers AI dashboard → Usage → daily neurons."
+  },
+  "enrichment": {
+    "last_full_run_at": null,
+    "characters_enriched": null,
+    "total_usd": null,
+    "tokens_per_character_avg": { "prompt": null, "completion": null }
+  },
+  "error_rate": {
+    "llm_5xx_per_1k_calls_after_retry": null,
+    "_todo": "Query LLM_COSTS: rows with retry_outcome='5xx' AND final response_status>=500 / total rows, last 30d."
+  },
+  "models_in_use": {
+    "openai": ["gpt-4o", "gpt-4o-mini", "gpt-4o-mini (vision)"],
+    "openrouter": ["google/gemma-3-27b-it (optional --model2)"],
+    "workers_ai": ["@cf/baai/bge-base-en-v1.5"]
+  },
+  "models_not_yet_adopted": [
+    "@cf/meta/llama-3.1-8b-instruct (AI.3)",
+    "@cf/meta/llama-guard-3-8b (AI.6)",
+    "@cf/llava-1.5-7b-hf (AI.5)",
+    "@cf/baai/bge-reranker-base (AI.7)"
+  ],
+  "infra_not_yet_adopted": [
+    "Cloudflare Vectorize (AI.9)",
+    "Cloudflare AutoRAG (AI.12)",
+    "Browser Rendering API (AI.13)",
+    "AI Gateway Evals + Logpush (AI.11)"
+  ],
+  "refresh_log": [
+    {
+      "date": "2026-05-25",
+      "phase": "AI.0",
+      "note": "Initial scaffold; metric fields TODO. Populate before AI.1 ships."
+    },
+    {
+      "date": "2026-05-25",
+      "phase": "AI.1",
+      "note": "cf-aig-cache-ttl shipped on /api/llm (24h), /api/admin/coverage-priority (6h), /api/admin/analytics/insights (6h). gateway_cache.hit_ratio_by_route should populate after the 7-day observation window. Other admin LLM endpoints flagged for follow-on."
+    }
+  ]
+}

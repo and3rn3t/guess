@@ -84,9 +84,11 @@ Return ONLY valid JSON:
 }`
 
   try {
+    // AI.1: opt into AI Gateway upstream cache (6h, matches the D1 cache TTL
+    // applied below). Deterministic JSON-mode prompt over read-only coverage data.
     const response = await fetch(getCompletionsEndpoint(env), {
       method: 'POST',
-      headers: getLlmHeaders(env),
+      headers: getLlmHeaders(env, 21600),
       body: JSON.stringify({
         model: 'gpt-4o-mini',
         messages: [{ role: 'user', content: prompt }],

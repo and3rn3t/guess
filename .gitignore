@@ -47,6 +47,10 @@ data/*
 # DQ.32 completeness SLA matrix — committed and validated in CI.
 !data/attribute-completeness-sla.json
 
+# AI.0 Wave-AI baseline snapshot — committed so AI.1+ items have a
+# stable before/after reference point.
+!data/ai-baseline-2026-05.json
+
 # Attribute schema cache is the source of truth for valid attribute keys —
 # committed so CI (DQ.1 schema check) can validate without DB access.
 !data/enrich-cache/

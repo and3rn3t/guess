@@ -27,14 +27,26 @@ export function getCompletionsEndpoint(env: Env): string {
   return env.CLOUDFLARE_AI_GATEWAY || OPENAI_COMPLETIONS
 }
 
-/** Build auth headers for the LLM endpoint — includes AI Gateway token when routed through gateway */
-export function getLlmHeaders(env: Env): Record<string, string> {
+/** Build auth headers for the LLM endpoint — includes AI Gateway token when routed through gateway.
+ *
+ *  Optional `cacheTtlSeconds` opts the request into AI Gateway upstream caching
+ *  (AI.1) by emitting `cf-aig-cache-ttl: <seconds>`. The gateway cache key is
+ *  derived from the full request body, so identical `(model, messages, params)`
+ *  tuples short-circuit the upstream model call. Pass only on deterministic /
+ *  read-only routes; never on streaming routes. The header is a no-op when
+ *  `CLOUDFLARE_AI_GATEWAY` is unset (e.g. when falling back to direct OpenAI),
+ *  but we still emit it so swapping the env var on later environments doesn't
+ *  require a code change. */
+export function getLlmHeaders(env: Env, cacheTtlSeconds?: number): Record<string, string> {
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
     Authorization: `Bearer ${env.OPENAI_API_KEY}`,
   }
   if (env.CLOUDFLARE_AI_GATEWAY && env.AI_GATEWAY_TOKEN) {
     headers['cf-aig-authorization'] = `Bearer ${env.AI_GATEWAY_TOKEN}`
+  }
+  if (typeof cacheTtlSeconds === 'number' && cacheTtlSeconds > 0) {
+    headers['cf-aig-cache-ttl'] = String(Math.floor(cacheTtlSeconds))
   }
   return headers
 }

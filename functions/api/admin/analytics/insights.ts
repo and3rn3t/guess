@@ -54,9 +54,11 @@ Write 3 concise insights (1-2 sentences each) about:
 Be specific and data-driven. If there's insufficient data, say so briefly.`
 
   try {
+    // AI.1: opt into AI Gateway upstream cache (6h, matches the D1 cache TTL
+    // applied below). Deterministic prompt over read-only analytics rollups.
     const response = await fetch(getCompletionsEndpoint(env), {
       method: 'POST',
-      headers: getLlmHeaders(env),
+      headers: getLlmHeaders(env, 21600),
       body: JSON.stringify({
         model: 'gpt-4o-mini',
         messages: [{ role: 'user', content: prompt }],

@@ -371,7 +371,11 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
   // Build request & call OpenAI (via AI Gateway if configured)
   const endpoint = getCompletionsEndpoint(context.env);
-  const headers = getLlmHeaders(context.env);
+  // AI.1: ask the AI Gateway to also cache identical (model, prompt, jsonMode)
+  // tuples upstream. Mirrors the 24h CACHE_MAX_AGE we already use at the CF
+  // edge cache, so a cache-miss at the edge can still hit the gateway cache
+  // instead of paying for an upstream model call.
+  const headers = getLlmHeaders(context.env, CACHE_MAX_AGE);
   const openaiBody = buildOpenAIPayload(model, prompt, systemPrompt, jsonMode, jsonSchema);
 
   try {

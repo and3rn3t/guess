@@ -360,6 +360,8 @@ are persisted as `Float32Array`-backed BLOBs in `attribute_embeddings`,
 keyed by `attribute_key`, alongside the model name and an FNV-1a `text_hash`
 so re-embeds are skipped when the question copy hasn't drifted.
 
+> **See also:** [docs/ai-surface.md](docs/ai-surface.md) — comprehensive inventory of every AI call site (server endpoints, client surfaces, CLI scripts), models in use, bindings, telemetry, and the baseline metrics that gate Wave AI. Baseline snapshot lives at [data/ai-baseline-2026-05.json](data/ai-baseline-2026-05.json).
+
 ### Client-Side Storage
 
 - **localStorage** (`useKV` hook): Characters, questions, game history, settings

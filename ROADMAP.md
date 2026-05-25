@@ -40,6 +40,8 @@ An item is `✅` only when **all** apply:
 ## In Progress / Up Next
 
 - 🟡 **In progress:** [DQ.v2.1](#dqv2-1) `pnpm dq:report` — orchestrator + CI wired warn-only on `reconcile-nightly`; flips to blocking after ≥7 clean nightly runs.
+- 🟡 **In progress (parallel, docs-only):** [AI.0](#ai-0) AI surface audit — Phase 0 of the new [Wave AI](#wave-ai--ai-capabilities--skills). Pure docs; no file overlap with DQ.v2.1.
+- 🟡 **In progress (parallel):** [AI.1](#ai-1) AI Gateway cache TTL — `cf-aig-cache-ttl` plumbed on `/api/llm` + two admin LLM endpoints. 7-day observation window for ≥30% cache-hit gate started this commit.
 - ⬜ **Next:** [DX.v2.1](#dxv2-1) generated typed API client (or RF.v2.3 if preferred — see Wave Sequence).
 - ⚪ **Parked:** [MOB.1](#mob-1) — needs physical-device evidence; no engineering blockers. Re-pull when device time available.
 - 📦 **Recently shipped:** RF.v2.4 (ungoverned-hotspot sweep — 32 files governed) · SE.1 (CSP violations pipeline + admin digest) · OB.1 (SLO doc + burn queries) · PF.1 (bundle-size budgets) · A11Y.1 (axe-core e2e gate) · PI.3 (`logError` hot-path decoupling) · PI.1 (wrangler post-KV audit) · DX.v2.4 (pre-commit `validate:fast`) · SE.2 (RBAC coverage gate) — see [Shipped — Mobile Wave (May 2026)](#shipped--mobile-wave-may-2026)
@@ -69,7 +71,8 @@ Priority × ease, small wins first to re-establish full-product velocity:
 15. [OB.1](#ob-1) SLO definitions + error-budget doc (S, after [PI.3](#pi-3))
 16. [RF.v2.5](#rfv2-5) admin API client consolidation (depends on [DX.v2.1](#dxv2-1))
 17. Remaining items in order: [MOB.2](#mob-2), [DQ.v2.2](#dqv2-2), [DQ.v2.4](#dqv2-4), [EN.2](#en-2), [EN.3](#en-3), [EN.4](#en-4), [PI.2](#pi-2), [PI.4](#pi-4), [DX.v2.2](#dxv2-2), [DX.v2.3](#dxv2-3).
-18. Deferred (re-evaluate when ceiling pressure returns): [RF.v2.1](#rfv2-1), [RF.v2.2](#rfv2-2).
+18. **Wave AI** (new, runs in parallel — docs-only Phase 0 then cost/quality/platform work): [AI.0](#ai-0) → [AI.1](#ai-1) → [AI.2](#ai-2) → [AI.3](#ai-3) → [AI.4](#ai-4) → [AI.5](#ai-5) → [AI.6](#ai-6) → [AI.7](#ai-7) → [AI.8](#ai-8) → [AI.9](#ai-9) → [AI.10](#ai-10) → [AI.11](#ai-11) → [AI.12](#ai-12) → [AI.13](#ai-13). See [Wave AI § Phasing](#wave-ai--ai-capabilities--skills) for gate ordering.
+19. Deferred (re-evaluate when ceiling pressure returns): [RF.v2.1](#rfv2-1), [RF.v2.2](#rfv2-2).
 
 ---
 
@@ -543,6 +546,189 @@ Done when:
 
 ---
 
+## Wave AI — AI Capabilities & Skills
+
+> Phased adoption of additional AI surfaces (Cloudflare Workers AI, Vectorize, AI Gateway features, MCP, AutoRAG) and revival of high-impact archived items (DQ.2 vision attrs, EN.23 tiered routing, H.12 moderation, IX.5 MCP). Full plan: session memory `/memories/session/plan.md`. Three lenses: **cost/latency on existing AI**, **data quality**, **platform/DX**. New gameplay surfaces (identify mode, voice, generated portraits) intentionally catalogued as moonshots only.
+>
+> **Phase gates:** P0 (Discover) → P1 (Quick Wins, items AI.1–AI.4 in parallel) → P2 (Quality, AI.5–AI.8) ‖ P3 (Platform, AI.9–AI.13). P2 and P3 can interleave once P1 baseline is captured.
+
+### AI.0
+
+**Title:** AI surface audit + baseline metrics (Phase 0)
+**Status:** 🟡 in progress
+**Why:** Every later AI item is measured against today's cost / latency / cache numbers. Without a single inventory + baseline, "did the routing change save money?" is unanswerable. Pure docs; no production change.
+
+Done when:
+
+- [x] [docs/ai-surface.md](docs/ai-surface.md) lists every AI call site (path, model, provider route, cache strategy, fallback, JSON mode, prompt size guard) — server endpoints, admin endpoints, enrichment scripts, golden/vision regression scripts.
+- [ ] [data/ai-baseline-2026-05.json](data/ai-baseline-2026-05.json) populated with last-30-day `LLM_COSTS` totals (per `route` × `model`), AI Gateway cache hit ratio, p50/p95 latency per hot route, and current Workers AI neurons/day usage. (Scaffolded with TODO placeholders; needs CF dashboard pull to fill.)
+- [ ] [ARCHITECTURE.md](ARCHITECTURE.md) AI-related sections cross-link the new audit doc.
+
+### AI.1
+
+**Title:** AI Gateway cache TTL on deterministic routes
+**Status:** 🟡 in progress
+**Why:** Attribute recommendations and free-text answer parsing are deterministic for the same `(character, attribute)` / `(question, answer)` input pair, but every request still round-trips to the upstream model. Gateway-side cache TTL is a one-header change.
+
+Done when:
+
+- [x] `cf-aig-cache-ttl` plumbed via `getLlmHeaders(env, ttl)` in [functions/api/_helpers.ts](functions/api/_helpers.ts); applied to `/api/llm` (24 h, matches existing edge-cache TTL) plus the two clearly-cacheable admin endpoints `coverage-priority` and `analytics/insights` (6 h each, matches their D1 cache TTL). Other admin LLM endpoints flagged as follow-on candidates in [docs/ai-surface.md](docs/ai-surface.md) pending per-route audit. Streaming routes excluded.
+- [ ] Gateway dashboard shows ≥30% cache hit on `/api/llm` after a 7-day window (observation gate; starts on next deploy).
+- [ ] Audit doc + [data/ai-baseline-2026-05.json](data/ai-baseline-2026-05.json) refreshed with post-change cache-hit numbers.
+
+### AI.2
+
+**Title:** AI Gateway fallback chain
+**Status:** ⬜
+**Why:** Today a 5xx from OpenAI bubbles to the user after the bespoke retry in [functions/api/llm.ts](functions/api/llm.ts) exhausts. Gateway-native fallback chains let us degrade to a second model on transient upstream outages.
+
+Done when:
+
+- [ ] Gateway dashboard configured with fallback chain (gpt-4o-mini → gpt-4o → `@cf/meta/llama-3.1-8b-instruct`); chain documented in [ARCHITECTURE.md](ARCHITECTURE.md).
+- [ ] Bespoke 5xx retry in [functions/api/llm.ts](functions/api/llm.ts) trimmed to network-error-only; gateway retries handle upstream model failures.
+- [ ] Synthetic chaos test (mock 5xx upstream) confirms user-visible response stays 2xx.
+
+### AI.3
+
+**Title:** Tiered model routing in enrichment (EN.23 revival)
+**Status:** ⬜
+**Why:** Every attribute pays GPT-4o-mini cost even when the question is `isFemale` for a well-known character that Workers AI free-tier llama-3.1-8b can answer. Routing simple attrs to Workers AI (free quota) is the biggest single cost lever.
+
+Done when:
+
+- [ ] New migration `0049_attribute_complexity.sql` adds `complexity TEXT CHECK (complexity IN ('simple','moderate','complex'))` to `attribute_definitions` (default `'moderate'` so existing rows are conservative).
+- [ ] One-time backfill: LLM classification pass populates `complexity` for all 224 attributes; admin override surface added to `/admin/attributes` (or wherever attr defs are edited today).
+- [ ] `selectModel(attr)` in [scripts/ingest/enrich/llm-client.ts](scripts/ingest/enrich/llm-client.ts) routes simple → `@cf/meta/llama-3.1-8b-instruct`, moderate → `gpt-4o-mini`, complex → `gpt-4o`. **Cost model A (locked, see Decision Log 2026-05-25):** Workers AI capped at the daily free-tier neuron quota; any overflow falls back to `gpt-4o-mini` rather than paying for Workers AI overage. Predictable spend > marginal routing savings.
+- [ ] `pnpm golden:regression` deviation stays within the existing 3% threshold against the post-routing model mix.
+- [ ] LLM_COSTS dataset shows ≥30% $/character drop on a 1000-char re-enrichment sample vs. pre-routing baseline.
+
+### AI.4
+
+**Title:** Prompt compression + JSON-mode audit
+**Status:** ⬜
+**Why:** Several call sites parse JSON from a free-text response when they could enforce `response_format: { type: 'json_object' }` (or schema) and drop the "reply with valid JSON only" preamble. Token reduction compounds across enrichment.
+
+Done when:
+
+- [ ] Every prompt builder in [scripts/ingest/enrich/prompts.ts](scripts/ingest/enrich/prompts.ts) and [functions/api/llm.ts](functions/api/llm.ts) callers either enforces JSON mode + schema, or has a comment explaining why free-text is required.
+- [ ] Redundant system preambles removed where JSON schema is enforced.
+- [ ] Sample enrichment batch shows ≥15% prompt-token reduction vs. baseline.
+
+### AI.5
+
+**Title:** Vision-derived visual attributes (DQ.2 revival)
+**Status:** ⬜
+**Why:** Highest-impact archived data-quality item. Text-only enrichment fabricates `hairColor`, `eyeColor`, `wearsGlasses`, `hasBeard`, `hasMustache`, `hasMask`, `isWearingHat`, `hasAnimalFeatures`, `apparentAgeRange`, `isHumanoid` with high error rates. Vision models answer these zero-shot from the character's `thumb.webp`.
+
+Done when:
+
+- [ ] New `scripts/ingest/vision-enrich.ts` runs `thumb.webp` through `@cf/llava-1.5-7b-hf` (cheap path) with GPT-4o-mini vision escalation when llava confidence < 0.7. **Vision provider C (locked, see Decision Log 2026-05-25):** Llava primary + GPT-4o-mini escalation chosen over Llava-only or 4o-only to mirror the established golden / `pnpm vision:validate` workflow while keeping Llava as the cost lever.
+- [ ] Writes via existing `enrichment_attributes` table with `source = 'vision'` + confidence tracking; conflicts with text enrichment open disputes via the EN.6 adversarial pipeline (no new admin UI).
+- [ ] `pnpm vision:validate` agreement rises to ≥95% on the visual subset of the golden set.
+- [ ] Cost note added to audit doc: $/character vision-enrich + Workers AI neuron impact.
+
+### AI.6
+
+**Title:** Llama-Guard moderation (H.12 revival)
+**Status:** ⬜
+**Why:** `POST /api/v2/characters` (user submissions), `POST /api/admin/proposed-attributes` (LLM-discovered attrs), and the free-text answer endpoint accept arbitrary strings with no moderation gate. Workers AI `@cf/meta/llama-guard-3-8b` is free-tier and purpose-built.
+
+Done when:
+
+- [ ] New `functions/api/_moderation.ts` exposes `moderate(text): Promise<{ allowed: boolean; reason?: string }>` with LDNOOBW regex fast-path + Llama-Guard escalation on grey-area strings.
+- [ ] Gate wired into the three write endpoints above; rejected payloads return 422 with reason code.
+- [ ] New admin route `/admin/community/rejected` lists rejected submissions for human review.
+- [ ] Test suite covers happy path, LDNOOBW hit, Llama-Guard escalation, and missing-AI-binding graceful degradation.
+
+### AI.7
+
+**Title:** `bge-reranker-base` on top of vector recall
+**Status:** ⬜ (depends on [AI.9](#ai-9))
+**Why:** Embedding cosine similarity is a coarse first-pass; reranking the top-K with `@cf/baai/bge-reranker-base` improves precision without retraining or new infra. ~1 neuron per pair.
+
+Done when:
+
+- [ ] Reranker helper added to [functions/api/admin/_embed.ts](functions/api/admin/_embed.ts).
+- [ ] Admin question-duplicate finder re-ranks top 50 candidates → shows top 10.
+- [ ] (Optional) Vectorize-backed character search (from AI.9) consumes the same reranker.
+
+### AI.8
+
+**Title:** Adversarial vision pass (DQ.18, scoped)
+**Status:** ⬜ (depends on [AI.5](#ai-5))
+**Why:** When vision (AI.5) and text enrichment disagree, a different-family second vision model (Claude Haiku via OpenRouter) catches model-class blind spots.
+
+Done when:
+
+- [ ] Second-pass vision call wired into the dispute pipeline; only runs on vision↔text disagreements.
+- [ ] Disagreements file into `attribute_disputes` with `source = 'adversarial-vision'`.
+- [ ] `/admin/disputes` (DQ.v2.4) shows non-zero adversarial-vision entries.
+
+### AI.9
+
+**Title:** Cloudflare Vectorize index for characters
+**Status:** ⬜
+**Why:** Migration 0035 anticipated Vectorize ("Powers M.12 and IX.1 eventually"). Time to land it. Enables semantic character merge detection (admin) and stuck-state gameplay hints.
+
+Done when:
+
+- [ ] New binding `VECTORIZE` (`character_vectors` index, 768-dim, cosine) added to [wrangler.toml](wrangler.toml) under both envs.
+- [ ] One-time backfill embeds `name + description + top-attribute summary` per character via `@cf/baai/bge-base-en-v1.5`; upserts into Vectorize with `id = character_id` and metadata `{ category, popularity }`.
+- [ ] New internal endpoint `POST /api/v2/characters/search` returns top-K by vector similarity (admin-only initially).
+- [ ] [ARCHITECTURE.md](ARCHITECTURE.md) Cloudflare Bindings table updated.
+
+### AI.10
+
+**Title:** MCP server exposing character DB (IX.5 revival)
+**Status:** ⬜
+**Why:** The Model Context Protocol is the de facto standard for tool-exposing LLM apps. A Workers-based MCP server lets Claude / Cursor / Copilot Workspace call the character DB as first-class tools.
+
+Done when:
+
+- [ ] New `mcp-worker/` package (separate Worker, not Pages Functions) deployed to `mcp.andernator.com`.
+- [ ] Tools exposed: `search_character(query)` (FTS + Vectorize hybrid), `get_character_attributes(id)`, `find_confused_characters(a, b)`, `run_bayesian_game(answers[])`.
+- [ ] Auth via Cloudflare Access in front of the worker. **Auth model B (locked, see Decision Log 2026-05-25):** leverages the existing Cloudflare identity stack; no new secret management; per-identity audit log comes for free.
+- [ ] `npx @modelcontextprotocol/inspector` round-trips at least one tool call end-to-end.
+- [ ] [ARCHITECTURE.md](ARCHITECTURE.md) gains an MCP section with the four tool signatures.
+
+### AI.11
+
+**Title:** AI Gateway Evals + Logpush
+**Status:** ⬜
+**Why:** Today golden + vision regression run pre-merge; nothing runs continuously against production prompts. Gateway-native evals + R2 log shipping close that gap and give us replay for any prompt.
+
+Done when:
+
+- [ ] Gateway Evals configured on enrichment + answer-parsing routes with factuality / JSON-validity / latency rubric.
+- [ ] Logpush job streams Gateway logs to R2 (`r2://guess-images/ai-gateway-logs/<date>/`).
+- [ ] New `pnpm ai:eval` smoke gate wired into CI **warn-only** for 2 weeks before flipping to blocking.
+
+### AI.12
+
+**Title:** AutoRAG over docs + character knowledge base
+**Status:** ⬜ (depends on [AI.9](#ai-9))
+**Why:** Internal admin chat ("why does the engine think Spider-Man is a robot?") needs RAG over `docs/`, character descriptions, and game-history `reasoning` strings. AutoRAG removes the per-doc ingestion code.
+
+Done when:
+
+- [ ] AutoRAG instance configured against the Vectorize index from AI.9 (or AutoRAG-managed index if cleaner).
+- [ ] New internal `/admin/ask` route surfaces a chat UI gated by admin Basic Auth.
+- [ ] Top 5 "why does the engine…" questions answered correctly in manual smoke test, transcript pasted into the audit doc.
+
+### AI.13
+
+**Title:** Browser Rendering for citation screenshots
+**Status:** ⬜
+**Why:** Migration 0034 (`evidence_trail`) tracks where each attribute came from, but currently only as a URL string. Capturing a one-time screenshot per source gives a tamper-evident audit trail.
+
+Done when:
+
+- [ ] Browser Rendering binding added to [wrangler.toml](wrangler.toml).
+- [ ] Optional capture step in enrichment pipeline writes `evidence/<character_id>.png` to R2 alongside the source URL row in `evidence_trail`.
+- [ ] `/admin/characters/<id>` evidence panel renders the screenshot inline with the source URL.
+
+---
+
 ## Shipped — Mobile Wave (May 2026)
 
 Full details (Done-when criteria, source consolidation, evidence references) preserved in [docs/ROADMAP-archive-v1.8-mobile-may-2026.md](docs/ROADMAP-archive-v1.8-mobile-may-2026.md).
@@ -580,5 +766,8 @@ Earlier mobile foundations (MB.1–MB.5, MP.1–MP.7) shipped 2026-05-05 → 202
 | 2026-05-25 | PI.3 scope refined on contact with code: `_middleware.ts` already avoids direct D1 writes, so the original "no direct D1 write from middleware" criterion was vacuously true. Reframed PI.3 as the hot-path decoupling work that was actually needed (six `await logError(...)` call sites under `functions/api/v2/daily/**` and `llm-stream.ts` converted to `context.waitUntil`) plus a regression test. The full Tail-Worker-as-D1-writer migration split out as PI.3.b. | PI.3.b requires Tail Worker deploy → verify → `logError` D1 write removal in that order to avoid an `error_logs` write gap, which is outside this batch's coordinated-deploy risk budget. Shipping the `waitUntil` shield + regression test now removes the user-visible latency coupling immediately; PI.3.b removes the last D1 round-trip later. |
 | 2026-05-25 | EN.1 parked mid-batch. Needs a dedicated session: requires `pnpm simulate:export --env production` (live Cloudflare D1 credentials), a multi-hour Phase-1 + Phase-2 grid run, and human review of weight changes that directly affect every player's win rate. | Pushing wrong constants is hard to detect post-deploy (win-rate signal is noisy). The change deserves a focused review cycle rather than being bundled with CI/infra work. A11Y.1 + PF.1 (both S, pure CI gates) take its place in this batch. |
 | 2026-05-25 | DQ.v2.1 → SE.1 → RF.v2.4 pulled as a sequential 3-phase batch, each shipping as its own PR. | Each item gates on different infra (live D1 / D1 schema migration / per-file judgement) and shouldn't be interleaved. Sequential delivery keeps each PR reviewable and lets the warn-only DQ.v2.1 gate accumulate evidence before flipping to blocking. |
+| 2026-05-25 | Added new **Wave AI** (AI.0 → AI.13) covering cost/latency on existing AI, data quality, and platform/DX. Phased Discover → Quick Wins → Quality / Platform interleaved. Net-new gameplay surfaces (identify mode, voice, generated portraits) catalogued as moonshots only. AI.0 (docs-only audit) started in parallel with DQ.v2.1 because the two items share zero file ownership. | Gap-scan of v1.9 surface showed the AI track had no governed floor: gateway features (cache TTL, fallbacks, evals), Workers AI tiers, and revivable archived items (DQ.2 vision attrs, EN.23 routing, H.12 moderation, IX.5 MCP) were all unplanned. Phase 0 establishes the baseline every later item is measured against. |
+| 2026-05-25 | **Locked three Wave-AI parameter choices:** AI.3 cost model = **A** (cap Workers AI at free-tier neurons, overflow → `gpt-4o-mini`); AI.5 vision provider = **C** (Llava primary + GPT-4o-mini escalation on low-confidence); AI.10 MCP auth = **B** (Cloudflare Access in front of `mcp.andernator.com`). | A: predictable spend > marginal routing savings; overage billing on Workers AI surprised us in B.4 simulations. C: mirrors the golden / `vision:validate` workflow we already trust and keeps Llava as the cost lever — Llava-only risks accuracy regression on the visual subset, 4o-only forfeits the Workers AI cost advantage entirely. B: reuses existing CF identity stack (no new secret manager), gives per-identity audit log for free, and integrates with the same SSO Copilot Workspace / Cursor already speak. |
+| 2026-05-25 | AI.1 pulled in parallel with AI.0 + DQ.v2.1. Code-only change (new `cacheTtlSeconds` arg on `getLlmHeaders`, applied to three deterministic routes); no file overlap with the other two 🟡 items. | The 7-day cache-hit observation window only starts ticking after deploy, so kicking AI.1 off now buys a week of measurement that we'd otherwise pay for later. The change is single-header, gateway-side reversible, and the existing edge cache means a regression in gateway behaviour is bounded by the 24 h app cache anyway. |
 
 Earlier entries (2026-05-11 mobile-chapter decisions) preserved in [docs/ROADMAP-archive-v1.8-mobile-may-2026.md](docs/ROADMAP-archive-v1.8-mobile-may-2026.md#decision-log-mobile-only-chapter).
