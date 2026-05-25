@@ -342,6 +342,11 @@ if (pendingChars.length === 0) {
 pendingChars.sort((a, b) => a.category.localeCompare(b.category));
 
 // ── LLM prompt builders (mirrors server-side run.ts) ─────────────────────────
+// AI.4 audit: callLLMChunk below enforces `response_format: { type: 'json_object' }`,
+// so the `RESPONSE FORMAT: {…}` example block previously inlined here was redundant
+// (~6 lines / ~150 tokens per chunk × N chunks × N chars). The attribute-key list
+// plus the "Return a JSON object" rule satisfy the json_object literal-string
+// requirement and define the schema.
 function buildSystemPromptForChunk(attrChunk: AttributeDef[]): string {
   const keys = attrChunk.map((a) => a.key);
   const attrsWithQuestion = attrChunk.filter((a) => a.question_text);
@@ -364,12 +369,7 @@ RULES:
 - You MUST include ALL ${keys.length} attribute keys for EVERY character in the response
 
 ATTRIBUTE KEYS (${keys.length} total — respond with these exact keys):
-${keys.join(", ")}${keyMeansSection}
-RESPONSE FORMAT (strict JSON, one entry per character):
-{
-  "char_id_1": { "attr1": true, "attr2": false, ... all ${keys.length} attrs },
-  "char_id_2": { ... }
-}`;
+${keys.join(", ")}${keyMeansSection}`;
 }
 
 function buildUserPrompt(chars: CharRow[]): string {

@@ -2,11 +2,14 @@ import { describe, it, expect } from 'vitest';
 import { buildSystemPrompt, buildUserPrompt, buildSkepticPrompt } from './prompts';
 
 describe('buildSystemPrompt', () => {
-  it('includes attribute count three times (rules, header, format)', () => {
+  it('includes attribute count in both the rule line and the header', () => {
     const keys = ['isHuman', 'isVillain', 'usesMagic'];
     const out = buildSystemPrompt(keys);
+    // AI.4: dropped the RESPONSE FORMAT example block, so we now expect the
+    // count twice (rule + header) instead of three times. Asserting >=2 here
+    // gives us forward room without re-introducing the trimmed schema example.
     const occurrences = out.match(/3/g) ?? [];
-    expect(occurrences.length).toBeGreaterThanOrEqual(3);
+    expect(occurrences.length).toBeGreaterThanOrEqual(2);
     expect(out).toContain('isHuman, isVillain, usesMagic');
     expect(out).toContain('ATTRIBUTE KEYS (3 total');
   });
@@ -15,6 +18,28 @@ describe('buildSystemPrompt', () => {
     const out = buildSystemPrompt([]);
     expect(out).toContain('0 attribute keys');
     expect(out).toContain('ATTRIBUTE KEYS (0 total');
+  });
+
+  it('AI.4: still mentions JSON (required for json_object mode) but drops the inline schema example', () => {
+    const out = buildSystemPrompt(['isHuman']);
+    expect(out).toContain('JSON');
+    // Regression guard: the trimmed `RESPONSE FORMAT` example block and its
+    // example body must NOT come back. If a future edit re-introduces the
+    // schema sketch, this test fires.
+    expect(out).not.toContain('RESPONSE FORMAT');
+    expect(out).not.toContain('"char_id_1"');
+  });
+
+  it('AI.4: 200-attribute prompt fits the post-compression budget', () => {
+    // Baseline (pre-AI.4): ~2531 chars for 200 attrs (includes the inline
+    // `RESPONSE FORMAT: {…}` example block).
+    // Post-trim: 2371 chars — ~6% shrink on the system prompt alone, which
+    // compounds across every batch × chunk during enrichment. Budget set ~5%
+    // above current observed so a future regression that re-bloats the prompt
+    // fires here.
+    const keys = Array.from({ length: 200 }, (_, i) => `attr${i}`);
+    const out = buildSystemPrompt(keys);
+    expect(out.length).toBeLessThan(2500);
   });
 });
 

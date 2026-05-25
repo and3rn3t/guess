@@ -65,7 +65,8 @@ Rules:
 - Sound ${tone}
 - Build on recent answers when possible (e.g., "Since they're human, do they...")
 - Vary sentence structure — don't always start the same way
-- Return ONLY valid JSON: { "text": "rephrased question" }`
+
+Respond with JSON shaped { "text": "rephrased question" }.`
 
     const userPrompt = `Original: "${question.text}"
 Attribute: "${question.attribute}"
@@ -89,6 +90,14 @@ Rephrase this question.`
         ],
         max_tokens: 100,
         temperature: 0.6,
+        // AI.4: enforce structured output so the model can't return prose or
+        // markdown-fenced JSON. Strict json_object lets us drop the previous
+        // "Return ONLY valid JSON" preamble (the rule list still mentions
+        // JSON, satisfying OpenAI's literal-string requirement for this mode).
+        // The fence-stripping shim below is kept as a defensive fallback in
+        // case AI Gateway falls through to a non-OpenAI model that doesn't
+        // honour `response_format`.
+        response_format: { type: 'json_object' },
       }),
       signal: controller.signal,
     })

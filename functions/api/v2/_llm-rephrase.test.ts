@@ -170,6 +170,26 @@ describe('rephraseQuestion', () => {
     expect(body.model).toBe('gpt-4o-mini')
   })
 
+  it('AI.4: enforces response_format json_object', async () => {
+    mockLlmResponse('A rephrased question')
+    await rephraseQuestion(ENV, QUESTION, [], REASONING, 1, 15)
+    const body = await getRequestBodyFromFirstCall<{ response_format?: { type: string } }>()
+    expect(body.response_format).toEqual({ type: 'json_object' })
+  })
+
+  it('AI.4: dropped the "Return ONLY valid JSON" preamble from the system prompt', async () => {
+    mockLlmResponse('A rephrased question')
+    await rephraseQuestion(ENV, QUESTION, [], REASONING, 1, 15)
+    const body = await getRequestBodyFromFirstCall<{
+      messages: Array<{ role: string; content: string }>
+    }>()
+    const systemMessage = body.messages.find((m) => m.role === 'system')!
+    // Still mentions JSON (required by json_object mode), but no longer wraps
+    // it in the "Return ONLY valid JSON: { ... }" demonstration line.
+    expect(systemMessage.content).toContain('JSON')
+    expect(systemMessage.content).not.toContain('Return ONLY valid JSON')
+  })
+
   it('includes recent answers in the user prompt', async () => {
     mockLlmResponse('A rephrased question')
     await rephraseQuestion(ENV, QUESTION, ANSWERS, REASONING, 5, 15)

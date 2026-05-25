@@ -4,9 +4,24 @@
  * Pure string-builders — no I/O, no DB, no LLM calls. Safe to test in isolation.
  *
  * Extracted from scripts/ingest/enrich.ts (RF.1) without behavior change.
+ *
+ * AI.4 audit (2026-05-25): every caller of these prompts enforces
+ * `response_format: { type: 'json_object' }` at the OpenAI client layer
+ * (see [callLLM](llm-client.ts)). That means we don't need to repeat
+ * "RESPONSE FORMAT: {json example}" inside the prompt body — the model
+ * is already constrained to return valid JSON. We keep one short sentence
+ * mentioning "Return a JSON object" because OpenAI requires the literal
+ * string "JSON" to appear somewhere in the messages when json_object mode
+ * is on; otherwise the API rejects the request. Skeptic + trivia prompts
+ * still inline a schema sketch because their output shape is the actual
+ * contract (not just "be JSON"), and the model can't infer it from the
+ * attribute key list alone.
  */
 
 export function buildSystemPrompt(attrKeys: string[]): string {
+  // AI.4: dropped the `RESPONSE FORMAT (strict JSON, one entry per character): {…}`
+  // example block (~6 lines, ~150 tokens) — json_object mode + the "Return a JSON
+  // object…" rule below cover it. The attribute-key list still defines the schema.
   return `You are a fictional character classifier. For each character, determine boolean attributes.
 
 RULES:
@@ -19,13 +34,7 @@ RULES:
 - You MUST include ALL ${attrKeys.length} attribute keys for each character
 
 ATTRIBUTE KEYS (${attrKeys.length} total — respond with these exact keys):
-${attrKeys.join(', ')}
-
-RESPONSE FORMAT (strict JSON, one entry per character):
-{
-  "char_id_1": { "attr1": true, "attr2": false, ... all ${attrKeys.length} attrs },
-  "char_id_2": { ... }
-}`;
+${attrKeys.join(', ')}`;
 }
 
 export function buildUserPrompt(

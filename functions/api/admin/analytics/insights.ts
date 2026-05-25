@@ -53,6 +53,11 @@ Write 3 concise insights (1-2 sentences each) about:
 
 Be specific and data-driven. If there's insufficient data, say so briefly.`
 
+  // AI.4 audit: this endpoint intentionally returns free-text prose (rendered
+  // verbatim in the admin Insights card). json_object mode would force the
+  // model to wrap the bullets in a JSON envelope we'd then strip — net loss.
+  // Schema-mode is also unnecessary because the output is read by a human,
+  // not parsed downstream.
   try {
     // AI.1: opt into AI Gateway upstream cache (6h, matches the D1 cache TTL
     // applied below). Deterministic prompt over read-only analytics rollups.

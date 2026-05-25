@@ -30,7 +30,7 @@ All routed through the AI Gateway when `CLOUDFLARE_AI_GATEWAY` is set (it is, in
 |---|---|---|---|---|---|---|
 | `POST /api/llm` | [functions/api/llm.ts](../functions/api/llm.ts) | `gpt-4o` / `gpt-4o-mini` (allow-list enforced) | Conditional (caller-supplied) | 24 h via `kv_cache` (D1) keyed on `sha256(prompt+model+jsonMode)` | **24 h** (AI.1, `cf-aig-cache-ttl`) | 3 attempts, 1 s + 3 s backoff, on 429/500/503 |
 | `POST /api/llm-stream` | [functions/api/llm-stream.ts](../functions/api/llm-stream.ts) | same allow-list | n/a (SSE) | None (streaming) | Inapplicable | None — surfaces upstream errors directly |
-| `POST /api/v2/_llm-rephrase` | [functions/api/v2/_llm-rephrase.ts](../functions/api/v2/_llm-rephrase.ts) | `gpt-4o-mini` | Yes | None | None — AI.1 follow-on candidate | None |
+| `POST /api/v2/_llm-rephrase` | [functions/api/v2/_llm-rephrase.ts](../functions/api/v2/_llm-rephrase.ts) | `gpt-4o-mini` | **Yes (AI.4)** | None | None — AI.1 follow-on candidate | None |
 | `POST /api/admin/questions/[key]/score` | [functions/api/admin/questions/[key]/score.ts](../functions/api/admin/questions/[key]/score.ts) | `gpt-4o-mini` (admin) | Yes | None | None — AI.1 follow-on candidate | None |
 | `GET /api/admin/coverage-priority` | [functions/api/admin/coverage-priority.ts](../functions/api/admin/coverage-priority.ts) | `gpt-4o-mini` | Yes | 6 h via `d1CachePut` | **6 h** (AI.1, `cf-aig-cache-ttl`) | None |
 | `GET /api/admin/analytics/insights` | [functions/api/admin/analytics/insights.ts](../functions/api/admin/analytics/insights.ts) | `gpt-4o-mini` | Yes | 6 h via `d1CachePut` | **6 h** (AI.1, `cf-aig-cache-ttl`) | None |
@@ -144,3 +144,4 @@ Tracked in `/memories/session/plan.md` § "Further considerations":
 |---|---|
 | 2026-05-25 | Initial audit (AI.0). Sections 1–7 written from code inspection; section 8 baseline numbers still TODO (need CF dashboard pull). |
 | 2026-05-25 | AI.1 shipped: `cf-aig-cache-ttl` plumbed via `getLlmHeaders(env, ttl)` and opted in on `/api/llm` (24 h), `/api/admin/coverage-priority` (6 h), `/api/admin/analytics/insights` (6 h). Other admin LLM endpoints flagged as AI.1 follow-on candidates pending per-route audit. 7-day observation window for cache-hit ratio starts on next deploy. |
+| 2026-05-25 | AI.4 partial shipped: enrichment `buildSystemPrompt` / `buildSystemPromptForChunk` trimmed (dropped redundant `RESPONSE FORMAT: {…}` example block, ~6% shrink); `/api/v2/_llm-rephrase` now enforces `response_format: { type: 'json_object' }` and dropped its `Return ONLY valid JSON: { … }` preamble; `/api/admin/analytics/insights` annotated as the lone intentional free-text endpoint. Aggressive RULES-block rewrite (needed to hit ≥15% reduction) deferred behind a `pnpm golden:regression` quality gate. |
