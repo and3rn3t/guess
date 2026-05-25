@@ -2,7 +2,6 @@ import { Fragment, useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { AdminPageHeader } from '../AdminPageHeader'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import {
@@ -11,20 +10,15 @@ import {
   BatchCategoryModal,
 } from '../CharacterManagerEnhancements'
 import {
-  MagnifyingGlassIcon,
   TrashIcon,
   ArrowLeftIcon,
   ArrowRightIcon,
   CaretDownIcon,
   CaretUpIcon,
-  ArrowsClockwiseIcon,
-  SparkleIcon,
-  WarningIcon,
 } from '@phosphor-icons/react'
 import type { CharacterCategory } from '@/lib/types'
 import { CATEGORY_LABELS } from '@/lib/types'
 import {
-  addRecentSearch,
   exportAsCSV,
   getNeedsWorkScore,
   timeSinceCreated,
@@ -36,24 +30,14 @@ import {
   nextAttrValue,
 } from './characters/charactersHelpers'
 import { SortIndicator } from './characters/SortIndicator'
-import { useCharactersListing, type AdminCharacter } from './characters/useCharactersListing'
+import { useCharactersListing } from './characters/useCharactersListing'
+import {
+  ExpandedAttributesPanel,
+  type ExpandedCharacterData,
+  type ValidationIssue,
+} from './characters/ExpandedAttributesPanel'
+import { CharactersToolbar } from './characters/CharactersToolbar'
 
-interface ValidationIssue {
-  attributeKey: string
-  type: 'contradiction' | 'suspicious-null' | 'recommended-fill'
-  currentValue: boolean | null
-  suggestedValue: boolean | null
-  reason: string
-}
-
-interface ExpandedCharacterData {
-  definitions: Array<{ key: string; displayText: string }>
-  attributes: Record<string, AttributeApiValue>
-  evidence: Record<string, string | null>
-  agreement: Record<string, { score: number | null; signals: number }>
-}
-
-const CATEGORIES = Object.keys(CATEGORY_LABELS) as CharacterCategory[]
 const SKELETON_ROW_KEYS = [
   'char-skeleton-1',
   'char-skeleton-2',
@@ -292,116 +276,6 @@ export default function CharactersRoute(): React.JSX.Element {
     }
   }
 
-  const renderExpandedPanel = (character: AdminCharacter): React.JSX.Element | null => {
-    if (expandLoading) {
-      return <p className="text-sm text-muted-foreground">Loading attributes…</p>
-    }
-    if (!expandedData) return null
-
-    return (
-      <div className="space-y-3">
-        <div className="flex items-center justify-between">
-          <span className="text-xs text-muted-foreground">
-            Click an attribute to cycle: null → true → false → null
-          </span>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => void validateCharacter(character.id, character.name)}
-            disabled={validating === character.id}
-            className="h-7 text-xs text-violet-400 border-violet-500/40 hover:bg-violet-500/10"
-          >
-            <SparkleIcon size={12} className={`mr-1.5 ${validating === character.id ? 'animate-pulse' : ''}`} />
-            {validating === character.id ? 'Validating…' : 'Validate with AI'}
-          </Button>
-        </div>
-        <div className="flex flex-wrap gap-1.5">
-          {expandedData.definitions.map((def) => {
-            const val = expandedData.attributes[def.key] ?? null
-            const evidence = expandedData.evidence[def.key] ?? null
-            const agreement = expandedData.agreement[def.key] ?? { score: null, signals: 0 }
-
-            let valueLabel = 'unknown'
-            if (val === 1) valueLabel = 'true'
-            else if (val === 0) valueLabel = 'false'
-
-            let agreementLine = 'Agreement: — (no signals yet)'
-            if (agreement.score !== null) {
-              const signalSuffix = agreement.signals === 1 ? '' : 's'
-              agreementLine = `Agreement: ${(agreement.score * 100).toFixed(0)}% (${agreement.signals} signal${signalSuffix})`
-            }
-
-            const tooltip = evidence
-              ? `${def.displayText}: ${valueLabel}\nEvidence: ${evidence}\n${agreementLine}\n(click to cycle)`
-              : `${def.displayText}: ${valueLabel}\nEvidence: — (legacy row, no provenance)\n${agreementLine}\n(click to cycle)`
-            const contested = agreement.score !== null && agreement.score < 0.6 && agreement.signals >= 3
-
-            let valueClass = 'bg-muted text-muted-foreground border-border hover:text-foreground'
-            if (val === 1) {
-              valueClass = 'bg-green-500/20 text-green-400 border-green-500/30 hover:bg-green-500/30'
-            } else if (val === 0) {
-              valueClass = 'bg-red-500/20 text-red-400 border-red-500/30 hover:bg-red-500/30'
-            }
-
-            return (
-              <button
-                key={def.key}
-                onClick={() => void patchAttr(character.id, def.key, val)}
-                title={tooltip}
-                className={`px-2 py-1 rounded text-xs font-mono border transition-colors ${valueClass} ${contested ? 'ring-2 ring-orange-500/60' : ''}`}
-              >
-                {def.key}
-                {evidence ? <span className="ml-1 opacity-50">·</span> : null}
-                {contested ? <span className="ml-1 text-orange-400" aria-label="contested">⚠</span> : null}
-              </button>
-            )
-          })}
-        </div>
-        {validationResults[character.id] !== undefined && (
-          <div className="space-y-1.5 pt-1 border-t border-border">
-            {validationResults[character.id].length === 0 ? (
-              <p className="text-xs text-green-400">No issues found — attributes look clean!</p>
-            ) : (
-              validationResults[character.id].map((issue) => {
-                const issueKey = `${issue.attributeKey}-${issue.type}-${issue.reason}`
-                let issueClass = 'bg-yellow-500/10 border-yellow-500/30 text-yellow-400'
-                if (issue.type === 'contradiction') {
-                  issueClass = 'bg-red-500/10 border-red-500/30 text-red-400'
-                } else if (issue.type === 'recommended-fill') {
-                  issueClass = 'bg-violet-500/10 border-violet-500/30 text-violet-400'
-                }
-
-                return (
-                <div
-                  key={issueKey}
-                  className={`flex items-start gap-2 text-xs px-2 py-1.5 rounded border ${issueClass}`}
-                >
-                  <WarningIcon size={12} className="mt-0.5 shrink-0" />
-                  <span>
-                    <code className="font-mono">{issue.attributeKey}</code>: {issue.reason}
-                    {issue.suggestedValue !== null && (
-                      <button
-                        onClick={() => void patchAttr(
-                          character.id,
-                          issue.attributeKey,
-                          expandedData.attributes[issue.attributeKey] ?? null
-                        )}
-                        className="ml-2 underline opacity-80 hover:opacity-100"
-                      >
-                        Set {String(issue.suggestedValue)}
-                      </button>
-                    )}
-                  </span>
-                </div>
-                )
-              })
-            )}
-          </div>
-        )}
-      </div>
-    )
-  }
-
   return (
     <div className="container mx-auto px-4 pb-8 max-w-5xl space-y-6">
       <AdminPageHeader
@@ -409,55 +283,17 @@ export default function CharactersRoute(): React.JSX.Element {
         subtitle={data ? `${data.total} characters` : undefined}
         sectionColor="blue"
         actions={
-          <div className="flex gap-2 flex-wrap">
-          {selectedIds.size > 0 && (
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => void reenrichSelected()}
-              disabled={reenriching}
-              className="text-violet-400 border-violet-500/40 hover:bg-violet-500/10"
-            >
-              <ArrowsClockwiseIcon size={14} className="mr-1.5" />
-              Re-enrich {selectedIds.size} selected
-            </Button>
-          )}
-          <div className="relative">
-            <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
-            <Input
-              placeholder="Search characters..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              onBlur={() => {
-                if (search.trim().length > 0) {
-                  addRecentSearch(search.trim())
-                }
-              }}
-              className="pl-9 w-56"
-            />
-          </div>
-          <Input
-            type="number"
-            placeholder="Max coverage %"
-            value={maxCoverage}
-              onChange={(e) => { setMaxCoverage(e.target.value); setPage(1) }}
-            className="w-36"
-            min={0}
-            max={100}
+          <CharactersToolbar
+            search={search}
+            category={category}
+            maxCoverage={maxCoverage}
+            selectedCount={selectedIds.size}
+            reenriching={reenriching}
+            onSearchChange={setSearch}
+            onCategoryChange={setCategory}
+            onMaxCoverageChange={setMaxCoverage}
+            onReenrichSelected={() => void reenrichSelected()}
           />
-          <select
-            value={category}
-            onChange={(e) => { setCategory(e.target.value); setPage(1) }}
-            aria-label="Filter by category"
-            title="Filter by category"
-            className="h-9 rounded-md border border-input bg-background px-3 text-sm"
-          >
-            <option value="">All categories</option>
-            {CATEGORIES.map((c) => (
-              <option key={c} value={c}>{CATEGORY_LABELS[c]}</option>
-            ))}
-          </select>
-        </div>
         }
       />
 
@@ -599,7 +435,15 @@ export default function CharactersRoute(): React.JSX.Element {
                     {expandedCharId === c.id && (
                       <tr>
                         <td colSpan={9} className="px-4 py-4 bg-muted/20 border-b border-border">
-                          {renderExpandedPanel(c)}
+                          <ExpandedAttributesPanel
+                            characterId={c.id}
+                            expandedData={expandedData}
+                            expandLoading={expandLoading}
+                            validating={validating}
+                            validationIssues={validationResults[c.id]}
+                            onValidate={() => void validateCharacter(c.id, c.name)}
+                            onPatchAttr={(attrKey, currentVal) => void patchAttr(c.id, attrKey, currentVal)}
+                          />
                         </td>
                       </tr>
                     )}
