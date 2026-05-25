@@ -17,8 +17,9 @@
 | `gpt-4o-mini` (vision) | OpenAI | AI Gateway | n/a (HTTP) | `scripts/vision-validate.ts`, `scripts/vision-enrich-characters.ts` |
 | 2nd-model (e.g. `google/gemma-3-27b-it`) | OpenRouter | Direct (no gateway) | n/a (HTTP) | Enrichment `--model2` consensus voting only |
 | `@cf/baai/bge-base-en-v1.5` | Cloudflare Workers AI | `env.AI.run(…)` | `[ai] binding = "AI"` | Question-deduplication embeddings (B.4) only |
+| `@cf/meta/llama-guard-3-8b` | Cloudflare Workers AI | `env.AI.run(…)` | `[ai] binding = "AI"` | User-write moderation gate (AI.6) on `POST /api/v2/characters`, `POST /api/admin/proposed-attributes`, `POST /api/v2/game/feedback`. Free-tier; fail-open. |
 
-**Not yet adopted (Wave AI candidates):** `@cf/meta/llama-3.1-8b-instruct` (AI.3 tiered routing), `@cf/meta/llama-guard-3-8b` (AI.6 moderation), `@cf/llava-1.5-7b-hf` (AI.5 vision), `@cf/baai/bge-reranker-base` (AI.7), Vectorize (AI.9), Browser Rendering (AI.13), AutoRAG (AI.12).
+**Not yet adopted (Wave AI candidates):** `@cf/meta/llama-3.1-8b-instruct` (AI.3 tiered routing), `@cf/llava-1.5-7b-hf` (AI.5 vision), `@cf/baai/bge-reranker-base` (AI.7), Vectorize (AI.9), Browser Rendering (AI.13), AutoRAG (AI.12).
 
 ---
 
@@ -35,6 +36,7 @@ All routed through the AI Gateway when `CLOUDFLARE_AI_GATEWAY` is set (it is, in
 | `GET /api/admin/coverage-priority` | [functions/api/admin/coverage-priority.ts](../functions/api/admin/coverage-priority.ts) | `gpt-4o-mini` | Yes | 6 h via `d1CachePut` | **6 h** (AI.1, `cf-aig-cache-ttl`) | None |
 | `GET /api/admin/analytics/insights` | [functions/api/admin/analytics/insights.ts](../functions/api/admin/analytics/insights.ts) | `gpt-4o-mini` | Yes | 6 h via `d1CachePut` | **6 h** (AI.1, `cf-aig-cache-ttl`) | None |
 | `GET /api/admin/questions/duplicates/*` | [functions/api/admin/questions/duplicates/](../functions/api/admin/questions/duplicates/) | `@cf/baai/bge-base-en-v1.5` (Workers AI) | n/a | Embeddings persisted in `attribute_embeddings` (D1 BLOB) | n/a | None — degrades gracefully when `env.AI` missing |
+| `POST /api/v2/characters`, `POST /api/admin/proposed-attributes`, `POST /api/v2/game/feedback` (moderation gate) | [functions/api/_moderation.ts](../functions/api/_moderation.ts) | `@cf/meta/llama-guard-3-8b` (Workers AI) | n/a | None (LDNOOBW regex fast-path bypasses model entirely) | n/a | None — **fail-open** on missing binding or runtime error; all rejections persisted to `moderation_rejections` (migration 0049) for audit |
 
 **Gateway-shared config**
 
@@ -109,7 +111,7 @@ From [wrangler.toml](../wrangler.toml):
 | Vision validation | `pnpm vision:validate` | Nightly + on demand | Agreement ≥ 90 % on the visual subset of the golden set. |
 | Data quality report | `pnpm dq:report` (DQ.v2.1) | Nightly (`reconcile-nightly`) | Warn-only for ≥ 7 nights, then blocking. |
 
-Gaps Wave AI fills: no continuous evaluation of production prompts (AI.11), no cost regression gate (manual review of `LLM_COSTS`), no moderation suite (AI.6).
+Gaps Wave AI fills: no continuous evaluation of production prompts (AI.11), no cost regression gate (manual review of `LLM_COSTS`). Moderation suite shipped in AI.6 — see `functions/api/_moderation.test.ts`.
 
 ---
 
@@ -145,3 +147,4 @@ Tracked in `/memories/session/plan.md` § "Further considerations":
 | 2026-05-25 | Initial audit (AI.0). Sections 1–7 written from code inspection; section 8 baseline numbers still TODO (need CF dashboard pull). |
 | 2026-05-25 | AI.1 shipped: `cf-aig-cache-ttl` plumbed via `getLlmHeaders(env, ttl)` and opted in on `/api/llm` (24 h), `/api/admin/coverage-priority` (6 h), `/api/admin/analytics/insights` (6 h). Other admin LLM endpoints flagged as AI.1 follow-on candidates pending per-route audit. 7-day observation window for cache-hit ratio starts on next deploy. |
 | 2026-05-25 | AI.4 partial shipped: enrichment `buildSystemPrompt` / `buildSystemPromptForChunk` trimmed (dropped redundant `RESPONSE FORMAT: {…}` example block, ~6% shrink); `/api/v2/_llm-rephrase` now enforces `response_format: { type: 'json_object' }` and dropped its `Return ONLY valid JSON: { … }` preamble; `/api/admin/analytics/insights` annotated as the lone intentional free-text endpoint. Aggressive RULES-block rewrite (needed to hit ≥15% reduction) deferred behind a `pnpm golden:regression` quality gate. |
+| 2026-05-25 | AI.6 shipped: new `functions/api/_moderation.ts` with LDNOOBW regex fast-path + `@cf/meta/llama-guard-3-8b` escalation. Gated `POST /api/v2/characters`, `POST /api/admin/proposed-attributes`, `POST /api/v2/game/feedback` — return 422 with `{ reason }` on rejection. New `moderation_rejections` D1 table (migration 0049) + `GET`/`PATCH /api/admin/community/rejected`. Fail-open on missing AI binding or runtime error. 8 unit tests. |

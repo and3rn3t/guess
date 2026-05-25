@@ -1,4 +1,5 @@
 import { type Env, jsonResponse, errorResponse, parseJsonBody } from '../_helpers'
+import { moderateAndLog } from '../_moderation'
 
 export const onRequestGet: PagesFunction<Env> = async (context) => {
   const db = context.env.GUESS_DB
@@ -61,8 +62,20 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   )
 
   let inserted = 0
+  let rejected = 0
   for (const p of proposals) {
     if (!p.key || !p.display_text || !p.question_text) continue
+
+    // AI.6: moderation gate — proposals come from LLM discovery but are
+    // user-visible (rendered in /admin/attributes), so the same Llama-Guard
+    // policy applies. Moderate the concatenated free-text fields.
+    const moderationPayload = [p.display_text, p.question_text, p.rationale].filter(Boolean).join('\n')
+    const moderation = await moderateAndLog(context.env, moderationPayload, 'admin/proposed-attributes', p.proposed_by ?? null)
+    if (!moderation.allowed) {
+      rejected++
+      continue
+    }
+
     const result = await stmt.bind(
       p.key.trim(),
       p.display_text.trim(),
@@ -74,7 +87,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     if (result.meta.changes > 0) inserted++
   }
 
-  return jsonResponse({ inserted, submitted: proposals.length })
+  return jsonResponse({ inserted, submitted: proposals.length, rejected })
 }
 
 export const onRequestPatch: PagesFunction<Env> = async (context) => {

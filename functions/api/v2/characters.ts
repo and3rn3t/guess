@@ -15,6 +15,7 @@ import {
   d1Batch,
   logError,
 } from '../_helpers'
+import { moderateAndLog } from '../_moderation'
 import { d1CacheGet, d1CachePut } from '../_d1_cache'
 import type { CharactersRow, CharacterAttributesRow } from '../_db-types'
 
@@ -169,9 +170,20 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     )
     if (existing) return errorResponse(`Character "${name}" already exists`, 409)
 
+    // AI.6: moderation gate — checks name + description together. Rejections
+    // are logged to moderation_rejections for /admin/community/rejected review.
+    const description = body.description ? validateString(body.description, 'description', 0, 2000) : null
+    const moderationPayload = [name, description].filter(Boolean).join('\n')
+    const moderation = await moderateAndLog(context.env, moderationPayload, 'v2/characters', userId)
+    if (!moderation.allowed) {
+      return withSetCookie(
+        errorResponse(`Content rejected by moderation (${moderation.reason ?? 'unspecified'})`, 422),
+        setCookieHeader,
+      )
+    }
+
     // Create character
     const id = `char-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
-    const description = body.description ? validateString(body.description, 'description', 0, 2000) : null
 
     await d1Run(
       db,

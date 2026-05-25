@@ -272,7 +272,7 @@ describe("POST /api/admin/proposed-attributes", () => {
       },
     );
     expect(res.status).toBe(200);
-    expect(res.body).toEqual({ inserted: 1, submitted: 2 });
+    expect(res.body).toEqual({ inserted: 1, submitted: 2, rejected: 0 });
   });
 
   it("rejects empty proposal arrays", async () => {

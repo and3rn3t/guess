@@ -10,6 +10,7 @@ import {
   parseJsonBodyWithSchema,
   withRequestId,
 } from "../../_helpers";
+import { moderateAndLog } from "../../_moderation";
 import { FeedbackRequestSchema } from "../../_schemas";
 
 // ── POST /api/v2/game/feedback ─────────────────────────────
@@ -35,6 +36,20 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     if (!parsed.success) return respond(parsed.response);
 
     const { sessionId, rating, feedbackText } = parsed.data;
+
+    // AI.6: moderation gate on free-text feedback. Rating-only feedback
+    // (no text) skips the call (empty payload → allowed=true with reason='empty').
+    const moderation = await moderateAndLog(
+      context.env,
+      feedbackText ?? null,
+      'v2/game/feedback',
+      actorId,
+    );
+    if (!moderation.allowed) {
+      return respond(
+        errorResponse(`Feedback rejected by moderation (${moderation.reason ?? 'unspecified'})`, 422),
+      );
+    }
 
     await d1Run(
       db,
