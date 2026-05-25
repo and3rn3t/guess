@@ -39,11 +39,11 @@ An item is `✅` only when **all** apply:
 
 ## In Progress / Up Next
 
-- ⬜ **Next:** [PI.3](#pi-3) Tail Worker → structured `error_logs` (impact-first batch)
+- ⬜ **Next:** [EN.1](#en-1) Calibration v2 against 53K pool (impact-first batch)
 - ⚪ **Parked:** [MOB.1](#mob-1) — needs physical-device evidence; no engineering blockers. Re-pull when device time available.
 - 📦 **Recently shipped:** DX.v2.4 (pre-commit `validate:fast`) · SE.2 (RBAC coverage gate) · mobile wave (MR/MN/MX/MY.1) — see [Shipped — Mobile Wave (May 2026)](#shipped--mobile-wave-may-2026)
 
-**Active batch (impact-ordered, see Decision Log 2026-05-25):** ~~SE.2~~ → ~~DX.v2.4~~ → ~~PI.1~~ → PI.3 → EN.1 → A11Y.1 + PF.1.
+**Active batch (impact-ordered, see Decision Log 2026-05-25):** ~~SE.2~~ → ~~DX.v2.4~~ → ~~PI.1~~ → ~~PI.3~~ → EN.1 → A11Y.1 + PF.1.
 
 ---
 
@@ -287,15 +287,30 @@ Done when:
 
 ### PI.3
 
-**Title:** Tail Worker → structured `error_logs`
-**Status:** ⬜
-**Why:** `tail-worker/` exists but isn't wired into the error pipeline. Currently `functions/_middleware.ts` writes directly to `error_logs`, coupling request handling to D1 latency.
+**Title:** Decouple `error_logs` writes from request hot path
+**Status:** ✅ 2026-05-25
+**Why:** `_middleware.ts` already avoids direct D1 writes, but six handlers under `functions/api/v2/daily/**` and `functions/api/llm-stream.ts` were calling `await logError(...)` inside their request `catch` blocks, coupling response latency to D1 write latency and risking 500s if `error_logs` was slow or unavailable. The Tail Worker pipeline (AE telemetry) already runs off-hot-path.
 
 Done when:
 
-- [ ] `_middleware.ts` emits structured error events (no direct D1 write).
-- [ ] `tail-worker/` consumes the events and batch-writes to `error_logs`.
-- [ ] Error-write failures no longer surface as 500s on the user request.
+- [x] Audit all `functions/api/**` for `await logError(...)`; convert request-path call sites to `context.waitUntil(logError(...))`. Six call sites converted.
+- [x] Regression test [functions/api/_log_error_hot_path.test.ts](functions/api/_log_error_hot_path.test.ts) walks `functions/api/**` and fails CI on new `await logError(...)` outside an explicit allowlist (cron/admin/hygiene only).
+- [x] [ARCHITECTURE.md](ARCHITECTURE.md) gains an "Error Pipeline" section documenting the two-stream model (AE telemetry via Tail Worker; D1 forensic detail via fire-and-forget `logError`).
+- [x] Tail-Worker-as-D1-writer split out as PI.3.b (deferred — see Decision Log 2026-05-25).
+
+### PI.3.b
+
+**Title:** Tail Worker assumes D1 `error_logs` writeback
+**Status:** ⬜
+**Why:** Even with PI.3's `waitUntil` shield, every `logError` call still issues an INSERT + DELETE batch from the main Worker. Moving the D1 writeback into the Tail Worker (which Cloudflare invokes off-hot-path automatically) would let `logError` shrink to a `console.error(JSON.stringify({kind:'guess_error_event',…}))` and remove the final D1 round-trip from `waitUntil` callbacks.
+
+Done when:
+
+- [ ] `logError` emits `console.error(JSON.stringify({kind:'guess_error_event',…}))` instead of touching D1.
+- [ ] Tail Worker parses `event.logs` for `guess_error_event` entries and batch-inserts into `error_logs` via a `GUESS_DB` D1 binding.
+- [ ] Tail-worker `wrangler.toml` declares the `GUESS_DB` binding (production + preview).
+- [ ] Migration coordinated: Tail Worker deployed and verified writing rows BEFORE `logError` D1 write is removed (avoids gap in `error_logs`).
+- [ ] No regression in admin error-logs UI (`/admin/error-logs`).
 
 ### PI.4
 
@@ -537,5 +552,6 @@ Earlier mobile foundations (MB.1–MB.5, MP.1–MP.7) shipped 2026-05-05 → 202
 | 2026-05-25 | OB wave sequenced after PI.3, not before. | SLOs without structured `error_logs` are guesswork; PI.3 supplies the data, OB.1 supplies the targets. |
 | 2026-05-25 | DX.v2.5 (OpenAPI drift detector) added as a follow-on to DX.v2.1, not a precondition. | Generating the client first proves the yaml is usable; drift detection then prevents future skew. Reversing the order would block client codegen on tooling that doesn't exist yet. |
 | 2026-05-25 | MOB.1 parked (⚪); active batch re-sequenced impact-first as SE.2 → DX.v2.4 → PI.1 → PI.3 → EN.1 → A11Y.1 + PF.1. | MOB.1 has no engineering blocker (needs physical-device evidence). Promoting SE.2 (admin auth blast radius) and DX.v2.4 (pre-commit multiplier) ahead of PI.1 trades one ordering position for two larger risk-reducers. Adds PI.3 + EN.1 (M-sized) because reliability decoupling and game-quality calibration outrank another batch of S items on user payoff. |
+| 2026-05-25 | PI.3 scope refined on contact with code: `_middleware.ts` already avoids direct D1 writes, so the original "no direct D1 write from middleware" criterion was vacuously true. Reframed PI.3 as the hot-path decoupling work that was actually needed (six `await logError(...)` call sites under `functions/api/v2/daily/**` and `llm-stream.ts` converted to `context.waitUntil`) plus a regression test. The full Tail-Worker-as-D1-writer migration split out as PI.3.b. | PI.3.b requires Tail Worker deploy → verify → `logError` D1 write removal in that order to avoid an `error_logs` write gap, which is outside this batch's coordinated-deploy risk budget. Shipping the `waitUntil` shield + regression test now removes the user-visible latency coupling immediately; PI.3.b removes the last D1 round-trip later. |
 
 Earlier entries (2026-05-11 mobile-chapter decisions) preserved in [docs/ROADMAP-archive-v1.8-mobile-may-2026.md](docs/ROADMAP-archive-v1.8-mobile-may-2026.md#decision-log-mobile-only-chapter).

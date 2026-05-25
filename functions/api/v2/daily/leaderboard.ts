@@ -66,13 +66,15 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       )
     } catch (error) {
       if (!isMissingDailyResultsTableError(error)) throw error
-      await logError(
-        context.env.GUESS_DB,
-        'daily.leaderboard',
-        'warn',
-        'daily_results table missing; returning empty leaderboard',
-        error,
-        { path: '/api/v2/daily/leaderboard', method: 'GET', requestId },
+      context.waitUntil(
+        logError(
+          context.env.GUESS_DB,
+          'daily.leaderboard',
+          'warn',
+          'daily_results table missing; returning empty leaderboard',
+          error,
+          { path: '/api/v2/daily/leaderboard', method: 'GET', requestId },
+        ),
       )
     }
 
@@ -87,13 +89,15 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
     return respond(withSetCookie(jsonResponse({ date, leaderboard }), setCookieHeader))
   } catch (error) {
-    await logError(
-      context.env.GUESS_DB,
-      'daily.leaderboard',
-      'error',
-      'Failed to load daily challenge leaderboard',
-      error,
-      { path: '/api/v2/daily/leaderboard', method: 'GET', requestId },
+    context.waitUntil(
+      logError(
+        context.env.GUESS_DB,
+        'daily.leaderboard',
+        'error',
+        'Failed to load daily challenge leaderboard',
+        error,
+        { path: '/api/v2/daily/leaderboard', method: 'GET', requestId },
+      ),
     )
     return respond(internalErrorResponse(requestId))
   }

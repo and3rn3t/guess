@@ -139,7 +139,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         }
       } catch (err) {
         console.error('Stream processing error:', err)
-        await logError(context.env.GUESS_DB, 'llm-stream', 'error', 'Stream processing error', err)
+        context.waitUntil(logError(context.env.GUESS_DB, 'llm-stream', 'error', 'Stream processing error', err))
       } finally {
         await writer.close()
       }

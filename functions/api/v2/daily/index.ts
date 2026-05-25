@@ -67,13 +67,15 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
     return respond(withSetCookie(jsonResponse(payload), setCookieHeader))
   } catch (error) {
-    await logError(
-      context.env.GUESS_DB,
-      'daily.get',
-      'error',
-      'Failed to load daily challenge status',
-      error,
-      { path: '/api/v2/daily', method: 'GET', requestId },
+    context.waitUntil(
+      logError(
+        context.env.GUESS_DB,
+        'daily.get',
+        'error',
+        'Failed to load daily challenge status',
+        error,
+        { path: '/api/v2/daily', method: 'GET', requestId },
+      ),
     )
     return respond(internalErrorResponse(requestId))
   }
@@ -110,25 +112,29 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       )
     } catch (error) {
       if (!isMissingDailyResultsTableError(error)) throw error
-      await logError(
-        context.env.GUESS_DB,
-        'daily.post',
-        'warn',
-        'daily_results table missing; skipping daily result persistence',
-        error,
-        { path: '/api/v2/daily', method: 'POST', requestId },
+      context.waitUntil(
+        logError(
+          context.env.GUESS_DB,
+          'daily.post',
+          'warn',
+          'daily_results table missing; skipping daily result persistence',
+          error,
+          { path: '/api/v2/daily', method: 'POST', requestId },
+        ),
       )
     }
 
     return respond(withSetCookie(jsonResponse({ ok: true, date, characterId: dailyCharacter.id }), setCookieHeader))
   } catch (error) {
-    await logError(
-      context.env.GUESS_DB,
-      'daily.post',
-      'error',
-      'Failed to record daily challenge result',
-      error,
-      { path: '/api/v2/daily', method: 'POST', requestId },
+    context.waitUntil(
+      logError(
+        context.env.GUESS_DB,
+        'daily.post',
+        'error',
+        'Failed to record daily challenge result',
+        error,
+        { path: '/api/v2/daily', method: 'POST', requestId },
+      ),
     )
     return respond(internalErrorResponse(requestId))
   }

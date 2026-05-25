@@ -399,6 +399,46 @@ with a justifying comment. The test is part of `pnpm validate`.
 
 ---
 
+## Error Pipeline
+
+Two parallel observability streams keep the hot path off D1:
+
+1. **Workers Analytics Engine (telemetry)** — the [tail-worker/](tail-worker/)
+   Worker receives every main-Worker invocation as a Cloudflare Tail event
+   and writes one structured AE data point per request
+   (`worker_tail` / `worker_tail_preview` datasets) via
+   [tail-worker/src/_tail_metrics.ts](tail-worker/src/_tail_metrics.ts). This
+   powers the AN.29 latency budget panel and AN.30 live-ops strip. The
+   consumer is wired through the Cloudflare dashboard
+   (Pages → guess → Settings → Functions → Tail consumers) because Pages
+   projects don't accept `tail_consumers` in `wrangler.toml`.
+
+2. **D1 `error_logs` table (forensic detail)** — handlers call
+   `logError(env.GUESS_DB, source, level, message, err, ctx)` from
+   [functions/api/_helpers.ts](functions/api/_helpers.ts), which executes a
+   batched `INSERT INTO error_logs` + ring-buffer `DELETE` (capped at 1 000
+   rows). `logError` returns `Promise<void>` and is `.catch(() => {})`-ed
+   internally so it never throws.
+
+   **PI.3 hot-path contract:** request handlers MUST NOT `await
+   logError(...)`. The call site is either fire-and-forget
+   (`context.waitUntil(logError(...))`) or a bare statement; awaiting it
+   couples response latency to D1 write latency and risks bubbling failures
+   as 500s. Cron / admin hygiene jobs may await — they aren't on a user
+   request path. The contract is enforced by
+   [functions/api/_log_error_hot_path.test.ts](functions/api/_log_error_hot_path.test.ts)
+   which walks `functions/api/**` and rejects new `await logError(...)`
+   outside an explicit allowlist.
+
+A future PI.3.b will move the D1 writeback into the Tail Worker so
+`logError` only emits structured `console.error` JSON and the Tail consumer
+batches the inserts — eliminating the last D1 round-trip from
+`waitUntil` callbacks. Deferred from this batch because it requires
+coordinated multi-deploy sequencing (Tail Worker must be live before
+middleware changes ship) outside the current change budget.
+
+---
+
 ## API Endpoints
 
 ### v1 — Removed
