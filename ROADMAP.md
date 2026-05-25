@@ -563,7 +563,7 @@ Done when:
 
 - [x] [docs/ai-surface.md](docs/ai-surface.md) lists every AI call site (path, model, provider route, cache strategy, fallback, JSON mode, prompt size guard) — server endpoints, admin endpoints, enrichment scripts, golden/vision regression scripts.
 - [ ] [data/ai-baseline-2026-05.json](data/ai-baseline-2026-05.json) populated with last-30-day `LLM_COSTS` totals (per `route` × `model`), AI Gateway cache hit ratio, p50/p95 latency per hot route, and current Workers AI neurons/day usage. (Scaffolded with TODO placeholders; needs CF dashboard pull to fill.)
-- [ ] [ARCHITECTURE.md](ARCHITECTURE.md) AI-related sections cross-link the new audit doc.
+- [x] [ARCHITECTURE.md](ARCHITECTURE.md) AI-related sections cross-link the new audit doc. (LLM Pipeline section refreshed 2026-05-25 to point at [docs/ai-surface.md](docs/ai-surface.md) for the full inventory + reference AI.1/AI.2/AI.4; Data Ingestion section links to the enrichment-scripts subsection of the audit.)
 
 ### AI.1
 

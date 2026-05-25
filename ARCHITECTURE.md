@@ -776,20 +776,32 @@ the API can't see by itself. Designed to be wired into the H.3 cron.
 
 ## LLM Pipeline
 
+> **Full inventory:** Every AI call site (model, JSON mode, cache TTL, fallback, prompt-size guard) lives in [docs/ai-surface.md](docs/ai-surface.md), the Wave-AI Phase-0 audit. This section is the high-level view; refer to the audit doc when adding a new call site or changing routing/caching.
+
 ```
 Client request
   → POST /api/llm or /api/llm-stream
     → Cloudflare AI Gateway (OpenAI proxy)
       → Built-in: caching, rate limiting, logging, cost analytics
-    → Response cached 24h (non-streaming)
+      → `cf-aig-cache-ttl` set on deterministic routes (AI.1)
+    → Response cached 24h app-side (non-streaming, D1 `kv_cache`)
   → Client
+
+User-write endpoints (POST /api/v2/characters, /api/admin/proposed-attributes,
+                       /api/v2/game/feedback)
+  → functions/api/_moderation.ts
+    → LDNOOBW regex fast-path
+    → @cf/meta/llama-guard-3-8b (Workers AI, free-tier) on grey-area strings
+    → Fail-open on missing binding / runtime error
+    → Rejections persisted to `moderation_rejections` (migration 0049)
+      → Reviewed via /admin/community/rejected
 ```
 
-- Model: GPT-4o via AI Gateway
-- Retry: exponential backoff with jitter (3 attempts)
-- Rate limiting: per-IP, enforced in Workers
-- Cost tracking: `CostDashboard` component reads AI Gateway analytics
-- Prompt templates: `src/lib/prompts.ts` (question generation, data cleanup, attribute enrichment)
+- Models: `gpt-4o` + `gpt-4o-mini` via AI Gateway (allow-list enforced in `functions/api/llm.ts`); `@cf/baai/bge-base-en-v1.5` and `@cf/meta/llama-guard-3-8b` via Workers AI binding. See [docs/ai-surface.md § Models in use](docs/ai-surface.md).
+- Retry: exponential backoff with jitter (3 attempts) on `/api/llm`; streaming surfaces upstream errors directly. AI Gateway fallback chains land in [AI.2](ROADMAP.md#ai-2).
+- Rate limiting: per-IP, enforced in Workers.
+- Cost tracking: `CostDashboard` component reads AI Gateway analytics; per-route totals also written to `LLM_COSTS` analytics dataset (see [data/ai-baseline-2026-05.json](data/ai-baseline-2026-05.json)).
+- Prompt templates: `src/lib/prompts.ts` (client-side) and `scripts/ingest/enrich/prompts.ts` (enrichment); JSON-mode audit completed in [AI.4](ROADMAP.md#ai-4).
 
 ---
 
@@ -804,6 +816,8 @@ External sources (AniList, WikiData, TMDB, IGDB, ComicVine)
     → images.ts → download → sharp → WebP → R2
     → upload.ts → generate SQL → apply to D1
 ```
+
+> LLM call sites in the enrichment pipeline (model, JSON mode, prompt templates) are catalogued in [docs/ai-surface.md § CLI / enrichment scripts](docs/ai-surface.md).
 
 - Staging DB: `data/staging.db` (local SQLite)
 - CLI: `pnpm ingest`, `pnpm ingest:stats`, `pnpm ingest:dedup`, `pnpm ingest:upload`
