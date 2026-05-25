@@ -51,6 +51,7 @@ const rules: FileRule[] = [
   { path: 'src/components/admin/routes/CharactersRoute.tsx', maxLines: 530, maxOwnImports: 18 },
   { path: 'src/components/admin/routes/LandingRoute.tsx', maxLines: 420, maxOwnImports: 20 },
   { path: 'src/components/admin/routes/DataQualityRoute.tsx', maxLines: 540, maxOwnImports: 14 },
+  { path: 'src/components/admin/routes/QuestionsRoute.tsx', maxLines: 510, maxOwnImports: 20 },
   { path: 'src/hooks/useServerGame.ts', maxLines: 430, maxOwnImports: 12 },
   { path: 'functions/api/v2/game/start.ts', maxLines: 320, maxOwnImports: 12 },
   { path: 'functions/api/v2/game/answer.ts', maxLines: 360, maxOwnImports: 12 },

@@ -14,17 +14,8 @@ import {
   ArrowRightIcon,
   SparkleIcon,
 } from "@phosphor-icons/react";
-import type {
-  ActiveFilter,
-  DifficultyFilter,
-  QuestionSort,
-  RunModeFilter,
-  RunStatusFilter,
-  TextStatusFilter,
-} from "./questions/questionsTypes";
 import {
   SKELETON_ROW_KEYS,
-  isValidMinUsageInput,
   parseDifficultySelection,
   scoreButtonClass,
 } from "./questions/questionsHelpers";
@@ -35,6 +26,10 @@ import { useQuestionInlineEdits } from "./questions/useQuestionInlineEdits";
 import { useQuestionScoring } from "./questions/useQuestionScoring";
 import { useQuestionExpansion } from "./questions/useQuestionExpansion";
 import { useQuestionBulkActions } from "./questions/useQuestionBulkActions";
+import { QuestionsToolbar } from "./questions/QuestionsToolbar";
+import { BulkActionsBar } from "./questions/BulkActionsBar";
+import { RewriteCandidatesPanel } from "./questions/RewriteCandidatesPanel";
+import { ExpansionRunHistory } from "./questions/ExpansionRunHistory";
 
 export default function QuestionsRoute(): React.JSX.Element {
   const listing = useQuestionsListing();
@@ -175,312 +170,50 @@ export default function QuestionsRoute(): React.JSX.Element {
         </div>
       )}
 
-      <div className="rounded-xl border bg-card p-4 space-y-3">
-        <div className="flex flex-wrap items-center gap-2">
-          <Button variant="outline" size="sm" onClick={() => applyQuickPreset("needs-copy")}>
-            Needs Copy
-          </Button>
-          <Button variant="outline" size="sm" onClick={() => applyQuickPreset("high-impact")}>
-            High Impact
-          </Button>
-          <Button variant="outline" size="sm" onClick={() => applyQuickPreset("inactive")}>
-            Inactive
-          </Button>
-          <Button variant="outline" size="sm" onClick={() => applyQuickPreset("hard")}>
-            Hard + High Use
-          </Button>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <select
-            value={activeFilter}
-            onChange={(event) => setActiveFilter(event.target.value as ActiveFilter)}
-            className="h-9 rounded-md border border-border bg-background px-3 text-sm"
-            aria-label="Filter by active state"
-          >
-            <option value="all">All status</option>
-            <option value="active">Active only</option>
-            <option value="inactive">Inactive only</option>
-          </select>
-          <select
-            value={difficultyFilter}
-            onChange={(event) =>
-              setDifficultyFilter(event.target.value as DifficultyFilter)
-            }
-            className="h-9 rounded-md border border-border bg-background px-3 text-sm"
-            aria-label="Filter by difficulty"
-          >
-            <option value="all">All difficulty</option>
-            <option value="easy">Easy</option>
-            <option value="medium">Medium</option>
-            <option value="hard">Hard</option>
-            <option value="unset">Unset</option>
-          </select>
-          <select
-            value={textStatusFilter}
-            onChange={(event) =>
-              setTextStatusFilter(event.target.value as TextStatusFilter)
-            }
-            className="h-9 rounded-md border border-border bg-background px-3 text-sm"
-            aria-label="Filter by question text status"
-          >
-            <option value="all">All text</option>
-            <option value="missing">Missing text</option>
-            <option value="present">Has text</option>
-          </select>
-          <Input
-            value={minUsage}
-            onChange={(event) => {
-              const next = event.target.value;
-              if (isValidMinUsageInput(next)) {
-                setMinUsage(next);
-              }
-            }}
-            placeholder="Min uses"
-            className="h-9 w-24"
-            inputMode="numeric"
-          />
-          <select
-            value={sort}
-            onChange={(event) => setSort(event.target.value as QuestionSort)}
-            className="h-9 rounded-md border border-border bg-background px-3 text-sm"
-            aria-label="Sort questions"
-          >
-            <option value="usage">Sort: Uses</option>
-            <option value="key">Sort: Key</option>
-            <option value="difficulty">Sort: Difficulty</option>
-            <option value="createdAt">Sort: Created</option>
-            <option value="active">Sort: Active</option>
-          </select>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setOrder((prev) => (prev === "desc" ? "asc" : "desc"))}
-          >
-            {order === "desc" ? "Desc" : "Asc"}
-          </Button>
-          <Button variant="ghost" size="sm" onClick={clearFilters}>
-            Clear Filters
-          </Button>
-        </div>
-      </div>
+      <QuestionsToolbar
+        activeFilter={activeFilter}
+        setActiveFilter={setActiveFilter}
+        difficultyFilter={difficultyFilter}
+        setDifficultyFilter={setDifficultyFilter}
+        textStatusFilter={textStatusFilter}
+        setTextStatusFilter={setTextStatusFilter}
+        minUsage={minUsage}
+        setMinUsage={setMinUsage}
+        sort={sort}
+        setSort={setSort}
+        order={order}
+        toggleOrder={() => setOrder((prev) => (prev === "desc" ? "asc" : "desc"))}
+        clearFilters={clearFilters}
+        applyQuickPreset={applyQuickPreset}
+      />
 
-      {selectedKeys.size > 0 && (
-        <div className="rounded-xl border border-violet-500/30 bg-violet-500/10 p-4">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="text-sm font-medium text-violet-400">
-              {selectedKeys.size} selected
-            </span>
-            <Button
-              size="sm"
-              variant="outline"
-              disabled={bulkScoring}
-              onClick={() => void scoreSelectedQuestions()}
-              className="border-violet-500/40 text-violet-400 hover:bg-violet-500/10"
-            >
-              <SparkleIcon size={12} className="mr-1.5" />
-              {bulkScoring
-                ? `Scoring ${bulkScoreProgress.done}/${bulkScoreProgress.total}`
-                : "AI Score Selected"}
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              disabled={bulkUpdating}
-              onClick={() => void runBulkUpdate({ isActive: true })}
-              className="border-violet-500/40 text-violet-400 hover:bg-violet-500/10"
-            >
-              Activate
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              disabled={bulkUpdating}
-              onClick={() => void runBulkUpdate({ isActive: false })}
-              className="border-violet-500/40 text-violet-400 hover:bg-violet-500/10"
-            >
-              Deactivate
-            </Button>
-            <select
-              value={bulkDifficulty}
-              onChange={(event) =>
-                setBulkDifficulty(event.target.value as DifficultyFilter)
-              }
-              className="h-8 rounded-md border border-border bg-background px-2 text-xs"
-              aria-label="Bulk difficulty"
-            >
-              <option value="all">Bulk difficulty...</option>
-              <option value="easy">Easy</option>
-              <option value="medium">Medium</option>
-              <option value="hard">Hard</option>
-              <option value="unset">Clear difficulty</option>
-            </select>
-            <Button
-              size="sm"
-              variant="outline"
-              disabled={bulkUpdating || bulkDifficulty === "all"}
-              onClick={() => void applyBulkDifficulty()}
-              className="border-violet-500/40 text-violet-400 hover:bg-violet-500/10"
-            >
-              Apply Difficulty
-            </Button>
-          </div>
-        </div>
-      )}
+      <BulkActionsBar
+        selectedCount={selectedKeys.size}
+        bulkScoring={bulkScoring}
+        bulkScoreProgress={bulkScoreProgress}
+        bulkUpdating={bulkUpdating}
+        bulkDifficulty={bulkDifficulty}
+        setBulkDifficulty={setBulkDifficulty}
+        scoreSelectedQuestions={() => void scoreSelectedQuestions()}
+        runBulkUpdate={(payload) => void runBulkUpdate(payload)}
+        applyBulkDifficulty={() => void applyBulkDifficulty()}
+      />
 
-      {rewriteQueue.length > 0 && (
-        <div className="rounded-xl border border-blue-500/30 bg-blue-500/10 p-4 space-y-3">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <h3 className="text-sm font-semibold text-blue-500">
-                Ranked Rewrite Queue
-              </h3>
-              <p className="text-xs text-muted-foreground">
-                Sorted by lowest average quality score first, then highest usage.
-              </p>
-            </div>
-            <Button size="sm" onClick={() => void applyAllRewrites()}>
-              Apply All Rewrites
-            </Button>
-          </div>
-          <div className="space-y-2">
-            {rewriteQueue.map((candidate) => (
-              <div
-                key={candidate.key}
-                className="rounded-lg border border-border/70 bg-card p-3"
-              >
-                <div className="flex items-center justify-between gap-2 mb-2">
-                  <div className="flex items-center gap-2">
-                    <Badge variant="outline" className="font-mono text-xs">
-                      {candidate.key}
-                    </Badge>
-                    <span className="text-xs text-muted-foreground">
-                      uses: {candidate.usageCount}
-                    </span>
-                    <span className="text-xs text-muted-foreground">
-                      avg score: {candidate.averageScore.toFixed(2)}
-                    </span>
-                  </div>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => void applyRewriteCandidate(candidate)}
-                  >
-                    Apply Rewrite
-                  </Button>
-                </div>
-                <div className="grid gap-2 md:grid-cols-2">
-                  <div className="rounded border border-border bg-background p-2">
-                    <p className="mb-1 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-                      Current
-                    </p>
-                    <p className="text-xs text-foreground">
-                      {candidate.originalText || "(empty)"}
-                    </p>
-                  </div>
-                  <div className="rounded border border-blue-500/30 bg-blue-500/5 p-2">
-                    <p className="mb-1 text-[11px] font-medium uppercase tracking-wide text-blue-500">
-                      Suggested
-                    </p>
-                    <p className="text-xs text-foreground">{candidate.rewriteText}</p>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+      <RewriteCandidatesPanel
+        rewriteQueue={rewriteQueue}
+        applyRewriteCandidate={(c) => void applyRewriteCandidate(c)}
+        applyAllRewrites={() => void applyAllRewrites()}
+      />
 
-      <div className="rounded-xl border bg-card p-4">
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="text-sm font-semibold text-foreground">
-            Question Expansion Runs
-          </h3>
-          <div className="flex items-center gap-2">
-            <select
-              value={runStatusFilter}
-              onChange={(event) =>
-                setRunStatusFilter(event.target.value as RunStatusFilter)
-              }
-              className="h-8 rounded-md border border-border bg-background px-2 text-xs"
-              aria-label="Filter runs by status"
-            >
-              <option value="all">All status</option>
-              <option value="success">Success</option>
-              <option value="error">Error</option>
-            </select>
-            <select
-              value={runModeFilter}
-              onChange={(event) =>
-                setRunModeFilter(event.target.value as RunModeFilter)
-              }
-              className="h-8 rounded-md border border-border bg-background px-2 text-xs"
-              aria-label="Filter runs by mode"
-            >
-              <option value="all">All modes</option>
-              <option value="dry-run">Dry-run</option>
-              <option value="apply">Apply</option>
-            </select>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                setRunStatusFilter("all");
-                setRunModeFilter("all");
-              }}
-              disabled={runStatusFilter === "all" && runModeFilter === "all"}
-            >
-              Clear
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => void fetchExpansionHistory()}
-              disabled={expanding}
-            >
-              Refresh
-            </Button>
-          </div>
-        </div>
-        {visibleExpansionRuns.length === 0 ? (
-          <p className="text-xs text-muted-foreground">
-            No expansion runs recorded yet.
-          </p>
-        ) : (
-          <div className="space-y-2">
-            {visibleExpansionRuns.slice(0, 8).map((run) => (
-              <div
-                key={run.requestId}
-                className="rounded-lg border border-border/60 px-3 py-2 text-xs"
-              >
-                <div className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2">
-                    <Badge
-                      variant={
-                        run.status === "success" ? "secondary" : "destructive"
-                      }
-                    >
-                      {run.status}
-                    </Badge>
-                    <span className="text-muted-foreground">
-                      {new Date(run.createdAt).toLocaleString()}
-                    </span>
-                  </div>
-                  <Badge variant="outline">
-                    {run.dryRun ? "dry-run" : "apply"}
-                  </Badge>
-                </div>
-                <div className="mt-1 text-muted-foreground">
-                  targets: {run.targetAttributes} · candidates: {run.candidates}{" "}
-                  · inserted: {run.inserted}
-                </div>
-                {run.error && (
-                  <div className="mt-1 text-destructive">{run.error}</div>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+      <ExpansionRunHistory
+        visibleExpansionRuns={visibleExpansionRuns}
+        runStatusFilter={runStatusFilter}
+        setRunStatusFilter={setRunStatusFilter}
+        runModeFilter={runModeFilter}
+        setRunModeFilter={setRunModeFilter}
+        expanding={expanding}
+        fetchExpansionHistory={() => void fetchExpansionHistory()}
+      />
 
       <div className="rounded-xl border bg-card overflow-hidden">
         <table className="w-full text-sm">
