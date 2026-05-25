@@ -359,6 +359,36 @@ so re-embeds are skipped when the question copy hasn't drifted.
 
 ---
 
+## Security
+
+### Admin Auth (Basic Auth, centralized in middleware)
+
+Admin surface area — both the SPA shell (`/admin*`) and the JSON API
+(`/api/admin*`) — is gated by HTTP Basic Auth enforced centrally in
+[functions/_middleware.ts](functions/_middleware.ts). There is **no
+per-handler `requireAdmin()` call**; gating is a path-prefix predicate.
+
+The predicate lives in [functions/_admin_paths.ts](functions/_admin_paths.ts)
+(`isAdminPath(path)`) so it can be re-used by tests. Credentials are read from
+the `ADMIN_CREDENTIAL` Cloudflare secret in either `sha256:<hex>` (preferred)
+or plaintext `user:pass` (legacy) form, compared in constant time.
+
+Failed attempts are rate-limited per-IP via `kv_cache` (15-minute window,
+10-attempt cap). An internal `X-Internal-Chain-Token` bypass exists for the
+enrichment chain — single-use tokens stored in `enrich_job`, consumed on
+first use.
+
+### SE.2 — RBAC coverage gate
+
+[functions/api/admin/__tests__/rbac-coverage.test.ts](functions/api/admin/__tests__/rbac-coverage.test.ts)
+walks the on-disk file tree under `functions/api/admin/**` and asserts every
+discovered route file produces a URL that `isAdminPath()` would gate. A new
+admin route placed outside the gated tree fails this test unless it is
+explicitly listed in `INTENTIONAL_PUBLIC_ADMIN_ROUTES` (currently empty)
+with a justifying comment. The test is part of `pnpm validate`.
+
+---
+
 ## API Endpoints
 
 ### v1 — Removed

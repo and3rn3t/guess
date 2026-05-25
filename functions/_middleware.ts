@@ -22,6 +22,7 @@
  * Returns 401 + WWW-Authenticate on failure → triggers native browser dialog.
  */
 
+import { isAdminPath } from './_admin_paths'
 import {
   recordRequest,
   type AnalyticsEngineDataset,
@@ -109,14 +110,11 @@ export const onRequest: PagesFunction<Env> = async (context) => {
 
   // Gate both the SPA admin shell (/admin*) and the admin JSON API
   // (/api/admin*). Static assets under /assets/* are NOT under either prefix
-  // and are therefore unaffected.
-  const isAdminPath =
-    path === '/admin' ||
-    path.startsWith('/admin/') ||
-    path === '/api/admin' ||
-    path.startsWith('/api/admin/')
+  // and are therefore unaffected. Predicate lives in `./_admin_paths` so the
+  // SE.2 RBAC coverage audit can re-use it.
+  const isAdmin = isAdminPath(path)
 
-  if (!isAdminPath) {
+  if (!isAdmin) {
     try {
       return finalize(await next())
     } catch (err) {
@@ -136,7 +134,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
   // Internal enrichment chain bypass — lets run.ts fire a new Worker
   // invocation without needing to store or replay Basic Auth credentials.
   // Only fires when the X-Internal-Chain-Token header is present.
-  if (isAdminPath && request.headers.has('X-Internal-Chain-Token')) {
+  if (isAdmin && request.headers.has('X-Internal-Chain-Token')) {
     const token = request.headers.get('X-Internal-Chain-Token')!
     try {
       // Look up an unconsumed chain token that has not yet expired

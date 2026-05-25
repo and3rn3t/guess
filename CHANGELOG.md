@@ -8,6 +8,10 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+
+- **SE.2 — admin RBAC coverage gate** — extracted the admin path-prefix predicate from `functions/_middleware.ts` into a small standalone module ([functions/_admin_paths.ts](functions/_admin_paths.ts)) so it can be re-used and asserted independently. New coverage test [functions/api/admin/__tests__/rbac-coverage.test.ts](functions/api/admin/__tests__/rbac-coverage.test.ts) walks `functions/api/admin/**`, derives the URL for every route file (handling `[param]`, `index.ts`, `_helpers.ts`, and `__tests__/` correctly), and asserts each is gated by `isAdminPath()`. 64 admin routes audited, all gated. A future admin route placed outside the gated tree fails this test unless added to an explicit allowlist (`INTENTIONAL_PUBLIC_ADMIN_ROUTES`, currently empty) with a justifying comment. The test runs as part of `pnpm validate`. New "Security" section in [ARCHITECTURE.md](ARCHITECTURE.md) documents the centralized Basic-Auth model and the RBAC gate contract.
+
 ### Changed
 
 - **Roadmap refresh for v1.9 full-product scope** — reframed `ROADMAP.md` from mobile-only back to full-product. Mobile becomes one track among five: **RF.v2** (code health), **DQ.v2** (data quality), **EN** (engine accuracy), **PI** (platform/infra), **DX.v2** (DX/CI), plus **MOB** carry-over (MOB.1/MOB.2 from former MY.2/MY.3). Collapsed shipped MR/MN/MX/MY rows into a single Shipped table; full Done-when criteria and decision-log entries archived to `docs/ROADMAP-archive-v1.8-mobile-may-2026.md`. Trimmed In Progress callout from 12 stale rows to 3 lines (1 active, 1 next, 1 pointer). Promoted two icebox items: `/admin/disputes` review queue (DQ.v2.4) and generated typed API client via `openapi-fetch` (DX.v2.1) — both removed from `docs/ROADMAP-icebox.md` in the same commit. Updated `AGENTS.md` read-order to reference the new archive.

@@ -39,11 +39,11 @@ An item is `✅` only when **all** apply:
 
 ## In Progress / Up Next
 
-- ⬜ **Next:** [SE.2](#se-2) admin RBAC coverage audit + CI gate (impact-first batch)
+- ⬜ **Next:** [DX.v2.4](#dxv2-4) pre-commit `validate:fast` hook (impact-first batch)
 - ⚪ **Parked:** [MOB.1](#mob-1) — needs physical-device evidence; no engineering blockers. Re-pull when device time available.
-- 📦 **Recently shipped:** mobile wave (MR/MN/MX/MY.1) — see [Shipped — Mobile Wave (May 2026)](#shipped--mobile-wave-may-2026)
+- 📦 **Recently shipped:** SE.2 (RBAC coverage gate) · mobile wave (MR/MN/MX/MY.1) — see [Shipped — Mobile Wave (May 2026)](#shipped--mobile-wave-may-2026)
 
-**Active batch (impact-ordered, see Decision Log 2026-05-25):** SE.2 → DX.v2.4 → PI.1 → PI.3 → EN.1 → A11Y.1 + PF.1.
+**Active batch (impact-ordered, see Decision Log 2026-05-25):** ~~SE.2~~ → DX.v2.4 → PI.1 → PI.3 → EN.1 → A11Y.1 + PF.1.
 
 ---
 
@@ -399,15 +399,21 @@ Done when:
 ### SE.2
 
 **Title:** Admin RBAC coverage audit + CI gate
-**Status:** ⬜
+**Status:** ✅ 2026-05-25
 **Why:** `functions/api/admin/` has ~15 sub-routes; auth-middleware coverage relies on convention, not enforcement. One forgotten gate exposes admin operations.
 
 Done when:
 
-- [ ] Automated test enumerates all `functions/api/admin/**/*.ts` route files and asserts each one invokes the shared admin-auth guard.
-- [ ] Allowlist for intentional public admin endpoints (if any) declared explicitly in the test, with rationale comments.
-- [ ] CI step fails when a new admin route lands without the guard or an explicit allowlist entry.
-- [ ] [ARCHITECTURE.md](ARCHITECTURE.md) "Security" section documents the guard contract.
+- [x] Automated test enumerates all `functions/api/admin/**/*.ts` route files and asserts each one invokes the shared admin-auth guard.
+- [x] Allowlist for intentional public admin endpoints (if any) declared explicitly in the test, with rationale comments.
+- [x] CI step fails when a new admin route lands without the guard or an explicit allowlist entry.
+- [x] [ARCHITECTURE.md](ARCHITECTURE.md) "Security" section documents the guard contract.
+
+Shipped:
+
+- Predicate extracted to [functions/_admin_paths.ts](functions/_admin_paths.ts) for re-use.
+- Coverage test at [functions/api/admin/__tests__/rbac-coverage.test.ts](functions/api/admin/__tests__/rbac-coverage.test.ts) (64 routes audited, all gated).
+- New "Security" section in [ARCHITECTURE.md](ARCHITECTURE.md) documents the centralized Basic-Auth model and the RBAC gate.
 
 ---
 
