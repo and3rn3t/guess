@@ -39,11 +39,11 @@ An item is `✅` only when **all** apply:
 
 ## In Progress / Up Next
 
-- ⬜ **Next:** [DX.v2.4](#dxv2-4) pre-commit `validate:fast` hook (impact-first batch)
+- ⬜ **Next:** [PI.1](#pi-1) `wrangler.toml` post-KV audit (impact-first batch)
 - ⚪ **Parked:** [MOB.1](#mob-1) — needs physical-device evidence; no engineering blockers. Re-pull when device time available.
-- 📦 **Recently shipped:** SE.2 (RBAC coverage gate) · mobile wave (MR/MN/MX/MY.1) — see [Shipped — Mobile Wave (May 2026)](#shipped--mobile-wave-may-2026)
+- 📦 **Recently shipped:** DX.v2.4 (pre-commit `validate:fast`) · SE.2 (RBAC coverage gate) · mobile wave (MR/MN/MX/MY.1) — see [Shipped — Mobile Wave (May 2026)](#shipped--mobile-wave-may-2026)
 
-**Active batch (impact-ordered, see Decision Log 2026-05-25):** ~~SE.2~~ → DX.v2.4 → PI.1 → PI.3 → EN.1 → A11Y.1 + PF.1.
+**Active batch (impact-ordered, see Decision Log 2026-05-25):** ~~SE.2~~ → ~~DX.v2.4~~ → PI.1 → PI.3 → EN.1 → A11Y.1 + PF.1.
 
 ---
 
@@ -355,14 +355,19 @@ Done when:
 ### DX.v2.4
 
 **Title:** Pre-commit hook enforcing `pnpm validate:fast`
-**Status:** ⬜
+**Status:** ✅ 2026-05-25
 **Why:** `lint-staged.config.mjs` exists but doesn't enforce the fast validation lane; regressions ship.
 
 Done when:
 
-- [ ] Pre-commit hook installed (prefer `simple-git-hooks` if already in lockfile; else `husky`).
-- [ ] Hook runs `pnpm validate:fast` on staged files; bypassable only via `--no-verify` (logged in pre-commit output).
-- [ ] [AGENTS.md](AGENTS.md) "Tooling guardrails" updated to reference the hook.
+- [x] Pre-commit hook installed (prefer `simple-git-hooks` if already in lockfile; else `husky`).
+- [x] Hook runs `pnpm validate:fast` on staged files; bypassable only via `--no-verify` (logged in pre-commit output).
+- [x] [AGENTS.md](AGENTS.md) "Tooling guardrails" updated to reference the hook.
+
+Shipped:
+
+- Husky was already installed (used by `commit-msg` for commitlint and `pre-push` for `validate:fast`); extended the existing [.husky/pre-commit](.husky/pre-commit) to run `pnpm validate:fast` after `lint-staged`. Bypass via `git commit --no-verify`; pre-push retains the same gate as a safety net for bypassed commits.
+- [AGENTS.md](AGENTS.md) "Tooling guardrails" updated to reflect that both pre-commit and pre-push enforce the lane.
 
 ### DX.v2.5
 

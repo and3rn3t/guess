@@ -1,5 +1,18 @@
 #!/usr/bin/env sh
+# Pre-commit gates (DX.v2.4):
+#   1. lint-staged — auto-fix lint on staged files + scoped tsc emit
+#   2. validate:fast — typecheck + lint + tests + refactor guard (~15s)
+#   3. gitleaks — secret scan (skipped silently if not installed)
+#
+# Bypass: `git commit --no-verify` (logged below). Pre-push still runs
+# validate:fast as a belt-and-suspenders safety net.
+
 pnpm exec lint-staged
+
+# DX.v2.4 — enforce the fast validation lane on every commit so regressions
+# never reach commit history (not just main). Mirrors pre-push intentionally.
+echo "[pre-commit] running pnpm validate:fast (typecheck + lint + test + refactor guard)..."
+pnpm validate:fast
 
 # DX.17 — secret scanning. Block commits that contain credentials.
 # Skip silently when gitleaks isn't installed locally so contributors aren't blocked

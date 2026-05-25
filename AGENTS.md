@@ -40,7 +40,7 @@ An item is `✅` only when **all** of these are true:
 
 ## Tooling guardrails (non-negotiable)
 
-- Run `pnpm validate` before every push (also enforced via git hook once DX.11 ships).
+- Run `pnpm validate` before every push. Also enforced automatically by the pre-commit and pre-push hooks (DX.v2.4) — both run `pnpm validate:fast`. Bypass requires `--no-verify` and should be rare; pre-commit prints a line announcing the run so bypasses are visible in transcripts.
 - Never edit files in `src/components/ui/` directly — use `npx shadcn@latest add <component>`.
 - Character IDs must be unique lowercase strings; attribute keys must be camelCase booleans.
 - Path alias: `@/` → `src/`.
