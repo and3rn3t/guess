@@ -39,6 +39,7 @@ export const GAME_API_ENDPOINTS = {
 export const ADMIN_API_ENDPOINTS = {
 	characters: "/api/admin/characters",
 	community: "/api/admin/community",
+	communityRejected: "/api/admin/community/rejected",
 	experiments: "/api/admin/experiments",
 	questions: "/api/admin/questions",
 	questionsBulk: "/api/admin/questions/bulk",

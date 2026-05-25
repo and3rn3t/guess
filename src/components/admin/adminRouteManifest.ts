@@ -51,6 +51,7 @@ export const ADMIN_ROUTE_MANIFEST: AdminRouteDef[] = [
   { path: 'proposed-attrs', section: 'govern', label: 'Proposed Attrs', iconKey: 'queue', loader: () => import('./routes/ProposedAttrsRoute') },
   { path: 'disputes', section: 'govern', label: 'Attr Disputes', iconKey: 'warningOctagon', loader: () => import('./routes/DisputesRoute') },
   { path: 'community', section: 'govern', label: 'Community Queue', iconKey: 'usersThree', loader: () => import('./routes/CommunityRoute') },
+  { path: 'community/rejected', section: 'govern', label: 'Rejected Submissions', iconKey: 'shieldCheck', loader: () => import('./routes/RejectedSubmissionsRoute') },
 
   { path: 'analytics', section: 'monitor', label: 'Analytics', iconKey: 'chartBar', loader: () => import('./routes/AnalyticsRoute') },
   { path: 'funnel', section: 'monitor', label: 'Skip Funnel', iconKey: 'chartLine', loader: () => import('./routes/FunnelRoute') },
