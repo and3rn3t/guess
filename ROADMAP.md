@@ -39,11 +39,11 @@ An item is `✅` only when **all** apply:
 
 ## In Progress / Up Next
 
-- ⬜ **Next:** [PI.1](#pi-1) `wrangler.toml` post-KV audit (impact-first batch)
+- ⬜ **Next:** [PI.3](#pi-3) Tail Worker → structured `error_logs` (impact-first batch)
 - ⚪ **Parked:** [MOB.1](#mob-1) — needs physical-device evidence; no engineering blockers. Re-pull when device time available.
 - 📦 **Recently shipped:** DX.v2.4 (pre-commit `validate:fast`) · SE.2 (RBAC coverage gate) · mobile wave (MR/MN/MX/MY.1) — see [Shipped — Mobile Wave (May 2026)](#shipped--mobile-wave-may-2026)
 
-**Active batch (impact-ordered, see Decision Log 2026-05-25):** ~~SE.2~~ → ~~DX.v2.4~~ → PI.1 → PI.3 → EN.1 → A11Y.1 + PF.1.
+**Active batch (impact-ordered, see Decision Log 2026-05-25):** ~~SE.2~~ → ~~DX.v2.4~~ → ~~PI.1~~ → PI.3 → EN.1 → A11Y.1 + PF.1.
 
 ---
 
@@ -262,15 +262,15 @@ Done when:
 ### PI.1
 
 **Title:** `wrangler.toml` post-KV audit
-**Status:** ⬜
+**Status:** ✅ 2026-05-25
 **Why:** Migration 0047 removed all KV bindings; `wrangler.toml` and `.dev.vars.example` may still reference dead keys.
 
 Done when:
 
-- [ ] `wrangler.toml` contains zero references to `GUESS_KV`, `GUESS_ASSETS`, or their preview namespaces.
-- [ ] `.dev.vars.example` updated to current env-var shape.
-- [ ] `pnpm doctor` passes against the new config.
-- [ ] [ARCHITECTURE.md](ARCHITECTURE.md) "Bindings" section reflects current state.
+- [x] `wrangler.toml` contains zero references to `GUESS_KV`, `GUESS_ASSETS`, or their preview namespaces.
+- [x] `.dev.vars.example` updated to current env-var shape.
+- [x] `pnpm doctor` passes against the new config.
+- [x] [ARCHITECTURE.md](ARCHITECTURE.md) "Bindings" section reflects current state.
 
 ### PI.2
 

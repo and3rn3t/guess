@@ -107,14 +107,9 @@ src/
 
 functions/api/                 # Cloudflare Workers
 ├── _helpers.ts                # Env interface, rate limiting, auth, D1 query builders
-├── llm.ts                     # Non-streaming LLM (24h response cache)
+├── llm.ts                     # Non-streaming LLM (24h response cache in D1 `kv_cache`)
 ├── llm-stream.ts              # Streaming completions (SSE)
-├── characters.ts              # v1: KV-based character CRUD
-├── questions.ts               # v1: KV-based question CRUD
-├── corrections.ts             # Crowdsourced attribute voting
-├── stats.ts                   # Player statistics
-├── sync.ts                    # Settings & history sync
-├── admin/upload-attrs.ts      # Bulk attribute upload (ADMIN_SECRET)
+├── admin/upload-attrs.ts      # Bulk attribute upload (ADMIN_CREDENTIAL)
 ├── images/[[path]].ts         # R2 image serving (1yr CDN cache)
 └── v2/
     ├── characters.ts          # D1-backed character CRUD
@@ -127,7 +122,7 @@ functions/api/                 # Cloudflare Workers
     │   └── _shared.ts         # Deterministic daily character selection helpers
     ├── events.ts              # Client→server analytics event pipeline (POST /api/v2/events)
     ├── history.ts             # Server-side game history (GET /api/v2/history)
-    ├── _llm-rephrase.ts       # LLM question rephrasing with 24h KV cache
+    ├── _llm-rephrase.ts       # LLM question rephrasing with 24h D1 cache
     └── game/
         ├── _game-engine.ts    # Server-side Bayesian engine (ported from client)
         ├── start.ts           # Initialize session → first question
@@ -135,7 +130,7 @@ functions/api/                 # Cloudflare Workers
         ├── skip.ts            # Skip current question → next-best (no budget decrement)
         ├── reject-guess.ts    # Player rejects a guess → continue game
         ├── result.ts          # Record outcome to game_stats
-        ├── resume.ts          # Restore interrupted session from KV
+        ├── resume.ts          # Restore interrupted session from D1 `session_state`
         └── reveal.ts          # User reveals answer on loss → backfill DB attributes
 
 scripts/                       # Build & data tools
@@ -259,7 +254,7 @@ The core deduction algorithm lives in `src/lib/gameEngine.ts` (client) and `func
 6. In the endgame, prefer questions that explicitly separate the strongest remaining suspects
 7. Select the question with maximum expected information gain, with reduced late-game randomness
 
-`coverageMap` (attribute → coverage %) is pre-computed at session start and passed via `ScoringOptions` to avoid recomputing it on every answer. Rephrased question text is cached in KV (`question-rephrase:{id}`) with a 24h TTL.
+`coverageMap` (attribute → coverage %) is pre-computed at session start and passed via `ScoringOptions` to avoid recomputing it on every answer. Rephrased question text is cached in D1 (`kv_cache` keyed `question-rephrase:{id}`) with a 24h TTL.
 
 ### Guess Decision
 
@@ -304,6 +299,21 @@ Additional phases: `manage`, `demo`, `stats`, `compare`, `coverage`, `recommende
 ---
 
 ## Data Layer
+
+### Cloudflare Bindings
+
+Current bindings declared under `[env.production]` and mirrored in `[env.preview]` (`wrangler.toml`):
+
+| Binding | Type | Production resource | Preview resource | Purpose |
+|---|---|---|---|---|
+| `GUESS_DB` | D1 | `guess-db` | `guess-db-preview` | Primary SQLite database |
+| `GUESS_IMAGES` | R2 | `guess-images` | `guess-images` | Character image storage |
+| `LLM_COSTS` | Analytics Engine | `llm_costs` | `llm_costs_preview` | Per-request LLM cost telemetry (I.2) |
+| `WORKER_TAIL` | Analytics Engine | `worker_tail` | `worker_tail_preview` | Worker observability rows (I.4) |
+| `AI` | Workers AI | shared | shared | Question dedup embeddings (B.4) |
+| `RATE_LIMITER` | Durable Object | (dashboard) | (dashboard) | Per-IP rate limiting (`functions/_rate-limiter-do.ts`) |
+
+KV bindings (`GUESS_KV`, `GUESS_ASSETS`) were removed in v1.7 — see [KV (Removed)](#kv-removed). Tail Worker consumer is wired via the Cloudflare dashboard (Pages projects do not support `tail_consumers` in `wrangler.toml`).
 
 ### D1 (SQLite)
 

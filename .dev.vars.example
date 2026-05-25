@@ -15,10 +15,12 @@ OPENAI_API_KEY=sk-...
 # Cookie signing secret used by game/session endpoints during local dev.
 COOKIE_SECRET=local-dev-cookie-secret
 
-# Admin panel HTTP Basic Auth password.
-# The KV key `admin:basic-auth` stores the live value (rotatable without deploy);
-# this var is used as the fallback when KV is unavailable locally.
-ADMIN_PASSWORD=changeme
+# Admin panel HTTP Basic Auth credential.
+# Format: either `user:pass` (plaintext, legacy) or `sha256:<hex-digest-of-user:pass>` (preferred).
+# To generate the hashed form:
+#   echo -n 'user:pass' | shasum -a 256 | awk '{print "sha256:"$1}'
+# Stored in Cloudflare as the ADMIN_CREDENTIAL secret in production.
+ADMIN_CREDENTIAL=admin:changeme
 
 # ── Optional ──────────────────────────────────────────────────────────────────
 

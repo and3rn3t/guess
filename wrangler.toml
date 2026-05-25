@@ -119,7 +119,8 @@ binding = "AI"
 # wrangler.toml Pages configs, which is not applicable for co-located Functions DOs.
 
 # ── Preview / Development ─────────────────────────────────────
-# Isolated KV so preview experiments never touch production data.
+# Dedicated preview environment so experiments never touch production data
+# (D1: guess-db-preview, AE datasets suffixed `_preview`).
 [env.preview]
 
 [env.preview.vars]
