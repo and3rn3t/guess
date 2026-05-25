@@ -1,10 +1,8 @@
-import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { AdminPageHeader } from '../AdminPageHeader'
 import { FreshnessPill } from '../FreshnessPill'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { fetchAdminAutomationStatus, type AdminAutomationReport } from '@/lib/admin/adminApi'
 import {
   UsersIcon,
   ArrowsClockwiseIcon,
@@ -20,143 +18,29 @@ import {
 import { AutomationStatusCard } from './landing/AutomationStatusCard'
 import { StatCard } from './landing/StatCard'
 import {
-  buildDefaultWorkflowProgress,
   buildPriorityItems,
-  DEFAULT_THRESHOLDS,
   LOADING_CARD_KEYS,
-  parseThresholds,
-  parseWorkflowProgress,
   playbookStepLabel,
   priorityToneClasses,
-  THRESHOLDS_STORAGE_KEY,
   WORKFLOW_PLAYBOOKS,
-  WORKFLOW_PROGRESS_API,
-  WORKFLOW_PROGRESS_STORAGE_KEY,
   workflowSyncBadge,
-  type AlertThresholds,
-  type DashboardData,
-  type WorkflowProgressMap,
-  type WorkflowSyncStatus,
 } from './landing/landingHelpers'
+import { useLandingDashboard } from './landing/useLandingDashboard'
+import { useThresholds } from './landing/useThresholds'
+import { useWorkflowProgressSync } from './landing/useWorkflowProgressSync'
 
-
-function useWorkflowProgressSync(): {
-  workflowProgress: WorkflowProgressMap
-  workflowSyncStatus: WorkflowSyncStatus
-  completedPlaybooks: number
-  setPlaybookActiveStep: (playbookId: string, to: string) => void
-  togglePlaybookCompleted: (playbookId: string) => void
-  resetPlaybook: (playbookId: string) => void
-} {
-  const [workflowProgress, setWorkflowProgress] = useState<WorkflowProgressMap>(buildDefaultWorkflowProgress())
-  const [workflowProgressHydrated, setWorkflowProgressHydrated] = useState(false)
-  const [workflowSyncStatus, setWorkflowSyncStatus] = useState<WorkflowSyncStatus>('hydrating')
-  const lastSyncedWorkflowProgress = useRef<string>('')
-
-  useEffect(() => {
-    const stored = localStorage.getItem(WORKFLOW_PROGRESS_STORAGE_KEY)
-    setWorkflowProgress(parseWorkflowProgress(stored))
-
-    void fetch(WORKFLOW_PROGRESS_API)
-      .then((response) => (response.ok ? response.json() : null))
-      .then((json) => {
-        const parsed = parseWorkflowProgress(
-          json && typeof json === 'object' && 'progress' in (json as Record<string, unknown>)
-            ? JSON.stringify((json as { progress: unknown }).progress)
-            : null,
-        )
-        setWorkflowProgress(parsed)
-        lastSyncedWorkflowProgress.current = JSON.stringify(parsed)
-        setWorkflowSyncStatus('saved')
-      })
-      .catch(() => {
-        setWorkflowSyncStatus('retry')
-      })
-      .finally(() => {
-        setWorkflowProgressHydrated(true)
-      })
-  }, [])
-
-  useEffect(() => {
-    localStorage.setItem(WORKFLOW_PROGRESS_STORAGE_KEY, JSON.stringify(workflowProgress))
-  }, [workflowProgress])
-
-  useEffect(() => {
-    if (!workflowProgressHydrated) return
-
-    const serialized = JSON.stringify(workflowProgress)
-    if (serialized === lastSyncedWorkflowProgress.current) return
-
-    const timer = setTimeout(() => {
-      setWorkflowSyncStatus('syncing')
-      void fetch(WORKFLOW_PROGRESS_API, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ progress: workflowProgress }),
-      })
-        .then((response) => {
-          if (!response.ok) {
-            setWorkflowSyncStatus('retry')
-            return
-          }
-          lastSyncedWorkflowProgress.current = serialized
-          setWorkflowSyncStatus('saved')
-        })
-        .catch(() => {
-          setWorkflowSyncStatus('retry')
-        })
-    }, 250)
-
-    return () => clearTimeout(timer)
-  }, [workflowProgress, workflowProgressHydrated])
-
-  const setPlaybookActiveStep = (playbookId: string, to: string) => {
-    setWorkflowProgress((prev) => ({
-      ...prev,
-      [playbookId]: {
-        activeTo: to,
-        completed: prev[playbookId]?.completed ?? false,
-      },
-    }))
-  }
-
-  const togglePlaybookCompleted = (playbookId: string) => {
-    setWorkflowProgress((prev) => ({
-      ...prev,
-      [playbookId]: {
-        activeTo: prev[playbookId]?.activeTo ?? null,
-        completed: !(prev[playbookId]?.completed ?? false),
-      },
-    }))
-  }
-
-  const resetPlaybook = (playbookId: string) => {
-    setWorkflowProgress((prev) => ({
-      ...prev,
-      [playbookId]: { activeTo: null, completed: false },
-    }))
-  }
-
-  const completedPlaybooks = WORKFLOW_PLAYBOOKS.filter((playbook) => workflowProgress[playbook.id]?.completed).length
-
-  return {
-    workflowProgress,
-    workflowSyncStatus,
-    completedPlaybooks,
-    setPlaybookActiveStep,
-    togglePlaybookCompleted,
-    resetPlaybook,
-  }
-}
 
 export default function LandingRoute(): React.JSX.Element {
-  const [data, setData] = useState<DashboardData | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [lastFetchedAt, setLastFetchedAt] = useState<number | null>(null)
-  const [automationReport, setAutomationReport] = useState<AdminAutomationReport | null>(null)
-  const [automationFetchedAt, setAutomationFetchedAt] = useState<number | null>(null)
-  const [thresholds, setThresholds] = useState<AlertThresholds>(DEFAULT_THRESHOLDS)
+  const {
+    data,
+    loading,
+    error,
+    lastFetchedAt,
+    automationReport,
+    automationFetchedAt,
+    refresh: fetchDashboard,
+  } = useLandingDashboard()
+  const { thresholds, setThreshold, resetThresholds } = useThresholds()
   const {
     workflowProgress,
     workflowSyncStatus,
@@ -165,48 +49,6 @@ export default function LandingRoute(): React.JSX.Element {
     togglePlaybookCompleted,
     resetPlaybook,
   } = useWorkflowProgressSync()
-
-  const setThreshold = (field: keyof AlertThresholds, value: string) => {
-    const next = Number.parseInt(value, 10)
-    setThresholds((prev) => ({
-      ...prev,
-      [field]: Number.isNaN(next) ? 0 : Math.max(0, next),
-    }))
-  }
-
-  const fetchDashboard = async (): Promise<void> => {
-    setLoading(true)
-    setError(null)
-    try {
-      const [dashboardResponse, automation] = await Promise.all([
-        fetch('/api/admin/dashboard'),
-        fetchAdminAutomationStatus(),
-      ])
-      if (!dashboardResponse.ok) throw new Error(`${dashboardResponse.status}`)
-      const json = await dashboardResponse.json() as DashboardData
-      setData(json)
-      setAutomationReport(automation?.report ?? null)
-      setAutomationFetchedAt(automation?.fetchedAt ?? null)
-      setLastFetchedAt(Date.now())
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  useEffect(() => {
-    const stored = localStorage.getItem(THRESHOLDS_STORAGE_KEY)
-    setThresholds(parseThresholds(stored))
-  }, [])
-
-  useEffect(() => {
-    localStorage.setItem(THRESHOLDS_STORAGE_KEY, JSON.stringify(thresholds))
-  }, [thresholds])
-
-  useEffect(() => {
-    void fetchDashboard()
-  }, [])
 
   const s = data?.stats
   const enrichmentPct = s && s.totalCharacters > 0 ? Math.round((s.enriched / s.totalCharacters) * 100) : 0
@@ -403,7 +245,7 @@ export default function LandingRoute(): React.JSX.Element {
                 variant="ghost"
                 size="sm"
                 className="px-0 text-muted-foreground"
-                onClick={() => setThresholds(DEFAULT_THRESHOLDS)}
+                onClick={() => resetThresholds()}
               >
                 Reset thresholds
               </Button>
