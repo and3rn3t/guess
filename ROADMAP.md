@@ -39,9 +39,9 @@ An item is `✅` only when **all** apply:
 
 ## In Progress / Up Next
 
-- ⬜ **Next:** v1.9 batch complete; pick next batch from the unstarted impact-ordered queue
+- ⬜ **Next:** pick next batch from the unstarted impact-ordered queue (e.g. [DQ.v2.1](#dqv2-1) `pnpm dq:report`, [SE.1](#se-1) CSP report pipeline, or [RF.v2.4](#rfv2-4) ungoverned-hotspot sweep — all need an attended session for live D1 / per-file judgement)
 - ⚪ **Parked:** [MOB.1](#mob-1) — needs physical-device evidence; no engineering blockers. Re-pull when device time available.
-- 📦 **Recently shipped:** DX.v2.4 (pre-commit `validate:fast`) · SE.2 (RBAC coverage gate) · mobile wave (MR/MN/MX/MY.1) — see [Shipped — Mobile Wave (May 2026)](#shipped--mobile-wave-may-2026)
+- 📦 **Recently shipped:** OB.1 (SLO doc + burn queries) · PF.1 (bundle-size budgets) · A11Y.1 (axe-core e2e gate) · PI.3 (`logError` hot-path decoupling) · PI.1 (wrangler post-KV audit) · DX.v2.4 (pre-commit `validate:fast`) · SE.2 (RBAC coverage gate) — see [Shipped — Mobile Wave (May 2026)](#shipped--mobile-wave-may-2026)
 
 **Active batch (impact-ordered, see Decision Log 2026-05-25):** ~~SE.2~~ → ~~DX.v2.4~~ → ~~PI.1~~ → ~~PI.3~~ → ~~EN.1~~ (parked, see Decision Log 2026-05-25) → ~~A11Y.1~~ + ~~PF.1~~.
 
@@ -444,15 +444,17 @@ Shipped:
 ### OB.1
 
 **Title:** SLO definitions + error-budget doc
-**Status:** ⬜
+**Status:** ✅ 2026-05-25
 **Why:** Today "is the service healthy?" has no quantitative answer. Need explicit p95 latency and error-rate targets for the two hot routes that define gameplay UX (`/api/v2/game/start` and `/api/v2/game/answer`).
 
 Done when:
 
-- [ ] `docs/slo.md` created with p95 latency target and error-rate target for `start` and `answer`.
-- [ ] Burn-rate alert thresholds documented (fast burn: 2% of budget in 1h; slow burn: 10% in 6h).
-- [ ] [ARCHITECTURE.md](ARCHITECTURE.md) cross-links the SLO doc.
-- [ ] At least one query in [docs/sim-vs-real-queries.sql](docs/sim-vs-real-queries.sql) (or new `docs/slo-queries.sql`) computes the current burn from `error_logs` + `game_stats`.
+- [x] [docs/slo.md](docs/slo.md) created with p95 latency target and error-rate target for `start` and `answer`.
+- [x] Burn-rate alert thresholds documented (fast burn: ≥ 14× over 1 h ≈ 2 % of monthly budget; slow burn: ≥ 6× over 6 h ≈ 5 % of monthly budget — chose 5 % instead of the row's original 10 % so the alert fires on first sustained drift rather than after half the budget is gone; rationale recorded inline in docs/slo.md).
+- [x] [ARCHITECTURE.md](ARCHITECTURE.md) cross-links the SLO doc under "Error Pipeline → Service-level objectives".
+- [x] [docs/slo-queries.sql](docs/slo-queries.sql) (new) ships three queries computing the current burn from `error_logs` + `game_stats`: per-route 1 h / 6 h burn rate, 28-day budget consumption, and a top-error-sources triage view.
+
+Follow-ups (noted as proposed in docs/slo.md): OB.2 wires AE SQL queries + alert delivery (paging is what makes the SLO useful); OB.3 re-baselines the targets after four weeks of `worker_tail` data.
 
 ---
 

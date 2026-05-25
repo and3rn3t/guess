@@ -437,6 +437,16 @@ batches the inserts — eliminating the last D1 round-trip from
 coordinated multi-deploy sequencing (Tail Worker must be live before
 middleware changes ship) outside the current change budget.
 
+### Service-level objectives
+
+Quantitative health targets for the two hot gameplay routes
+(`/api/v2/game/start`, `/api/v2/game/answer`) live in
+[docs/slo.md](docs/slo.md). Fast-feedback burn-rate queries against the
+D1 stores (`error_logs` + `game_stats`) live in
+[docs/slo-queries.sql](docs/slo-queries.sql); the authoritative latency
+and request-count numbers come from the `worker_tail` Analytics Engine
+dataset documented above.
+
 ---
 
 ## API Endpoints
