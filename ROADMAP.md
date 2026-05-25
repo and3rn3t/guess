@@ -39,7 +39,8 @@ An item is `✅` only when **all** apply:
 
 ## In Progress / Up Next
 
-- ⬜ **Next:** pick next batch from the unstarted impact-ordered queue (e.g. [DQ.v2.1](#dqv2-1) `pnpm dq:report`, [SE.1](#se-1) CSP report pipeline, or [RF.v2.4](#rfv2-4) ungoverned-hotspot sweep — all need an attended session for live D1 / per-file judgement)
+- 🟡 **In progress:** [DQ.v2.1](#dqv2-1) `pnpm dq:report` — orchestrator + CI wired warn-only on `reconcile-nightly`; flips to blocking after ≥7 clean nightly runs.
+- ⬜ **Next:** [SE.1](#se-1) CSP report pipeline, then [RF.v2.4](#rfv2-4) ungoverned-hotspot sweep (sequential — see Decision Log 2026-05-25).
 - ⚪ **Parked:** [MOB.1](#mob-1) — needs physical-device evidence; no engineering blockers. Re-pull when device time available.
 - 📦 **Recently shipped:** OB.1 (SLO doc + burn queries) · PF.1 (bundle-size budgets) · A11Y.1 (axe-core e2e gate) · PI.3 (`logError` hot-path decoupling) · PI.1 (wrangler post-KV audit) · DX.v2.4 (pre-commit `validate:fast`) · SE.2 (RBAC coverage gate) — see [Shipped — Mobile Wave (May 2026)](#shipped--mobile-wave-may-2026)
 
@@ -150,15 +151,15 @@ Done when:
 ### DQ.v2.1
 
 **Title:** Canonical `pnpm dq:report` command
-**Status:** ⬜
+**Status:** 🟡 in progress (warn-only CI gate; flip to blocking after ≥7 nightly runs)
 **Why:** Today the attribute-completeness SLA, golden-image audit, and null-closure status each emit separate reports. Operators have no single source of truth for "is data quality OK to ship?".
 
 Done when:
 
-- [ ] New `pnpm dq:report` script emits the union to `.ci-artifacts/data-quality/report.json` + a human-readable `report.md` summary.
-- [ ] Report includes: attribute-completeness SLA pass/fail, golden-image audit drift, null-closure queue depth, top-10 sparse attributes.
+- [x] New `pnpm dq:report` script emits the union to `.ci-artifacts/data-quality/report.json` + a human-readable `report.md` summary.
+- [x] Report includes: attribute-completeness SLA pass/fail, golden-image audit drift, null-closure queue depth, top-10 sparse attributes.
 - [ ] Wired into CI as warning-only for ≥7 days, then blocking.
-- [ ] [docs/ci-artifacts.md](docs/ci-artifacts.md) updated with the new artifact path and contents.
+- [x] [docs/ci-artifacts.md](docs/ci-artifacts.md) updated with the new artifact path and contents.
 
 ### DQ.v2.2
 
@@ -567,5 +568,6 @@ Earlier mobile foundations (MB.1–MB.5, MP.1–MP.7) shipped 2026-05-05 → 202
 | 2026-05-25 | MOB.1 parked (⚪); active batch re-sequenced impact-first as SE.2 → DX.v2.4 → PI.1 → PI.3 → EN.1 → A11Y.1 + PF.1. | MOB.1 has no engineering blocker (needs physical-device evidence). Promoting SE.2 (admin auth blast radius) and DX.v2.4 (pre-commit multiplier) ahead of PI.1 trades one ordering position for two larger risk-reducers. Adds PI.3 + EN.1 (M-sized) because reliability decoupling and game-quality calibration outrank another batch of S items on user payoff. |
 | 2026-05-25 | PI.3 scope refined on contact with code: `_middleware.ts` already avoids direct D1 writes, so the original "no direct D1 write from middleware" criterion was vacuously true. Reframed PI.3 as the hot-path decoupling work that was actually needed (six `await logError(...)` call sites under `functions/api/v2/daily/**` and `llm-stream.ts` converted to `context.waitUntil`) plus a regression test. The full Tail-Worker-as-D1-writer migration split out as PI.3.b. | PI.3.b requires Tail Worker deploy → verify → `logError` D1 write removal in that order to avoid an `error_logs` write gap, which is outside this batch's coordinated-deploy risk budget. Shipping the `waitUntil` shield + regression test now removes the user-visible latency coupling immediately; PI.3.b removes the last D1 round-trip later. |
 | 2026-05-25 | EN.1 parked mid-batch. Needs a dedicated session: requires `pnpm simulate:export --env production` (live Cloudflare D1 credentials), a multi-hour Phase-1 + Phase-2 grid run, and human review of weight changes that directly affect every player's win rate. | Pushing wrong constants is hard to detect post-deploy (win-rate signal is noisy). The change deserves a focused review cycle rather than being bundled with CI/infra work. A11Y.1 + PF.1 (both S, pure CI gates) take its place in this batch. |
+| 2026-05-25 | DQ.v2.1 → SE.1 → RF.v2.4 pulled as a sequential 3-phase batch, each shipping as its own PR. | Each item gates on different infra (live D1 / D1 schema migration / per-file judgement) and shouldn't be interleaved. Sequential delivery keeps each PR reviewable and lets the warn-only DQ.v2.1 gate accumulate evidence before flipping to blocking. |
 
 Earlier entries (2026-05-11 mobile-chapter decisions) preserved in [docs/ROADMAP-archive-v1.8-mobile-may-2026.md](docs/ROADMAP-archive-v1.8-mobile-may-2026.md#decision-log-mobile-only-chapter).

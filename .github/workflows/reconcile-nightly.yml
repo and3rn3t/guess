@@ -302,6 +302,33 @@ jobs:
           if-no-files-found: ignore
           retention-days: 90
 
+      - name: Canonical data-quality report (warn-only)
+        # DQ.v2.1 — runs on every nightly tick to surface SLA, golden-image,
+        # completeness, and null-closure status as one artifact. Warn-only for
+        # ≥7 days, then flip to --gate-mode fail (tracked as DQ.v2.1 follow-up).
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -o pipefail
+          ENV_FLAG="${{ github.event.inputs.env || 'production' }}"
+          mkdir -p .ci-artifacts/data-quality
+
+          npx tsx scripts/data-quality/report.ts \
+            --env "$ENV_FLAG" \
+            --gate-mode warn \
+            --ci \
+            2>&1 | tee .ci-artifacts/data-quality/dq-report.log
+
+      - name: Upload canonical data-quality report
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: data-quality-report
+          path: .ci-artifacts/data-quality/
+          if-no-files-found: ignore
+          retention-days: 90
+
       - name: Reconcile summary
         if: always()
         run: |
@@ -309,6 +336,7 @@ jobs:
             echo "### Reconcile Artifacts"
             echo ""
             echo "- Artifact: reconcile-artifacts (logs, metadata, drift SQL, perf baselines, delta)"
+            echo "- Artifact: data-quality-report (DQ.v2.1 canonical report.json + report.md)"
             if [[ "${{ github.event.schedule }}" == "0 1 * * 4" ]] || [[ "${{ github.event.inputs.risk_tier }}" == "tier2" ]]; then
               echo "- Artifact: weekly-quality-report"
             fi

@@ -263,6 +263,10 @@ Source: .github/workflows/reconcile-nightly.yml
 - Artifact: reconcile-perf-baseline-delta
   - perf-baseline-delta.md
   - perf-baseline-delta.log
+- Artifact: data-quality-report (DQ.v2.1 — canonical union of SLA shape, golden-image audit, completeness, null-closure)
+  - report.json (machine artifact for downstream automation)
+  - report.md (human-readable summary)
+  - dq-report.log (stdout capture from the orchestrator)
 
 ### Sparse-fill nightly
 

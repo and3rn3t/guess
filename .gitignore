@@ -98,6 +98,7 @@ apps/mobile/ios/**/xcuserdata/
 .ci-artifacts/checks-local/
 .ci-artifacts/checks-static/complexity-report.json
 .ci-artifacts/a11y/
+.ci-artifacts/data-quality/
 
 # nohup output
 nohup.out
