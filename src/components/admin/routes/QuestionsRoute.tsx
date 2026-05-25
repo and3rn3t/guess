@@ -22,6 +22,39 @@ import {
   ArrowRightIcon,
   SparkleIcon,
 } from "@phosphor-icons/react";
+import type {
+  ActiveFilter,
+  AdminQuestion,
+  DifficultyFilter,
+  DifficultyValue,
+  ExpansionRun,
+  PageData,
+  QuestionExpansionResult,
+  QuestionScoreResult,
+  QuestionSort,
+  RewriteCandidate,
+  RunModeFilter,
+  RunStatusFilter,
+  SortOrder,
+  TextStatusFilter,
+} from "./questions/questionsTypes";
+import {
+  SKELETON_ROW_KEYS,
+  SCORE_BAR_WIDTH_CLASSES,
+  buildQuestionsListParams,
+  buildRewriteCandidate,
+  clampScore,
+  defaultFilterState,
+  filterExpansionRuns,
+  formatBulkUpdateMessage,
+  formatExpansionMessage,
+  isValidMinUsageInput,
+  parseDifficultySelection,
+  quickPresetFilters,
+  scoreBarColor,
+  scoreButtonClass,
+  upsertSortedCandidate,
+} from "./questions/questionsHelpers";
 
 function DifficultyBadge({
   difficulty,
@@ -54,105 +87,19 @@ function ScoreBar({
   label: string;
   value: number;
 }>): React.JSX.Element {
-  const widthClass: Record<number, string> = {
-    0: "w-0",
-    1: "w-1/5",
-    2: "w-2/5",
-    3: "w-3/5",
-    4: "w-4/5",
-    5: "w-full",
-  };
-  const clampedValue = Math.max(0, Math.min(5, value));
-
-  let color = "bg-red-500";
-  if (value >= 4) {
-    color = "bg-green-500";
-  } else if (value >= 3) {
-    color = "bg-yellow-500";
-  }
+  const clampedValue = clampScore(value);
+  const color = scoreBarColor(value);
 
   return (
     <div className="flex items-center gap-2 text-xs">
       <span className="w-16 text-muted-foreground shrink-0">{label}</span>
       <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
-        <div className={`h-full rounded-full ${color} ${widthClass[clampedValue]}`} />
+        <div className={`h-full rounded-full ${color} ${SCORE_BAR_WIDTH_CLASSES[clampedValue]}`} />
       </div>
       <span className="w-6 text-right font-medium">{value}</span>
     </div>
   );
 }
-
-interface QuestionScoreResult {
-  clarity: number;
-  power: number;
-  grammar: number;
-  rewrite?: string;
-}
-
-interface RewriteCandidate {
-  key: string;
-  originalText: string;
-  rewriteText: string;
-  clarity: number;
-  power: number;
-  grammar: number;
-  averageScore: number;
-  usageCount: number;
-}
-
-interface QuestionExpansionResult {
-  ok: boolean;
-  dryRun: boolean;
-  targetAttributes: number;
-  candidates: number;
-  inserted: number;
-}
-
-interface ExpansionRun {
-  requestId: string;
-  dryRun: boolean;
-  targetAttributes: number;
-  candidates: number;
-  inserted: number;
-  createdAt: string;
-  status: "success" | "error";
-  error?: string;
-}
-
-interface AdminQuestion {
-  key: string;
-  displayText: string;
-  questionText: string | null;
-  isActive: boolean;
-  usageCount: number;
-  difficulty: string | null;
-  createdAt?: number;
-}
-
-interface PageData {
-  questions: AdminQuestion[];
-  total: number;
-  page: number;
-  pageSize: number;
-}
-
-type ActiveFilter = "all" | "active" | "inactive";
-type DifficultyFilter = "all" | "easy" | "medium" | "hard" | "unset";
-type TextStatusFilter = "all" | "missing" | "present";
-type QuestionSort = "usage" | "key" | "difficulty" | "createdAt" | "active";
-type SortOrder = "asc" | "desc";
-type DifficultyValue = "easy" | "medium" | "hard" | null;
-
-const SKELETON_ROW_KEYS = [
-  "skeleton-row-1",
-  "skeleton-row-2",
-  "skeleton-row-3",
-  "skeleton-row-4",
-  "skeleton-row-5",
-  "skeleton-row-6",
-  "skeleton-row-7",
-  "skeleton-row-8",
-];
 
 export default function QuestionsRoute(): React.JSX.Element {
   const [data, setData] = useState<PageData | null>(null);
@@ -187,12 +134,8 @@ export default function QuestionsRoute(): React.JSX.Element {
   const [expanding, setExpanding] = useState(false);
   const [expansionMessage, setExpansionMessage] = useState<string | null>(null);
   const [expansionRuns, setExpansionRuns] = useState<ExpansionRun[]>([]);
-  const [runStatusFilter, setRunStatusFilter] = useState<
-    "all" | "success" | "error"
-  >("all");
-  const [runModeFilter, setRunModeFilter] = useState<
-    "all" | "dry-run" | "apply"
-  >("all");
+  const [runStatusFilter, setRunStatusFilter] = useState<RunStatusFilter>("all");
+  const [runModeFilter, setRunModeFilter] = useState<RunModeFilter>("all");
   const latestSearchRef = useRef(search);
   const previousPageRef = useRef(page);
 
@@ -211,16 +154,16 @@ export default function QuestionsRoute(): React.JSX.Element {
     setLoading(true);
     setError(null);
     try {
-      const params = new URLSearchParams({
+      const params = buildQuestionsListParams({
         search: searchVal,
-        active: activeFilter,
-        difficulty: difficultyFilter,
-        textStatus: textStatusFilter,
+        activeFilter,
+        difficultyFilter,
+        textStatusFilter,
         sort,
         order,
         minUsage,
-        page: String(pageVal),
-        pageSize: String(pageSize),
+        page: pageVal,
+        pageSize,
       });
       const res = await fetch(`${ADMIN_API_ENDPOINTS.questions}?${params}`);
       if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
@@ -380,32 +323,9 @@ export default function QuestionsRoute(): React.JSX.Element {
     question: AdminQuestion,
     score: QuestionScoreResult,
   ) => {
-    if (!score.rewrite) return;
-    const trimmedOriginal = (question.questionText ?? "").trim();
-    const trimmedRewrite = score.rewrite.trim();
-    if (!trimmedRewrite || trimmedRewrite === trimmedOriginal) return;
-
-    const candidate: RewriteCandidate = {
-      key: question.key,
-      originalText: trimmedOriginal,
-      rewriteText: trimmedRewrite,
-      clarity: score.clarity,
-      power: score.power,
-      grammar: score.grammar,
-      averageScore: (score.clarity + score.power + score.grammar) / 3,
-      usageCount: question.usageCount,
-    };
-
-    setRewriteQueue((prev) => {
-      const next = prev.filter((item) => item.key !== question.key);
-      next.push(candidate);
-      next.sort((a, b) => {
-        if (a.averageScore !== b.averageScore) return a.averageScore - b.averageScore;
-        if (a.usageCount !== b.usageCount) return b.usageCount - a.usageCount;
-        return a.key.localeCompare(b.key);
-      });
-      return next;
-    });
+    const candidate = buildRewriteCandidate(question, score);
+    if (!candidate) return;
+    setRewriteQueue((prev) => upsertSortedCandidate(prev, candidate));
   };
 
   const scoreSelectedQuestions = async () => {
@@ -570,14 +490,8 @@ export default function QuestionsRoute(): React.JSX.Element {
       }
 
       const result = (await res.json()) as QuestionExpansionResult;
-      if (dryRun) {
-        setExpansionMessage(
-          `Preview complete: ${result.candidates} candidate questions across ${result.targetAttributes} attributes.`,
-        );
-      } else {
-        setExpansionMessage(
-          `Applied expansion: inserted ${result.inserted} of ${result.candidates} candidates across ${result.targetAttributes} attributes.`,
-        );
+      setExpansionMessage(formatExpansionMessage(result));
+      if (!dryRun) {
         await fetchData(search, page);
       }
       await fetchExpansionHistory();
@@ -608,45 +522,27 @@ export default function QuestionsRoute(): React.JSX.Element {
   };
 
   const clearFilters = () => {
+    const d = defaultFilterState();
     setSearch("");
-    setActiveFilter("all");
-    setDifficultyFilter("all");
-    setTextStatusFilter("all");
-    setSort("usage");
-    setOrder("desc");
-    setMinUsage("");
+    setActiveFilter(d.activeFilter);
+    setDifficultyFilter(d.difficultyFilter);
+    setTextStatusFilter(d.textStatusFilter);
+    setSort(d.sort);
+    setOrder(d.order);
+    setMinUsage(d.minUsage);
     setPage(1);
   };
 
   const applyQuickPreset = (
     preset: "needs-copy" | "high-impact" | "inactive" | "hard",
   ) => {
-    if (preset === "needs-copy") {
-      setTextStatusFilter("missing");
-      setActiveFilter("active");
-      setSort("usage");
-      setOrder("desc");
-      setMinUsage("");
-    } else if (preset === "high-impact") {
-      setActiveFilter("active");
-      setTextStatusFilter("all");
-      setSort("usage");
-      setOrder("desc");
-      setMinUsage("50");
-    } else if (preset === "inactive") {
-      setActiveFilter("inactive");
-      setDifficultyFilter("all");
-      setTextStatusFilter("all");
-      setSort("key");
-      setOrder("asc");
-      setMinUsage("");
-    } else {
-      setDifficultyFilter("hard");
-      setActiveFilter("active");
-      setSort("usage");
-      setOrder("desc");
-      setMinUsage("20");
-    }
+    const s = quickPresetFilters(preset);
+    setActiveFilter(s.activeFilter);
+    setDifficultyFilter(s.difficultyFilter);
+    setTextStatusFilter(s.textStatusFilter);
+    setSort(s.sort);
+    setOrder(s.order);
+    setMinUsage(s.minUsage);
     setPage(1);
   };
 
@@ -667,21 +563,8 @@ export default function QuestionsRoute(): React.JSX.Element {
         throw new Error(body.error ?? res.statusText);
       }
 
-      const updates: string[] = [];
-      if (payload.isActive !== undefined) {
-        updates.push(payload.isActive ? "activated" : "deactivated");
-      }
-      if (payload.difficulty !== undefined) {
-        updates.push(
-          payload.difficulty === null
-            ? "difficulty cleared"
-            : `difficulty set to ${payload.difficulty}`,
-        );
-      }
-
-      toast.success(
-        `Updated ${selectedKeys.size} question${selectedKeys.size === 1 ? "" : "s"}: ${updates.join(", ")}`,
-      );
+      const message = formatBulkUpdateMessage(selectedKeys.size, payload);
+      toast.success(message);
       await fetchData(search, page);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Bulk update failed");
@@ -693,21 +576,17 @@ export default function QuestionsRoute(): React.JSX.Element {
   const applyBulkDifficulty = async () => {
     if (bulkDifficulty === "all") return;
     const difficultyValue =
-      bulkDifficulty === "unset"
-        ? null
-        : (bulkDifficulty as "easy" | "medium" | "hard");
+      bulkDifficulty === "unset" ? null : bulkDifficulty;
     await runBulkUpdate({ difficulty: difficultyValue });
   };
 
   const totalPages = data ? Math.ceil(data.total / pageSize) : 1;
 
-  const visibleExpansionRuns = expansionRuns.filter((run) => {
-    const statusOk =
-      runStatusFilter === "all" || run.status === runStatusFilter;
-    const mode = run.dryRun ? "dry-run" : "apply";
-    const modeOk = runModeFilter === "all" || mode === runModeFilter;
-    return statusOk && modeOk;
-  });
+  const visibleExpansionRuns = filterExpansionRuns(
+    expansionRuns,
+    runStatusFilter,
+    runModeFilter,
+  );
 
   return (
     <div className="container mx-auto px-4 pb-8 max-w-5xl space-y-6">
@@ -818,7 +697,7 @@ export default function QuestionsRoute(): React.JSX.Element {
             value={minUsage}
             onChange={(event) => {
               const next = event.target.value;
-              if (next === "" || /^\d+$/.test(next)) {
+              if (isValidMinUsageInput(next)) {
                 setMinUsage(next);
               }
             }}
@@ -986,9 +865,7 @@ export default function QuestionsRoute(): React.JSX.Element {
             <select
               value={runStatusFilter}
               onChange={(event) =>
-                setRunStatusFilter(
-                  event.target.value as "all" | "success" | "error",
-                )
+                setRunStatusFilter(event.target.value as RunStatusFilter)
               }
               className="h-8 rounded-md border border-border bg-background px-2 text-xs"
               aria-label="Filter runs by status"
@@ -1000,9 +877,7 @@ export default function QuestionsRoute(): React.JSX.Element {
             <select
               value={runModeFilter}
               onChange={(event) =>
-                setRunModeFilter(
-                  event.target.value as "all" | "dry-run" | "apply",
-                )
+                setRunModeFilter(event.target.value as RunModeFilter)
               }
               className="h-8 rounded-md border border-border bg-background px-2 text-xs"
               aria-label="Filter runs by mode"
@@ -1120,12 +995,11 @@ export default function QuestionsRoute(): React.JSX.Element {
                 ))
               : (data?.questions ?? []).map((q) => {
                   const rowVisibilityClass = q.isActive ? "" : "opacity-50";
-                  let scoreButtonClass = "text-muted-foreground";
-                  if (scoringKey === q.key) {
-                    scoreButtonClass = "animate-pulse";
-                  } else if (scores[q.key]) {
-                    scoreButtonClass = "text-violet-400";
-                  }
+                  const scoreBtnClass = scoreButtonClass(
+                    scoringKey,
+                    scores,
+                    q.key,
+                  );
 
                   return (
                   <Fragment key={`${q.key}-row-wrapper`}>
@@ -1191,11 +1065,9 @@ export default function QuestionsRoute(): React.JSX.Element {
                           <select
                             value={q.difficulty ?? "unset"}
                             onChange={(event) => {
-                              const value = event.target.value;
-                              const difficultyValue: DifficultyValue =
-                                value === "unset"
-                                  ? null
-                                  : (value as "easy" | "medium" | "hard");
+                              const difficultyValue = parseDifficultySelection(
+                                event.target.value,
+                              );
                               void updateDifficultyInline(q, difficultyValue);
                             }}
                             disabled={difficultySavingKeys.has(q.key)}
@@ -1245,7 +1117,7 @@ export default function QuestionsRoute(): React.JSX.Element {
                           <Button
                             size="icon"
                             variant="ghost"
-                            className={`h-7 w-7 ${scoreButtonClass}`}
+                            className={`h-7 w-7 ${scoreBtnClass}`}
                             onClick={() => void scoreQuestion(q)}
                             disabled={scoringKey === q.key}
                             title="AI quality score"
