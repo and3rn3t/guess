@@ -29,21 +29,21 @@ const BUTTONS: Array<{
     label: "Yes",
     icon: CheckCircleIcon,
     className:
-      "bg-emerald-500 hover:bg-emerald-400 text-white shadow-lg shadow-emerald-500/30",
+      "bg-emerald-700 hover:bg-emerald-600 text-white shadow-lg shadow-emerald-500/30",
   },
   {
     value: "no",
     label: "No",
     icon: XCircleIcon,
     className:
-      "bg-rose-500 hover:bg-rose-400 text-white shadow-lg shadow-rose-500/30",
+      "bg-rose-700 hover:bg-rose-600 text-white shadow-lg shadow-rose-500/30",
   },
   {
     value: "maybe",
     label: "Maybe",
     icon: QuestionIcon,
     className:
-      "bg-amber-500 hover:bg-amber-400 text-white shadow-lg shadow-amber-500/30",
+      "bg-amber-700 hover:bg-amber-600 text-white shadow-lg shadow-amber-500/30",
   },
   {
     value: "unknown",

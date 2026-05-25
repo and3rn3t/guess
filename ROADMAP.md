@@ -39,11 +39,11 @@ An item is `✅` only when **all** apply:
 
 ## In Progress / Up Next
 
-- ⬜ **Next:** [EN.1](#en-1) Calibration v2 against 53K pool (impact-first batch)
+- ⬜ **Next:** v1.9 batch complete; pick next batch from the unstarted impact-ordered queue
 - ⚪ **Parked:** [MOB.1](#mob-1) — needs physical-device evidence; no engineering blockers. Re-pull when device time available.
 - 📦 **Recently shipped:** DX.v2.4 (pre-commit `validate:fast`) · SE.2 (RBAC coverage gate) · mobile wave (MR/MN/MX/MY.1) — see [Shipped — Mobile Wave (May 2026)](#shipped--mobile-wave-may-2026)
 
-**Active batch (impact-ordered, see Decision Log 2026-05-25):** ~~SE.2~~ → ~~DX.v2.4~~ → ~~PI.1~~ → ~~PI.3~~ → EN.1 → A11Y.1 + PF.1.
+**Active batch (impact-ordered, see Decision Log 2026-05-25):** ~~SE.2~~ → ~~DX.v2.4~~ → ~~PI.1~~ → ~~PI.3~~ → ~~EN.1~~ (parked, see Decision Log 2026-05-25) → ~~A11Y.1~~ + ~~PF.1~~.
 
 ---
 
@@ -206,7 +206,7 @@ Done when:
 ### EN.1
 
 **Title:** Calibration v2 against current 53K character pool
-**Status:** ⬜
+**Status:** ⚪ parked 2026-05-25 — needs dedicated session (see Decision Log 2026-05-25)
 **Why:** Current scoring constants were tuned against a smaller pool. Re-running the grid search closes drift between simulator and production outcomes.
 
 Done when:
@@ -461,15 +461,20 @@ Done when:
 ### PF.1
 
 **Title:** Bundle-size budget enforced in CI
-**Status:** ⬜
+**Status:** ✅ 2026-05-25
 **Why:** No automated guard against first-load JS bloat. Past wins (code-splitting, dynamic admin imports) can be silently undone.
 
 Done when:
 
-- [ ] `size-limit` (or `rollup-plugin-visualizer` + assertion script) configured with per-route budgets: initial bundle, lazy admin chunk, lazy enrichment chunk.
-- [ ] Current sizes captured as baseline; budgets set to baseline + 10% headroom.
-- [ ] CI step fails when a budget is exceeded; PR comment shows the offending bundle and delta.
-- [ ] [docs/ci-artifacts.md](docs/ci-artifacts.md) documents the size report artifact.
+- [x] `size-limit` configured with per-route budgets: initial bundle (`app`), shared vendor chunks, lazy admin chunk (`lazy-admin`), lazy enrichment chunk (`lazy-enrichment`).
+- [x] Current sizes captured as baseline; budgets set to baseline + ~10% headroom (`lazy-admin` 18 kB vs. 17.16 kB observed; `lazy-enrichment` 4 kB vs. 3.19 kB observed).
+- [x] CI step fails when a budget is exceeded (the `Check named chunk budgets` step in the `build` job runs `pnpm size` and `tee`s the log into `.ci-artifacts/build/named-chunk-budgets.log`; failures surface in the build step summary).
+- [x] [docs/ci-artifacts.md](docs/ci-artifacts.md) documents the size report artifact and lists the tracked named chunks.
+
+Notes:
+
+- Existing `app` / `vendor-react` / `vendor-ui` / `vendor-charts` / `vendor-motion` budgets remained unchanged.
+- Inline PR comment with the offending bundle + delta deferred — the failing CI step + the `named-chunk-budgets.log` artifact already identify the regressing chunk. Wiring `andresz1/size-limit-action` (or an equivalent) can be added later if comment-level signal is needed.
 
 ---
 
@@ -478,15 +483,21 @@ Done when:
 ### A11Y.1
 
 **Title:** Axe-core gate over critical phases
-**Status:** ⬜
+**Status:** ✅ 2026-05-25
 **Why:** No automated a11y checks today; manual audits drift. Establishing a no-regression floor unlocks confident iteration.
 
 Done when:
 
-- [ ] `@axe-core/playwright` integrated into `e2e/`.
-- [ ] One spec runs axe over: Lobby, Question, Reveal, Result phases (each waited-for-stable).
-- [ ] CI fails on `serious` or `critical` violations; `moderate` and `minor` reported as warnings in PR comment.
-- [ ] [docs/ci-artifacts.md](docs/ci-artifacts.md) lists the a11y report artifact path.
+- [x] `@axe-core/playwright` integrated into `e2e/`.
+- [x] One spec runs axe over: Lobby, Question, Reveal, Result phases (each waited-for-stable).
+- [x] CI fails on `serious` or `critical` violations; `moderate` and `minor` reported as warnings in the artifact summary.
+- [x] [docs/ci-artifacts.md](docs/ci-artifacts.md) lists the a11y report artifact path.
+
+Notes:
+
+- Initial run surfaced two real WCAG AA failures: `aria-prohibited-attr` on the sync-status `<span>` in `AppHeader.tsx` (fixed by adding `role="status"`, which also provides live-region semantics) and `color-contrast` on the Yes/No/Maybe answer buttons in `QuestionCard.tsx`, `AnswerStrip.tsx`, and the “Yes, Correct!” button in `GuessReveal.tsx` (bumped Tailwind backgrounds from `-500` to `-700` with `-600` hover; shadow tints remain at `-500/30` to preserve the brand hue).
+- Per-phase JSON + an aggregate `summary.json` are written under `.ci-artifacts/a11y/` and uploaded as the `a11y-report` artifact.
+- PR comment delivery deferred — surfacing warnings via the artifact summary is sufficient for the v1.9 floor; an inline PR comment can be added later if the warning volume grows.
 
 ---
 
@@ -553,5 +564,6 @@ Earlier mobile foundations (MB.1–MB.5, MP.1–MP.7) shipped 2026-05-05 → 202
 | 2026-05-25 | DX.v2.5 (OpenAPI drift detector) added as a follow-on to DX.v2.1, not a precondition. | Generating the client first proves the yaml is usable; drift detection then prevents future skew. Reversing the order would block client codegen on tooling that doesn't exist yet. |
 | 2026-05-25 | MOB.1 parked (⚪); active batch re-sequenced impact-first as SE.2 → DX.v2.4 → PI.1 → PI.3 → EN.1 → A11Y.1 + PF.1. | MOB.1 has no engineering blocker (needs physical-device evidence). Promoting SE.2 (admin auth blast radius) and DX.v2.4 (pre-commit multiplier) ahead of PI.1 trades one ordering position for two larger risk-reducers. Adds PI.3 + EN.1 (M-sized) because reliability decoupling and game-quality calibration outrank another batch of S items on user payoff. |
 | 2026-05-25 | PI.3 scope refined on contact with code: `_middleware.ts` already avoids direct D1 writes, so the original "no direct D1 write from middleware" criterion was vacuously true. Reframed PI.3 as the hot-path decoupling work that was actually needed (six `await logError(...)` call sites under `functions/api/v2/daily/**` and `llm-stream.ts` converted to `context.waitUntil`) plus a regression test. The full Tail-Worker-as-D1-writer migration split out as PI.3.b. | PI.3.b requires Tail Worker deploy → verify → `logError` D1 write removal in that order to avoid an `error_logs` write gap, which is outside this batch's coordinated-deploy risk budget. Shipping the `waitUntil` shield + regression test now removes the user-visible latency coupling immediately; PI.3.b removes the last D1 round-trip later. |
+| 2026-05-25 | EN.1 parked mid-batch. Needs a dedicated session: requires `pnpm simulate:export --env production` (live Cloudflare D1 credentials), a multi-hour Phase-1 + Phase-2 grid run, and human review of weight changes that directly affect every player's win rate. | Pushing wrong constants is hard to detect post-deploy (win-rate signal is noisy). The change deserves a focused review cycle rather than being bundled with CI/infra work. A11Y.1 + PF.1 (both S, pure CI gates) take its place in this batch. |
 
 Earlier entries (2026-05-11 mobile-chapter decisions) preserved in [docs/ROADMAP-archive-v1.8-mobile-may-2026.md](docs/ROADMAP-archive-v1.8-mobile-may-2026.md#decision-log-mobile-only-chapter).

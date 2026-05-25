@@ -245,6 +245,7 @@ function AppHeaderBase({
             )}
 
             <span
+              role="status"
               className="text-muted-foreground inline-flex items-center justify-center touch-target"
               title={`Sync: ${syncStatus}`}
               aria-label={`Sync status: ${syncStatus}`}

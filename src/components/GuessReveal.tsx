@@ -311,7 +311,7 @@ export function GuessReveal({
                   onClick={onCorrect}
                   size="lg"
                   data-testid="guess-correct-btn"
-                  className="flex-1 max-w-xs h-14 text-lg bg-emerald-500 hover:bg-emerald-400 text-white shadow-lg shadow-emerald-500/30 hover:scale-105 transition-transform"
+                  className="flex-1 max-w-xs h-14 text-lg bg-emerald-700 hover:bg-emerald-600 text-white shadow-lg shadow-emerald-500/30 hover:scale-105 transition-transform"
                 >
                   <CheckCircle size={24} weight="fill" className="mr-2" />
                   Yes! Correct

@@ -20,10 +20,13 @@ interface QuestionCardProps {
 
 const THINKING_DOT_KEYS = Array.from({ length: 32 }, (_, idx) => `thinking-dot-${idx}`)
 
+// A11Y.1: -700 backgrounds keep white text ≥ 4.5:1 contrast (WCAG AA).
+// Hover steps up to -600 for the affordance signal; shadow keeps the brand
+// hue at -500/30 so the visual identity is unchanged.
 const answerButtonStyles: Record<AnswerValue, string> = {
-  yes: 'bg-emerald-500 hover:bg-emerald-400 text-white shadow-lg shadow-emerald-500/30',
-  no: 'bg-rose-500 hover:bg-rose-400 text-white shadow-lg shadow-rose-500/30',
-  maybe: 'bg-amber-500 hover:bg-amber-400 text-white shadow-lg shadow-amber-500/30',
+  yes: 'bg-emerald-700 hover:bg-emerald-600 text-white shadow-lg shadow-emerald-500/30',
+  no: 'bg-rose-700 hover:bg-rose-600 text-white shadow-lg shadow-rose-500/30',
+  maybe: 'bg-amber-700 hover:bg-amber-600 text-white shadow-lg shadow-amber-500/30',
   unknown: 'bg-secondary hover:bg-secondary/80 text-secondary-foreground border border-muted-foreground/30',
 }
 

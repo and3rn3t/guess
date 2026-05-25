@@ -51,6 +51,10 @@ Source: .github/workflows/ci.yml
   - named-chunk-budgets.log
   - js-asset-sizes-kb.txt
   - css-asset-sizes-kb.txt
+- Named chunks tracked by size-limit (gzipped):
+  - `app`, `vendor-react`, `vendor-ui`, `vendor-charts`, `vendor-motion`
+  - `lazy-admin` — `dist/assets/AdminApp-*.js` (admin shell + tab routes lazy-loaded under `/admin`)
+  - `lazy-enrichment` — `dist/assets/EnrichDashboardRoute-*.js` (enrichment dashboard lazy-loaded under `/admin/enrich`)
 - Use when: production build or bundle-size budget checks fail.
 
 ## Mobile CI workflow
@@ -146,6 +150,11 @@ Source: .github/workflows/quality-ratchet.yml
 - Artifact: playwright-report
 - Contents: Playwright HTML report and traces.
 - Use when: browser E2E tests fail.
+- Artifact: a11y-report
+- Contents:
+  - `<phase>.json` — per-phase axe-core results (Lobby / Question / Reveal / Result).
+  - `summary.json` — aggregate run summary with blocking (serious + critical) and warning (moderate + minor) counts per phase.
+- Use when: the A11Y floor gate (`e2e/a11y.spec.ts`) fails. The gate blocks on serious or critical WCAG 2.1 A/AA findings; the artifact preserves the raw violation list (rule id, impact, node selectors) for diagnosis.
 
 ### deploy-preview job
 
