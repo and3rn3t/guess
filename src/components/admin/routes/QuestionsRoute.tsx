@@ -10,7 +10,6 @@ import {
   adminQuestionScorePath,
 } from "@/lib/constants";
 import { JSON_CONTENT_TYPE } from "@/lib/http";
-import { cn } from "@/lib/utils";
 import {
   MagnifyingGlassIcon,
   PencilSimpleIcon,
@@ -40,10 +39,8 @@ import type {
 } from "./questions/questionsTypes";
 import {
   SKELETON_ROW_KEYS,
-  SCORE_BAR_WIDTH_CLASSES,
   buildQuestionsListParams,
   buildRewriteCandidate,
-  clampScore,
   defaultFilterState,
   filterExpansionRuns,
   formatBulkUpdateMessage,
@@ -51,55 +48,11 @@ import {
   isValidMinUsageInput,
   parseDifficultySelection,
   quickPresetFilters,
-  scoreBarColor,
   scoreButtonClass,
   upsertSortedCandidate,
 } from "./questions/questionsHelpers";
-
-function DifficultyBadge({
-  difficulty,
-}: Readonly<{
-  difficulty: string | null;
-}>): React.JSX.Element {
-  if (!difficulty)
-    return <span className="text-xs text-muted-foreground/50">—</span>;
-  const styles: Record<string, string> = {
-    easy: "bg-green-500/15 text-green-600 border-green-500/30",
-    medium: "bg-yellow-500/15 text-yellow-600 border-yellow-500/30",
-    hard: "bg-red-500/15 text-red-600 border-red-500/30",
-  };
-  return (
-    <span
-      className={cn(
-        "inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium capitalize",
-        styles[difficulty] ?? "bg-muted text-muted-foreground border-border",
-      )}
-    >
-      {difficulty}
-    </span>
-  );
-}
-
-function ScoreBar({
-  label,
-  value,
-}: Readonly<{
-  label: string;
-  value: number;
-}>): React.JSX.Element {
-  const clampedValue = clampScore(value);
-  const color = scoreBarColor(value);
-
-  return (
-    <div className="flex items-center gap-2 text-xs">
-      <span className="w-16 text-muted-foreground shrink-0">{label}</span>
-      <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
-        <div className={`h-full rounded-full ${color} ${SCORE_BAR_WIDTH_CLASSES[clampedValue]}`} />
-      </div>
-      <span className="w-6 text-right font-medium">{value}</span>
-    </div>
-  );
-}
+import { DifficultyBadge } from "./questions/DifficultyBadge";
+import { ScoreBar } from "./questions/ScoreBar";
 
 export default function QuestionsRoute(): React.JSX.Element {
   const [data, setData] = useState<PageData | null>(null);
