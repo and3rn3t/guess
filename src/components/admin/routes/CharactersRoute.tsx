@@ -15,8 +15,6 @@ import {
   TrashIcon,
   ArrowLeftIcon,
   ArrowRightIcon,
-  ArrowUpIcon,
-  ArrowDownIcon,
   CaretDownIcon,
   CaretUpIcon,
   ArrowsClockwiseIcon,
@@ -32,6 +30,14 @@ import {
   timeSinceCreated,
   type QuickFilterPreset,
 } from '@/lib/admin/characterFilters'
+import {
+  type AttributeApiValue,
+  type SortKey,
+  toNullableBoolean,
+  issueCountMessage,
+  nextAttrValue,
+} from './characters/charactersHelpers'
+import { SortIndicator } from './characters/SortIndicator'
 
 interface AdminCharacter {
   id: string
@@ -55,8 +61,6 @@ interface ValidationIssue {
   reason: string
 }
 
-type AttributeApiValue = 0 | 1 | null
-
 interface ExpandedCharacterData {
   definitions: Array<{ key: string; displayText: string }>
   attributes: Record<string, AttributeApiValue>
@@ -71,8 +75,6 @@ interface PageData {
   pageSize: number
 }
 
-type SortKey = 'popularity' | 'name' | 'coverage' | 'createdAt' | 'needsWork' | 'recentlyAdded'
-
 const CATEGORIES = Object.keys(CATEGORY_LABELS) as CharacterCategory[]
 const SKELETON_ROW_KEYS = [
   'char-skeleton-1',
@@ -84,33 +86,6 @@ const SKELETON_ROW_KEYS = [
   'char-skeleton-7',
   'char-skeleton-8',
 ]
-
-function toNullableBoolean(value: AttributeApiValue): boolean | null {
-  if (value === 1) return true
-  if (value === 0) return false
-  return null
-}
-
-function issueCountMessage(issueCount: number): string {
-  if (issueCount === 0) return 'No issues found'
-  const suffix = issueCount === 1 ? '' : 's'
-  return `${issueCount} issue${suffix} found`
-}
-
-function SortIndicator({
-  col,
-  activeSort,
-  order,
-}: Readonly<{
-  col: SortKey
-  activeSort: SortKey
-  order: 'asc' | 'desc'
-}>): React.JSX.Element | null {
-  if (activeSort !== col) return null
-  return order === 'desc'
-    ? <ArrowDownIcon size={12} className="inline ml-1" />
-    : <ArrowUpIcon size={12} className="inline ml-1" />
-}
 
 export default function CharactersRoute(): React.JSX.Element {
   const [data, setData] = useState<PageData | null>(null)
@@ -327,12 +302,6 @@ export default function CharactersRoute(): React.JSX.Element {
     } finally {
       setExpandLoading(false)
     }
-  }
-
-  const nextAttrValue = (v: AttributeApiValue): AttributeApiValue => {
-    if (v === null) return 1
-    if (v === 1) return 0
-    return null
   }
 
   const patchAttr = async (charId: string, attrKey: string, currentVal: AttributeApiValue) => {
