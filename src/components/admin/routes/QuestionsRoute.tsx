@@ -1,15 +1,8 @@
-import { Fragment, useCallback, useEffect, useRef, useState } from "react";
-import { toast } from "sonner";
+import { Fragment } from "react";
 import { AdminPageHeader } from "../AdminPageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import {
-  ADMIN_API_ENDPOINTS,
-  adminQuestionPath,
-  adminQuestionScorePath,
-} from "@/lib/constants";
-import { JSON_CONTENT_TYPE } from "@/lib/http";
 import {
   MagnifyingGlassIcon,
   PencilSimpleIcon,
@@ -23,523 +16,111 @@ import {
 } from "@phosphor-icons/react";
 import type {
   ActiveFilter,
-  AdminQuestion,
   DifficultyFilter,
-  DifficultyValue,
-  ExpansionRun,
-  PageData,
-  QuestionExpansionResult,
-  QuestionScoreResult,
   QuestionSort,
-  RewriteCandidate,
   RunModeFilter,
   RunStatusFilter,
-  SortOrder,
   TextStatusFilter,
 } from "./questions/questionsTypes";
 import {
   SKELETON_ROW_KEYS,
-  buildQuestionsListParams,
-  buildRewriteCandidate,
-  defaultFilterState,
-  filterExpansionRuns,
-  formatBulkUpdateMessage,
-  formatExpansionMessage,
   isValidMinUsageInput,
   parseDifficultySelection,
-  quickPresetFilters,
   scoreButtonClass,
-  upsertSortedCandidate,
 } from "./questions/questionsHelpers";
 import { DifficultyBadge } from "./questions/DifficultyBadge";
 import { ScoreBar } from "./questions/ScoreBar";
+import { useQuestionsListing } from "./questions/useQuestionsListing";
+import { useQuestionInlineEdits } from "./questions/useQuestionInlineEdits";
+import { useQuestionScoring } from "./questions/useQuestionScoring";
+import { useQuestionExpansion } from "./questions/useQuestionExpansion";
+import { useQuestionBulkActions } from "./questions/useQuestionBulkActions";
 
 export default function QuestionsRoute(): React.JSX.Element {
-  const [data, setData] = useState<PageData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [search, setSearch] = useState("");
-  const [activeFilter, setActiveFilter] = useState<ActiveFilter>("all");
-  const [difficultyFilter, setDifficultyFilter] =
-    useState<DifficultyFilter>("all");
-  const [textStatusFilter, setTextStatusFilter] =
-    useState<TextStatusFilter>("all");
-  const [sort, setSort] = useState<QuestionSort>("usage");
-  const [order, setOrder] = useState<SortOrder>("desc");
-  const [minUsage, setMinUsage] = useState("");
-  const [page, setPage] = useState(1);
-  const pageSize = 50;
-  const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set());
-  const [bulkUpdating, setBulkUpdating] = useState(false);
-  const [bulkDifficulty, setBulkDifficulty] = useState<DifficultyFilter>("all");
-  const [bulkScoring, setBulkScoring] = useState(false);
-  const [bulkScoreProgress, setBulkScoreProgress] = useState<{ done: number; total: number }>({ done: 0, total: 0 });
-  const [difficultySavingKeys, setDifficultySavingKeys] = useState<Set<string>>(new Set());
-  const [rewriteQueue, setRewriteQueue] = useState<RewriteCandidate[]>([]);
-
-  const [editingKey, setEditingKey] = useState<string | null>(null);
-  const [editValue, setEditValue] = useState("");
-  const [saving, setSaving] = useState(false);
-  const editRef = useRef<HTMLInputElement>(null);
-
-  const [scores, setScores] = useState<Record<string, QuestionScoreResult>>({});
-  const [scoringKey, setScoringKey] = useState<string | null>(null);
-  const [expanding, setExpanding] = useState(false);
-  const [expansionMessage, setExpansionMessage] = useState<string | null>(null);
-  const [expansionRuns, setExpansionRuns] = useState<ExpansionRun[]>([]);
-  const [runStatusFilter, setRunStatusFilter] = useState<RunStatusFilter>("all");
-  const [runModeFilter, setRunModeFilter] = useState<RunModeFilter>("all");
-  const latestSearchRef = useRef(search);
-  const previousPageRef = useRef(page);
-
-  const fetchExpansionHistory = async () => {
-    try {
-      const res = await fetch(ADMIN_API_ENDPOINTS.questionsExpand);
-      if (!res.ok) return;
-      const body = (await res.json()) as { runs?: ExpansionRun[] };
-      setExpansionRuns(body.runs ?? []);
-    } catch {
-      // Non-fatal for route UX.
-    }
-  };
-
-  const fetchData = useCallback(async (searchVal: string, pageVal: number) => {
-    setLoading(true);
-    setError(null);
-    try {
-      const params = buildQuestionsListParams({
-        search: searchVal,
-        activeFilter,
-        difficultyFilter,
-        textStatusFilter,
-        sort,
-        order,
-        minUsage,
-        page: pageVal,
-        pageSize,
-      });
-      const res = await fetch(`${ADMIN_API_ENDPOINTS.questions}?${params}`);
-      if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
-      setData(await res.json());
-      setSelectedKeys(new Set());
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Unknown error");
-    } finally {
-      setLoading(false);
-    }
-  }, [
-    activeFilter,
-    difficultyFilter,
-    minUsage,
-    order,
-    pageSize,
-    sort,
-    textStatusFilter,
-  ]);
-
-  useEffect(() => {
-    latestSearchRef.current = search;
-  }, [search]);
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      previousPageRef.current = 1;
-      setPage(1);
-      void fetchData(search, 1);
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [
+  const listing = useQuestionsListing();
+  const {
+    data,
+    setData,
+    loading,
+    error,
+    setError,
     search,
+    setSearch,
     activeFilter,
+    setActiveFilter,
     difficultyFilter,
+    setDifficultyFilter,
     textStatusFilter,
+    setTextStatusFilter,
     sort,
+    setSort,
     order,
+    setOrder,
     minUsage,
-    fetchData,
-  ]);
+    setMinUsage,
+    page,
+    setPage,
+    totalPages,
+    selectedKeys,
+    toggleSelect,
+    toggleSelectAll,
+    refetch,
+    clearFilters,
+    applyQuickPreset,
+  } = listing;
 
-  useEffect(() => {
-    if (previousPageRef.current === page) {
-      return;
-    }
-    previousPageRef.current = page;
-    void fetchData(latestSearchRef.current, page);
-  }, [fetchData, page]);
-  useEffect(() => {
-    void fetchExpansionHistory();
-  }, []);
+  const inlineEdits = useQuestionInlineEdits({ setData });
+  const {
+    editingKey,
+    editValue,
+    setEditValue,
+    editRef,
+    saving,
+    difficultySavingKeys,
+    startEdit,
+    cancelEdit,
+    saveEdit,
+    toggleActive,
+    updateDifficultyInline,
+  } = inlineEdits;
 
-  const startEdit = (q: AdminQuestion) => {
-    setEditingKey(q.key);
-    setEditValue(q.questionText ?? "");
-    setTimeout(() => editRef.current?.focus(), 50);
-  };
-  const cancelEdit = () => {
-    setEditingKey(null);
-    setEditValue("");
-  };
+  const scoring = useQuestionScoring({ data, setData, setError, selectedKeys });
+  const {
+    scores,
+    scoringKey,
+    rewriteQueue,
+    bulkScoring,
+    bulkScoreProgress,
+    scoreQuestion,
+    scoreSelectedQuestions,
+    applyRewriteCandidate,
+    applyAllRewrites,
+  } = scoring;
 
-  const saveEdit = async (key: string) => {
-    setSaving(true);
-    try {
-      const res = await fetch(adminQuestionPath(key), {
-        method: "PATCH",
-        headers: JSON_CONTENT_TYPE,
-        body: JSON.stringify({ questionText: editValue }),
-      });
-      if (!res.ok) {
-        const body = (await res.json()) as { error?: string };
-        throw new Error(body.error ?? res.statusText);
-      }
-      setData((prev) =>
-        prev
-          ? {
-              ...prev,
-              questions: prev.questions.map((q) =>
-                q.key === key ? { ...q, questionText: editValue } : q,
-              ),
-            }
-          : prev,
-      );
-      toast.success("Question saved");
-      cancelEdit();
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Save failed");
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const toggleActive = async (q: AdminQuestion) => {
-    const next = !q.isActive;
-    setData((prev) =>
-      prev
-        ? {
-            ...prev,
-            questions: prev.questions.map((item) =>
-              item.key === q.key ? { ...item, isActive: next } : item,
-            ),
-          }
-        : prev,
-    );
-    try {
-      const res = await fetch(adminQuestionPath(q.key), {
-        method: "PATCH",
-        headers: JSON_CONTENT_TYPE,
-        body: JSON.stringify({ isActive: next }),
-      });
-      if (!res.ok) throw new Error(res.statusText);
-    } catch {
-      setData((prev) =>
-        prev
-          ? {
-              ...prev,
-              questions: prev.questions.map((item) =>
-                item.key === q.key ? { ...item, isActive: q.isActive } : item,
-              ),
-            }
-          : prev,
-      );
-    }
-  };
-
-  const scoreQuestion = async (q: AdminQuestion) => {
-    setScoringKey(q.key);
-    try {
-      const result = await requestQuestionScore(q);
-      setScores((prev) => ({ ...prev, [q.key]: result }));
-      upsertRewriteCandidate(q, result);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Scoring failed");
-    } finally {
-      setScoringKey(null);
-    }
-  };
-
-  const requestQuestionScore = async (
-    question: AdminQuestion,
-  ): Promise<QuestionScoreResult> => {
-    const res = await fetch(adminQuestionScorePath(question.key), {
-      method: "POST",
-      headers: JSON_CONTENT_TYPE,
-      body: JSON.stringify({
-        displayText: question.displayText,
-        questionText: question.questionText,
-      }),
-    });
-    if (!res.ok) throw new Error(res.statusText);
-    return (await res.json()) as QuestionScoreResult;
-  };
-
-  const upsertRewriteCandidate = (
-    question: AdminQuestion,
-    score: QuestionScoreResult,
-  ) => {
-    const candidate = buildRewriteCandidate(question, score);
-    if (!candidate) return;
-    setRewriteQueue((prev) => upsertSortedCandidate(prev, candidate));
-  };
-
-  const scoreSelectedQuestions = async () => {
-    if (selectedKeys.size === 0 || !data) return;
-
-    const selectedQuestions = data.questions.filter((question) =>
-      selectedKeys.has(question.key),
-    );
-    if (selectedQuestions.length === 0) return;
-
-    setBulkScoring(true);
-    setBulkScoreProgress({ done: 0, total: selectedQuestions.length });
-
-    let failed = 0;
-    for (const [index, question] of selectedQuestions.entries()) {
-      try {
-        const result = await requestQuestionScore(question);
-        setScores((prev) => ({ ...prev, [question.key]: result }));
-        upsertRewriteCandidate(question, result);
-      } catch {
-        failed += 1;
-      } finally {
-        setBulkScoreProgress({ done: index + 1, total: selectedQuestions.length });
-      }
-    }
-
-    if (failed > 0) {
-      toast.error(`Bulk AI scoring completed with ${failed} failure${failed === 1 ? "" : "s"}`);
-    } else {
-      toast.success(`Scored ${selectedQuestions.length} question${selectedQuestions.length === 1 ? "" : "s"}`);
-    }
-
-    setBulkScoring(false);
-  };
-
-  const applyRewriteCandidate = async (
-    candidate: RewriteCandidate,
-  ): Promise<boolean> => {
-    try {
-      const res = await fetch(adminQuestionPath(candidate.key), {
-        method: "PATCH",
-        headers: JSON_CONTENT_TYPE,
-        body: JSON.stringify({ questionText: candidate.rewriteText }),
-      });
-      if (!res.ok) {
-        const body = (await res.json()) as { error?: string };
-        throw new Error(body.error ?? res.statusText);
-      }
-
-      setData((prev) =>
-        prev
-          ? {
-              ...prev,
-              questions: prev.questions.map((question) =>
-                question.key === candidate.key
-                  ? { ...question, questionText: candidate.rewriteText }
-                  : question,
-              ),
-            }
-          : prev,
-      );
-      setRewriteQueue((prev) => prev.filter((item) => item.key !== candidate.key));
-      return true;
-    } catch (e) {
-      toast.error(
-        e instanceof Error
-          ? `Failed to apply rewrite for ${candidate.key}: ${e.message}`
-          : `Failed to apply rewrite for ${candidate.key}`,
-      );
-      return false;
-    }
-  };
-
-  const applyAllRewrites = async () => {
-    if (rewriteQueue.length === 0) return;
-    const queueSnapshot = [...rewriteQueue];
-    let applied = 0;
-    for (const candidate of queueSnapshot) {
-      if (await applyRewriteCandidate(candidate)) {
-        applied += 1;
-      }
-    }
-    toast.success(`Applied ${applied} rewrite${applied === 1 ? "" : "s"}`);
-  };
-
-  const updateDifficultyInline = async (
-    question: AdminQuestion,
-    nextDifficulty: DifficultyValue,
-  ) => {
-    const previousDifficulty = question.difficulty;
-    if (previousDifficulty === nextDifficulty) return;
-
-    setDifficultySavingKeys((prev) => new Set(prev).add(question.key));
-    setData((prev) =>
-      prev
-        ? {
-            ...prev,
-            questions: prev.questions.map((item) =>
-              item.key === question.key
-                ? { ...item, difficulty: nextDifficulty }
-                : item,
-            ),
-          }
-        : prev,
-    );
-
-    try {
-      const res = await fetch(adminQuestionPath(question.key), {
-        method: "PATCH",
-        headers: JSON_CONTENT_TYPE,
-        body: JSON.stringify({ difficulty: nextDifficulty }),
-      });
-      if (!res.ok) {
-        const body = (await res.json()) as { error?: string };
-        throw new Error(body.error ?? res.statusText);
-      }
-    } catch (e) {
-      setData((prev) =>
-        prev
-          ? {
-              ...prev,
-              questions: prev.questions.map((item) =>
-                item.key === question.key
-                  ? { ...item, difficulty: previousDifficulty }
-                  : item,
-              ),
-            }
-          : prev,
-      );
-      toast.error(
-        e instanceof Error
-          ? `Failed to update difficulty for ${question.key}: ${e.message}`
-          : `Failed to update difficulty for ${question.key}`,
-      );
-    } finally {
-      setDifficultySavingKeys((prev) => {
-        const next = new Set(prev);
-        next.delete(question.key);
-        return next;
-      });
-    }
-  };
-
-  const expandQuestions = async (dryRun: boolean) => {
-    setExpanding(true);
-    setError(null);
-    setExpansionMessage(null);
-    try {
-      const res = await fetch(ADMIN_API_ENDPOINTS.questionsExpand, {
-        method: "POST",
-        headers: JSON_CONTENT_TYPE,
-        body: JSON.stringify({
-          dryRun,
-          limit: 40,
-          minCharacterCount: 25,
-          maxPerAttribute: 2,
-        }),
-      });
-      if (!res.ok) {
-        const body = (await res.json()) as { error?: string };
-        throw new Error(body.error ?? res.statusText);
-      }
-
-      const result = (await res.json()) as QuestionExpansionResult;
-      setExpansionMessage(formatExpansionMessage(result));
-      if (!dryRun) {
-        await fetchData(search, page);
-      }
-      await fetchExpansionHistory();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Question expansion failed");
-    } finally {
-      setExpanding(false);
-    }
-  };
-
-  const toggleSelect = (key: string) => {
-    setSelectedKeys((prev) => {
-      const next = new Set(prev);
-      if (next.has(key)) {
-        next.delete(key);
-      } else {
-        next.add(key);
-      }
-      return next;
-    });
-  };
-
-  const toggleSelectAll = () => {
-    const all = (data?.questions ?? []).map((question) => question.key);
-    setSelectedKeys((prev) =>
-      prev.size === all.length ? new Set() : new Set(all),
-    );
-  };
-
-  const clearFilters = () => {
-    const d = defaultFilterState();
-    setSearch("");
-    setActiveFilter(d.activeFilter);
-    setDifficultyFilter(d.difficultyFilter);
-    setTextStatusFilter(d.textStatusFilter);
-    setSort(d.sort);
-    setOrder(d.order);
-    setMinUsage(d.minUsage);
-    setPage(1);
-  };
-
-  const applyQuickPreset = (
-    preset: "needs-copy" | "high-impact" | "inactive" | "hard",
-  ) => {
-    const s = quickPresetFilters(preset);
-    setActiveFilter(s.activeFilter);
-    setDifficultyFilter(s.difficultyFilter);
-    setTextStatusFilter(s.textStatusFilter);
-    setSort(s.sort);
-    setOrder(s.order);
-    setMinUsage(s.minUsage);
-    setPage(1);
-  };
-
-  const runBulkUpdate = async (payload: {
-    isActive?: boolean;
-    difficulty?: "easy" | "medium" | "hard" | null;
-  }) => {
-    if (selectedKeys.size === 0) return;
-    setBulkUpdating(true);
-    try {
-      const res = await fetch(ADMIN_API_ENDPOINTS.questionsBulk, {
-        method: "POST",
-        headers: JSON_CONTENT_TYPE,
-        body: JSON.stringify({ keys: Array.from(selectedKeys), ...payload }),
-      });
-      if (!res.ok) {
-        const body = (await res.json()) as { error?: string };
-        throw new Error(body.error ?? res.statusText);
-      }
-
-      const message = formatBulkUpdateMessage(selectedKeys.size, payload);
-      toast.success(message);
-      await fetchData(search, page);
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Bulk update failed");
-    } finally {
-      setBulkUpdating(false);
-    }
-  };
-
-  const applyBulkDifficulty = async () => {
-    if (bulkDifficulty === "all") return;
-    const difficultyValue =
-      bulkDifficulty === "unset" ? null : bulkDifficulty;
-    await runBulkUpdate({ difficulty: difficultyValue });
-  };
-
-  const totalPages = data ? Math.ceil(data.total / pageSize) : 1;
-
-  const visibleExpansionRuns = filterExpansionRuns(
-    expansionRuns,
+  const expansion = useQuestionExpansion({ refetchListing: refetch, setError });
+  const {
+    expanding,
+    expansionMessage,
     runStatusFilter,
+    setRunStatusFilter,
     runModeFilter,
-  );
+    setRunModeFilter,
+    visibleExpansionRuns,
+    fetchExpansionHistory,
+    expandQuestions,
+  } = expansion;
+
+  const bulkActions = useQuestionBulkActions({
+    selectedKeys,
+    refetchListing: refetch,
+  });
+  const {
+    bulkUpdating,
+    bulkDifficulty,
+    setBulkDifficulty,
+    runBulkUpdate,
+    applyBulkDifficulty,
+  } = bulkActions;
 
   return (
     <div className="container mx-auto px-4 pb-8 max-w-5xl space-y-6">
@@ -955,158 +536,158 @@ export default function QuestionsRoute(): React.JSX.Element {
                   );
 
                   return (
-                  <Fragment key={`${q.key}-row-wrapper`}>
-                    <tr
-                      key={q.key}
-                      className={`hover:bg-muted/30 transition-colors ${rowVisibilityClass}`}
-                    >
-                      <td className="px-4 py-3">
-                        <input
-                          type="checkbox"
-                          checked={selectedKeys.has(q.key)}
-                          onChange={() => toggleSelect(q.key)}
-                          className="cursor-pointer"
-                          aria-label={`Select ${q.key}`}
-                        />
-                      </td>
-                      <td className="px-4 py-3 font-mono text-xs text-muted-foreground">
-                        {q.key}
-                      </td>
-                      <td className="px-4 py-3">
-                        {editingKey === q.key ? (
-                          <div className="flex items-center gap-2">
-                            <Input
-                              ref={editRef}
-                              value={editValue}
-                              onChange={(e) => setEditValue(e.target.value)}
-                              onKeyDown={(e) => {
-                                if (e.key === "Enter") void saveEdit(q.key);
-                                if (e.key === "Escape") cancelEdit();
-                              }}
-                              className="h-7 text-sm"
-                            />
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              className="h-7 w-7 text-green-500"
-                              onClick={() => void saveEdit(q.key)}
-                              disabled={saving}
-                            >
-                              <CheckIcon size={14} />
-                            </Button>
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              className="h-7 w-7 text-muted-foreground"
-                              onClick={cancelEdit}
-                            >
-                              <XIcon size={14} />
-                            </Button>
-                          </div>
-                        ) : (
-                          <span>
-                            {q.questionText ?? (
-                              <span className="text-muted-foreground italic">
-                                No question text
-                              </span>
-                            )}
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        <div className="flex items-center justify-center gap-2">
-                          <select
-                            value={q.difficulty ?? "unset"}
-                            onChange={(event) => {
-                              const difficultyValue = parseDifficultySelection(
-                                event.target.value,
-                              );
-                              void updateDifficultyInline(q, difficultyValue);
-                            }}
-                            disabled={difficultySavingKeys.has(q.key)}
-                            className="h-7 rounded-md border border-border bg-background px-2 text-xs"
-                            aria-label={`Difficulty for ${q.key}`}
-                          >
-                            <option value="unset">Unset</option>
-                            <option value="easy">Easy</option>
-                            <option value="medium">Medium</option>
-                            <option value="hard">Hard</option>
-                          </select>
-                          <DifficultyBadge difficulty={q.difficulty} />
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        <Badge variant="secondary" className="text-xs">
-                          {q.usageCount}
-                        </Badge>
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        <button
-                          onClick={() => void toggleActive(q)}
-                          className="text-muted-foreground hover:text-foreground transition-colors"
-                          aria-label={q.isActive ? "Disable" : "Enable"}
-                        >
-                          {q.isActive ? (
-                            <ToggleRightIcon
-                              size={24}
-                              className="text-green-500"
-                            />
+                    <Fragment key={`${q.key}-row-wrapper`}>
+                      <tr
+                        key={q.key}
+                        className={`hover:bg-muted/30 transition-colors ${rowVisibilityClass}`}
+                      >
+                        <td className="px-4 py-3">
+                          <input
+                            type="checkbox"
+                            checked={selectedKeys.has(q.key)}
+                            onChange={() => toggleSelect(q.key)}
+                            className="cursor-pointer"
+                            aria-label={`Select ${q.key}`}
+                          />
+                        </td>
+                        <td className="px-4 py-3 font-mono text-xs text-muted-foreground">
+                          {q.key}
+                        </td>
+                        <td className="px-4 py-3">
+                          {editingKey === q.key ? (
+                            <div className="flex items-center gap-2">
+                              <Input
+                                ref={editRef}
+                                value={editValue}
+                                onChange={(e) => setEditValue(e.target.value)}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter") void saveEdit(q.key);
+                                  if (e.key === "Escape") cancelEdit();
+                                }}
+                                className="h-7 text-sm"
+                              />
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="h-7 w-7 text-green-500"
+                                onClick={() => void saveEdit(q.key)}
+                                disabled={saving}
+                              >
+                                <CheckIcon size={14} />
+                              </Button>
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="h-7 w-7 text-muted-foreground"
+                                onClick={cancelEdit}
+                              >
+                                <XIcon size={14} />
+                              </Button>
+                            </div>
                           ) : (
-                            <ToggleLeftIcon size={24} />
+                            <span>
+                              {q.questionText ?? (
+                                <span className="text-muted-foreground italic">
+                                  No question text
+                                </span>
+                              )}
+                            </span>
                           )}
-                        </button>
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        <div className="flex items-center justify-center gap-1">
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="h-7 w-7"
-                            onClick={() => startEdit(q)}
-                            title="Edit question text"
+                        </td>
+                        <td className="px-4 py-3 text-center">
+                          <div className="flex items-center justify-center gap-2">
+                            <select
+                              value={q.difficulty ?? "unset"}
+                              onChange={(event) => {
+                                const difficultyValue =
+                                  parseDifficultySelection(event.target.value);
+                                void updateDifficultyInline(q, difficultyValue);
+                              }}
+                              disabled={difficultySavingKeys.has(q.key)}
+                              className="h-7 rounded-md border border-border bg-background px-2 text-xs"
+                              aria-label={`Difficulty for ${q.key}`}
+                            >
+                              <option value="unset">Unset</option>
+                              <option value="easy">Easy</option>
+                              <option value="medium">Medium</option>
+                              <option value="hard">Hard</option>
+                            </select>
+                            <DifficultyBadge difficulty={q.difficulty} />
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 text-center">
+                          <Badge variant="secondary" className="text-xs">
+                            {q.usageCount}
+                          </Badge>
+                        </td>
+                        <td className="px-4 py-3 text-center">
+                          <button
+                            onClick={() => void toggleActive(q)}
+                            className="text-muted-foreground hover:text-foreground transition-colors"
+                            aria-label={q.isActive ? "Disable" : "Enable"}
                           >
-                            <PencilSimpleIcon size={14} />
-                          </Button>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className={`h-7 w-7 ${scoreBtnClass}`}
-                            onClick={() => void scoreQuestion(q)}
-                            disabled={scoringKey === q.key}
-                            title="AI quality score"
-                          >
-                            <SparkleIcon size={14} />
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                    {scores[q.key] && (
-                      <tr key={`${q.key}-score`} className="bg-violet-500/5">
-                        <td colSpan={7} className="px-4 py-2">
-                          <div className="flex flex-col gap-1 max-w-xs">
-                            <ScoreBar
-                              label="Clarity"
-                              value={scores[q.key].clarity}
-                            />
-                            <ScoreBar
-                              label="Power"
-                              value={scores[q.key].power}
-                            />
-                            <ScoreBar
-                              label="Grammar"
-                              value={scores[q.key].grammar}
-                            />
-                            {scores[q.key].rewrite && (
-                              <p className="text-xs text-violet-400 mt-1 italic">
-                                Rewrite suggestion added to ranked queue
-                              </p>
+                            {q.isActive ? (
+                              <ToggleRightIcon
+                                size={24}
+                                className="text-green-500"
+                              />
+                            ) : (
+                              <ToggleLeftIcon size={24} />
                             )}
+                          </button>
+                        </td>
+                        <td className="px-4 py-3 text-center">
+                          <div className="flex items-center justify-center gap-1">
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-7 w-7"
+                              onClick={() => startEdit(q)}
+                              title="Edit question text"
+                            >
+                              <PencilSimpleIcon size={14} />
+                            </Button>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className={`h-7 w-7 ${scoreBtnClass}`}
+                              onClick={() => void scoreQuestion(q)}
+                              disabled={scoringKey === q.key}
+                              title="AI quality score"
+                            >
+                              <SparkleIcon size={14} />
+                            </Button>
                           </div>
                         </td>
                       </tr>
-                    )}
-                  </Fragment>
-                )})}
+                      {scores[q.key] && (
+                        <tr key={`${q.key}-score`} className="bg-violet-500/5">
+                          <td colSpan={7} className="px-4 py-2">
+                            <div className="flex flex-col gap-1 max-w-xs">
+                              <ScoreBar
+                                label="Clarity"
+                                value={scores[q.key].clarity}
+                              />
+                              <ScoreBar
+                                label="Power"
+                                value={scores[q.key].power}
+                              />
+                              <ScoreBar
+                                label="Grammar"
+                                value={scores[q.key].grammar}
+                              />
+                              {scores[q.key].rewrite && (
+                                <p className="text-xs text-violet-400 mt-1 italic">
+                                  Rewrite suggestion added to ranked queue
+                                </p>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </Fragment>
+                  );
+                })}
           </tbody>
         </table>
       </div>
