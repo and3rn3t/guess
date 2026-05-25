@@ -20,6 +20,7 @@ export type AdminNavIconKey =
   | 'target'
   | 'copySimple'
   | 'trash'
+  | 'shieldCheck'
 
 export interface AdminRouteDef {
   path: string
@@ -57,6 +58,7 @@ export const ADMIN_ROUTE_MANIFEST: AdminRouteDef[] = [
   { path: 'experiments', section: 'monitor', label: 'Experiments (A/B)', iconKey: 'flask', loader: () => import('./routes/ExperimentsRoute') },
   { path: 'cost', section: 'monitor', label: 'Cost Dashboard', iconKey: 'chartLine', loader: () => import('./routes/CostRoute') },
   { path: 'error-logs', section: 'monitor', label: 'Error Logs', iconKey: 'warningOctagon', loader: () => import('./routes/ErrorLogsRoute') },
+  { path: 'security', section: 'monitor', label: 'Security (CSP)', iconKey: 'shieldCheck', loader: () => import('./routes/SecurityRoute') },
   { path: 'triage', section: 'monitor', label: 'Failure Triage', iconKey: 'warningOctagon', loader: () => import('./routes/TriageRoute') },
 
   { path: 'api-docs', section: 'labs', label: 'API Docs', iconKey: 'listChecks', loader: () => import('./routes/ApiDocsRoute') },

@@ -397,6 +397,28 @@ admin route placed outside the gated tree fails this test unless it is
 explicitly listed in `INTENTIONAL_PUBLIC_ADMIN_ROUTES` (currently empty)
 with a justifying comment. The test is part of `pnpm validate`.
 
+### SE.1 — CSP violations pipeline
+
+Browser CSP violation reports POST to [functions/api/csp-report.ts](functions/api/csp-report.ts).
+The endpoint upserts each report into the `csp_violations` table
+(migration [0048_csp_violations.sql](migrations/0048_csp_violations.sql))
+dedup'd on `UNIQUE(directive, blocked_uri)` — duplicate reports increment
+`count` and refresh `last_seen` rather than creating new rows. The write
+runs inside `context.waitUntil` (PI.3 contract); a fire-and-forget
+`logError` fallback captures forensic detail to `error_logs` if the upsert
+fails. Existing IP rate limit (100 reports/hour) and 5 KB body cap are
+preserved.
+
+A weekly cron handler [functions/cron/_csp_digest.ts](functions/cron/_csp_digest.ts)
+runs at `0 13 * * 1` (Mondays 13:00 UTC) and persists a top-10 + per-directive
+snapshot into `kv_cache` under the key `admin:csp:last-digest`. The handler
+no-ops on non-matching cron expressions, so it is safe to chain into the
+shared `runScheduled` dispatcher. The admin route `/admin/security`
+([src/components/admin/routes/SecurityRoute.tsx](src/components/admin/routes/SecurityRoute.tsx))
+reads both the snapshot and the live paginated list
+([functions/api/admin/security/csp-violations.ts](functions/api/admin/security/csp-violations.ts))
+for operator triage.
+
 ---
 
 ## Error Pipeline

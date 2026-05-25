@@ -20,6 +20,7 @@ import {
   TargetIcon,
   CopySimpleIcon,
   TrashIcon,
+  ShieldCheckIcon,
   CaretDownIcon,
   MagnifyingGlassIcon,
 } from '@phosphor-icons/react'
@@ -144,6 +145,8 @@ function getIcon(iconKey: AdminNavIconKey | 'house'): React.ReactNode {
       return <CopySimpleIcon size={16} weight="duotone" />
     case 'trash':
       return <TrashIcon size={16} weight="duotone" />
+    case 'shieldCheck':
+      return <ShieldCheckIcon size={16} weight="duotone" />
   }
 }
 

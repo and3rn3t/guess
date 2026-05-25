@@ -53,6 +53,8 @@ export const ADMIN_API_ENDPOINTS = {
 	attributeDisputesAi: "/api/admin/attribute-disputes-ai",
 	resolveStack: "/api/admin/resolve-stack",
 	errorLogs: "/api/admin/error-logs",
+	cspViolations: "/api/admin/security/csp-violations",
+	cspDigest: "/api/admin/security/csp-digest",
 } as const;
 
 export function adminCharacterPath(id: string): string {

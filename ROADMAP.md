@@ -40,9 +40,9 @@ An item is `✅` only when **all** apply:
 ## In Progress / Up Next
 
 - 🟡 **In progress:** [DQ.v2.1](#dqv2-1) `pnpm dq:report` — orchestrator + CI wired warn-only on `reconcile-nightly`; flips to blocking after ≥7 clean nightly runs.
-- ⬜ **Next:** [SE.1](#se-1) CSP report pipeline, then [RF.v2.4](#rfv2-4) ungoverned-hotspot sweep (sequential — see Decision Log 2026-05-25).
+- ⬜ **Next:** [RF.v2.4](#rfv2-4) ungoverned-hotspot sweep (see Decision Log 2026-05-25).
 - ⚪ **Parked:** [MOB.1](#mob-1) — needs physical-device evidence; no engineering blockers. Re-pull when device time available.
-- 📦 **Recently shipped:** OB.1 (SLO doc + burn queries) · PF.1 (bundle-size budgets) · A11Y.1 (axe-core e2e gate) · PI.3 (`logError` hot-path decoupling) · PI.1 (wrangler post-KV audit) · DX.v2.4 (pre-commit `validate:fast`) · SE.2 (RBAC coverage gate) — see [Shipped — Mobile Wave (May 2026)](#shipped--mobile-wave-may-2026)
+- 📦 **Recently shipped:** SE.1 (CSP violations pipeline + admin digest) · OB.1 (SLO doc + burn queries) · PF.1 (bundle-size budgets) · A11Y.1 (axe-core e2e gate) · PI.3 (`logError` hot-path decoupling) · PI.1 (wrangler post-KV audit) · DX.v2.4 (pre-commit `validate:fast`) · SE.2 (RBAC coverage gate) — see [Shipped — Mobile Wave (May 2026)](#shipped--mobile-wave-may-2026)
 
 **Active batch (impact-ordered, see Decision Log 2026-05-25):** ~~SE.2~~ → ~~DX.v2.4~~ → ~~PI.1~~ → ~~PI.3~~ → ~~EN.1~~ (parked, see Decision Log 2026-05-25) → ~~A11Y.1~~ + ~~PF.1~~.
 
@@ -407,15 +407,24 @@ Done when:
 ### SE.1
 
 **Title:** CSP report pipeline → D1 + weekly digest
-**Status:** ⬜
+**Status:** ✅ 2026-05-25
 **Why:** `functions/api/csp-report.ts` accepts reports but nothing persists them. Violations are invisible until a user complains.
 
 Done when:
 
-- [ ] New migration adds `csp_violations` table (timestamp, directive, blocked_uri, document_uri, user_agent, count).
-- [ ] Endpoint deduplicates by `(directive, blocked_uri)` within a rolling window and increments `count`.
-- [ ] `/admin/security` page lists top violations with sparkline trend.
-- [ ] Weekly cron emits a digest (top 10 directives) to `automation_runs` for visibility.
+- [x] New migration adds `csp_violations` table (timestamp, directive, blocked_uri, document_uri, user_agent, count).
+- [x] Endpoint deduplicates by `(directive, blocked_uri)` within a rolling window and increments `count`.
+- [x] `/admin/security` page lists top violations with sparkline trend.
+- [x] Weekly cron emits a digest (top 10 directives) to `kv_cache` (`admin:csp:last-digest`) for visibility.
+
+Shipped:
+
+- Migration [0048_csp_violations.sql](migrations/0048_csp_violations.sql) — dedup on `(directive, blocked_uri)` via UNIQUE INDEX; secondary indexes on `count DESC` + `last_seen DESC` for admin queries.
+- [functions/api/csp-report.ts](functions/api/csp-report.ts) rewritten as an `INSERT … ON CONFLICT DO UPDATE` upsert; PI.3-compliant (write off the hot path via `context.waitUntil`); `logError` fallback (fire-and-forget) preserves signal if the D1 write fails.
+- Admin reader [functions/api/admin/security/csp-violations.ts](functions/api/admin/security/csp-violations.ts) — paginated, windowed (1–90d), with per-directive aggregation.
+- Weekly digest [functions/cron/_csp_digest.ts](functions/cron/_csp_digest.ts) (`0 13 * * 1`) snapshots top-10 + per-directive totals into `kv_cache` under `admin:csp:last-digest`; dispatcher wired in [functions/cron/index.ts](functions/cron/index.ts).
+- Admin route [src/components/admin/routes/SecurityRoute.tsx](src/components/admin/routes/SecurityRoute.tsx) registered under `monitor` (`/admin/security`) — digest panel + windowed table with directive-bucket badges.
+- Tests: [functions/api/__tests__/csp-report.test.ts](functions/api/__tests__/csp-report.test.ts) (8 cases — upsert, dedup, dedup-by-uri, directive parsing, body limit, malformed JSON, missing D1) and [functions/cron/_csp_digest.test.ts](functions/cron/_csp_digest.test.ts) (3 cases — cron gating, missing D1, aggregation + persistence).
 
 ### SE.2
 

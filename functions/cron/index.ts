@@ -19,8 +19,9 @@
 
 import { runAnomalyCheck, type AnomalyEnv } from './_anomaly_check'
 import { runAdminAutomation, type AutomationEnv } from './_automation'
+import { runCspDigest, type CspDigestEnv } from './_csp_digest'
 
-export interface CronEnv extends AnomalyEnv, AutomationEnv {}
+export interface CronEnv extends AnomalyEnv, AutomationEnv, CspDigestEnv {}
 
 export interface ScheduledTrigger {
   cron: string
@@ -55,6 +56,17 @@ export async function runScheduled(
     await runAdminAutomation(trigger, env, log)
   } catch (err) {
     log({ event: 'cron.automation_failed', error: (err as Error).message })
+  }
+
+  // SE.1 — weekly CSP violation digest. The handler no-ops on any cron other
+  // than CSP_DIGEST_CRON, so this is cheap on the nightly tick.
+  try {
+    const summary = await runCspDigest(trigger, env, log)
+    if (summary.status !== 'skipped') {
+      log({ event: 'cron.csp_digest_summary', ...summary })
+    }
+  } catch (err) {
+    log({ event: 'cron.csp_digest_failed', error: (err as Error).message })
   }
 }
 
