@@ -1,268 +1,513 @@
-# Mobile-Only Roadmap (iOS Focus)
+# Roadmap (v1.9)
 
-This roadmap is now dedicated to iOS/mobile execution only.
-
-The previous full-product roadmap was archived on 2026-05-11:
-
-- [docs/ROADMAP-archive-v1.6.1-mobile-pivot-2026-05-11.md](docs/ROADMAP-archive-v1.6.1-mobile-pivot-2026-05-11.md)
-
-Mobile planning inputs consolidated into this roadmap:
-
-- [docs/mobile/ios-feature-parity-plan.md](docs/mobile/ios-feature-parity-plan.md)
-- [docs/mobile/parity-matrix.md](docs/mobile/parity-matrix.md)
-- [docs/mobile/ios-documentation-program.md](docs/mobile/ios-documentation-program.md)
-- [docs/mobile/ios-qa-evidence-index.md](docs/mobile/ios-qa-evidence-index.md)
-- [docs/mobile/device-validation-checklist.md](docs/mobile/device-validation-checklist.md)
-- [docs/mobile/ios-release-handoff-playbook.md](docs/mobile/ios-release-handoff-playbook.md)
-- [docs/mobile/roadmap-foundations.md](docs/mobile/roadmap-foundations.md)
+> **Status:** Full-product roadmap. Mobile is one track among five.
+> **Source of truth.** AI on-ramp: [AGENTS.md](AGENTS.md) · Icebox: [docs/ROADMAP-icebox.md](docs/ROADMAP-icebox.md)
+>
+> Archives:
+> - [docs/ROADMAP-archive-v1.8-mobile-may-2026.md](docs/ROADMAP-archive-v1.8-mobile-may-2026.md) — mobile-only chapter (2026-05-11 → 2026-05-25)
+> - [docs/ROADMAP-archive-v1.6.1-mobile-pivot-2026-05-11.md](docs/ROADMAP-archive-v1.6.1-mobile-pivot-2026-05-11.md) — pre-mobile-pivot
+> - [docs/ROADMAP-archive-v1.5.md](docs/ROADMAP-archive-v1.5.md) · [docs/ROADMAP-archive-v1.4.md](docs/ROADMAP-archive-v1.4.md)
 
 ---
 
 ## Status Key
 
-- `⬜` not started
-- `🟡` in progress
-- `✅ YYYY-MM-DD` shipped
-- `⚪` deferred / parked
+- `⬜` not started · `🟡` in progress · `✅ YYYY-MM-DD` shipped · `⚪` deferred / parked
 
 ## How To Pull Work
 
 1. Start from **In Progress / Up Next**.
 2. Finish any `🟡` item before starting new work.
-3. Pull the next `⬜` item in order.
-4. Update roadmap status in the same commit as implementation/docs.
+3. Otherwise pull the topmost `⬜` item from the [Wave Sequence](#wave-sequence).
+4. Cross-wave parallelism is allowed only when items share no file ownership (see `docs/refactor-boundaries.md`).
+5. Update roadmap status in the same commit as implementation/docs.
 
-## Definition Of Done (Mobile)
+## Definition Of Done (universal)
 
-An item is only `✅` when all apply:
+An item is `✅` only when **all** apply:
 
-- [ ] Code and/or docs are merged to `main`.
-- [ ] `pnpm validate` passes.
-- [ ] `pnpm build && pnpm build:worker` pass.
-- [ ] Mobile checks pass for touched scope:
-	- [ ] `pnpm mobile:typecheck`
-	- [ ] `pnpm mobile:guardrails`
-	- [ ] `pnpm mobile:reliability-gate` (when route/reliability scope is touched)
-- [ ] Evidence links are updated in [docs/mobile/parity-matrix.md](docs/mobile/parity-matrix.md).
-- [ ] Release/behavior changes reflected in [CHANGELOG.md](CHANGELOG.md) when applicable.
+- [ ] Code and/or docs merged to `main` and (if applicable) deployed.
+- [ ] `pnpm validate` passes (type-check + lint + test).
+- [ ] `pnpm build && pnpm build:worker` both green.
+- [ ] Mobile checks pass for mobile-touching scope: `pnpm mobile:typecheck`, `pnpm mobile:guardrails`, `pnpm mobile:reliability-gate`.
+- [ ] [CHANGELOG.md](CHANGELOG.md) updated under Unreleased (or next version).
+- [ ] Roadmap row updated to `✅ YYYY-MM-DD` in the same commit.
+- [ ] New env var / binding / secret / migration documented in [ARCHITECTURE.md](ARCHITECTURE.md) and mirrored in `wrangler.toml` / `.dev.vars.example`.
+- [ ] The wave row's "Done when" criterion is verifiably true.
 
 ---
 
 ## In Progress / Up Next
 
-- 🟡 **In progress:** [MY.2](#my-2) challenge leaderboard perf validation for deeper rows
-- ⬜ **Next:** [MY.3](#my-3) v1.9 scope lock and release-note contract refresh
-- ✅ **Completed:** [MY.1](#my-1) team leaderboard contract-prep + blocker breakdown (2026-05-11)
-- ✅ **Completed:** [MX.3](#mx-3) challenge leaderboard depth expansion (2026-05-11)
-- ✅ **Completed:** [MN.1](#mn-1) native quality gate automation hardening (2026-05-11)
-- ✅ **Completed:** [MX.2](#mx-2) team leaderboard + social comparison scope decision (2026-05-11)
-- ✅ **Completed:** [MX.1](#mx-1) Describe Yourself (mobile) (2026-05-11)
-- ✅ **Completed:** [MN.3](#mn-3) crash + runtime telemetry baseline (2026-05-11)
-- ✅ **Completed:** [MR.2](#mr-2) App Store / TestFlight submission readiness gate (2026-05-11)
-- ✅ **Completed:** [MN.2](#mn-2) mobile UI E2E gate (core flow automation) (2026-05-11)
-- ✅ **Completed:** [MR.1](#mr-1) release-documentation closeout + parity evidence normalization (2026-05-11)
-- ✅ **Completed:** [MR.3](#mr-3) post-MP.7 evidence debt cleanup (2026-05-11)
+- 🟡 **In progress:** [MOB.1](#mob-1) challenge leaderboard perf validation for deeper rows
+- ⬜ **Next:** [PI.1](#pi-1) `wrangler.toml` post-KV audit
+- 📦 **Recently shipped:** mobile wave (MR/MN/MX/MY.1) — see [Shipped — Mobile Wave (May 2026)](#shipped--mobile-wave-may-2026)
 
 ---
 
-## Wave 1 - Release Closeout (Do First)
+## Wave Sequence
 
-### MR.1
+Priority × ease, small wins first to re-establish full-product velocity:
 
-**Title:** Release-documentation closeout + parity evidence normalization  
-**Status:** ✅ 2026-05-11  
-**Source consolidation:** MP.7 done-when items, QA index, release playbook
-
-Done when:
-
-- [ ] `parity-matrix.md` evidence column is normalized for all shipped rows (consistent artifact references).
-- [ ] Owner signatures and last-verified dates are current for all in-scope rows.
-- [ ] `xcode-claude-memory-handoff.md` includes latest known edge cases and API behavior notes.
-- [ ] `CHANGELOG.md` has a clean mobile release summary for MP.6/MP.7 closure scope.
-
-Primary files:
-
-- `docs/mobile/parity-matrix.md`
-- `docs/mobile/xcode-claude-memory-handoff.md`
-- `CHANGELOG.md`
-
-### MR.2
-
-**Title:** App Store / TestFlight submission readiness gate  
-**Status:** ✅ 2026-05-11  
-**Source consolidation:** release playbook preflight + MP.7 checklist
-
-Done when:
-
-- [ ] TestFlight/App Store preflight checklist is completed and captured in docs.
-- [ ] Functional preflight pass is documented for Welcome -> Playing -> Guessing -> Game Over, Challenge, Resume, Feedback, Preferences, Teaching, Stats, History, Compare.
-- [ ] Quality preflight pass is documented (VoiceOver, Dynamic Type, reduced motion, performance budgets, airplane mode).
-- [ ] Known intentional web divergences are explicitly listed in release notes.
-
-Primary files:
-
-- `docs/mobile/ios-release-handoff-playbook.md`
-- `docs/mobile/parity-matrix.md`
-- `CHANGELOG.md`
-
-### MR.3
-
-**Title:** Post-MP.7 evidence debt cleanup  
-**Status:** ✅ 2026-05-11  
-**Source consolidation:** device checklist addenda + QA evidence index
-
-Done when:
-
-- [ ] Pending MP.3 addendum checks are either completed with evidence or explicitly closed as superseded with rationale.
-- [ ] MP.6 precondition checklist reflects current branch truth (no stale unchecked preconditions where evidence already exists).
-- [ ] QA evidence index references concrete artifact paths used in current branch.
-
-Primary files:
-
-- `docs/mobile/device-validation-checklist.md`
-- `docs/mobile/ios-qa-evidence-index.md`
+1. [PI.1](#pi-1) wrangler audit (S)
+2. [DX.v2.4](#dxv2-4) pre-commit hook (S)
+3. [SE.2](#se-2) admin RBAC coverage audit (S)
+4. [PF.1](#pf-1) bundle-size budget in CI (S)
+5. [A11Y.1](#a11y-1) axe-core CI gate (S)
+6. [DQ.v2.1](#dqv2-1) `pnpm dq:report` (M)
+7. [RF.v2.4](#rfv2-4) ungoverned-hotspot sweep (M)
+8. [SE.1](#se-1) CSP report pipeline (M)
+9. [EN.1](#en-1) calibration v2 (M)
+10. [DX.v2.1](#dxv2-1) generated typed API client (L)
+11. [DX.v2.5](#dxv2-5) OpenAPI drift detector (M, pairs with [DX.v2.1](#dxv2-1))
+12. [RF.v2.3](#rfv2-3) split `question-selection.ts` + property tests (M, pairs with [DX.v2.3](#dxv2-3))
+13. [DQ.v2.3](#dqv2-3) shared source adapter base (M)
+14. [PI.3](#pi-3) Tail Worker → `error_logs` (M)
+15. [OB.1](#ob-1) SLO definitions + error-budget doc (S, after [PI.3](#pi-3))
+16. [RF.v2.5](#rfv2-5) admin API client consolidation (depends on [DX.v2.1](#dxv2-1))
+17. Remaining items in order: [MOB.2](#mob-2), [DQ.v2.2](#dqv2-2), [DQ.v2.4](#dqv2-4), [EN.2](#en-2), [EN.3](#en-3), [EN.4](#en-4), [PI.2](#pi-2), [PI.4](#pi-4), [DX.v2.2](#dxv2-2), [DX.v2.3](#dxv2-3).
+18. Deferred (re-evaluate when ceiling pressure returns): [RF.v2.1](#rfv2-1), [RF.v2.2](#rfv2-2).
 
 ---
 
-## Wave 2 - Native Product Hardening
+## Wave RF.v2 — Code Health & Boundary Cleanup
 
-### MN.1
+> Continuation of RF.1–RF.6 (shipped). Targets: ungoverned hotspots, server-engine boundaries, admin API duplication.
 
-**Title:** Native quality gate automation hardening  
-**Status:** ✅ 2026-05-11  
-**Source consolidation:** MB.5 verification baseline + QA/release gates
+### RF.v2.1
 
-Done when:
+**Title:** Slim `src/hooks/useServerGame.ts`
+**Status:** ⚪ deferred until clear headroom pressure (currently 371/430 lines, 10/12 imports). Re-evaluate after [DX.v2.1](#dxv2-1) lands — codegen may shrink it organically.
 
-- [ ] Required mobile evidence checks are codified in CI for mobile-touching changes.
-- [ ] Guardrail and reliability gates fail predictably on missing evidence links or boundary regressions.
-- [ ] CI artifact naming and linkage for mobile evidence are documented and stable.
+Done when (when re-activated):
 
-### MN.2
+- [ ] Per-action API call helpers extracted into `src/lib/gameApi/` modules (start, answer, skip, reject, resume, result, reveal, feedback).
+- [ ] Each helper reuses `HttpClient` from `src/lib/http.ts` (no bespoke retry loops).
+- [ ] Characterization tests added under `src/hooks/__tests__/useServerGame.test.tsx` before extraction.
+- [ ] Complexity-guard ceiling ratcheted down (≤340 lines / ≤10 imports).
 
-**Title:** Mobile UI E2E gate (core flow automation)  
-**Status:** ✅ 2026-05-11  
-**Source consolidation:** release preflight + mobile-ci baseline
+Primary files: `src/hooks/useServerGame.ts`, `src/lib/gameApi.ts`, new `src/lib/gameApi/`.
 
-Done when:
+### RF.v2.2
 
-- [ ] A mobile UI E2E lane exists for core flows (start game, answer, guess, game over, challenge, resume, feedback).
-- [ ] The lane runs in CI for mobile-touching PRs (blocking or required-for-release).
-- [ ] Failing scenarios provide artifacted evidence (video/log/screenshot) in `.ci-artifacts/mobile-ci/`.
+**Title:** Split `functions/api/v2/game/answer.ts`
+**Status:** ⚪ deferred (currently 179/360 lines after recent extractions). Re-evaluate if headroom drops below 50 lines.
 
-### MN.3
+Done when (when re-activated):
 
-**Title:** Crash + runtime telemetry baseline  
-**Status:** ✅ 2026-05-11  
-**Source consolidation:** release playbook quality preflight + reliability hardening
+- [ ] `_answer_helpers.ts` sibling extracted with: guess-readiness gate, adaptive-data loader, response shaper.
+- [ ] Handler ≤150 lines, ≤6 own imports.
+- [ ] Existing route tests pass unchanged.
+- [ ] Complexity-guard ceiling ratcheted down for `answer.ts` to 200 lines.
 
-Done when:
+Primary files: `functions/api/v2/game/answer.ts`, new `functions/api/v2/game/_answer_helpers.ts`.
 
-- [ ] Mobile runtime captures crash/error events with actionable stack context.
-- [ ] A minimal mobile stability dashboard/query path exists for release go/no-go.
-- [ ] Release handoff references telemetry checks alongside scorecard/device evidence.
+### RF.v2.3
 
----
-
-## Wave 3 - Mobile-First Product Expansion
-
-### MX.1
-
-**Title:** Describe Yourself (mobile)  
-**Status:** ✅ 2026-05-11
-**Source consolidation:** deferred parity feature + changelog known limitation
-
-Done when:
-
-- [ ] Player can complete a native mobile "Describe Yourself" flow end-to-end.
-- [ ] Inputs are validated and persisted through the existing backend contract.
-- [ ] Mobile UX diverges intentionally from web where needed for small-screen clarity.
-
-### MX.2
-
-**Title:** Team leaderboard + social comparison scope decision  
-**Status:** ✅ 2026-05-11
-
-Decision:
-
-- Deferred from the current mobile release train.
-- Target release window: v1.9+ (post-multi-player session foundations).
-- Dependency blockers: team identity/membership model, shared team-session backend contracts, anti-abuse leaderboard rules, and mobile perf budget validation for deeper ranking surfaces.
-
-Done when:
-
-- [ ] Decide ship-now vs defer for team leaderboard surfaces on mobile.
-- [ ] If deferred, document explicit release target and dependency blockers.
-- [ ] If shipped, add feature rows/evidence requirements to `parity-matrix.md`.
-
-### MX.3
-
-**Title:** Challenge leaderboard depth expansion  
-**Status:** ✅ 2026-05-11
-
-Notes:
-
-- Expanded mobile leaderboard depth to a top-10 summary preview with user-triggered expansion up to 25 rows.
-- Full-board parity remains intentionally deferred for mobile performance and scanability.
-
----
-
-## Wave 4 - v1.9 Scope Foundations
-
-### MY.1
-
-**Title:** Team leaderboard contract-prep + blocker breakdown  
-**Status:** ✅ 2026-05-11
-
-Done when:
-
-- [ ] Mobile-facing API contract docs enumerate the required team leaderboard endpoints/payloads for v1.9+.
-- [ ] Deferred-blocker wording across roadmap/parity/release docs is consistent and implementation-ready.
-- [ ] Scope is documented as contract-prep only (no runtime team leaderboard UI shipped).
-
-### MY.2
-
-**Title:** Challenge leaderboard perf validation for deeper rows  
-**Status:** 🟡
-
-Done when:
-
-- [ ] Physical-device evidence is captured for 25-row leaderboard expansion on at least one small-screen device.
-- [ ] If perf budgets regress, fallback cap and rationale are documented.
-
-### MY.3
-
-**Title:** v1.9 scope lock and release-note contract refresh  
+**Title:** Split `packages/game-engine/src/question-selection.ts`
 **Status:** ⬜
+**Why:** Governed at 490 lines. Math (entropy, info gain) is conceptually separable from selection orchestration.
 
 Done when:
 
-- [ ] `In Progress / Up Next` reflects explicit v1.9 queue order.
-- [ ] Release handoff and changelog known-limitations language are synchronized with final v1.9 scope.
+- [ ] Pure math (`scoreQuestion`, `expectedInfoGain`, `weightUtility`) moved to `question-selection/math.ts`.
+- [ ] Orchestration (candidate generation, filtering, ranking) stays in `question-selection.ts` shell.
+- [ ] Property-based tests added via `fast-check` (seeds [DX.v2.3](#dxv2-3)): probability sums to 1, monotonic info gain, no NaN on any answer pattern.
+- [ ] Complexity-guard ceiling tightened to 300 lines for the shell.
+
+### RF.v2.4
+
+**Title:** Ungoverned-hotspot sweep
+**Status:** ⬜
+**Why:** `pnpm refactor:guard --report` auto-scans `{src,functions,scripts,packages}` for >400-line files not in the rules list. Each one is either an extraction candidate or needs an explicit governance rule + rationale.
+
+Done when:
+
+- [ ] `pnpm refactor:guard --report` shows zero ungoverned hotspots.
+- [ ] For each hotspot: either extracted to ≤400 lines, or added to `rules` in `scripts/check-complexity.ts` with a rationale comment.
+- [ ] Outcome documented in [docs/refactor-boundaries.md](docs/refactor-boundaries.md) under "Governed files".
+
+### RF.v2.5
+
+**Title:** Consolidate admin API client
+**Status:** ⬜
+**Why:** `src/lib/admin/adminApi.ts` duplicates fetch patterns across 30+ admin routes; types drift from server-side handler signatures.
+
+Done when:
+
+- [ ] Admin fetch wrappers consume generated types from [DX.v2.1](#dxv2-1) (this item depends on DX.v2.1 landing first).
+- [ ] All admin route components import from a single typed client surface.
+- [ ] No `as any` or `unknown` casts in admin API call sites.
 
 ---
 
-## Removed / De-Prioritized
+## Wave DQ.v2 — Data Quality & Enrichment Hardening
 
-- Removed vague "post-parity queue definition" item in favor of concrete feature delivery (`MX.1`, `MX.2`).
-- Replaced generic offline/perf maintenance entries with specific must-focus execution items (`MN.2` UI E2E gate, `MN.3` crash telemetry baseline).
+> Continues the data-quality program. Source: [docs/data-quality-execution-map.md](docs/data-quality-execution-map.md), `data/quality-reports/` backlog.
+
+### DQ.v2.1
+
+**Title:** Canonical `pnpm dq:report` command
+**Status:** ⬜
+**Why:** Today the attribute-completeness SLA, golden-image audit, and null-closure status each emit separate reports. Operators have no single source of truth for "is data quality OK to ship?".
+
+Done when:
+
+- [ ] New `pnpm dq:report` script emits the union to `.ci-artifacts/data-quality/report.json` + a human-readable `report.md` summary.
+- [ ] Report includes: attribute-completeness SLA pass/fail, golden-image audit drift, null-closure queue depth, top-10 sparse attributes.
+- [ ] Wired into CI as warning-only for ≥7 days, then blocking.
+- [ ] [docs/ci-artifacts.md](docs/ci-artifacts.md) updated with the new artifact path and contents.
+
+### DQ.v2.2
+
+**Title:** Step-resumable enrichment orchestration
+**Status:** ⬜
+**Why:** `scripts/ingest/enrich.ts` retries from scratch on partial failures. Re-reading enriched cache before retrying makes runs idempotent and is a precondition for the IX.2 (Cloudflare Workflows) icebox option.
+
+Done when:
+
+- [ ] Each pipeline stage checks `data/enrich-cache/` before invoking LLM / source adapter.
+- [ ] All persistence SQL is idempotent (`INSERT OR IGNORE` / `ON CONFLICT DO UPDATE`).
+- [ ] Resumability covered by integration test that kills the process mid-stage and reruns.
+
+### DQ.v2.3
+
+**Title:** Shared source-adapter base
+**Status:** ⬜
+**Why:** `scripts/ingest/sources/{comicvine,igdb,tmdb,anilist,wikidata}.ts` each reimplement retry, rate-limit, and schema validation differently.
+
+Done when:
+
+- [ ] New `scripts/ingest/sources/_base.ts` exports `withRateLimit`, `withRetry`, and `parseWithSchema` helpers.
+- [ ] All five adapters refactored to consume the base; per-adapter logic kept to source-specific fetch + normalization.
+- [ ] Each adapter has a focused unit test covering happy-path + one failure mode.
+
+### DQ.v2.4
+
+**Title:** Adversarial dispute review queue (`/admin/disputes`)
+**Status:** ⬜ (promoted from icebox)
+**Why:** `attribute_disputes` (migration 0026) accumulates rows from adversarial enrichment validation but has no operator UI. Backlog drift inflates noise in source-of-truth data.
+
+Done when:
+
+- [ ] `/admin/disputes` lists disputes sorted by controversy score, paginated.
+- [ ] Reviewer can accept (apply attribute change), reject (drop dispute), or escalate (flag for second reviewer).
+- [ ] Resolution writes to `attribute_disputes.resolved_at` + `resolved_by` (new columns if missing — add via migration).
+- [ ] Admin route count and migration history updated in `/memories/repo/project-overview.md`.
 
 ---
 
-## Completed Mobile Foundations And Parity
+## Wave EN — Engine Accuracy & Calibration
 
-- ✅ 2026-05-05: MB.1 toolchain and local run reliability baseline
-- ✅ 2026-05-05: MB.2 architecture boundaries and shared-core contract lock
-- ✅ 2026-05-05: MB.3 core gameplay shell and state-flow baseline
-- ✅ 2026-05-05: MB.4 native bridge baseline reliability
-- ✅ 2026-05-05: MB.5 verification baseline and gates
-- ✅ 2026-05-07: MP.1 foundation closeout and parity matrix seed
-- ✅ 2026-05-07: MP.2 navigation shell and phase router expansion
-- ✅ 2026-05-09: MP.3 player insights and personalization (I)
-- ✅ 2026-05-09: MP.4 gameplay depth and personalization (II)
-- ✅ 2026-05-09: MP.5 daily challenge and seasonal depth
-- ✅ 2026-05-10: MP.6 reliability and performance gate
-- ✅ 2026-05-10: MP.7 release and handoff gate
+> Source: `packages/game-engine/`, [docs/guess-readiness-calibration.md](docs/guess-readiness-calibration.md), simulate scripts.
+
+### EN.1
+
+**Title:** Calibration v2 against current 53K character pool
+**Status:** ⬜
+**Why:** Current scoring constants were tuned against a smaller pool. Re-running the grid search closes drift between simulator and production outcomes.
+
+Done when:
+
+- [ ] `pnpm simulate:grid` re-run against current pool; results checked into `data/`.
+- [ ] [docs/guess-readiness-calibration.md](docs/guess-readiness-calibration.md) regenerated with new optimal weights and delta vs prior calibration.
+- [ ] `pnpm simulate:apply-weights` applied; engine constants updated in `packages/game-engine/src/`.
+- [ ] CHANGELOG records the win-rate delta from the prior calibration.
+
+### EN.2
+
+**Title:** MCTS A/B at 10% via D1 `engine_config` feature flag
+**Status:** ⬜
+**Why:** `selectBestQuestionMCTS` exists but is not exercised in production. `game_stats.variant` (migration 0033) is already in the schema, waiting for a routing signal.
+
+Done when:
+
+- [ ] `engine_config` table gains a `feature_flags` JSON column (new migration).
+- [ ] Server start handler reads the flag, routes ~10% of new sessions to MCTS, writes `variant` to `game_stats`.
+- [ ] `/admin/experiments` shows live split + outcome comparison (win rate, avg questions, p-value).
+- [ ] Kill-switch path: set flag to `0%` rolls back without redeploy.
+
+### EN.3
+
+**Title:** Coverage-aware question selection on the server
+**Status:** ⬜
+**Why:** Client already tracks coverage via `useQuestionCoverage`. Server-side selection ignores it, so the engine occasionally asks questions backed by sparse attribute data.
+
+Done when:
+
+- [ ] `functions/api/v2/_game-engine.ts` reads attribute coverage (via existing `question_coverage` table) per session start.
+- [ ] Selection downweights questions whose attribute coverage < threshold.
+- [ ] Threshold + downweight factor exposed as `engine_config` keys (no redeploy required to tune).
+
+### EN.4
+
+**Title:** Confusion-pair telemetry → `/admin/confusion` drill-down
+**Status:** ⬜
+**Why:** `pnpm simulate:confusion-pairs` emits pair-level data, but operators have no UI to browse it. Flagged pairs are a leading indicator of attribute-data gaps.
+
+Done when:
+
+- [ ] `/admin/confusion` lists top-N character pairs by confusion score with sparkline trend.
+- [ ] Drill-down shows: shared attributes, divergent attributes, sample game transcripts.
+- [ ] Pairs link out to `/admin/characters/<id>` for direct attribute correction.
+
+---
+
+## Wave PI — Platform & Infra
+
+> KV removal aftershocks (migration 0047), wrangler config, R2 hygiene.
+
+### PI.1
+
+**Title:** `wrangler.toml` post-KV audit
+**Status:** ⬜
+**Why:** Migration 0047 removed all KV bindings; `wrangler.toml` and `.dev.vars.example` may still reference dead keys.
+
+Done when:
+
+- [ ] `wrangler.toml` contains zero references to `GUESS_KV`, `GUESS_ASSETS`, or their preview namespaces.
+- [ ] `.dev.vars.example` updated to current env-var shape.
+- [ ] `pnpm doctor` passes against the new config.
+- [ ] [ARCHITECTURE.md](ARCHITECTURE.md) "Bindings" section reflects current state.
+
+### PI.2
+
+**Title:** D1 migration baseline squash (fresh-DB only)
+**Status:** ⬜
+**Why:** 47 migrations make local bootstrap slow and surface duplicate-naming issues (0011 / 0011b). A squashed baseline accelerates fresh-environment setup without touching prod migration history.
+
+Done when:
+
+- [ ] `migrations/0000_baseline.sql` reproduces the post-0047 schema deterministically.
+- [ ] Migrations 0001–0047 stay in place (still run for upgraded environments).
+- [ ] Baseline only runs when `schema_version` table is empty (guard logic documented).
+- [ ] Local `pnpm db:seed` / `pnpm cf:dev` boots from the baseline in <5s.
+
+### PI.3
+
+**Title:** Tail Worker → structured `error_logs`
+**Status:** ⬜
+**Why:** `tail-worker/` exists but isn't wired into the error pipeline. Currently `functions/_middleware.ts` writes directly to `error_logs`, coupling request handling to D1 latency.
+
+Done when:
+
+- [ ] `_middleware.ts` emits structured error events (no direct D1 write).
+- [ ] `tail-worker/` consumes the events and batch-writes to `error_logs`.
+- [ ] Error-write failures no longer surface as 500s on the user request.
+
+### PI.4
+
+**Title:** R2 image orphan janitor cron
+**Status:** ⬜
+**Why:** `guess-images` bucket grows monotonically; no cleanup runs when characters are removed.
+
+Done when:
+
+- [ ] New cron under `functions/cron/` lists R2 keys, joins against `characters.id`, deletes orphans.
+- [ ] Runs nightly; emits count of deletions to `automation_runs`.
+- [ ] Dry-run mode supported via env var for safe first execution.
+
+---
+
+## Wave DX.v2 — DX, Contracts, Test Coverage
+
+> Source: icebox DX pipe dreams + gaps surfaced by RF.6 work.
+
+### DX.v2.1
+
+**Title:** Generated typed API client from OpenAPI
+**Status:** ⬜
+**Why:** [docs/openapi.yaml](docs/openapi.yaml) is the contract source of truth, but client and admin code call APIs through hand-written fetch wrappers. Eliminates "did you update the schema?" bugs.
+
+Done when:
+
+- [ ] `openapi-fetch` installed; codegen wired via `pnpm api:generate` (writes `src/lib/api.generated.ts`).
+- [ ] `src/hooks/useServerGame.ts` consumes the generated client (depends on or pairs with [RF.v2.1](#rfv2-1)).
+- [ ] `src/lib/admin/adminApi.ts` consumes the generated client (depends on or pairs with [RF.v2.5](#rfv2-5)).
+- [ ] CI step verifies generated client is in sync (`pnpm api:generate --check`).
+
+### DX.v2.2
+
+**Title:** Miniflare integration suite for every `functions/api/v2/*` route
+**Status:** ⬜
+**Why:** Current coverage relies on MSW handlers + unit tests; full request → response cycle against seeded D1 is missing.
+
+Done when:
+
+- [ ] Test harness boots Miniflare with seeded D1 fixture for each route.
+- [ ] Every route under `functions/api/v2/` has at least one integration test exercising the success path and one validation-failure path.
+- [ ] Suite runs in `pnpm validate` under <60s (parallelized).
+
+### DX.v2.3
+
+**Title:** Property-based tests for `@guess/game-engine`
+**Status:** ⬜
+**Why:** Engine invariants (probability sums to 1, monotonic info gain, NaN-free) are critical and easy to fuzz.
+
+Done when:
+
+- [ ] `fast-check` installed and wired into `packages/game-engine/`.
+- [ ] Tests cover: `calculateProbabilities` sum invariant, `selectBestQuestion` monotonicity vs uniform pool, NaN-free on adversarial answer patterns.
+- [ ] Runs under 10s; included in `pnpm validate`.
+
+### DX.v2.4
+
+**Title:** Pre-commit hook enforcing `pnpm validate:fast`
+**Status:** ⬜
+**Why:** `lint-staged.config.mjs` exists but doesn't enforce the fast validation lane; regressions ship.
+
+Done when:
+
+- [ ] Pre-commit hook installed (prefer `simple-git-hooks` if already in lockfile; else `husky`).
+- [ ] Hook runs `pnpm validate:fast` on staged files; bypassable only via `--no-verify` (logged in pre-commit output).
+- [ ] [AGENTS.md](AGENTS.md) "Tooling guardrails" updated to reference the hook.
+
+### DX.v2.5
+
+**Title:** OpenAPI ↔ handler drift detector
+**Status:** ⬜
+**Why:** [DX.v2.1](#dxv2-1) generates a typed client from [docs/openapi.yaml](docs/openapi.yaml), but nothing keeps the yaml in sync with the actual `functions/api/v2/` handlers. Drift = silently wrong types at every call site.
+
+Done when:
+
+- [ ] `pnpm api:check-drift` script compares declared OpenAPI operations vs. discovered handler files (route, method, request shape, response shape).
+- [ ] Drift report emitted to `.ci-artifacts/openapi/drift.json` + `drift.md`.
+- [ ] CI step fails when undocumented routes exist or handler signatures diverge from the yaml.
+- [ ] [docs/openapi-generation.md](docs/openapi-generation.md) updated with the drift-detection workflow.
+
+---
+
+## Wave SE — Security Hardening
+
+> Tighten existing primitives (CSP endpoint, admin auth) and add automated guards so the surface area cannot silently regress.
+
+### SE.1
+
+**Title:** CSP report pipeline → D1 + weekly digest
+**Status:** ⬜
+**Why:** `functions/api/csp-report.ts` accepts reports but nothing persists them. Violations are invisible until a user complains.
+
+Done when:
+
+- [ ] New migration adds `csp_violations` table (timestamp, directive, blocked_uri, document_uri, user_agent, count).
+- [ ] Endpoint deduplicates by `(directive, blocked_uri)` within a rolling window and increments `count`.
+- [ ] `/admin/security` page lists top violations with sparkline trend.
+- [ ] Weekly cron emits a digest (top 10 directives) to `automation_runs` for visibility.
+
+### SE.2
+
+**Title:** Admin RBAC coverage audit + CI gate
+**Status:** ⬜
+**Why:** `functions/api/admin/` has ~15 sub-routes; auth-middleware coverage relies on convention, not enforcement. One forgotten gate exposes admin operations.
+
+Done when:
+
+- [ ] Automated test enumerates all `functions/api/admin/**/*.ts` route files and asserts each one invokes the shared admin-auth guard.
+- [ ] Allowlist for intentional public admin endpoints (if any) declared explicitly in the test, with rationale comments.
+- [ ] CI step fails when a new admin route lands without the guard or an explicit allowlist entry.
+- [ ] [ARCHITECTURE.md](ARCHITECTURE.md) "Security" section documents the guard contract.
+
+---
+
+## Wave OB — Observability & SLOs
+
+> Sequenced after [PI.3](#pi-3) so that `error_logs` is populated structured data before defining error budgets.
+
+### OB.1
+
+**Title:** SLO definitions + error-budget doc
+**Status:** ⬜
+**Why:** Today "is the service healthy?" has no quantitative answer. Need explicit p95 latency and error-rate targets for the two hot routes that define gameplay UX (`/api/v2/game/start` and `/api/v2/game/answer`).
+
+Done when:
+
+- [ ] `docs/slo.md` created with p95 latency target and error-rate target for `start` and `answer`.
+- [ ] Burn-rate alert thresholds documented (fast burn: 2% of budget in 1h; slow burn: 10% in 6h).
+- [ ] [ARCHITECTURE.md](ARCHITECTURE.md) cross-links the SLO doc.
+- [ ] At least one query in [docs/sim-vs-real-queries.sql](docs/sim-vs-real-queries.sql) (or new `docs/slo-queries.sql`) computes the current burn from `error_logs` + `game_stats`.
+
+---
+
+## Wave PF — Performance Budgets
+
+### PF.1
+
+**Title:** Bundle-size budget enforced in CI
+**Status:** ⬜
+**Why:** No automated guard against first-load JS bloat. Past wins (code-splitting, dynamic admin imports) can be silently undone.
+
+Done when:
+
+- [ ] `size-limit` (or `rollup-plugin-visualizer` + assertion script) configured with per-route budgets: initial bundle, lazy admin chunk, lazy enrichment chunk.
+- [ ] Current sizes captured as baseline; budgets set to baseline + 10% headroom.
+- [ ] CI step fails when a budget is exceeded; PR comment shows the offending bundle and delta.
+- [ ] [docs/ci-artifacts.md](docs/ci-artifacts.md) documents the size report artifact.
+
+---
+
+## Wave A11Y — Accessibility Floor
+
+### A11Y.1
+
+**Title:** Axe-core gate over critical phases
+**Status:** ⬜
+**Why:** No automated a11y checks today; manual audits drift. Establishing a no-regression floor unlocks confident iteration.
+
+Done when:
+
+- [ ] `@axe-core/playwright` integrated into `e2e/`.
+- [ ] One spec runs axe over: Lobby, Question, Reveal, Result phases (each waited-for-stable).
+- [ ] CI fails on `serious` or `critical` violations; `moderate` and `minor` reported as warnings in PR comment.
+- [ ] [docs/ci-artifacts.md](docs/ci-artifacts.md) lists the a11y report artifact path.
+
+---
+
+## Wave MOB — Mobile Closeout (Carry-over from v1.8)
+
+> Two carry-over items only; further mobile investment waits on App Store outcomes.
+
+### MOB.1
+
+**Title:** Challenge leaderboard perf validation for deeper rows
+**Status:** 🟡
+**Carried from:** MY.2
+
+Done when:
+
+- [ ] Physical-device evidence captured for 25-row leaderboard expansion on at least one small-screen device.
+- [ ] If perf budgets regress, fallback cap + rationale documented in `docs/mobile/ios-release-handoff-playbook.md`.
+
+### MOB.2
+
+**Title:** v1.9 scope lock + release-note contract refresh
+**Status:** ⬜
+**Carried from:** MY.3
+
+Done when:
+
+- [ ] `In Progress / Up Next` reflects locked v1.9 queue order (already partially done by this rewrite).
+- [ ] Release handoff and changelog known-limitations language synchronized with the v1.9 wave structure (PI/DX/RF/DQ/EN tracks named explicitly).
+
+---
+
+## Shipped — Mobile Wave (May 2026)
+
+Full details (Done-when criteria, source consolidation, evidence references) preserved in [docs/ROADMAP-archive-v1.8-mobile-may-2026.md](docs/ROADMAP-archive-v1.8-mobile-may-2026.md).
+
+| ID | Title | Shipped |
+|---|---|---|
+| MR.1 | Release-documentation closeout + parity evidence normalization | ✅ 2026-05-11 |
+| MR.2 | App Store / TestFlight submission readiness gate | ✅ 2026-05-11 |
+| MR.3 | Post-MP.7 evidence debt cleanup | ✅ 2026-05-11 |
+| MN.1 | Native quality gate automation hardening | ✅ 2026-05-11 |
+| MN.2 | Mobile UI E2E gate (core flow automation) | ✅ 2026-05-11 |
+| MN.3 | Crash + runtime telemetry baseline | ✅ 2026-05-11 |
+| MX.1 | Describe Yourself (mobile) | ✅ 2026-05-11 |
+| MX.2 | Team leaderboard + social comparison scope decision (deferred to v1.9+) | ✅ 2026-05-11 |
+| MX.3 | Challenge leaderboard depth expansion (top-10 preview, expandable to 25) | ✅ 2026-05-11 |
+| MY.1 | Team leaderboard contract-prep + blocker breakdown | ✅ 2026-05-11 |
+
+Earlier mobile foundations (MB.1–MB.5, MP.1–MP.7) shipped 2026-05-05 → 2026-05-10. See archive for full list.
 
 ---
 
@@ -270,15 +515,13 @@ Done when:
 
 | Date | Decision | Why |
 |---|---|---|
-| 2026-05-11 | Archived full-product roadmap and moved active execution to mobile-only roadmap. | Immediate priority is iOS delivery; reduces context switching and planning drift across non-mobile tracks. |
-| 2026-05-11 | Re-prioritized mobile roadmap to concrete must-focus work (doc evidence cleanup, mobile UI E2E gate, crash telemetry baseline, Describe Yourself feature). | Current branch already shipped parity/reliability; remaining leverage is release confidence + next user-facing mobile value, not generic placeholder items. |
-| 2026-05-11 | Completed MR.3 evidence debt cleanup and normalized QA references to concrete branch artifacts. | Checklist truth now matches captured MP.6/MP.7 evidence, reducing release-readiness ambiguity and doc drift. |
-| 2026-05-11 | Completed MR.1 release-documentation closeout and parity evidence normalization. | Evidence references, handoff read order, and release documentation language are now consistent with the mobile-only roadmap and current branch truth. |
-| 2026-05-11 | Completed MN.2 by adding a mobile-core-flow E2E lane and artifact capture in mobile CI. | Core release flows now have automated regression coverage with reproducible logs/traces/screenshots in `.ci-artifacts/mobile-ci/`. |
-| 2026-05-11 | Completed MR.2 release readiness gate with a concrete functional/quality preflight matrix and explicit divergence contract for release notes. | TestFlight/App Store submission decisions now reference a deterministic checklist with branch-truth evidence instead of generic preflight prose. |
-| 2026-05-11 | Completed MN.3 runtime telemetry baseline (global handler + network failure capture + diagnostics visibility). | Mobile release go/no-go now has a concrete in-app stability signal with actionable runtime event context, without waiting on full third-party crash analytics rollout. |
-| 2026-05-11 | Completed MX.1 with a native mobile Describe Yourself flow, local archetype summary, and persistence through `POST /api/v2/events`. | Closes the deferred parity gap with a mobile-first UX while keeping backend compatibility and explicit input validation (minimum answered prompt threshold) before persistence. |
-| 2026-05-11 | Completed MX.2 with an explicit defer decision for team leaderboard + social comparison surfaces. | Current mobile release priorities remain reliability and existing parity features; team leaderboard delivery requires multiplayer/team identity foundations and ranking integrity guardrails not yet present in the mobile stack. |
-| 2026-05-11 | Completed MN.1 by codifying mobile evidence-link checks in CI and guardrails. | Mobile-touching changes now fail predictably when canonical evidence links drift from repository files, workflow artifact outputs, or CI artifact documentation. |
-| 2026-05-11 | Completed MX.3 by expanding challenge leaderboard depth while retaining summary-first mobile UX. | Mobile users now get deeper leaderboard visibility (top-10 preview expandable to 25) without committing to full-board rendering that risks small-screen performance regressions. |
-| 2026-05-11 | Completed MY.1 by documenting v1.9+ team leaderboard contract prerequisites and blocker breakdown. | The next mobile wave now has explicit API and policy prerequisites (teams context, ranking semantics, anti-abuse fields, perf envelope) so implementation can proceed without scope ambiguity. |
+| 2026-05-25 | Reframed `ROADMAP.md` from mobile-only back to full-product for v1.9. Mobile becomes one track among five (RF/DQ/EN/PI/DX). | Mobile parity + reliability + release readiness shipped. Remaining leverage is long-deferred code-health, data-quality, engine, platform, and DX/CI investments. |
+| 2026-05-25 | Wave sequence ordered as PI.1 → DX.v2.4 → RF.v2.1 → DQ.v2.1 → RF.v2.4 → EN.1 → DX.v2.1 → … (small wins first). | Re-establish full-product velocity with low-risk infra/DX wins before touching engine constants or undertaking the OpenAPI codegen migration. |
+| 2026-05-25 | Promoted two icebox items into v1.9: DQ.v2.4 (`/admin/disputes`) and DX.v2.1 (generated typed API client via `openapi-fetch`). | Both have concrete unblockers shipping in this wave (RF.v2.5 admin client unification, OpenAPI inventory). Removed from the icebox in the same commit as this roadmap edit. |
+| 2026-05-25 | Chose `openapi-fetch` over `openapi-typescript` (types-only) or `orval` (heavyweight) for DX.v2.1. | Best ergonomics-to-weight ratio: typed client + minimal runtime + no React Query dependency. |
+| 2026-05-25 | PI.2 migration squash limited to fresh-DB bootstrap; migrations 0001–0047 preserved for upgraded environments. | Squashing prod migration history is irreversible and removes audit trail; baseline-for-fresh-DB-only gives the speedup without the risk. |
+| 2026-05-25 | Added four new waves (SE, OB, PF, A11Y) + DX.v2.5 after gap-scan of v1.9 surface. | v1.9 originally over-indexed on code-health and data-quality; security/observability/performance/a11y had no governed floor. Each added item enforces a no-regression guard rather than a one-off audit, so the floor compounds. |
+| 2026-05-25 | OB wave sequenced after PI.3, not before. | SLOs without structured `error_logs` are guesswork; PI.3 supplies the data, OB.1 supplies the targets. |
+| 2026-05-25 | DX.v2.5 (OpenAPI drift detector) added as a follow-on to DX.v2.1, not a precondition. | Generating the client first proves the yaml is usable; drift detection then prevents future skew. Reversing the order would block client codegen on tooling that doesn't exist yet. |
+
+Earlier entries (2026-05-11 mobile-chapter decisions) preserved in [docs/ROADMAP-archive-v1.8-mobile-may-2026.md](docs/ROADMAP-archive-v1.8-mobile-may-2026.md#decision-log-mobile-only-chapter).

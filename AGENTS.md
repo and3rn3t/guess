@@ -4,10 +4,11 @@
 
 ## Read these first, in order
 
-1. **[ROADMAP.md](ROADMAP.md)** — the canonical source of truth for what's next. Start at the [In Progress / Up Next](ROADMAP.md#in-progress--up-next) block.
-2. **[ROADMAP.md → How to use this roadmap](ROADMAP.md#how-to-use-this-roadmap)** — the pull-loop, status protocol, Definition of Done, file-ownership map, and commit conventions. Non-optional reading before opening a PR.
+1. **[ROADMAP.md](ROADMAP.md)** — the canonical source of truth for what's next (v1.9, full-product). Start at the [In Progress / Up Next](ROADMAP.md#in-progress--up-next) block, then scan [Wave Sequence](ROADMAP.md#wave-sequence).
+2. **[ROADMAP.md → How To Pull Work](ROADMAP.md#how-to-pull-work)** + **[Definition Of Done](ROADMAP.md#definition-of-done-universal)** — pull-loop, status protocol, DoD, commit conventions. Non-optional before opening a PR.
 3. **[.github/copilot-instructions.md](.github/copilot-instructions.md)** — project conventions (tech stack, TypeScript rules, styling, file organization, commands).
 4. **[ARCHITECTURE.md](ARCHITECTURE.md)** — system design, data layer, API reference, CI/CD details.
+5. **Archive (read only if working in shipped scope):** [docs/ROADMAP-archive-v1.8-mobile-may-2026.md](docs/ROADMAP-archive-v1.8-mobile-may-2026.md) for the mobile-only chapter (May 2026).
 
 ## The pull-loop (TL;DR)
 

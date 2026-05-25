@@ -40,7 +40,6 @@ For the full annotated history of these ideas, see [ROADMAP-archive-v1.5.md](ROA
 - **Zod API contract layer** — shared schemas in `packages/game-engine/`, validated edge + client; MSW fixtures generated.
 - **Turborepo task graph** — cached per-package builds and tests.
 - **Playwright visual regression baseline** — snapshot diffs on phase transitions.
-- **Generated type-safe API client** — parse `functions/api/v2/` to emit `src/lib/api.generated.ts`.
 - **Full Miniflare integration test suite** — full request-response cycle for every endpoint with seeded fixtures.
 - **Property-based testing for the engine** — fast-check fuzzing of Bayesian invariants.
 - **Contract testing with Pact** — consumer-driven contract between React client and Workers.
@@ -64,7 +63,6 @@ For the full annotated history of these ideas, see [ROADMAP-archive-v1.5.md](ROA
 - **Pipeline Visual DAG Orchestrator** (`/admin/pipeline`) — interactive DAG of enrichment steps over `pipeline_runs`.
 - **LLM Cost Observatory** (`/admin/cost`) — AI Gateway + Analytics Engine; cost-per-game, model breakdown, what-if slider.
 - **Enrichment Diff Reviewer** (`/admin/enrich/diff`) — pre-upload diff with row-level approve/reject.
-- **Attribute Disputes Queue** (`/admin/disputes`) — surface `attribute_disputes` (0026) sorted by controversy score.
 - **Image Quality Review Queue** (`/admin/images/review`) — low-scoring portraits with drag-and-drop replace.
 - **Agent Reasoning Trace Viewer** (`/admin/enrich/traces`) — collapsible timeline of tool calls + retrieved evidence per attribute.
 - **A/B Experiment Control Room** (`/admin/experiments`) — manage IX.4 experiments from the browser; live p-value indicator.
