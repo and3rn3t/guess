@@ -60,6 +60,61 @@ const rules: FileRule[] = [
   { path: 'scripts/ingest/run.ts', maxLines: 320, maxOwnImports: 22 },
   { path: 'scripts/ingest/enrich.ts', maxLines: 520, maxOwnImports: 14 },
   { path: 'scripts/ingest/enrich/storage.ts', maxLines: 400, maxOwnImports: 10 },
+
+  // ── RF.v2.4 governed files ──────────────────────────────────────────────
+  // Decision rationale documented in docs/refactor-boundaries.md §Governed Files.
+  // Ceilings set at current + 10% grace (ratchet formula). Revisit on next sweep.
+
+  // CLI enrichment scripts — monolithic single-file pipelines; splitting adds
+  // cross-script coupling with no isolation gain.
+  { path: 'scripts/bulk-enrich-characters.ts', maxLines: 910, maxOwnImports: 10 },
+  { path: 'scripts/vision-validate.ts', maxLines: 630, maxOwnImports: 6 },
+  { path: 'scripts/vision-enrich-characters.ts', maxLines: 530, maxOwnImports: 8 },
+  { path: 'scripts/wikidata-enrich.ts', maxLines: 550, maxOwnImports: 8 },
+  { path: 'scripts/reconcile-attributes.ts', maxLines: 470, maxOwnImports: 12 },
+  { path: 'scripts/sparse-fill-attributes.ts', maxLines: 470, maxOwnImports: 12 },
+  { path: 'scripts/generate-trivia.ts', maxLines: 460, maxOwnImports: 8 },
+  { path: 'scripts/generate-gap-questions.ts', maxLines: 510, maxOwnImports: 6 },
+  { path: 'scripts/ingest/images.ts', maxLines: 450, maxOwnImports: 14 },
+
+  // Simulation scripts — self-contained parameter-space and simulation harnesses.
+  { path: 'scripts/simulate/engine.ts', maxLines: 540, maxOwnImports: 4 },
+  { path: 'scripts/simulate/grid-search.ts', maxLines: 480, maxOwnImports: 10 },
+  { path: 'scripts/simulate/run.ts', maxLines: 460, maxOwnImports: 12 },
+
+  // Data-quality scripts — sequential single-artifact builders; CLI by design.
+  { path: 'scripts/data-quality/report.ts', maxLines: 620, maxOwnImports: 8 },
+  { path: 'scripts/data-quality/build-null-closure-queue.ts', maxLines: 470, maxOwnImports: 8 },
+
+  // Mobile analysis scripts — comprehensive single-file screen analysis.
+  { path: 'scripts/mobile/check-screen-scorecard.ts', maxLines: 710, maxOwnImports: 8 },
+
+  // Worker / cron handlers — cohesive single-responsibility server-side handlers.
+  { path: 'functions/cron/_automation.ts', maxLines: 690, maxOwnImports: 12 },
+  { path: 'functions/api/admin/recommender.ts', maxLines: 590, maxOwnImports: 6 },
+  { path: 'functions/api/llm.ts', maxLines: 470, maxOwnImports: 6 },
+
+  // Admin UI route components — comprehensive single-screen views with shared filter state.
+  { path: 'src/components/admin/routes/AnalyticsRoute.tsx', maxLines: 610, maxOwnImports: 12 },
+  { path: 'src/components/admin/routes/ErrorLogsRoute.tsx', maxLines: 520, maxOwnImports: 14 },
+  { path: 'src/components/admin/routes/DisputesRoute.tsx', maxLines: 490, maxOwnImports: 12 },
+
+  // Admin tool components — single multi-step workflows with shared local state.
+  { path: 'src/components/admin/MultiCategoryEnhancer.tsx', maxLines: 790, maxOwnImports: 18 },
+  { path: 'src/components/admin/AttributeRecommender.tsx', maxLines: 580, maxOwnImports: 18 },
+  { path: 'src/components/admin/CategoryRecommender.tsx', maxLines: 540, maxOwnImports: 18 },
+  { path: 'src/components/admin/DataHygiene.tsx', maxLines: 490, maxOwnImports: 16 },
+  { path: 'src/components/admin/QuestionGeneratorDemo.tsx', maxLines: 460, maxOwnImports: 14 },
+  { path: 'src/components/admin/AdminShell.tsx', maxLines: 450, maxOwnImports: 18 },
+
+  // Standalone game/screen components — tightly coupled animation or comparison state.
+  { path: 'src/components/StatsDashboard.tsx', maxLines: 850, maxOwnImports: 16 },
+  { path: 'src/components/WelcomeScreen.tsx', maxLines: 550, maxOwnImports: 14 },
+  { path: 'src/components/CharacterComparison.tsx', maxLines: 530, maxOwnImports: 14 },
+  { path: 'src/components/TeachingMode.tsx', maxLines: 480, maxOwnImports: 22 },
+
+  // Services — single-concern scoring/ranking library; large due to inline scoring tables.
+  { path: 'src/lib/admin/attributeRecommender.ts', maxLines: 530, maxOwnImports: 4 },
 ];
 
 const AUTO_SCAN_DIRS = ['src', 'functions', 'scripts', 'packages'];

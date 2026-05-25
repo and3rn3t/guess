@@ -40,9 +40,9 @@ An item is `✅` only when **all** apply:
 ## In Progress / Up Next
 
 - 🟡 **In progress:** [DQ.v2.1](#dqv2-1) `pnpm dq:report` — orchestrator + CI wired warn-only on `reconcile-nightly`; flips to blocking after ≥7 clean nightly runs.
-- ⬜ **Next:** [RF.v2.4](#rfv2-4) ungoverned-hotspot sweep (see Decision Log 2026-05-25).
+- ⬜ **Next:** [DX.v2.1](#dxv2-1) generated typed API client (or RF.v2.3 if preferred — see Wave Sequence).
 - ⚪ **Parked:** [MOB.1](#mob-1) — needs physical-device evidence; no engineering blockers. Re-pull when device time available.
-- 📦 **Recently shipped:** SE.1 (CSP violations pipeline + admin digest) · OB.1 (SLO doc + burn queries) · PF.1 (bundle-size budgets) · A11Y.1 (axe-core e2e gate) · PI.3 (`logError` hot-path decoupling) · PI.1 (wrangler post-KV audit) · DX.v2.4 (pre-commit `validate:fast`) · SE.2 (RBAC coverage gate) — see [Shipped — Mobile Wave (May 2026)](#shipped--mobile-wave-may-2026)
+- 📦 **Recently shipped:** RF.v2.4 (ungoverned-hotspot sweep — 32 files governed) · SE.1 (CSP violations pipeline + admin digest) · OB.1 (SLO doc + burn queries) · PF.1 (bundle-size budgets) · A11Y.1 (axe-core e2e gate) · PI.3 (`logError` hot-path decoupling) · PI.1 (wrangler post-KV audit) · DX.v2.4 (pre-commit `validate:fast`) · SE.2 (RBAC coverage gate) — see [Shipped — Mobile Wave (May 2026)](#shipped--mobile-wave-may-2026)
 
 **Active batch (impact-ordered, see Decision Log 2026-05-25):** ~~SE.2~~ → ~~DX.v2.4~~ → ~~PI.1~~ → ~~PI.3~~ → ~~EN.1~~ (parked, see Decision Log 2026-05-25) → ~~A11Y.1~~ + ~~PF.1~~.
 
@@ -121,14 +121,16 @@ Done when:
 ### RF.v2.4
 
 **Title:** Ungoverned-hotspot sweep
-**Status:** ⬜
+**Status:** ✅ 2026-05-25
 **Why:** `pnpm refactor:guard --report` auto-scans `{src,functions,scripts,packages}` for >400-line files not in the rules list. Each one is either an extraction candidate or needs an explicit governance rule + rationale.
 
 Done when:
 
-- [ ] `pnpm refactor:guard --report` shows zero ungoverned hotspots.
-- [ ] For each hotspot: either extracted to ≤400 lines, or added to `rules` in `scripts/check-complexity.ts` with a rationale comment.
-- [ ] Outcome documented in [docs/refactor-boundaries.md](docs/refactor-boundaries.md) under "Governed files".
+- [x] `pnpm refactor:guard --report` shows zero ungoverned hotspots.
+- [x] For each hotspot: either extracted to ≤400 lines, or added to `rules` in `scripts/check-complexity.ts` with a rationale comment.
+- [x] Outcome documented in [docs/refactor-boundaries.md](docs/refactor-boundaries.md) under "Governed files".
+
+Shipped: 32 previously-ungoverned files across 7 categories added to `scripts/check-complexity.ts` with per-file rationale comments and ratcheted ceilings (+10% grace). All decisions recorded in [docs/refactor-boundaries.md § Governed Files](docs/refactor-boundaries.md). `pnpm refactor:guard --report` now exits clean with zero warnings.
 
 ### RF.v2.5
 
