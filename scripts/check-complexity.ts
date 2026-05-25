@@ -48,6 +48,7 @@ const rules: FileRule[] = [
   { path: 'src/components/GamePhaseRouter.tsx', maxLines: 330, maxOwnImports: 14 },
   { path: 'src/components/PlayingScreen.tsx', maxLines: 600, maxOwnImports: 26 },
   { path: 'src/components/GameOver.tsx', maxLines: 480, maxOwnImports: 26 },
+  { path: 'src/components/admin/routes/CharactersRoute.tsx', maxLines: 530, maxOwnImports: 18 },
   { path: 'src/hooks/useServerGame.ts', maxLines: 430, maxOwnImports: 12 },
   { path: 'functions/api/v2/game/start.ts', maxLines: 320, maxOwnImports: 12 },
   { path: 'functions/api/v2/game/answer.ts', maxLines: 360, maxOwnImports: 12 },
