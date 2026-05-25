@@ -1,4 +1,4 @@
-import { Fragment, useCallback, useEffect, useState } from 'react'
+import { Fragment, useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { AdminPageHeader } from '../AdminPageHeader'
 import { Button } from '@/components/ui/button'
@@ -28,30 +28,15 @@ import {
   exportAsCSV,
   getNeedsWorkScore,
   timeSinceCreated,
-  type QuickFilterPreset,
 } from '@/lib/admin/characterFilters'
 import {
   type AttributeApiValue,
-  type SortKey,
   toNullableBoolean,
   issueCountMessage,
   nextAttrValue,
 } from './characters/charactersHelpers'
 import { SortIndicator } from './characters/SortIndicator'
-
-interface AdminCharacter {
-  id: string
-  name: string
-  category: string
-  source: string
-  popularity: number
-  imageUrl: string | null
-  attributeCount: number
-  totalAttributes: number
-  coveragePct: number
-  isCustom: boolean
-  createdAt: number
-}
+import { useCharactersListing, type AdminCharacter } from './characters/useCharactersListing'
 
 interface ValidationIssue {
   attributeKey: string
@@ -68,13 +53,6 @@ interface ExpandedCharacterData {
   agreement: Record<string, { score: number | null; signals: number }>
 }
 
-interface PageData {
-  characters: AdminCharacter[]
-  total: number
-  page: number
-  pageSize: number
-}
-
 const CATEGORIES = Object.keys(CATEGORY_LABELS) as CharacterCategory[]
 const SKELETON_ROW_KEYS = [
   'char-skeleton-1',
@@ -88,21 +66,37 @@ const SKELETON_ROW_KEYS = [
 ]
 
 export default function CharactersRoute(): React.JSX.Element {
-  const [data, setData] = useState<PageData | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [search, setSearch] = useState('')
-  const [category, setCategory] = useState('')
-  const [maxCoverage, setMaxCoverage] = useState<string>('')
-  const [page, setPage] = useState(1)
-  const [sort, setSort] = useState<SortKey>('popularity')
-  const [order, setOrder] = useState<'asc' | 'desc'>('desc')
+  const {
+    data,
+    loading,
+    error,
+    search,
+    category,
+    maxCoverage,
+    page,
+    sort,
+    order,
+    totalPages,
+    selectedIds,
+    setSearch,
+    setCategory,
+    setMaxCoverage,
+    setPage,
+    toggleSort,
+    applyQuickFilter,
+    applyRecentSearch,
+    toggleSelect,
+    toggleSelectAll,
+    clearSelection,
+    refetch,
+    removeCharacterFromList,
+    setError,
+  } = useCharactersListing()
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null)
   const [deleting, setDeleting] = useState(false)
   const [expandedCharId, setExpandedCharId] = useState<string | null>(null)
   const [expandedData, setExpandedData] = useState<ExpandedCharacterData | null>(null)
   const [expandLoading, setExpandLoading] = useState(false)
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [reenriching, setReenriching] = useState(false)
   const [batchDeleteConfirm, setBatchDeleteConfirm] = useState(false)
   const [batchCategoryOpen, setBatchCategoryOpen] = useState(false)
@@ -110,75 +104,10 @@ export default function CharactersRoute(): React.JSX.Element {
   const [isBatchUpdating, setIsBatchUpdating] = useState(false)
   const [validating, setValidating] = useState<string | null>(null)
   const [validationResults, setValidationResults] = useState<Record<string, ValidationIssue[]>>({})
-  const pageSize = 50
-
-  const fetchData = useCallback(async () => {
-    setLoading(true)
-    setError(null)
-    try {
-      const params = new URLSearchParams({
-        search,
-        category,
-        page: String(page),
-        pageSize: String(pageSize),
-        sort,
-        order,
-      })
-      if (maxCoverage !== '') params.set('maxCoverage', maxCoverage)
-      const res = await fetch(`/api/admin/characters?${params}`)
-      if (!res.ok) throw new Error(`${res.status} ${res.statusText}`)
-      setData(await res.json())
-      setSelectedIds(new Set())
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Unknown error')
-    } finally {
-      setLoading(false)
-    }
-  }, [search, category, maxCoverage, page, pageSize, sort, order])
-
-  useEffect(() => {
-    const timer = setTimeout(() => { setPage(1); void fetchData() }, 300)
-    return () => clearTimeout(timer)
-  }, [search, category, maxCoverage]) // eslint-disable-line react-hooks/exhaustive-deps -- omitting `fetchData` prevents double-fetch: the second effect below reacts to fetchData changes after deps settle
-
-  useEffect(() => { void fetchData() }, [fetchData])
 
   useEffect(() => {
     setBatchDeleteConfirm(false)
   }, [selectedIds])
-
-  const toggleSort = (col: SortKey) => {
-    if (sort === col) {
-      setOrder((o) => (o === 'desc' ? 'asc' : 'desc'))
-    } else {
-      setSort(col)
-      setOrder(col === 'needsWork' ? 'asc' : 'desc')
-    }
-    setPage(1)
-  }
-
-  const applyQuickFilter = (preset: QuickFilterPreset) => {
-    if (preset.search !== undefined) {
-      setSearch(preset.search)
-    }
-    if (preset.category !== undefined) {
-      setCategory(preset.category)
-    }
-    if (preset.maxCoverage !== undefined) {
-      setMaxCoverage(preset.maxCoverage)
-    }
-    if (preset.sort) {
-      setSort(preset.sort)
-      setOrder(preset.order ?? 'desc')
-    }
-    setPage(1)
-  }
-
-  const applyRecentSearch = (query: string) => {
-    setSearch(query)
-    addRecentSearch(query)
-    setPage(1)
-  }
 
   const batchDeleteSelected = async () => {
     if (selectedIds.size === 0) return
@@ -203,9 +132,9 @@ export default function CharactersRoute(): React.JSX.Element {
         toast.error(`${failed} delete${suffix} failed`)
       }
 
-      setSelectedIds(new Set())
+      clearSelection()
       setBatchDeleteConfirm(false)
-      await fetchData()
+      await refetch()
     } catch (e) {
       toast.error(`Batch delete failed: ${e instanceof Error ? e.message : 'Unknown error'}`)
     } finally {
@@ -240,9 +169,9 @@ export default function CharactersRoute(): React.JSX.Element {
         toast.error(`${failed} category update${suffix} failed`)
       }
 
-      setSelectedIds(new Set())
+      clearSelection()
       setBatchCategoryOpen(false)
-      await fetchData()
+      await refetch()
     } catch (e) {
       toast.error(`Batch category update failed: ${e instanceof Error ? e.message : 'Unknown error'}`)
     } finally {
@@ -263,7 +192,7 @@ export default function CharactersRoute(): React.JSX.Element {
       const res = await fetch(`/api/admin/characters/${encodeURIComponent(id)}`, { method: 'DELETE' })
       if (!res.ok) throw new Error(res.statusText)
       toast.success(`${name} deleted`)
-      setData((prev) => prev ? { ...prev, characters: prev.characters.filter((c) => c.id !== id), total: prev.total - 1 } : prev)
+      removeCharacterFromList(id)
     } catch (e) {
       toast.error(`Failed to delete ${name}: ${e instanceof Error ? e.message : 'Unknown error'}`)
     } finally {
@@ -331,21 +260,12 @@ export default function CharactersRoute(): React.JSX.Element {
       })
       if (!res.ok) throw new Error(res.statusText)
       toast.success('Queued for re-enrichment')
-      setSelectedIds(new Set())
+      clearSelection()
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'Re-enrich failed')
     } finally {
       setReenriching(false)
     }
-  }
-
-  const toggleSelect = (id: string) => {
-    setSelectedIds((prev) => {
-      const next = new Set(prev)
-      if (next.has(id)) next.delete(id)
-      else next.add(id)
-      return next
-    })
   }
 
   const validateCharacter = async (id: string, name: string) => {
@@ -371,13 +291,6 @@ export default function CharactersRoute(): React.JSX.Element {
       setValidating(null)
     }
   }
-
-  const toggleSelectAll = () => {
-    const allIds = (data?.characters ?? []).map((c) => c.id)
-    setSelectedIds((prev) => prev.size === allIds.length ? new Set() : new Set(allIds))
-  }
-
-  const totalPages = data ? Math.ceil(data.total / pageSize) : 1
 
   const renderExpandedPanel = (character: AdminCharacter): React.JSX.Element | null => {
     if (expandLoading) {
