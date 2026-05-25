@@ -39,9 +39,11 @@ An item is `✅` only when **all** apply:
 
 ## In Progress / Up Next
 
-- 🟡 **In progress:** [MOB.1](#mob-1) challenge leaderboard perf validation for deeper rows
-- ⬜ **Next:** [PI.1](#pi-1) `wrangler.toml` post-KV audit
+- ⬜ **Next:** [SE.2](#se-2) admin RBAC coverage audit + CI gate (impact-first batch)
+- ⚪ **Parked:** [MOB.1](#mob-1) — needs physical-device evidence; no engineering blockers. Re-pull when device time available.
 - 📦 **Recently shipped:** mobile wave (MR/MN/MX/MY.1) — see [Shipped — Mobile Wave (May 2026)](#shipped--mobile-wave-may-2026)
+
+**Active batch (impact-ordered, see Decision Log 2026-05-25):** SE.2 → DX.v2.4 → PI.1 → PI.3 → EN.1 → A11Y.1 + PF.1.
 
 ---
 
@@ -469,7 +471,7 @@ Done when:
 ### MOB.1
 
 **Title:** Challenge leaderboard perf validation for deeper rows
-**Status:** 🟡
+**Status:** ⚪ parked 2026-05-25 — needs physical-device evidence; no engineering blockers. Re-pull when device time is available.
 **Carried from:** MY.2
 
 Done when:
@@ -523,5 +525,6 @@ Earlier mobile foundations (MB.1–MB.5, MP.1–MP.7) shipped 2026-05-05 → 202
 | 2026-05-25 | Added four new waves (SE, OB, PF, A11Y) + DX.v2.5 after gap-scan of v1.9 surface. | v1.9 originally over-indexed on code-health and data-quality; security/observability/performance/a11y had no governed floor. Each added item enforces a no-regression guard rather than a one-off audit, so the floor compounds. |
 | 2026-05-25 | OB wave sequenced after PI.3, not before. | SLOs without structured `error_logs` are guesswork; PI.3 supplies the data, OB.1 supplies the targets. |
 | 2026-05-25 | DX.v2.5 (OpenAPI drift detector) added as a follow-on to DX.v2.1, not a precondition. | Generating the client first proves the yaml is usable; drift detection then prevents future skew. Reversing the order would block client codegen on tooling that doesn't exist yet. |
+| 2026-05-25 | MOB.1 parked (⚪); active batch re-sequenced impact-first as SE.2 → DX.v2.4 → PI.1 → PI.3 → EN.1 → A11Y.1 + PF.1. | MOB.1 has no engineering blocker (needs physical-device evidence). Promoting SE.2 (admin auth blast radius) and DX.v2.4 (pre-commit multiplier) ahead of PI.1 trades one ordering position for two larger risk-reducers. Adds PI.3 + EN.1 (M-sized) because reliability decoupling and game-quality calibration outrank another batch of S items on user payoff. |
 
 Earlier entries (2026-05-11 mobile-chapter decisions) preserved in [docs/ROADMAP-archive-v1.8-mobile-may-2026.md](docs/ROADMAP-archive-v1.8-mobile-may-2026.md#decision-log-mobile-only-chapter).
