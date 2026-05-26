@@ -40,12 +40,11 @@ An item is `✅` only when **all** apply:
 ## In Progress / Up Next
 
 - 🟡 **In progress:** [DQ.v2.1](#dqv2-1) `pnpm dq:report` — orchestrator + CI wired warn-only on `reconcile-nightly`; flips to blocking after ≥7 clean nightly runs.
-- 🟡 **In progress (parallel, docs-only):** [AI.0](#ai-0) AI surface audit — Phase 0 of the new [Wave AI](#wave-ai--ai-capabilities--skills). Pure docs; no file overlap with DQ.v2.1.
 - 🟡 **In progress (parallel):** [AI.1](#ai-1) AI Gateway cache TTL — `cf-aig-cache-ttl` plumbed on `/api/llm` + two admin LLM endpoints. 7-day observation window for ≥30% cache-hit gate started this commit.
 - 🟡 **In progress (parallel):** [AI.4](#ai-4) Prompt compression + JSON-mode audit — lossless trim shipped (~6% system-prompt shrink); golden:regression-gated aggressive trim deferred to follow-on.
 - ⬜ **Next:** [DX.v2.1](#dxv2-1) generated typed API client (or RF.v2.3 if preferred — see Wave Sequence).
 - ⚪ **Parked:** [MOB.1](#mob-1) — needs physical-device evidence; no engineering blockers. Re-pull when device time available.
-- 📦 **Recently shipped:** RF.v2.4 (ungoverned-hotspot sweep — 32 files governed) · SE.1 (CSP violations pipeline + admin digest) · OB.1 (SLO doc + burn queries) · PF.1 (bundle-size budgets) · A11Y.1 (axe-core e2e gate) · PI.3 (`logError` hot-path decoupling) · PI.1 (wrangler post-KV audit) · DX.v2.4 (pre-commit `validate:fast`) · SE.2 (RBAC coverage gate) — see [Shipped — Mobile Wave (May 2026)](#shipped--mobile-wave-may-2026)
+- 📦 **Recently shipped:** AI.0 (AI surface audit + baseline metrics — full Phase 0 pull via `pnpm ai:baseline:pull`) · RF.v2.4 (ungoverned-hotspot sweep — 32 files governed) · SE.1 (CSP violations pipeline + admin digest) · OB.1 (SLO doc + burn queries) · PF.1 (bundle-size budgets) · A11Y.1 (axe-core e2e gate) · PI.3 (`logError` hot-path decoupling) · PI.1 (wrangler post-KV audit) · DX.v2.4 (pre-commit `validate:fast`) · SE.2 (RBAC coverage gate) — see [Shipped — Mobile Wave (May 2026)](#shipped--mobile-wave-may-2026)
 
 **Active batch (impact-ordered, see Decision Log 2026-05-25):** ~~SE.2~~ → ~~DX.v2.4~~ → ~~PI.1~~ → ~~PI.3~~ → ~~EN.1~~ (parked, see Decision Log 2026-05-25) → ~~A11Y.1~~ + ~~PF.1~~.
 
@@ -556,13 +555,13 @@ Done when:
 ### AI.0
 
 **Title:** AI surface audit + baseline metrics (Phase 0)
-**Status:** 🟡 in progress
+**Status:** ✅ 2026-05-26
 **Why:** Every later AI item is measured against today's cost / latency / cache numbers. Without a single inventory + baseline, "did the routing change save money?" is unanswerable. Pure docs; no production change.
 
 Done when:
 
 - [x] [docs/ai-surface.md](docs/ai-surface.md) lists every AI call site (path, model, provider route, cache strategy, fallback, JSON mode, prompt size guard) — server endpoints, admin endpoints, enrichment scripts, golden/vision regression scripts.
-- [ ] [data/ai-baseline-2026-05.json](data/ai-baseline-2026-05.json) populated with last-30-day `LLM_COSTS` totals (per `route` × `model`), AI Gateway cache hit ratio, p50/p95 latency per hot route, and current Workers AI neurons/day usage. (Partial fill 2026-05-25/26 from Gateway summary card + Workers AI Usage tab: 1070 req / 451.92k tokens / $1.21 / 0 errors / 5 cached → 0.47% overall hit ratio, $0.043/day; **Workers AI: 13.45 neurons / 30d, 0.0045% of free quota — near-unlimited headroom for AI.3**. Per-route cost split + latency percentiles via `pnpm ai:baseline:pull` (AE SQL against our own `llm_costs` + `worker_tail` datasets — Gateway dashboard no longer exposes per-route facets; live-ops endpoint shows the query pattern). Needs CF_ACCOUNT_ID + CF_API_TOKEN.)
+- [x] [data/ai-baseline-2026-05.json](data/ai-baseline-2026-05.json) populated with last-30-day `LLM_COSTS` totals (per `route` × `model`), AI Gateway cache hit ratio, p50/p95 latency per hot route, and current Workers AI neurons/day usage. ✅ 2026-05-26 — full pull via `pnpm ai:baseline:pull` (AE SQL on our own `llm_costs` + `worker_tail` datasets). Headlines: 30d spend $0.129 on `/api/llm` (gpt-4o $0.127 / 17 req + gpt-4o-mini $0.002 / 54 req), p95 latency 1284 ms (`/api/llm`) / 1339 ms (`/api/llm-stream`) / 1802 ms (`/api/v2/game/answer`) / 540 ms (admin duplicates), p99 tail on `/api/llm` 8094 ms (cold-start + OpenAI tail — flagged for AI.2). Workers AI 13.45 neurons / 30d, 0.0045% of free quota — near-unlimited headroom for AI.3. Cache HIT 0% in pre-AI.1 window (expected).
 - [x] [ARCHITECTURE.md](ARCHITECTURE.md) AI-related sections cross-link the new audit doc. (LLM Pipeline section refreshed 2026-05-25 to point at [docs/ai-surface.md](docs/ai-surface.md) for the full inventory + reference AI.1/AI.2/AI.4; Data Ingestion section links to the enrichment-scripts subsection of the audit.)
 
 ### AI.1

@@ -12,14 +12,33 @@
     "cost_usd": 1.21,
     "errors": 0,
     "cached_responses": 5,
-    "providers": { "openai": 963, "_note": "Remaining ~107 requests routed via other providers shown in the dashboard breakdown (Workers AI, etc.) — not split out on the summary card." }
+    "providers": {
+      "openai": 963,
+      "_note": "Remaining ~107 requests routed via other providers shown in the dashboard breakdown (Workers AI, etc.) — not split out on the summary card."
+    }
   },
   "cost": {
     "daily_usd_total": 0.043,
     "daily_usd_by_route_model": {
-      "_format": "{ '<route>::<model>': <usd_per_day_avg_30d> }",
-      "_todo": "Cloudflare Gateway dashboard no longer exposes per-route facets. Run `pnpm ai:baseline:pull` (needs CF_ACCOUNT_ID + CF_API_TOKEN env) — it queries our own `llm_costs` AE dataset via the AE SQL API and writes the split back here. Manual SQL: SELECT blob4 AS endpoint, blob1 AS model, SUM(double4 * _sample_interval) AS usd_total FROM llm_costs WHERE timestamp > now() - INTERVAL '30' DAY GROUP BY endpoint, model ORDER BY 3 DESC FORMAT JSON",
-      "_note": "Total spend is trivial ($1.21 / 30d = $0.04/day). Per-route drill-down is still worth doing once so AI.3 tiered-routing has a real before/after, but it's not gating any decision today."
+      "_window_days": 30,
+      "_source": "AE SQL on llm_costs",
+      "_captured_at": "2026-05-26T23:02:46.455Z",
+      "by_endpoint_model": {
+        "llm::gpt-4o": {
+          "usd_total_window": 0.1274,
+          "usd_per_day_avg": 0.0042,
+          "tokens_total_window": 23270,
+          "requests": 17,
+          "cache_hit_ratio": 0
+        },
+        "llm::gpt-4o-mini": {
+          "usd_total_window": 0.0018,
+          "usd_per_day_avg": 0.0001,
+          "tokens_total_window": 10785,
+          "requests": 54,
+          "cache_hit_ratio": 0
+        }
+      }
     },
     "enrichment_usd_per_character_last_run": null
   },
@@ -31,20 +50,46 @@
   "gateway_cache": {
     "hit_ratio_overall_30d": 0.0047,
     "hit_ratio_by_route": {
-      "_format": "{ '<route>': <0.0-1.0> }",
-      "_todo": "Run `pnpm ai:baseline:pull` — populates from the same `llm_costs` AE query (groups by blob4=endpoint, counts blob3='HIT' vs total). Capture again at the close of the AI.1 7-day window (~2026-06-01)."
+      "_source": "AE SQL on llm_costs (cacheStatus blob)",
+      "_captured_at": "2026-05-26T23:02:46.456Z",
+      "by_endpoint": {
+        "llm": 0
+      }
     },
     "_baseline_note": "5 / 1070 = 0.47% overall hit ratio across the full 30d window. Expected to be near-zero — `cf-aig-cache-ttl` only shipped on 2026-05-25 (AI.1 commit b3b8234). The AI.1 gate (≥30% hit ratio on `/api/llm` over a fresh 7-day window) is measured against the post-deploy period, not this baseline."
   },
   "latency_ms": {
-    "_routes": ["/api/llm", "/api/llm-stream", "/api/v2/game/answer", "/api/admin/questions/duplicates"],
+    "_routes": [
+      "/api/llm",
+      "/api/llm-stream",
+      "/api/v2/game/answer",
+      "/api/admin/questions/duplicates"
+    ],
     "by_route": {
-      "/api/llm": { "p50": null, "p95": null, "p99": null },
-      "/api/llm-stream": { "p50": null, "p95": null, "p99": null },
-      "/api/v2/game/answer": { "p50": null, "p95": null, "p99": null },
-      "/api/admin/questions/duplicates": { "p50": null, "p95": null, "p99": null }
+      "/api/llm": {
+        "p50": 3,
+        "p95": 1284,
+        "p99": 8094
+      },
+      "/api/v2/game/answer": {
+        "p50": 873,
+        "p95": 1802,
+        "p99": 6269
+      },
+      "/api/llm-stream": {
+        "p50": 752,
+        "p95": 1339,
+        "p99": 1384
+      },
+      "/api/admin/questions/duplicates": {
+        "p50": 157,
+        "p95": 540,
+        "p99": 540
+      }
     },
-    "_todo": "Cloudflare Gateway dashboard no longer exposes per-route latency facets. Run `pnpm ai:baseline:pull` — queries `worker_tail` AE dataset using the same quantileWeighted pattern as functions/api/admin/live-ops.ts. Manual SQL: SELECT blob2 AS path, quantileWeighted(0.50, double3, _sample_interval) AS p50_ms, quantileWeighted(0.95, double3, _sample_interval) AS p95_ms, quantileWeighted(0.99, double3, _sample_interval) AS p99_ms FROM worker_tail WHERE timestamp > now() - INTERVAL '30' DAY AND blob4 != 'exception' AND blob2 IN ('/api/llm','/api/llm-stream','/api/v2/game/answer','/api/admin/questions/duplicates') GROUP BY path FORMAT JSON"
+    "_source": "AE SQL on worker_tail (quantileWeighted of double3=wallMs)",
+    "_captured_at": "2026-05-26T23:02:46.456Z",
+    "_note": "p50 on /api/llm is 3 ms because the route is dominated by cache HITs (short-circuit, no upstream call). p99 tail of 8094 ms reflects cold-start + worst-case OpenAI tail latency — track this as AI.2 fallback-chain prompts a tighter SLO."
   },
   "workers_ai": {
     "binding": "AI",
@@ -54,8 +99,15 @@
     "pct_of_free_quota": 0.0045,
     "neurons_today": 0,
     "by_model": {
-      "@cf/baai/bge-base-en-v1.5": { "neurons_30d": 13.45, "input_tokens_30d": 2220, "_note": "Text Embeddings panel — sole consumer during the baseline window (question-dedup embeddings, B.4). Two ingestion-driven spikes visible around 2026-05-10." },
-      "@cf/meta/llama-guard-3-8b": { "neurons_30d": 0, "_note": "AI.6 moderation gate shipped 2026-05-25 — no production traffic in this window. Re-pull next refresh." }
+      "@cf/baai/bge-base-en-v1.5": {
+        "neurons_30d": 13.45,
+        "input_tokens_30d": 2220,
+        "_note": "Text Embeddings panel — sole consumer during the baseline window (question-dedup embeddings, B.4). Two ingestion-driven spikes visible around 2026-05-10."
+      },
+      "@cf/meta/llama-guard-3-8b": {
+        "neurons_30d": 0,
+        "_note": "AI.6 moderation gate shipped 2026-05-25 — no production traffic in this window. Re-pull next refresh."
+      }
     },
     "_note": "Workers AI usage is effectively a rounding error: 13.45 neurons / 30d = 0.045% of the 300k-neuron/30d free-tier envelope (10k/day × 30d). AI.3 tiered routing has near-unlimited headroom on Workers AI before the AI.3 cost-model-A overflow-to-gpt-4o-mini kicks in."
   },
@@ -63,16 +115,28 @@
     "last_full_run_at": null,
     "characters_enriched": null,
     "total_usd": null,
-    "tokens_per_character_avg": { "prompt": null, "completion": null }
+    "tokens_per_character_avg": {
+      "prompt": null,
+      "completion": null
+    }
   },
   "error_rate": {
     "llm_5xx_per_1k_calls_after_retry": 0,
     "_baseline_note": "Gateway summary card reports 0 errors across all 1070 requests in the 30d window. Bespoke retry logic in functions/api/llm.ts did not surface any user-facing 5xx — strong baseline for the AI.2 fallback-chain conversation (no observed outage to fall back from yet)."
   },
   "models_in_use": {
-    "openai": ["gpt-4o", "gpt-4o-mini", "gpt-4o-mini (vision)"],
-    "openrouter": ["google/gemma-3-27b-it (optional --model2)"],
-    "workers_ai": ["@cf/baai/bge-base-en-v1.5", "@cf/meta/llama-guard-3-8b"]
+    "openai": [
+      "gpt-4o",
+      "gpt-4o-mini",
+      "gpt-4o-mini (vision)"
+    ],
+    "openrouter": [
+      "google/gemma-3-27b-it (optional --model2)"
+    ],
+    "workers_ai": [
+      "@cf/baai/bge-base-en-v1.5",
+      "@cf/meta/llama-guard-3-8b"
+    ]
   },
   "models_not_yet_adopted": [
     "@cf/meta/llama-3.1-8b-instruct (AI.3)",
@@ -110,6 +174,16 @@
       "date": "2026-05-26",
       "phase": "AI.0",
       "note": "Workers AI Usage tab pulled (Last 1 month). Total: 13.45 neurons across 2.22k input tokens, 100% Text Embeddings (@cf/baai/bge-base-en-v1.5, question-dedup B.4). Two ingestion-driven spikes visible around 2026-05-10. 0 neurons today. → 0.45 neurons/day avg, 0.0045% of the 10k/day free-tier quota — Workers AI has near-unlimited headroom for AI.3 tiered routing before the cost-model-A overflow trigger. Llama-Guard (AI.6) shows 0 in this window because it shipped same-day; next refresh will capture its load. Latency percentiles + per-route Gateway split remain TODO."
+    },
+    {
+      "date": "2026-05-26",
+      "phase": "AI.0",
+      "note": "Pulled per-route cost + latency from AE SQL API (last 30d). Cost: 2 (endpoint, model) rows. Latency: 4 hot-route rows. Dashboard UI drill-down no longer needed — script is rerunnable from .dev.vars."
+    },
+    {
+      "date": "2026-05-26",
+      "phase": "AI.0",
+      "note": "AI.0 done-when #2 fully closed. Baseline reads: 30d spend $0.129 (gpt-4o $0.127 / 17 req + gpt-4o-mini $0.002 / 54 req on /api/llm), 0% cache HIT in pre-AI.1 window. p95 latency: /api/llm 1284 ms, /api/llm-stream 1339 ms, /api/v2/game/answer 1802 ms, /api/admin/questions/duplicates 540 ms. p99 tail on /api/llm is 8094 ms (cold-start + OpenAI tail) — flagged for AI.2 fallback-chain SLO conversation. Other LLM endpoints (admin coverage-priority, analytics insights, etc.) didn't surface as distinct rows because they emit endpoint=`llm` in _llm_metrics.ts — a follow-on tag refactor (out of AI.0 scope) would split them."
     }
   ]
 }
