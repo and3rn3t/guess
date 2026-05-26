@@ -1,5 +1,5 @@
 {
-  "endpointCount": 82,
+  "endpointCount": 81,
   "endpoints": [
     {
       "filePath": "functions/api/admin/about.ts",
@@ -138,6 +138,19 @@
       ]
     },
     {
+      "filePath": "functions/api/admin/community/rejected.ts",
+      "routePath": "/api/admin/community/rejected",
+      "methods": [
+        "get",
+        "patch"
+      ],
+      "domain": "admin",
+      "tags": [
+        "admin",
+        "community"
+      ]
+    },
+    {
       "filePath": "functions/api/admin/confusion.ts",
       "routePath": "/api/admin/confusion",
       "methods": [
@@ -249,6 +262,18 @@
     {
       "filePath": "functions/api/admin/data-quality/closure-queue-status.ts",
       "routePath": "/api/admin/data-quality/closure-queue-status",
+      "methods": [
+        "get"
+      ],
+      "domain": "admin",
+      "tags": [
+        "admin",
+        "data-quality"
+      ]
+    },
+    {
+      "filePath": "functions/api/admin/data-quality/completeness.ts",
+      "routePath": "/api/admin/data-quality/completeness",
       "methods": [
         "get"
       ],
@@ -626,6 +651,30 @@
       ]
     },
     {
+      "filePath": "functions/api/admin/security/csp-digest.ts",
+      "routePath": "/api/admin/security/csp-digest",
+      "methods": [
+        "get"
+      ],
+      "domain": "admin",
+      "tags": [
+        "admin",
+        "security"
+      ]
+    },
+    {
+      "filePath": "functions/api/admin/security/csp-violations.ts",
+      "routePath": "/api/admin/security/csp-violations",
+      "methods": [
+        "get"
+      ],
+      "domain": "admin",
+      "tags": [
+        "admin",
+        "security"
+      ]
+    },
+    {
       "filePath": "functions/api/admin/source-health.ts",
       "routePath": "/api/admin/source-health",
       "methods": [
@@ -699,30 +748,6 @@
       ]
     },
     {
-      "filePath": "functions/api/characters.ts",
-      "routePath": "/api/characters",
-      "methods": [
-        "get",
-        "post"
-      ],
-      "domain": "public",
-      "tags": [
-        "characters"
-      ]
-    },
-    {
-      "filePath": "functions/api/corrections.ts",
-      "routePath": "/api/corrections",
-      "methods": [
-        "get",
-        "post"
-      ],
-      "domain": "public",
-      "tags": [
-        "corrections"
-      ]
-    },
-    {
       "filePath": "functions/api/csp-report.ts",
       "routePath": "/api/csp-report",
       "methods": [
@@ -764,42 +789,6 @@
       "domain": "public",
       "tags": [
         "llm-stream"
-      ]
-    },
-    {
-      "filePath": "functions/api/questions.ts",
-      "routePath": "/api/questions",
-      "methods": [
-        "get",
-        "post"
-      ],
-      "domain": "public",
-      "tags": [
-        "questions"
-      ]
-    },
-    {
-      "filePath": "functions/api/stats.ts",
-      "routePath": "/api/stats",
-      "methods": [
-        "get",
-        "post"
-      ],
-      "domain": "public",
-      "tags": [
-        "stats"
-      ]
-    },
-    {
-      "filePath": "functions/api/sync.ts",
-      "routePath": "/api/sync",
-      "methods": [
-        "get",
-        "post"
-      ],
-      "domain": "public",
-      "tags": [
-        "sync"
       ]
     },
     {

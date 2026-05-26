@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Guess API",
-    "version": "1.6.1",
+    "version": "1.8.0",
     "description": "Auto-generated API contract from Cloudflare Pages function handlers."
   },
   "servers": [
@@ -1464,6 +1464,83 @@
                   "characterId"
                 ],
                 "additionalProperties": false
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/community/rejected": {
+      "get": {
+        "operationId": "get-admin-community-rejected",
+        "summary": "GET /api/admin/community/rejected",
+        "tags": [
+          "admin",
+          "community"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "security": [
+          {
+            "basicAuth": []
+          }
+        ]
+      },
+      "patch": {
+        "operationId": "patch-admin-community-rejected",
+        "summary": "PATCH /api/admin/community/rejected",
+        "tags": [
+          "admin",
+          "community"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "security": [
+          {
+            "basicAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
               }
             }
           }
@@ -3006,6 +3083,40 @@
                     "fetchedAt"
                   ],
                   "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "security": [
+          {
+            "basicAuth": []
+          }
+        ]
+      }
+    },
+    "/api/admin/data-quality/completeness": {
+      "get": {
+        "operationId": "get-admin-data-quality-completeness",
+        "summary": "GET /api/admin/data-quality/completeness",
+        "tags": [
+          "admin",
+          "data-quality"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
                 }
               }
             }
@@ -6926,6 +7037,74 @@
         }
       }
     },
+    "/api/admin/security/csp-digest": {
+      "get": {
+        "operationId": "get-admin-security-csp-digest",
+        "summary": "GET /api/admin/security/csp-digest",
+        "tags": [
+          "admin",
+          "security"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "security": [
+          {
+            "basicAuth": []
+          }
+        ]
+      }
+    },
+    "/api/admin/security/csp-violations": {
+      "get": {
+        "operationId": "get-admin-security-csp-violations",
+        "summary": "GET /api/admin/security/csp-violations",
+        "tags": [
+          "admin",
+          "security"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "security": [
+          {
+            "basicAuth": []
+          }
+        ]
+      }
+    },
     "/api/admin/source-health": {
       "get": {
         "operationId": "get-admin-source-health",
@@ -7942,328 +8121,6 @@
         }
       }
     },
-    "/api/characters": {
-      "get": {
-        "operationId": "get-characters",
-        "summary": "List legacy custom characters",
-        "tags": [
-          "characters"
-        ],
-        "responses": {
-          "200": {
-            "description": "Success response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "properties": {
-                      "id": {
-                        "type": "string"
-                      },
-                      "name": {
-                        "type": "string"
-                      },
-                      "category": {
-                        "type": "string"
-                      },
-                      "attributes": {
-                        "type": "object",
-                        "additionalProperties": {
-                          "oneOf": [
-                            {
-                              "type": "boolean"
-                            },
-                            {
-                              "type": "null"
-                            }
-                          ]
-                        }
-                      },
-                      "createdBy": {
-                        "type": "string"
-                      },
-                      "createdAt": {
-                        "type": "number"
-                      }
-                    },
-                    "required": [
-                      "id",
-                      "name",
-                      "category",
-                      "attributes",
-                      "createdBy",
-                      "createdAt"
-                    ],
-                    "additionalProperties": false
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/BadRequest"
-          },
-          "500": {
-            "$ref": "#/components/responses/InternalError"
-          }
-        }
-      },
-      "post": {
-        "operationId": "post-characters",
-        "summary": "Create a legacy custom character",
-        "tags": [
-          "characters"
-        ],
-        "responses": {
-          "200": {
-            "description": "Success response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "id": {
-                      "type": "string"
-                    },
-                    "name": {
-                      "type": "string"
-                    },
-                    "category": {
-                      "type": "string"
-                    },
-                    "attributes": {
-                      "type": "object",
-                      "additionalProperties": {
-                        "oneOf": [
-                          {
-                            "type": "boolean"
-                          },
-                          {
-                            "type": "null"
-                          }
-                        ]
-                      }
-                    },
-                    "createdBy": {
-                      "type": "string"
-                    },
-                    "createdAt": {
-                      "type": "number"
-                    }
-                  },
-                  "required": [
-                    "id",
-                    "name",
-                    "category",
-                    "attributes",
-                    "createdBy",
-                    "createdAt"
-                  ],
-                  "additionalProperties": false
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/BadRequest"
-          },
-          "500": {
-            "$ref": "#/components/responses/InternalError"
-          }
-        },
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "name": {
-                    "type": "string",
-                    "minLength": 2,
-                    "maxLength": 50
-                  },
-                  "category": {
-                    "type": "string",
-                    "enum": [
-                      "video-games",
-                      "movies",
-                      "anime",
-                      "comics",
-                      "books",
-                      "cartoons",
-                      "tv-shows",
-                      "pop-culture"
-                    ]
-                  },
-                  "attributes": {
-                    "type": "object",
-                    "propertyNames": {
-                      "type": "string"
-                    },
-                    "additionalProperties": {
-                      "anyOf": [
-                        {
-                          "type": "boolean"
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ]
-                    }
-                  }
-                },
-                "required": [
-                  "name",
-                  "category",
-                  "attributes"
-                ],
-                "additionalProperties": false
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/corrections": {
-      "get": {
-        "operationId": "get-corrections",
-        "summary": "List correction votes for a character",
-        "tags": [
-          "corrections"
-        ],
-        "responses": {
-          "200": {
-            "description": "Success response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "properties": {
-                      "attribute": {
-                        "type": "string"
-                      },
-                      "currentValue": {
-                        "oneOf": [
-                          {
-                            "type": "boolean"
-                          },
-                          {
-                            "type": "null"
-                          }
-                        ]
-                      },
-                      "suggestedValue": {
-                        "type": "boolean"
-                      },
-                      "userId": {
-                        "type": "string"
-                      },
-                      "createdAt": {
-                        "type": "number"
-                      }
-                    },
-                    "required": [
-                      "attribute",
-                      "currentValue",
-                      "suggestedValue",
-                      "userId",
-                      "createdAt"
-                    ],
-                    "additionalProperties": false
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/BadRequest"
-          },
-          "500": {
-            "$ref": "#/components/responses/InternalError"
-          }
-        }
-      },
-      "post": {
-        "operationId": "post-corrections",
-        "summary": "Submit a correction vote",
-        "tags": [
-          "corrections"
-        ],
-        "responses": {
-          "200": {
-            "description": "Success response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean"
-                    },
-                    "autoApplied": {
-                      "type": "boolean"
-                    }
-                  },
-                  "required": [
-                    "success",
-                    "autoApplied"
-                  ],
-                  "additionalProperties": false
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/BadRequest"
-          },
-          "500": {
-            "$ref": "#/components/responses/InternalError"
-          }
-        },
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "characterId": {
-                    "type": "string"
-                  },
-                  "attribute": {
-                    "type": "string"
-                  },
-                  "suggestedValue": {
-                    "type": "boolean"
-                  },
-                  "currentValue": {
-                    "oneOf": [
-                      {
-                        "type": "boolean"
-                      },
-                      {
-                        "type": "null"
-                      }
-                    ]
-                  }
-                },
-                "required": [
-                  "characterId",
-                  "attribute",
-                  "suggestedValue"
-                ],
-                "additionalProperties": false
-              }
-            }
-          }
-        }
-      }
-    },
     "/api/csp-report": {
       "post": {
         "operationId": "post-csp-report",
@@ -8473,417 +8330,6 @@
                   "model"
                 ],
                 "additionalProperties": false
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/questions": {
-      "get": {
-        "operationId": "get-questions",
-        "summary": "List legacy custom questions",
-        "tags": [
-          "questions"
-        ],
-        "responses": {
-          "200": {
-            "description": "Success response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "properties": {
-                      "id": {
-                        "type": "string"
-                      },
-                      "text": {
-                        "type": "string"
-                      },
-                      "attribute": {
-                        "type": "string"
-                      },
-                      "createdBy": {
-                        "type": "string"
-                      },
-                      "createdAt": {
-                        "type": "number"
-                      }
-                    },
-                    "required": [
-                      "id",
-                      "text",
-                      "attribute",
-                      "createdBy",
-                      "createdAt"
-                    ],
-                    "additionalProperties": false
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/BadRequest"
-          },
-          "500": {
-            "$ref": "#/components/responses/InternalError"
-          }
-        }
-      },
-      "post": {
-        "operationId": "post-questions",
-        "summary": "Create a legacy custom question",
-        "tags": [
-          "questions"
-        ],
-        "responses": {
-          "200": {
-            "description": "Success response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "id": {
-                      "type": "string"
-                    },
-                    "text": {
-                      "type": "string"
-                    },
-                    "attribute": {
-                      "type": "string"
-                    },
-                    "createdBy": {
-                      "type": "string"
-                    },
-                    "createdAt": {
-                      "type": "number"
-                    }
-                  },
-                  "required": [
-                    "id",
-                    "text",
-                    "attribute",
-                    "createdBy",
-                    "createdAt"
-                  ],
-                  "additionalProperties": false
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/BadRequest"
-          },
-          "500": {
-            "$ref": "#/components/responses/InternalError"
-          }
-        },
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "text": {
-                    "type": "string",
-                    "minLength": 10,
-                    "maxLength": 200
-                  },
-                  "attribute": {
-                    "type": "string",
-                    "minLength": 2,
-                    "maxLength": 50,
-                    "pattern": "^[a-z][a-zA-Z]*$"
-                  }
-                },
-                "required": [
-                  "text",
-                  "attribute"
-                ],
-                "additionalProperties": false
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/stats": {
-      "get": {
-        "operationId": "get-stats",
-        "summary": "Get legacy per-character or leaderboard stats",
-        "tags": [
-          "stats"
-        ],
-        "responses": {
-          "200": {
-            "description": "Success response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "oneOf": [
-                    {
-                      "type": "object",
-                      "properties": {
-                        "characterId": {
-                          "type": "string"
-                        },
-                        "timesPlayed": {
-                          "type": "number"
-                        },
-                        "timesGuessed": {
-                          "type": "number"
-                        },
-                        "totalQuestions": {
-                          "type": "number"
-                        },
-                        "wins": {
-                          "type": "number"
-                        },
-                        "losses": {
-                          "type": "number"
-                        },
-                        "byDifficulty": {
-                          "type": "object",
-                          "additionalProperties": true
-                        }
-                      },
-                      "required": [
-                        "characterId",
-                        "timesPlayed",
-                        "timesGuessed",
-                        "totalQuestions",
-                        "wins",
-                        "losses",
-                        "byDifficulty"
-                      ],
-                      "additionalProperties": false
-                    },
-                    {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "properties": {
-                          "characterId": {
-                            "type": "string"
-                          },
-                          "timesPlayed": {
-                            "type": "number"
-                          },
-                          "timesGuessed": {
-                            "type": "number"
-                          },
-                          "totalQuestions": {
-                            "type": "number"
-                          },
-                          "wins": {
-                            "type": "number"
-                          },
-                          "losses": {
-                            "type": "number"
-                          },
-                          "byDifficulty": {
-                            "type": "object",
-                            "additionalProperties": true
-                          }
-                        },
-                        "required": [
-                          "characterId",
-                          "timesPlayed",
-                          "timesGuessed",
-                          "totalQuestions",
-                          "wins",
-                          "losses",
-                          "byDifficulty"
-                        ],
-                        "additionalProperties": false
-                      }
-                    }
-                  ]
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/BadRequest"
-          },
-          "500": {
-            "$ref": "#/components/responses/InternalError"
-          }
-        }
-      },
-      "post": {
-        "operationId": "post-stats",
-        "summary": "Record legacy game stat entry",
-        "tags": [
-          "stats"
-        ],
-        "responses": {
-          "200": {
-            "description": "Success response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean"
-                    }
-                  },
-                  "required": [
-                    "success"
-                  ],
-                  "additionalProperties": false
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/BadRequest"
-          },
-          "500": {
-            "$ref": "#/components/responses/InternalError"
-          }
-        },
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "characterId": {
-                    "type": "string",
-                    "minLength": 1
-                  },
-                  "won": {
-                    "type": "boolean"
-                  },
-                  "questionsAsked": {
-                    "type": "integer",
-                    "minimum": 0,
-                    "maximum": 9007199254740991
-                  },
-                  "difficulty": {
-                    "default": "medium",
-                    "type": "string",
-                    "enum": [
-                      "easy",
-                      "medium",
-                      "hard"
-                    ]
-                  }
-                },
-                "required": [
-                  "characterId",
-                  "won",
-                  "questionsAsked",
-                  "difficulty"
-                ],
-                "additionalProperties": false
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/sync": {
-      "get": {
-        "operationId": "get-sync",
-        "summary": "Get legacy user sync payload",
-        "tags": [
-          "sync"
-        ],
-        "responses": {
-          "200": {
-            "description": "Success response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "userId": {
-                      "type": "string"
-                    },
-                    "settings": {
-                      "type": "object",
-                      "additionalProperties": true
-                    },
-                    "gameStats": {
-                      "type": "object",
-                      "additionalProperties": true
-                    },
-                    "lastSync": {
-                      "type": "number"
-                    }
-                  },
-                  "required": [
-                    "userId",
-                    "settings",
-                    "gameStats",
-                    "lastSync"
-                  ],
-                  "additionalProperties": false
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/BadRequest"
-          },
-          "500": {
-            "$ref": "#/components/responses/InternalError"
-          }
-        }
-      },
-      "post": {
-        "operationId": "post-sync",
-        "summary": "Update legacy user sync payload",
-        "tags": [
-          "sync"
-        ],
-        "responses": {
-          "200": {
-            "description": "Success response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean"
-                    },
-                    "lastSync": {
-                      "type": "number"
-                    }
-                  },
-                  "required": [
-                    "success",
-                    "lastSync"
-                  ],
-                  "additionalProperties": false
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/BadRequest"
-          },
-          "500": {
-            "$ref": "#/components/responses/InternalError"
-          }
-        },
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "additionalProperties": true
               }
             }
           }

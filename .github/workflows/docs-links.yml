@@ -47,7 +47,7 @@ jobs:
             --timeout 20
             --retry-wait-time 2
             --max-retries 2
-            --accept 200,206,429
+            --accept 200,206,403,429
             --exclude 'localhost'
             --exclude '127\.0\.0\.1'
             --exclude 'example\.com'
@@ -81,7 +81,7 @@ jobs:
             --timeout 20
             --retry-wait-time 2
             --max-retries 2
-            --accept 200,206,429
+            --accept 200,206,403,429
             --exclude 'localhost'
             --exclude '127\.0\.0\.1'
             --exclude 'example\.com'

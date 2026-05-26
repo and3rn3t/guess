@@ -198,6 +198,24 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/community/rejected": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** GET /api/admin/community/rejected */
+        get: operations["get-admin-community-rejected"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** PATCH /api/admin/community/rejected */
+        patch: operations["patch-admin-community-rejected"];
+        trace?: never;
+    };
     "/api/admin/confusion": {
         parameters: {
             query?: never;
@@ -361,6 +379,23 @@ export interface paths {
         };
         /** Get latest persisted null-closure queue report status */
         get: operations["get-admin-data-quality-closure-queue-status"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/data-quality/completeness": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** GET /api/admin/data-quality/completeness */
+        get: operations["get-admin-data-quality-completeness"];
         put?: never;
         post?: never;
         delete?: never;
@@ -886,6 +921,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/security/csp-digest": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** GET /api/admin/security/csp-digest */
+        get: operations["get-admin-security-csp-digest"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/security/csp-violations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** GET /api/admin/security/csp-violations */
+        get: operations["get-admin-security-csp-violations"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/source-health": {
         parameters: {
             query?: never;
@@ -989,42 +1058,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/characters": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** List legacy custom characters */
-        get: operations["get-characters"];
-        put?: never;
-        /** Create a legacy custom character */
-        post: operations["post-characters"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/corrections": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** List correction votes for a character */
-        get: operations["get-corrections"];
-        put?: never;
-        /** Submit a correction vote */
-        post: operations["post-corrections"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/csp-report": {
         parameters: {
             query?: never;
@@ -1087,60 +1120,6 @@ export interface paths {
         put?: never;
         /** Proxy streaming LLM completions */
         post: operations["post-llm-stream"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/questions": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** List legacy custom questions */
-        get: operations["get-questions"];
-        put?: never;
-        /** Create a legacy custom question */
-        post: operations["post-questions"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/stats": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get legacy per-character or leaderboard stats */
-        get: operations["get-stats"];
-        put?: never;
-        /** Record legacy game stat entry */
-        post: operations["post-stats"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/sync": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get legacy user sync payload */
-        get: operations["get-sync"];
-        put?: never;
-        /** Update legacy user sync payload */
-        post: operations["post-sync"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1471,10 +1450,6 @@ export interface operations {
             /** @description Success response */
             200: {
                 headers: {
-                    /** @description Edge cache status for this completion response. */
-                    "X-Cache"?: "HIT" | "MISS";
-                    /** @description Number of provider retry attempts performed before this response. */
-                    "X-LLM-Retry-Count"?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -2007,6 +1982,60 @@ export interface operations {
             500: components["responses"]["InternalError"];
         };
     };
+    "get-admin-community-rejected": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    "patch-admin-community-rejected": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    [key: string]: unknown;
+                };
+            };
+        };
+        responses: {
+            /** @description Success response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            500: components["responses"]["InternalError"];
+        };
+    };
     "get-admin-confusion": {
         parameters: {
             query?: never;
@@ -2531,6 +2560,30 @@ export interface operations {
                             }[];
                         } | null;
                         fetchedAt: number;
+                    };
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    "get-admin-data-quality-completeness": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
                     };
                 };
             };
@@ -3978,6 +4031,54 @@ export interface operations {
             500: components["responses"]["InternalError"];
         };
     };
+    "get-admin-security-csp-digest": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    "get-admin-security-csp-violations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            500: components["responses"]["InternalError"];
+        };
+    };
     "get-admin-source-health": {
         parameters: {
             query?: never;
@@ -4306,141 +4407,6 @@ export interface operations {
             500: components["responses"]["InternalError"];
         };
     };
-    "get-characters": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Success response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        id: string;
-                        name: string;
-                        category: string;
-                        attributes: {
-                            [key: string]: boolean | null;
-                        };
-                        createdBy: string;
-                        createdAt: number;
-                    }[];
-                };
-            };
-            400: components["responses"]["BadRequest"];
-            500: components["responses"]["InternalError"];
-        };
-    };
-    "post-characters": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    name: string;
-                    /** @enum {string} */
-                    category: "video-games" | "movies" | "anime" | "comics" | "books" | "cartoons" | "tv-shows" | "pop-culture";
-                    attributes: {
-                        [key: string]: boolean | null;
-                    };
-                };
-            };
-        };
-        responses: {
-            /** @description Success response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        id: string;
-                        name: string;
-                        category: string;
-                        attributes: {
-                            [key: string]: boolean | null;
-                        };
-                        createdBy: string;
-                        createdAt: number;
-                    };
-                };
-            };
-            400: components["responses"]["BadRequest"];
-            500: components["responses"]["InternalError"];
-        };
-    };
-    "get-corrections": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Success response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        attribute: string;
-                        currentValue: boolean | null;
-                        suggestedValue: boolean;
-                        userId: string;
-                        createdAt: number;
-                    }[];
-                };
-            };
-            400: components["responses"]["BadRequest"];
-            500: components["responses"]["InternalError"];
-        };
-    };
-    "post-corrections": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    characterId: string;
-                    attribute: string;
-                    suggestedValue: boolean;
-                    currentValue?: boolean | null;
-                };
-            };
-        };
-        responses: {
-            /** @description Success response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                        autoApplied: boolean;
-                    };
-                };
-            };
-            400: components["responses"]["BadRequest"];
-            500: components["responses"]["InternalError"];
-        };
-    };
     "post-csp-report": {
         parameters: {
             query?: never;
@@ -4559,210 +4525,6 @@ export interface operations {
                     "application/json": {
                         token?: string;
                         done?: boolean;
-                    };
-                };
-            };
-            400: components["responses"]["BadRequest"];
-            500: components["responses"]["InternalError"];
-        };
-    };
-    "get-questions": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Success response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        id: string;
-                        text: string;
-                        attribute: string;
-                        createdBy: string;
-                        createdAt: number;
-                    }[];
-                };
-            };
-            400: components["responses"]["BadRequest"];
-            500: components["responses"]["InternalError"];
-        };
-    };
-    "post-questions": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    text: string;
-                    attribute: string;
-                };
-            };
-        };
-        responses: {
-            /** @description Success response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        id: string;
-                        text: string;
-                        attribute: string;
-                        createdBy: string;
-                        createdAt: number;
-                    };
-                };
-            };
-            400: components["responses"]["BadRequest"];
-            500: components["responses"]["InternalError"];
-        };
-    };
-    "get-stats": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Success response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        characterId: string;
-                        timesPlayed: number;
-                        timesGuessed: number;
-                        totalQuestions: number;
-                        wins: number;
-                        losses: number;
-                        byDifficulty: {
-                            [key: string]: unknown;
-                        };
-                    } | {
-                        characterId: string;
-                        timesPlayed: number;
-                        timesGuessed: number;
-                        totalQuestions: number;
-                        wins: number;
-                        losses: number;
-                        byDifficulty: {
-                            [key: string]: unknown;
-                        };
-                    }[];
-                };
-            };
-            400: components["responses"]["BadRequest"];
-            500: components["responses"]["InternalError"];
-        };
-    };
-    "post-stats": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    characterId: string;
-                    won: boolean;
-                    questionsAsked: number;
-                    /**
-                     * @default medium
-                     * @enum {string}
-                     */
-                    difficulty: "easy" | "medium" | "hard";
-                };
-            };
-        };
-        responses: {
-            /** @description Success response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                    };
-                };
-            };
-            400: components["responses"]["BadRequest"];
-            500: components["responses"]["InternalError"];
-        };
-    };
-    "get-sync": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Success response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        userId: string;
-                        settings: {
-                            [key: string]: unknown;
-                        };
-                        gameStats: {
-                            [key: string]: unknown;
-                        };
-                        lastSync: number;
-                    };
-                };
-            };
-            400: components["responses"]["BadRequest"];
-            500: components["responses"]["InternalError"];
-        };
-    };
-    "post-sync": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    [key: string]: unknown;
-                };
-            };
-        };
-        responses: {
-            /** @description Success response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                        lastSync: number;
                     };
                 };
             };
