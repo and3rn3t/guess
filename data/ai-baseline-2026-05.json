@@ -1,23 +1,40 @@
 {
   "$schema": "https://json-schema.org/draft-07/schema",
-  "description": "Phase 0 baseline for Wave AI (AI.0). All metric fields start as null/TODO and must be populated from the Cloudflare AI Gateway + LLM_COSTS Analytics Engine dashboards before AI.1 ships, so later items have a measurable before/after. Refreshed at the close of every Wave-AI phase.",
+  "description": "Phase 0 baseline for Wave AI (AI.0). Populated 2026-05-25 from the Cloudflare AI Gateway dashboard summary card (last-30-day window, Apr 28 → May 25). Per-route, latency, and Workers AI neuron numbers still require a deeper drill-down (Gateway → Logs filter by metadata.route, plus Workers AI → Usage); recorded as nulls with a clear _todo until that pull happens.",
   "captured_at": "2026-05-25T00:00:00Z",
-  "captured_by": "AI.0 — initial scaffold",
+  "captured_by": "AI.0 — first real pull (dashboard summary card)",
   "window_days": 30,
+  "window_start": "2026-04-28",
+  "window_end": "2026-05-25",
+  "totals_from_gateway_summary": {
+    "requests": 1070,
+    "tokens": 451920,
+    "cost_usd": 1.21,
+    "errors": 0,
+    "cached_responses": 5,
+    "providers": { "openai": 963, "_note": "Remaining ~107 requests routed via other providers shown in the dashboard breakdown (Workers AI, etc.) — not split out on the summary card." }
+  },
   "cost": {
-    "daily_usd_total": null,
+    "daily_usd_total": 0.043,
     "daily_usd_by_route_model": {
       "_format": "{ '<route>::<model>': <usd_per_day_avg_30d> }",
-      "_todo": "Query LLM_COSTS: SELECT route, model, SUM(cost_usd)/30 FROM llm_costs WHERE timestamp > NOW() - INTERVAL '30 days' GROUP BY route, model ORDER BY 3 DESC LIMIT 5"
+      "_todo": "Per-route split not in the summary card. Pull via Gateway → Logs, group by metadata.route + metadata.model, or run: SELECT route, model, SUM(cost_usd)/30 FROM llm_costs WHERE timestamp > NOW() - INTERVAL '30 days' GROUP BY route, model ORDER BY 3 DESC LIMIT 10",
+      "_note": "Total spend is trivial ($1.21 / 30d = $0.04/day). Per-route drill-down is still worth doing once so AI.3 tiered-routing has a real before/after, but it's not gating any decision today."
     },
     "enrichment_usd_per_character_last_run": null
   },
+  "tokens": {
+    "total_30d": 451920,
+    "per_request_avg": 422,
+    "_note": "Avg blends prompt + completion across all routes; per-route breakdown deferred with the cost drill-down above."
+  },
   "gateway_cache": {
+    "hit_ratio_overall_30d": 0.0047,
     "hit_ratio_by_route": {
       "_format": "{ '<route>': <0.0-1.0> }",
-      "_todo": "Pull from AI Gateway dashboard → andernet-ai (prod) → Analytics → Cached %.",
-      "_note": "Expected 0 for every route at baseline because AI.1 (cf-aig-cache-ttl) has not shipped yet."
-    }
+      "_todo": "Per-route filter in Gateway → Analytics with metadata.route facet. Capture again at the close of the AI.1 7-day window (~2026-06-01)."
+    },
+    "_baseline_note": "5 / 1070 = 0.47% overall hit ratio across the full 30d window. Expected to be near-zero — `cf-aig-cache-ttl` only shipped on 2026-05-25 (AI.1 commit b3b8234). The AI.1 gate (≥30% hit ratio on `/api/llm` over a fresh 7-day window) is measured against the post-deploy period, not this baseline."
   },
   "latency_ms": {
     "_routes": ["/api/llm", "/api/llm-stream", "/api/v2/game/answer", "/api/admin/questions/duplicates"],
@@ -27,14 +44,14 @@
       "/api/v2/game/answer": { "p50": null, "p95": null, "p99": null },
       "/api/admin/questions/duplicates": { "p50": null, "p95": null, "p99": null }
     },
-    "_todo": "Query WORKER_TAIL: SELECT route, quantileExact(0.5)(duration_ms), quantileExact(0.95)(duration_ms), quantileExact(0.99)(duration_ms) FROM worker_tail WHERE timestamp > NOW() - INTERVAL '30 days' AND route IN (...) GROUP BY route"
+    "_todo": "Gateway summary card does not expose latency percentiles. Either drill into Gateway → Analytics → Latency tab (per-route facet) or query WORKER_TAIL: SELECT route, quantileExact(0.5)(duration_ms), quantileExact(0.95)(duration_ms), quantileExact(0.99)(duration_ms) FROM worker_tail WHERE timestamp > NOW() - INTERVAL '30 days' AND route IN (...) GROUP BY route"
   },
   "workers_ai": {
     "binding": "AI",
     "daily_quota_neurons": 10000,
     "neurons_per_day_avg_30d": null,
     "pct_of_free_quota": null,
-    "_todo": "Pull from Cloudflare Workers AI dashboard → Usage → daily neurons."
+    "_todo": "Pull from Cloudflare Workers AI dashboard → Usage → daily neurons. Only `@cf/baai/bge-base-en-v1.5` (question-dedup embeddings) hit this binding during the baseline window; `@cf/meta/llama-guard-3-8b` (AI.6 moderation) only went live 2026-05-25 so its load shows up in the next refresh."
   },
   "enrichment": {
     "last_full_run_at": null,
@@ -43,17 +60,16 @@
     "tokens_per_character_avg": { "prompt": null, "completion": null }
   },
   "error_rate": {
-    "llm_5xx_per_1k_calls_after_retry": null,
-    "_todo": "Query LLM_COSTS: rows with retry_outcome='5xx' AND final response_status>=500 / total rows, last 30d."
+    "llm_5xx_per_1k_calls_after_retry": 0,
+    "_baseline_note": "Gateway summary card reports 0 errors across all 1070 requests in the 30d window. Bespoke retry logic in functions/api/llm.ts did not surface any user-facing 5xx — strong baseline for the AI.2 fallback-chain conversation (no observed outage to fall back from yet)."
   },
   "models_in_use": {
     "openai": ["gpt-4o", "gpt-4o-mini", "gpt-4o-mini (vision)"],
     "openrouter": ["google/gemma-3-27b-it (optional --model2)"],
-    "workers_ai": ["@cf/baai/bge-base-en-v1.5"]
+    "workers_ai": ["@cf/baai/bge-base-en-v1.5", "@cf/meta/llama-guard-3-8b"]
   },
   "models_not_yet_adopted": [
     "@cf/meta/llama-3.1-8b-instruct (AI.3)",
-    "@cf/meta/llama-guard-3-8b (AI.6)",
     "@cf/llava-1.5-7b-hf (AI.5)",
     "@cf/baai/bge-reranker-base (AI.7)"
   ],
@@ -73,6 +89,11 @@
       "date": "2026-05-25",
       "phase": "AI.1",
       "note": "cf-aig-cache-ttl shipped on /api/llm (24h), /api/admin/coverage-priority (6h), /api/admin/analytics/insights (6h). gateway_cache.hit_ratio_by_route should populate after the 7-day observation window. Other admin LLM endpoints flagged for follow-on."
+    },
+    {
+      "date": "2026-05-25",
+      "phase": "AI.0",
+      "note": "First real dashboard pull (summary card). Filled totals (1070 req / 451.92k tokens / $1.21 / 0 errors / 5 cached), derived daily cost ($0.043/d) and overall cache hit ratio (0.47% — expected, AI.1 only just shipped). Per-route cost split, latency percentiles, and Workers AI neurons still TODO — those need facet drill-down in Gateway Analytics + the Workers AI Usage tab; tracked as inline _todo strings. Removed @cf/meta/llama-guard-3-8b from models_not_yet_adopted (AI.6 shipped)."
     }
   ]
 }
