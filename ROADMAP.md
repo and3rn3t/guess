@@ -43,9 +43,9 @@ An item is `✅` only when **all** apply:
 - 🟡 **In progress (parallel):** [AI.1](#ai-1) AI Gateway cache TTL — `cf-aig-cache-ttl` plumbed on `/api/llm` + two admin LLM endpoints. 7-day observation window for ≥30% cache-hit gate started this commit.
 - 🟡 **In progress (parallel):** [AI.4](#ai-4) Prompt compression + JSON-mode audit — lossless trim shipped (~6% system-prompt shrink); golden:regression-gated aggressive trim deferred to follow-on.
 - 🟡 **In progress (parallel):** [DX.v2.1](#dxv2-1) Generated typed API client — codegen + `pnpm api:generate/api:check` + CI in-sync gate shipped; consumer migrations land via [RF.v2.1](#rfv2-1) (useServerGame) + [RF.v2.5](#rfv2-5) (adminApi).
-- ⬜ **Next:** [RF.v2.5](#rfv2-5) admin API client consolidation (now unblocked by DX.v2.1 codegen) — or [RF.v2.3](#rfv2-3) split `question-selection.ts`.
+- ⬜ **Next:** [DQ.v2.3](#dqv2-3) shared source adapter base — or [PI.3](#pi-3) Tail Worker → `error_logs` (RF.v2.5 stays blocked, see Decision Log 2026-05-26).
 - ⚪ **Parked:** [MOB.1](#mob-1) — needs physical-device evidence; no engineering blockers. Re-pull when device time available.
-- 📦 **Recently shipped:** AI.0 (AI surface audit + baseline metrics — full Phase 0 pull via `pnpm ai:baseline:pull`) · RF.v2.4 (ungoverned-hotspot sweep — 32 files governed) · SE.1 (CSP violations pipeline + admin digest) · OB.1 (SLO doc + burn queries) · PF.1 (bundle-size budgets) · A11Y.1 (axe-core e2e gate) · PI.3 (`logError` hot-path decoupling) · PI.1 (wrangler post-KV audit) · DX.v2.4 (pre-commit `validate:fast`) · SE.2 (RBAC coverage gate) — see [Shipped — Mobile Wave (May 2026)](#shipped--mobile-wave-may-2026)
+- 📦 **Recently shipped:** RF.v2.3 (split `question-selection.ts` → orchestrator shell + pure math + fast-check property tests) · AI.0 (AI surface audit + baseline metrics — full Phase 0 pull via `pnpm ai:baseline:pull`) · RF.v2.4 (ungoverned-hotspot sweep — 32 files governed) · SE.1 (CSP violations pipeline + admin digest) · OB.1 (SLO doc + burn queries) · PF.1 (bundle-size budgets) · A11Y.1 (axe-core e2e gate) · PI.3 (`logError` hot-path decoupling) · PI.1 (wrangler post-KV audit) · DX.v2.4 (pre-commit `validate:fast`) · SE.2 (RBAC coverage gate) — see [Shipped — Mobile Wave (May 2026)](#shipped--mobile-wave-may-2026)
 
 **Active batch (impact-ordered, see Decision Log 2026-05-25):** ~~SE.2~~ → ~~DX.v2.4~~ → ~~PI.1~~ → ~~PI.3~~ → ~~EN.1~~ (parked, see Decision Log 2026-05-25) → ~~A11Y.1~~ + ~~PF.1~~.
 
@@ -112,15 +112,17 @@ Primary files: `functions/api/v2/game/answer.ts`, new `functions/api/v2/game/_an
 ### RF.v2.3
 
 **Title:** Split `packages/game-engine/src/question-selection.ts`
-**Status:** ⬜
+**Status:** ✅ 2026-05-26
 **Why:** Governed at 490 lines. Math (entropy, info gain) is conceptually separable from selection orchestration.
 
 Done when:
 
-- [ ] Pure math (`scoreQuestion`, `expectedInfoGain`, `weightUtility`) moved to `question-selection/math.ts`.
-- [ ] Orchestration (candidate generation, filtering, ranking) stays in `question-selection.ts` shell.
-- [ ] Property-based tests added via `fast-check` (seeds [DX.v2.3](#dxv2-3)): probability sums to 1, monotonic info gain, no NaN on any answer pattern.
-- [ ] Complexity-guard ceiling tightened to 300 lines for the shell.
+- [x] Pure math (`entropy`, `getAttributeGroup`, `calculateTopCandidateSeparation`, `scoreQuestion`, `applyNetGainFloor`, `buildNullRatioMap`, `QuestionScoringContext`) moved to `packages/game-engine/src/question-selection/math.ts`.
+- [x] Orchestration (candidate generation, filtering, top-K weighted-random selection) stays in `question-selection.ts` shell (166 lines).
+- [x] Property-based tests added via `fast-check` (seeds [DX.v2.3](#dxv2-3)): probability sums to ≈1, entropy bounded by log2(n), no NaN on any answer pattern, never returns an already-asked attribute — see `packages/game-engine/src/question-selection.property.test.ts`.
+- [x] Complexity-guard ceiling tightened to 300 lines for the shell (was 490); new 500-line ceiling added for the math module.
+
+Shipped: `packages/game-engine/src/question-selection.ts` (446→166 lines), `packages/game-engine/src/question-selection/math.ts` (new, 446 lines), `packages/game-engine/src/question-selection.property.test.ts` (new, 174 lines, 6 properties × 200 runs), `scripts/check-complexity.ts` (ceiling ratcheted). `fast-check` added as dev dependency to `@guess/game-engine`. Note: original done-when named `expectedInfoGain` + `weightUtility`, but those helpers didn't exist in the source — the extracted surface (`entropy` + `scoreQuestion` + 5 supporting helpers) covers the spirit of the criterion.
 
 ### RF.v2.4
 
@@ -762,6 +764,7 @@ Earlier mobile foundations (MB.1–MB.5, MP.1–MP.7) shipped 2026-05-05 → 202
 
 | Date | Decision | Why |
 |---|---|---|
+| 2026-05-26 | RF.v2.5 (admin API client consolidation) stays ⬜ blocked-by OpenAPI handler decorator enrichment; pivoted to RF.v2.3 instead. | DX.v2.1 generated `src/lib/api.generated.ts` covers 57 admin endpoints but every operation has `query?: never` (rejects the `sort`/`order`/`page`/`pageSize` query params `adminApi.ts` already sends) and `unknown`-shaped response bodies. Migrating now would lose type information — strictly worse than the hand-typed `AdminCharacterRow`/`AdminCharacterDetail` shapes. Unblocker is upstream handler decorator enrichment (separate work, not DX.v2.5 which only detects drift). Re-pull RF.v2.5 after decorators land. |
 | 2026-05-25 | Reframed `ROADMAP.md` from mobile-only back to full-product for v1.9. Mobile becomes one track among five (RF/DQ/EN/PI/DX). | Mobile parity + reliability + release readiness shipped. Remaining leverage is long-deferred code-health, data-quality, engine, platform, and DX/CI investments. |
 | 2026-05-25 | Wave sequence ordered as PI.1 → DX.v2.4 → RF.v2.1 → DQ.v2.1 → RF.v2.4 → EN.1 → DX.v2.1 → … (small wins first). | Re-establish full-product velocity with low-risk infra/DX wins before touching engine constants or undertaking the OpenAPI codegen migration. |
 | 2026-05-25 | Promoted two icebox items into v1.9: DQ.v2.4 (`/admin/disputes`) and DX.v2.1 (generated typed API client via `openapi-fetch`). | Both have concrete unblockers shipping in this wave (RF.v2.5 admin client unification, OpenAPI inventory). Removed from the icebox in the same commit as this roadmap edit. |

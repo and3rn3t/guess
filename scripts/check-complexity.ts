@@ -56,7 +56,12 @@ const rules: FileRule[] = [
   { path: 'functions/api/v2/game/start.ts', maxLines: 320, maxOwnImports: 12 },
   { path: 'functions/api/v2/game/answer.ts', maxLines: 360, maxOwnImports: 12 },
   { path: 'functions/api/v2/_game-engine.ts', maxLines: 340, maxOwnImports: 20 },
-  { path: 'packages/game-engine/src/question-selection.ts', maxLines: 490, maxOwnImports: 12 },
+  { path: 'packages/game-engine/src/question-selection.ts', maxLines: 300, maxOwnImports: 12 },
+  // Pure math + classifiers extracted from question-selection.ts (RF.v2.3).
+  // Larger ceiling because getAttributeGroup carries ~80 lines of taxonomy regex
+  // and scoreQuestion holds the full 10-step scoring blend; both are pure and
+  // fast-check tested via packages/game-engine/src/question-selection.property.test.ts.
+  { path: 'packages/game-engine/src/question-selection/math.ts', maxLines: 500, maxOwnImports: 8 },
   { path: 'scripts/ingest/run.ts', maxLines: 320, maxOwnImports: 22 },
   { path: 'scripts/ingest/enrich.ts', maxLines: 520, maxOwnImports: 14 },
   { path: 'scripts/ingest/enrich/storage.ts', maxLines: 400, maxOwnImports: 10 },
