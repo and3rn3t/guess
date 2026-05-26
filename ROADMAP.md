@@ -43,9 +43,9 @@ An item is `✅` only when **all** apply:
 - 🟡 **In progress (parallel):** [AI.1](#ai-1) AI Gateway cache TTL — `cf-aig-cache-ttl` plumbed on `/api/llm` + two admin LLM endpoints. 7-day observation window for ≥30% cache-hit gate started this commit.
 - 🟡 **In progress (parallel):** [AI.4](#ai-4) Prompt compression + JSON-mode audit — lossless trim shipped (~6% system-prompt shrink); golden:regression-gated aggressive trim deferred to follow-on.
 - 🟡 **In progress (parallel):** [DX.v2.1](#dxv2-1) Generated typed API client — codegen + `pnpm api:generate/api:check` + CI in-sync gate shipped; consumer migrations land via [RF.v2.1](#rfv2-1) (useServerGame) + [RF.v2.5](#rfv2-5) (adminApi).
-- ⬜ **Next:** [DQ.v2.3](#dqv2-3) shared source adapter base — or [PI.3](#pi-3) Tail Worker → `error_logs` (RF.v2.5 stays blocked, see Decision Log 2026-05-26).
+- ⬜ **Next:** [PI.3](#pi-3) Tail Worker → `error_logs` (RF.v2.5 stays blocked, see Decision Log 2026-05-26).
 - ⚪ **Parked:** [MOB.1](#mob-1) — needs physical-device evidence; no engineering blockers. Re-pull when device time available.
-- 📦 **Recently shipped:** RF.v2.3 (split `question-selection.ts` → orchestrator shell + pure math + fast-check property tests) · AI.0 (AI surface audit + baseline metrics — full Phase 0 pull via `pnpm ai:baseline:pull`) · RF.v2.4 (ungoverned-hotspot sweep — 32 files governed) · SE.1 (CSP violations pipeline + admin digest) · OB.1 (SLO doc + burn queries) · PF.1 (bundle-size budgets) · A11Y.1 (axe-core e2e gate) · PI.3 (`logError` hot-path decoupling) · PI.1 (wrangler post-KV audit) · DX.v2.4 (pre-commit `validate:fast`) · SE.2 (RBAC coverage gate) — see [Shipped — Mobile Wave (May 2026)](#shipped--mobile-wave-may-2026)
+- 📦 **Recently shipped:** DQ.v2.3 (shared source-adapter base — `_base.ts` + 5 adapters refactored + per-adapter tests) · RF.v2.3 (split `question-selection.ts` → orchestrator shell + pure math + fast-check property tests) · AI.0 (AI surface audit + baseline metrics — full Phase 0 pull via `pnpm ai:baseline:pull`) · RF.v2.4 (ungoverned-hotspot sweep — 32 files governed) · SE.1 (CSP violations pipeline + admin digest) · OB.1 (SLO doc + burn queries) · PF.1 (bundle-size budgets) · A11Y.1 (axe-core e2e gate) · PI.3 (`logError` hot-path decoupling) · PI.1 (wrangler post-KV audit) · DX.v2.4 (pre-commit `validate:fast`) · SE.2 (RBAC coverage gate) — see [Shipped — Mobile Wave (May 2026)](#shipped--mobile-wave-may-2026)
 
 **Active batch (impact-ordered, see Decision Log 2026-05-25):** ~~SE.2~~ → ~~DX.v2.4~~ → ~~PI.1~~ → ~~PI.3~~ → ~~EN.1~~ (parked, see Decision Log 2026-05-25) → ~~A11Y.1~~ + ~~PF.1~~.
 
@@ -184,14 +184,16 @@ Done when:
 ### DQ.v2.3
 
 **Title:** Shared source-adapter base
-**Status:** ⬜
+**Status:** ✅ 2026-05-26
 **Why:** `scripts/ingest/sources/{comicvine,igdb,tmdb,anilist,wikidata}.ts` each reimplement retry, rate-limit, and schema validation differently.
 
 Done when:
 
-- [ ] New `scripts/ingest/sources/_base.ts` exports `withRateLimit`, `withRetry`, and `parseWithSchema` helpers.
-- [ ] All five adapters refactored to consume the base; per-adapter logic kept to source-specific fetch + normalization.
-- [ ] Each adapter has a focused unit test covering happy-path + one failure mode.
+- [x] New `scripts/ingest/sources/_base.ts` exports `withRateLimit`, `withRetry`, and `parseWithSchema` helpers.
+- [x] All five adapters refactored to consume the base; per-adapter logic kept to source-specific fetch + normalization.
+- [x] Each adapter has a focused unit test covering happy-path + one failure mode (see `scripts/ingest/sources/adapters.test.ts` + `_base.test.ts`).
+
+Shipped: `scripts/ingest/sources/_base.ts` (new), 5 adapters now import `withRateLimit` from `./_base.js` and use the combined wait+retry call; per-adapter `toRawCharacter`/`categorizeFromGenres` exported and covered by happy + failure cases (`scripts/ingest/sources/adapters.test.ts`, 10 tests); `_base.ts` itself covered by `scripts/ingest/sources/_base.test.ts` (7 tests). `parseWithSchema` is an opt-in Zod validator — not yet consumed by any adapter (existing `as Interface` casts kept to avoid behavior change), available for future hardening passes.
 
 ### DQ.v2.4
 

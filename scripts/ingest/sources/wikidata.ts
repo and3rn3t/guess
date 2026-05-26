@@ -5,7 +5,7 @@
  */
 import type { RawCharacter, IngestStats, Category } from '../types.js';
 import { insertRawCharacters, logIngestRun } from '../db.js';
-import { RateLimiter, withRetry } from '../rate-limiter.js';
+import { RateLimiter, withRateLimit } from './_base.js';
 import { makeId, truncateDesc, ProgressLogger, formatElapsed } from '../utils.js';
 
 const WIKIDATA_SPARQL = 'https://query.wikidata.org/sparql';
@@ -46,27 +46,29 @@ interface WikidataResult {
 }
 
 async function sparqlQuery(query: string): Promise<WikidataResult[]> {
-  await limiter.wait();
+  return withRateLimit(
+    limiter,
+    async () => {
+      const url = `${WIKIDATA_SPARQL}?query=${encodeURIComponent(query)}`;
+      const res = await fetch(url, {
+        headers: { 'Accept': 'application/sparql-results+json', 'User-Agent': 'GuessGame/1.0 (character-ingestion)' },
+      });
 
-  return withRetry(async () => {
-    const url = `${WIKIDATA_SPARQL}?query=${encodeURIComponent(query)}`;
-    const res = await fetch(url, {
-      headers: { 'Accept': 'application/sparql-results+json', 'User-Agent': 'GuessGame/1.0 (character-ingestion)' },
-    });
+      if (res.status === 429 || res.status === 503) {
+        throw new Error(`Wikidata ${res.status}: rate limited or overloaded`);
+      }
+      if (!res.ok) throw new Error(`Wikidata ${res.status}: ${(await res.text()).slice(0, 200)}`);
 
-    if (res.status === 429 || res.status === 503) {
-      throw new Error(`Wikidata ${res.status}: rate limited or overloaded`);
-    }
-    if (!res.ok) throw new Error(`Wikidata ${res.status}: ${(await res.text()).slice(0, 200)}`);
-
-    const text = await res.text();
-    try {
-      const data = JSON.parse(text) as { results: { bindings: WikidataResult[] } };
-      return data.results.bindings;
-    } catch {
-      throw new Error(`JSON parse error at position ${text.length} chars`);
-    }
-  }, 5, 5000); // more retries with longer backoff for Wikidata
+      const text = await res.text();
+      try {
+        const data = JSON.parse(text) as { results: { bindings: WikidataResult[] } };
+        return data.results.bindings;
+      } catch {
+        throw new Error(`JSON parse error at position ${text.length} chars`);
+      }
+    },
+    { maxRetries: 5, baseDelay: 5000 } // more retries with longer backoff for Wikidata
+  );
 }
 
 function inferCategory(desc: string | undefined): Category {
@@ -102,7 +104,7 @@ function getCommonsThumbUrl(imageUrl: string, width = 200): string {
   }
 }
 
-function toRawCharacter(result: WikidataResult, typeLabel: string): RawCharacter | null {
+export function toRawCharacter(result: WikidataResult, typeLabel: string): RawCharacter | null {
   const name = result.charLabel.value;
   if (!name || name.startsWith('Q')) return null; // Skip unlabeled entities
 

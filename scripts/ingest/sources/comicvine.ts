@@ -6,7 +6,7 @@
 import type { RawCharacter, IngestStats } from '../types.js';
 import { insertRawCharacters, logIngestRun } from '../db.js';
 import { getConfig } from '../config.js';
-import { RateLimiter, withRetry } from '../rate-limiter.js';
+import { RateLimiter, withRateLimit } from './_base.js';
 import { makeId, truncateDesc, normalizePopularity, ProgressLogger, formatElapsed } from '../utils.js';
 
 const CV_BASE = 'https://comicvine.gamespot.com/api';
@@ -31,14 +31,12 @@ async function cvFetch<T>(resource: string, params: Record<string, string> = {})
   const config = getConfig();
   if (!config.comicVineApiKey) throw new Error('COMIC_VINE_API_KEY not set in .env.local');
 
-  await limiter.wait();
-
   const url = new URL(`${CV_BASE}/${resource}/`);
   url.searchParams.set('api_key', config.comicVineApiKey);
   url.searchParams.set('format', 'json');
   for (const [k, v] of Object.entries(params)) url.searchParams.set(k, v);
 
-  return withRetry(async () => {
+  return withRateLimit(limiter, async () => {
     const res = await fetch(url.toString(), {
       headers: { 'User-Agent': 'GuessGame/1.0 (character-ingestion)' },
     });
@@ -51,7 +49,7 @@ async function cvFetch<T>(resource: string, params: Record<string, string> = {})
     const data = await res.json() as { status_code: number; results: T; error: string };
     if (data.status_code !== 1) throw new Error(`Comic Vine error: ${data.error}`);
     return data.results;
-  }, 3, 10_000);
+  }, { maxRetries: 3, baseDelay: 10_000 });
 }
 
 function stripTagsRepeatedly(input: string): string {
@@ -65,7 +63,7 @@ function stripTagsRepeatedly(input: string): string {
   return prev;
 }
 
-function toRawCharacter(char: CvCharacter, maxAppearances: number): RawCharacter {
+export function toRawCharacter(char: CvCharacter, maxAppearances: number): RawCharacter {
   // Clean HTML from description (CodeQL: js/incomplete-multi-character-sanitization)
   const cleanDesc = char.deck || (char.description
     ? stripTagsRepeatedly(char.description).slice(0, 500)

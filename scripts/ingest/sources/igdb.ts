@@ -6,7 +6,7 @@
 import type { RawCharacter, IngestStats } from '../types.js';
 import { insertRawCharacters, logIngestRun } from '../db.js';
 import { getConfig } from '../config.js';
-import { RateLimiter, withRetry } from '../rate-limiter.js';
+import { RateLimiter, withRateLimit } from './_base.js';
 import { makeId, truncateDesc, normalizePopularity, ProgressLogger, formatElapsed } from '../utils.js';
 
 const IGDB_API = 'https://api.igdb.com/v4';
@@ -48,9 +48,7 @@ async function igdbQuery<T>(endpoint: string, body: string): Promise<T[]> {
   const config = getConfig();
   const token = await getAccessToken();
 
-  await limiter.wait();
-
-  return withRetry(async () => {
+  return withRateLimit(limiter, async () => {
     const res = await fetch(`${IGDB_API}/${endpoint}`, {
       method: 'POST',
       headers: {
@@ -67,7 +65,7 @@ async function igdbQuery<T>(endpoint: string, body: string): Promise<T[]> {
   });
 }
 
-function toRawCharacter(char: IgdbCharacter): RawCharacter {
+export function toRawCharacter(char: IgdbCharacter): RawCharacter {
   const topGame = char.games?.[0];
   const gamePopularity = topGame?.popularity ?? 0;
 

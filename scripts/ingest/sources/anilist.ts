@@ -5,7 +5,7 @@
  */
 import type { RawCharacter, IngestStats } from '../types.js';
 import { insertRawCharacters, logIngestRun } from '../db.js';
-import { RateLimiter, withRetry } from '../rate-limiter.js';
+import { RateLimiter, withRateLimit } from './_base.js';
 import { makeId, truncateDesc, normalizePopularity, ProgressLogger, formatElapsed } from '../utils.js';
 
 const ANILIST_API = 'https://graphql.anilist.co';
@@ -74,25 +74,27 @@ interface AniListPageInfo {
 }
 
 async function fetchPage(page: number, perPage = 50): Promise<{ characters: AniListCharacter[]; pageInfo: AniListPageInfo }> {
-  await limiter.wait();
+  const response = await withRateLimit(
+    limiter,
+    async () => {
+      const res = await fetch(ANILIST_API, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        body: JSON.stringify({ query: CHARACTER_QUERY, variables: { page, perPage } }),
+      });
 
-  const response = await withRetry(async () => {
-    const res = await fetch(ANILIST_API, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-      body: JSON.stringify({ query: CHARACTER_QUERY, variables: { page, perPage } }),
-    });
+      if (res.status === 429) {
+        const retryAfter = parseInt(res.headers.get('Retry-After') ?? '60');
+        console.log(`  AniList 429: waiting ${retryAfter}s before retry...`);
+        await new Promise(r => setTimeout(r, retryAfter * 1000));
+        throw new Error(`Rate limited, retry after ${retryAfter}s`);
+      }
+      if (!res.ok) throw new Error(`AniList API ${res.status}: ${await res.text()}`);
 
-    if (res.status === 429) {
-      const retryAfter = parseInt(res.headers.get('Retry-After') ?? '60');
-      console.log(`  AniList 429: waiting ${retryAfter}s before retry...`);
-      await new Promise(r => setTimeout(r, retryAfter * 1000));
-      throw new Error(`Rate limited, retry after ${retryAfter}s`);
-    }
-    if (!res.ok) throw new Error(`AniList API ${res.status}: ${await res.text()}`);
-
-    return res.json() as Promise<{ data: { Page: { pageInfo: AniListPageInfo; characters: AniListCharacter[] } } }>;
-  }, 5, 2000);
+      return res.json() as Promise<{ data: { Page: { pageInfo: AniListPageInfo; characters: AniListCharacter[] } } }>;
+    },
+    { maxRetries: 5, baseDelay: 2000 }
+  );
 
   return {
     characters: response.data.Page.characters,
@@ -111,7 +113,7 @@ function stripTagsRepeatedly(input: string): string {
   return prev;
 }
 
-function toRawCharacter(char: AniListCharacter, maxFavourites: number): RawCharacter {
+export function toRawCharacter(char: AniListCharacter, maxFavourites: number): RawCharacter {
   const name = char.name.full || char.name.native || `AniList-${char.id}`;
   const topMedia = char.media.nodes[0];
 

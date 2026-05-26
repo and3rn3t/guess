@@ -6,7 +6,7 @@
 import type { RawCharacter, IngestStats, Category } from '../types.js';
 import { insertRawCharacters, logIngestRun } from '../db.js';
 import { getConfig } from '../config.js';
-import { RateLimiter, withRetry } from '../rate-limiter.js';
+import { RateLimiter, withRateLimit } from './_base.js';
 import { makeId, truncateDesc, normalizePopularity, ProgressLogger, formatElapsed } from '../utils.js';
 
 const TMDB_BASE = 'https://api.themoviedb.org/3';
@@ -48,13 +48,11 @@ async function tmdbFetch<T>(path: string, params: Record<string, string> = {}): 
   const config = getConfig();
   if (!config.tmdbApiKey) throw new Error('TMDB_API_KEY not set in .env.local');
 
-  await limiter.wait();
-
   const url = new URL(`${TMDB_BASE}${path}`);
   url.searchParams.set('api_key', config.tmdbApiKey);
   for (const [k, v] of Object.entries(params)) url.searchParams.set(k, v);
 
-  return withRetry(async () => {
+  return withRateLimit(limiter, async () => {
     const res = await fetch(url.toString());
     if (res.status === 429) {
       const retryAfter = parseInt(res.headers.get('Retry-After') ?? '10');
@@ -65,7 +63,7 @@ async function tmdbFetch<T>(path: string, params: Record<string, string> = {}): 
   });
 }
 
-function categorizeFromGenres(genreIds: number[], mediaType: 'movie' | 'tv'): Category {
+export function categorizeFromGenres(genreIds: number[], mediaType: 'movie' | 'tv'): Category {
   if (genreIds.includes(ANIMATION_GENRE)) {
     return mediaType === 'tv' ? 'cartoons' : 'movies';
   }
