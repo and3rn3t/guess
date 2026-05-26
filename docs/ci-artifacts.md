@@ -27,6 +27,7 @@ Source: .github/workflows/ci.yml
   - openapi-generate.log
   - openapi-validate.log
   - openapi-check.log
+  - api-check.log
   - refactor-guard.log
   - knip.log
   - complexity-report.json (JSON report with line/import metrics for all governed + ungoverned hotspot files)

@@ -116,6 +116,10 @@ jobs:
           pnpm openapi:generate 2>&1 | tee .ci-artifacts/checks-static/openapi-generate.log
           pnpm openapi:validate 2>&1 | tee .ci-artifacts/checks-static/openapi-validate.log
           pnpm openapi:check 2>&1 | tee .ci-artifacts/checks-static/openapi-check.log
+      - name: Typed API client in sync (DX.v2.1)
+        run: |
+          set -o pipefail
+          pnpm api:check 2>&1 | tee .ci-artifacts/checks-static/api-check.log
       - name: Refactor boundary guard
         run: |
           set -o pipefail

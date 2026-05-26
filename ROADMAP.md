@@ -42,7 +42,8 @@ An item is `✅` only when **all** apply:
 - 🟡 **In progress:** [DQ.v2.1](#dqv2-1) `pnpm dq:report` — orchestrator + CI wired warn-only on `reconcile-nightly`; flips to blocking after ≥7 clean nightly runs.
 - 🟡 **In progress (parallel):** [AI.1](#ai-1) AI Gateway cache TTL — `cf-aig-cache-ttl` plumbed on `/api/llm` + two admin LLM endpoints. 7-day observation window for ≥30% cache-hit gate started this commit.
 - 🟡 **In progress (parallel):** [AI.4](#ai-4) Prompt compression + JSON-mode audit — lossless trim shipped (~6% system-prompt shrink); golden:regression-gated aggressive trim deferred to follow-on.
-- ⬜ **Next:** [DX.v2.1](#dxv2-1) generated typed API client (or RF.v2.3 if preferred — see Wave Sequence).
+- 🟡 **In progress (parallel):** [DX.v2.1](#dxv2-1) Generated typed API client — codegen + `pnpm api:generate/api:check` + CI in-sync gate shipped; consumer migrations land via [RF.v2.1](#rfv2-1) (useServerGame) + [RF.v2.5](#rfv2-5) (adminApi).
+- ⬜ **Next:** [RF.v2.5](#rfv2-5) admin API client consolidation (now unblocked by DX.v2.1 codegen) — or [RF.v2.3](#rfv2-3) split `question-selection.ts`.
 - ⚪ **Parked:** [MOB.1](#mob-1) — needs physical-device evidence; no engineering blockers. Re-pull when device time available.
 - 📦 **Recently shipped:** AI.0 (AI surface audit + baseline metrics — full Phase 0 pull via `pnpm ai:baseline:pull`) · RF.v2.4 (ungoverned-hotspot sweep — 32 files governed) · SE.1 (CSP violations pipeline + admin digest) · OB.1 (SLO doc + burn queries) · PF.1 (bundle-size budgets) · A11Y.1 (axe-core e2e gate) · PI.3 (`logError` hot-path decoupling) · PI.1 (wrangler post-KV audit) · DX.v2.4 (pre-commit `validate:fast`) · SE.2 (RBAC coverage gate) — see [Shipped — Mobile Wave (May 2026)](#shipped--mobile-wave-may-2026)
 
@@ -339,15 +340,22 @@ Done when:
 ### DX.v2.1
 
 **Title:** Generated typed API client from OpenAPI
-**Status:** ⬜
+**Status:** 🟡 in progress (codegen + CI in-sync gate shipped 2026-05-26; consumer migrations track under [RF.v2.1](#rfv2-1) + [RF.v2.5](#rfv2-5))
 **Why:** [docs/openapi.yaml](docs/openapi.yaml) is the contract source of truth, but client and admin code call APIs through hand-written fetch wrappers. Eliminates "did you update the schema?" bugs.
 
 Done when:
 
-- [ ] `openapi-fetch` installed; codegen wired via `pnpm api:generate` (writes `src/lib/api.generated.ts`).
+- [x] `openapi-fetch` installed; codegen wired via `pnpm api:generate` (writes `src/lib/api.generated.ts`).
 - [ ] `src/hooks/useServerGame.ts` consumes the generated client (depends on or pairs with [RF.v2.1](#rfv2-1)).
 - [ ] `src/lib/admin/adminApi.ts` consumes the generated client (depends on or pairs with [RF.v2.5](#rfv2-5)).
-- [ ] CI step verifies generated client is in sync (`pnpm api:generate --check`).
+- [x] CI step verifies generated client is in sync (`pnpm api:check` runs in `checks-static` job, logs to `.ci-artifacts/checks-static/api-check.log`).
+
+Shipped so far:
+
+- `openapi-fetch` (runtime) + `openapi-typescript` (devDep codegen) installed at workspace root.
+- [scripts/api/generate-client.ts](scripts/api/generate-client.ts) generates [src/lib/api.generated.ts](src/lib/api.generated.ts) (~5.6k lines) from `docs/openapi.yaml`. `pnpm api:generate` writes; `pnpm api:check` fails on drift.
+- Thin runtime wrapper at [src/lib/apiClient.ts](src/lib/apiClient.ts) exposes `createApiClient()` + default same-origin `apiClient` for consumers. Retry / 429 / SSE concerns remain owned by [src/lib/http.ts](src/lib/http.ts).
+- CI gate added to `checks-static` in [.github/workflows/ci.yml](.github/workflows/ci.yml) immediately after the existing OpenAPI drift check; artifact catalog [docs/ci-artifacts.md](docs/ci-artifacts.md) updated.
 
 ### DX.v2.2
 
