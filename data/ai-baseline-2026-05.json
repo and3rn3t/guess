@@ -49,9 +49,15 @@
   "workers_ai": {
     "binding": "AI",
     "daily_quota_neurons": 10000,
-    "neurons_per_day_avg_30d": null,
-    "pct_of_free_quota": null,
-    "_todo": "Pull from Cloudflare Workers AI dashboard → Usage → daily neurons. Only `@cf/baai/bge-base-en-v1.5` (question-dedup embeddings) hit this binding during the baseline window; `@cf/meta/llama-guard-3-8b` (AI.6 moderation) only went live 2026-05-25 so its load shows up in the next refresh."
+    "neurons_total_30d": 13.45,
+    "neurons_per_day_avg_30d": 0.45,
+    "pct_of_free_quota": 0.0045,
+    "neurons_today": 0,
+    "by_model": {
+      "@cf/baai/bge-base-en-v1.5": { "neurons_30d": 13.45, "input_tokens_30d": 2220, "_note": "Text Embeddings panel — sole consumer during the baseline window (question-dedup embeddings, B.4). Two ingestion-driven spikes visible around 2026-05-10." },
+      "@cf/meta/llama-guard-3-8b": { "neurons_30d": 0, "_note": "AI.6 moderation gate shipped 2026-05-25 — no production traffic in this window. Re-pull next refresh." }
+    },
+    "_note": "Workers AI usage is effectively a rounding error: 13.45 neurons / 30d = 0.045% of the 300k-neuron/30d free-tier envelope (10k/day × 30d). AI.3 tiered routing has near-unlimited headroom on Workers AI before the AI.3 cost-model-A overflow-to-gpt-4o-mini kicks in."
   },
   "enrichment": {
     "last_full_run_at": null,
@@ -94,6 +100,11 @@
       "date": "2026-05-25",
       "phase": "AI.0",
       "note": "First real dashboard pull (summary card). Filled totals (1070 req / 451.92k tokens / $1.21 / 0 errors / 5 cached), derived daily cost ($0.043/d) and overall cache hit ratio (0.47% — expected, AI.1 only just shipped). Per-route cost split, latency percentiles, and Workers AI neurons still TODO — those need facet drill-down in Gateway Analytics + the Workers AI Usage tab; tracked as inline _todo strings. Removed @cf/meta/llama-guard-3-8b from models_not_yet_adopted (AI.6 shipped)."
+    },
+    {
+      "date": "2026-05-26",
+      "phase": "AI.0",
+      "note": "Workers AI Usage tab pulled (Last 1 month). Total: 13.45 neurons across 2.22k input tokens, 100% Text Embeddings (@cf/baai/bge-base-en-v1.5, question-dedup B.4). Two ingestion-driven spikes visible around 2026-05-10. 0 neurons today. → 0.45 neurons/day avg, 0.0045% of the 10k/day free-tier quota — Workers AI has near-unlimited headroom for AI.3 tiered routing before the cost-model-A overflow trigger. Llama-Guard (AI.6) shows 0 in this window because it shipped same-day; next refresh will capture its load. Latency percentiles + per-route Gateway split remain TODO."
     }
   ]
 }
