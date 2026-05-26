@@ -18,7 +18,7 @@
     "daily_usd_total": 0.043,
     "daily_usd_by_route_model": {
       "_format": "{ '<route>::<model>': <usd_per_day_avg_30d> }",
-      "_todo": "Per-route split not in the summary card. Pull via Gateway → Logs, group by metadata.route + metadata.model, or run: SELECT route, model, SUM(cost_usd)/30 FROM llm_costs WHERE timestamp > NOW() - INTERVAL '30 days' GROUP BY route, model ORDER BY 3 DESC LIMIT 10",
+      "_todo": "Cloudflare Gateway dashboard no longer exposes per-route facets. Run `pnpm ai:baseline:pull` (needs CF_ACCOUNT_ID + CF_API_TOKEN env) — it queries our own `llm_costs` AE dataset via the AE SQL API and writes the split back here. Manual SQL: SELECT blob4 AS endpoint, blob1 AS model, SUM(double4 * _sample_interval) AS usd_total FROM llm_costs WHERE timestamp > now() - INTERVAL '30' DAY GROUP BY endpoint, model ORDER BY 3 DESC FORMAT JSON",
       "_note": "Total spend is trivial ($1.21 / 30d = $0.04/day). Per-route drill-down is still worth doing once so AI.3 tiered-routing has a real before/after, but it's not gating any decision today."
     },
     "enrichment_usd_per_character_last_run": null
@@ -32,7 +32,7 @@
     "hit_ratio_overall_30d": 0.0047,
     "hit_ratio_by_route": {
       "_format": "{ '<route>': <0.0-1.0> }",
-      "_todo": "Per-route filter in Gateway → Analytics with metadata.route facet. Capture again at the close of the AI.1 7-day window (~2026-06-01)."
+      "_todo": "Run `pnpm ai:baseline:pull` — populates from the same `llm_costs` AE query (groups by blob4=endpoint, counts blob3='HIT' vs total). Capture again at the close of the AI.1 7-day window (~2026-06-01)."
     },
     "_baseline_note": "5 / 1070 = 0.47% overall hit ratio across the full 30d window. Expected to be near-zero — `cf-aig-cache-ttl` only shipped on 2026-05-25 (AI.1 commit b3b8234). The AI.1 gate (≥30% hit ratio on `/api/llm` over a fresh 7-day window) is measured against the post-deploy period, not this baseline."
   },
@@ -44,7 +44,7 @@
       "/api/v2/game/answer": { "p50": null, "p95": null, "p99": null },
       "/api/admin/questions/duplicates": { "p50": null, "p95": null, "p99": null }
     },
-    "_todo": "Gateway summary card does not expose latency percentiles. Either drill into Gateway → Analytics → Latency tab (per-route facet) or query WORKER_TAIL: SELECT route, quantileExact(0.5)(duration_ms), quantileExact(0.95)(duration_ms), quantileExact(0.99)(duration_ms) FROM worker_tail WHERE timestamp > NOW() - INTERVAL '30 days' AND route IN (...) GROUP BY route"
+    "_todo": "Cloudflare Gateway dashboard no longer exposes per-route latency facets. Run `pnpm ai:baseline:pull` — queries `worker_tail` AE dataset using the same quantileWeighted pattern as functions/api/admin/live-ops.ts. Manual SQL: SELECT blob2 AS path, quantileWeighted(0.50, double3, _sample_interval) AS p50_ms, quantileWeighted(0.95, double3, _sample_interval) AS p95_ms, quantileWeighted(0.99, double3, _sample_interval) AS p99_ms FROM worker_tail WHERE timestamp > now() - INTERVAL '30' DAY AND blob4 != 'exception' AND blob2 IN ('/api/llm','/api/llm-stream','/api/v2/game/answer','/api/admin/questions/duplicates') GROUP BY path FORMAT JSON"
   },
   "workers_ai": {
     "binding": "AI",
@@ -100,6 +100,11 @@
       "date": "2026-05-25",
       "phase": "AI.0",
       "note": "First real dashboard pull (summary card). Filled totals (1070 req / 451.92k tokens / $1.21 / 0 errors / 5 cached), derived daily cost ($0.043/d) and overall cache hit ratio (0.47% — expected, AI.1 only just shipped). Per-route cost split, latency percentiles, and Workers AI neurons still TODO — those need facet drill-down in Gateway Analytics + the Workers AI Usage tab; tracked as inline _todo strings. Removed @cf/meta/llama-guard-3-8b from models_not_yet_adopted (AI.6 shipped)."
+    },
+    {
+      "date": "2026-05-26",
+      "phase": "AI.0",
+      "note": "Pivoted per-route cost + latency from Cloudflare Gateway dashboard (which dropped per-route facet drill-down) to `pnpm ai:baseline:pull` — a small script that queries our own `llm_costs` + `worker_tail` AE datasets via the AE SQL API. Same data, no operator clicking. Script is rerunnable; only needs CF_ACCOUNT_ID + CF_API_TOKEN (already in .dev.vars for live-ops)."
     },
     {
       "date": "2026-05-26",

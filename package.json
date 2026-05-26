@@ -136,6 +136,7 @@
     "mobile:prebuild:ios": "pnpm --filter @guess/mobile prebuild:ios",
     "prebuild:ios": "pnpm mobile:prebuild:ios",
     "tail": "tsx scripts/tail.ts",
+    "ai:baseline:pull": "tsx scripts/ai-baseline-pull.ts",
     "openapi:generate": "tsx scripts/openapi/generate.ts",
     "openapi:validate": "tsx scripts/openapi/validate.ts",
     "openapi:check": "tsx scripts/openapi/check-drift.ts",
