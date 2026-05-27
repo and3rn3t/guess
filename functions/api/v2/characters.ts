@@ -209,7 +209,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       return errorResponse(err.message, 400)
     }
     console.error('POST /api/v2/characters error:', err)
-    context.waitUntil(logError(context.env.GUESS_DB, 'v2/characters', 'error', 'v2 characters POST error', err))
+    context.waitUntil(logError(context.env, 'v2/characters', 'error', 'v2 characters POST error', err))
     return errorResponse('Internal error', 500)
   }
 }

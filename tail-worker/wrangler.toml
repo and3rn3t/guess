@@ -24,9 +24,24 @@ enabled = true
 binding = "WORKER_TAIL"
 dataset = "worker_tail"
 
+# PI.3.b — D1 binding so the Tail Worker can batch-insert `error_logs`
+# rows on behalf of the main worker. Uses the same `guess-db` D1 the main
+# worker writes to (functions/api/_helpers.ts `logError`). The Tail Worker
+# becomes the sole writer once `ERROR_LOG_VIA_TAIL=1` is flipped on the
+# main worker — see ARCHITECTURE.md "Error Pipeline".
+[[env.production.d1_databases]]
+binding = "GUESS_DB"
+database_name = "guess-db"
+database_id = "1ec6e6bd-56be-4ab6-9d90-09a15243154f"
+
 # ── Preview ───────────────────────────────────────────────────
 [env.preview]
 
 [[env.preview.analytics_engine_datasets]]
 binding = "WORKER_TAIL"
 dataset = "worker_tail_preview"
+
+[[env.preview.d1_databases]]
+binding = "GUESS_DB"
+database_name = "guess-db-preview"
+database_id = "a02a0492-36d2-4513-8270-82a3467914de"

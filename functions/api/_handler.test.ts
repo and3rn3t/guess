@@ -176,7 +176,7 @@ describe('defineHandler', () => {
     expect(await res.json()).toEqual({ error: 'Internal server error', requestId: 'req-123' })
     expect(ctx.waitUntil).toHaveBeenCalled()
     expect(logErrorMock).toHaveBeenCalledWith(
-      ctx.env.GUESS_DB,
+      ctx.env,
       'test',
       'error',
       'test handler error',
@@ -203,7 +203,7 @@ describe('defineHandler', () => {
     const res = await handler(ctx)
     expect(res.status).toBe(500)
     expect(logErrorMock).toHaveBeenCalledWith(
-      ctx.env.GUESS_DB,
+      ctx.env,
       'test',
       'error',
       'test handler error',
@@ -228,7 +228,7 @@ describe('defineHandler', () => {
     const res = await handler(ctx)
     expect(res.status).toBe(500)
     expect(logErrorMock).toHaveBeenCalledWith(
-      ctx.env.GUESS_DB,
+      ctx.env,
       'test',
       'error',
       'test handler error',

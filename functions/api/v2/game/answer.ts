@@ -159,7 +159,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     console.error("POST /api/v2/game/answer error:", err);
     context.waitUntil(
       logError(
-        context.env.GUESS_DB,
+        context.env,
         "answer",
         "error",
         "answer processing failed",

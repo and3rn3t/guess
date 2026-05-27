@@ -111,7 +111,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   } catch (err) {
     context.waitUntil(
       logError(
-        context.env.GUESS_DB,
+        context.env,
         "events",
         "error",
         "event ingestion failed",

@@ -18,6 +18,15 @@ export interface Env {
   WORKER_TAIL?: AnalyticsEngineDataset
   /** Workers AI binding (B.4 question embeddings). Optional — endpoints degrade gracefully when absent. */
   AI?: Ai
+  /**
+   * PI.3.b feature flag. When set to a truthy string (`"1"` / `"true"`),
+   * `logError` emits a `guess_error_event` envelope to `console.error` and
+   * skips the D1 batch — the Tail Worker (tail-worker/src/_error_log_writer.ts)
+   * becomes the sole writer of `error_logs`. Default off so existing
+   * environments keep their current dual-stream behaviour until the Tail
+   * Worker is deployed + verified.
+   */
+  ERROR_LOG_VIA_TAIL?: string
 }
 
 const OPENAI_COMPLETIONS = 'https://api.openai.com/v1/chat/completions'
@@ -353,9 +362,25 @@ export async function d1Batch(
  * Write an error or warning to the error_logs D1 table (fire-and-forget).
  * Never throws. Evicts oldest entries beyond 1000 rows automatically.
  * Pass to context.waitUntil() where available for reliable delivery.
+ *
+ * PI.3.b: when `env.ERROR_LOG_VIA_TAIL` is enabled (operator flips it after
+ * the Tail Worker D1 writer is verified writing rows), this function emits a
+ * `guess_error_event` envelope via `console.error` instead of touching D1.
+ * Pass `env` to opt in; existing call sites that pass a raw `D1Database`
+ * keep their pre-PI.3.b behaviour.
  */
+/**
+ * Minimal shape `logError` needs from an env binding. Accepts `Env` (Pages),
+ * `AutomationEnv` (cron), or any object that carries `GUESS_DB` plus the
+ * optional PI.3.b flag.
+ */
+type LogErrorEnv = {
+  GUESS_DB?: D1Database | null
+  ERROR_LOG_VIA_TAIL?: string
+}
+
 export function logError(
-  db: D1Database | undefined | null,
+  dbOrEnv: D1Database | LogErrorEnv | undefined | null,
   source: string,
   level: 'error' | 'warn',
   message: string,
@@ -369,7 +394,22 @@ export function logError(
     extra?: Record<string, unknown>
   },
 ): Promise<void> {
-  if (!db || typeof db.prepare !== 'function') return Promise.resolve()
+  // Resolve (env, db) from the overloaded first arg. Callers historically pass
+  // `context.env.GUESS_DB` (a D1Database), but the PI.3.b flag lives on env
+  // — so we accept either and pick the right path.
+  const isEnv =
+    !!dbOrEnv &&
+    typeof dbOrEnv === 'object' &&
+    'GUESS_DB' in (dbOrEnv as object)
+  const env = isEnv ? (dbOrEnv as LogErrorEnv) : undefined
+  const db = isEnv
+    ? (dbOrEnv as LogErrorEnv).GUESS_DB ?? undefined
+    : (dbOrEnv as D1Database | undefined | null)
+  const viaTail =
+    !!env &&
+    typeof env.ERROR_LOG_VIA_TAIL === 'string' &&
+    (env.ERROR_LOG_VIA_TAIL === '1' || env.ERROR_LOG_VIA_TAIL.toLowerCase() === 'true')
+
   const detailPayload: Record<string, unknown> = {}
   if (err != null) {
     if (err instanceof Error) {
@@ -391,6 +431,28 @@ export function logError(
   const detail = Object.keys(detailPayload).length > 0
     ? JSON.stringify(detailPayload)
     : null
+
+  // PI.3.b path — emit envelope for the Tail Worker to drain. Synchronous;
+  // no D1 round-trip on the request path.
+  if (viaTail) {
+    try {
+      console.error(
+        JSON.stringify({
+          kind: 'guess_error_event',
+          source,
+          level,
+          message: message.slice(0, 500),
+          detail,
+        }),
+      )
+    } catch {
+      // Stringify can only fail on circular refs, which the schema disallows;
+      // swallow defensively so telemetry never breaks the request.
+    }
+    return Promise.resolve()
+  }
+
+  if (!db || typeof db.prepare !== 'function') return Promise.resolve()
   return db
     .batch([
       db.prepare('INSERT INTO error_logs (level, source, message, detail) VALUES (?, ?, ?, ?)')

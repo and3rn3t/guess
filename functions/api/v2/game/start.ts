@@ -278,7 +278,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     console.error("POST /api/v2/game/start error:", err);
     context.waitUntil(
       logError(
-        context.env.GUESS_DB,
+        context.env,
         "start",
         "error",
         "game start failed",

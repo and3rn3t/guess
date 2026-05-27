@@ -176,7 +176,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   )
   } catch (err) {
     console.error('POST /api/v2/game/reveal error:', err)
-    context.waitUntil(logError(context.env.GUESS_DB, 'reveal', 'error', 'reveal failed', err))
+    context.waitUntil(logError(context.env, 'reveal', 'error', 'reveal failed', err))
     const message = err instanceof Error ? err.message : 'Unknown error'
     return errorResponse(`Reveal failed: ${message}`, 500)
   }

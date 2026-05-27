@@ -32,3 +32,10 @@ ADMIN_CREDENTIAL=admin:changeme
 # AUTO_ENRICH_ONE=false
 # AUTO_CAPTURE_DQ_SNAPSHOT=false
 # AUTO_DUPLICATES_BACKFILL=false
+
+# PI.3.b — route error_logs writes through the Tail Worker instead of D1.
+# When set to "1", `logError` (functions/api/_helpers.ts) emits a
+# `guess_error_event` envelope via console.error and the guess-tail Worker
+# batch-inserts into D1 off the request hot path. Leave unset until the Tail
+# Worker is deployed with its GUESS_DB binding and verified writing rows.
+# ERROR_LOG_VIA_TAIL=1

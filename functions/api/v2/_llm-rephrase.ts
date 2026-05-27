@@ -124,7 +124,7 @@ Rephrase this question.`
     return rephrased
   } catch (err) {
     console.warn('rephraseQuestion failed (returning null):', err instanceof Error ? err.message : String(err))
-    logError(env.GUESS_DB, 'llm-rephrase', 'warn', 'rephraseQuestion failed', err).catch(() => {})
+    logError(env, 'llm-rephrase', 'warn', 'rephraseQuestion failed', err).catch(() => {})
     return null
   }
 }

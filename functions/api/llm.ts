@@ -386,7 +386,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         .text()
         .catch(() => "Unknown error");
       console.error("OpenAI API error:", openaiResponse.status, errorText);
-      context.waitUntil(logError(context.env.GUESS_DB, 'llm', 'error', `OpenAI API error ${openaiResponse.status}`, errorText));
+      context.waitUntil(logError(context.env, 'llm', 'error', `OpenAI API error ${openaiResponse.status}`, errorText));
       await recordProviderErrorUsage(
         context.request,
         context.env,
@@ -418,7 +418,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     });
   } catch (error) {
     console.error("LLM proxy error:", error);
-    context.waitUntil(logError(context.env.GUESS_DB, 'llm', 'error', 'LLM proxy error', error));
+    context.waitUntil(logError(context.env, 'llm', 'error', 'LLM proxy error', error));
     return Response.json(
       { error: "Internal server error", code: "INTERNAL" },
       { status: 500 },

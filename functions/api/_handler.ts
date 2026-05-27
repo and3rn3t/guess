@@ -114,7 +114,7 @@ export function defineHandler(
     } catch (e) {
       console.error(`${name} handler error:`, e)
       context.waitUntil(
-        logError(env.GUESS_DB, name, 'error', `${name} handler error`, e, {
+        logError(env, name, 'error', `${name} handler error`, e, {
           requestId,
           actorId,
           path: url.pathname,

@@ -68,7 +68,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       if (!isMissingDailyResultsTableError(error)) throw error
       context.waitUntil(
         logError(
-          context.env.GUESS_DB,
+          context.env,
           'daily.leaderboard',
           'warn',
           'daily_results table missing; returning empty leaderboard',
@@ -91,7 +91,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
   } catch (error) {
     context.waitUntil(
       logError(
-        context.env.GUESS_DB,
+        context.env,
         'daily.leaderboard',
         'error',
         'Failed to load daily challenge leaderboard',

@@ -69,7 +69,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
   } catch (error) {
     context.waitUntil(
       logError(
-        context.env.GUESS_DB,
+        context.env,
         'daily.get',
         'error',
         'Failed to load daily challenge status',
@@ -114,7 +114,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       if (!isMissingDailyResultsTableError(error)) throw error
       context.waitUntil(
         logError(
-          context.env.GUESS_DB,
+          context.env,
           'daily.post',
           'warn',
           'daily_results table missing; skipping daily result persistence',
@@ -128,7 +128,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   } catch (error) {
     context.waitUntil(
       logError(
-        context.env.GUESS_DB,
+        context.env,
         'daily.post',
         'error',
         'Failed to record daily challenge result',

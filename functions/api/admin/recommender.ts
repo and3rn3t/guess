@@ -482,7 +482,7 @@ Return ONLY JSON in this shape:
     if (!response.ok) {
       context.waitUntil(
         logError(
-          env.GUESS_DB,
+          env,
           "admin.recommender",
           "error",
           `OpenAI error ${response.status}`,
@@ -516,7 +516,7 @@ Return ONLY JSON in this shape:
   } catch (err) {
     context.waitUntil(
       logError(
-        env.GUESS_DB,
+        env,
         "admin.recommender",
         "error",
         "Recommender request failed",

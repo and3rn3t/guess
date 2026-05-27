@@ -72,7 +72,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
           // Fall back to error_logs so a D1 write failure doesn't lose the signal entirely.
           // Already inside waitUntil so no await needed (and PI.3 hot-path guard forbids it).
           void logError(
-            db,
+            context.env,
             'csp',
             'error',
             `csp_violations upsert failed: ${(err as Error).message}`,

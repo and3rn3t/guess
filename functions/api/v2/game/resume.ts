@@ -259,7 +259,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   } catch (err) {
     console.error("POST /api/v2/game/resume error:", err);
     context.waitUntil(
-      logError(context.env.GUESS_DB, "resume", "error", "resume failed", err, {
+      logError(context.env, "resume", "error", "resume failed", err, {
         requestId,
         actorId,
         path: url.pathname,

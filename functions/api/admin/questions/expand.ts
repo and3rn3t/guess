@@ -341,7 +341,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     })
 
     context.waitUntil(
-      logError(env.GUESS_DB, 'admin.questions.expand', 'error', 'Question expansion failed', err, {
+      logError(env, 'admin.questions.expand', 'error', 'Question expansion failed', err, {
         requestId,
         actorId,
         path: new URL(request.url).pathname,

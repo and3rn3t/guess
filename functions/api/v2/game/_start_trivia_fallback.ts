@@ -29,7 +29,7 @@ export async function queryCharacterPoolWithTriviaFallback(
       [...params, candidateLimit]
     )
   } catch (err) {
-    logError(ctx.env.GUESS_DB, 'start', 'warn', 'Character query with trivia failed, falling back', err, {
+    logError(ctx.env, 'start', 'warn', 'Character query with trivia failed, falling back', err, {
       requestId: ctx.requestId,
       actorId: ctx.actorId,
       path: ctx.path,
@@ -61,7 +61,7 @@ export async function queryPinnedCharacterWithTriviaFallback(
       [pinnedCharId]
     )
   } catch (err) {
-    logError(ctx.env.GUESS_DB, 'start', 'warn', 'Pinned character query with trivia failed, falling back', err, {
+    logError(ctx.env, 'start', 'warn', 'Pinned character query with trivia failed, falling back', err, {
       requestId: ctx.requestId,
       actorId: ctx.actorId,
       path: ctx.path,

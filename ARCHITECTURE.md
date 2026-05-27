@@ -438,11 +438,23 @@ Two parallel observability streams keep the hot path off D1:
    projects don't accept `tail_consumers` in `wrangler.toml`.
 
 2. **D1 `error_logs` table (forensic detail)** — handlers call
-   `logError(env.GUESS_DB, source, level, message, err, ctx)` from
-   [functions/api/_helpers.ts](functions/api/_helpers.ts), which executes a
-   batched `INSERT INTO error_logs` + ring-buffer `DELETE` (capped at 1 000
-   rows). `logError` returns `Promise<void>` and is `.catch(() => {})`-ed
-   internally so it never throws.
+   `logError(context.env, source, level, message, err, ctx)` from
+   [functions/api/_helpers.ts](functions/api/_helpers.ts). The first arg
+   accepts either an env binding (preferred) or a raw `D1Database` for
+   back-compat. The function returns `Promise<void>` and never throws.
+
+   The write path is feature-flagged via `ERROR_LOG_VIA_TAIL`:
+
+   - **Default (flag unset):** `logError` runs a batched
+     `INSERT INTO error_logs` + ring-buffer `DELETE` (capped at 1 000 rows)
+     from the main Worker.
+   - **PI.3.b (flag = `1` or `true`):** `logError` emits a structured
+     `console.error(JSON.stringify({kind:'guess_error_event', source,
+     level, message, detail}))` envelope instead. The Tail Worker
+     ([tail-worker/src/_error_log_writer.ts](tail-worker/src/_error_log_writer.ts))
+     parses these envelopes from `event.logs`, batches them, and writes
+     them to D1 via its own `GUESS_DB` binding under `ctx.waitUntil` —
+     completely off the request hot path.
 
    **PI.3 hot-path contract:** request handlers MUST NOT `await
    logError(...)`. The call site is either fire-and-forget
@@ -454,12 +466,23 @@ Two parallel observability streams keep the hot path off D1:
    which walks `functions/api/**` and rejects new `await logError(...)`
    outside an explicit allowlist.
 
-A future PI.3.b will move the D1 writeback into the Tail Worker so
-`logError` only emits structured `console.error` JSON and the Tail consumer
-batches the inserts — eliminating the last D1 round-trip from
-`waitUntil` callbacks. Deferred from this batch because it requires
-coordinated multi-deploy sequencing (Tail Worker must be live before
-middleware changes ship) outside the current change budget.
+   **Operator deploy sequence for the PI.3.b flag flip:**
+
+   1. `wrangler deploy --config tail-worker/wrangler.toml --env production`
+      (and `--env preview` for staging) — Tail Worker now has a `GUESS_DB`
+      binding and the `_error_log_writer` writer is live but inert
+      (envelopes are not yet being emitted by the main Worker).
+   2. Trigger an error (or wait for one), confirm a row lands in
+      `error_logs` via `/admin/error-logs` from the legacy main-Worker
+      D1 path — sanity that nothing regressed.
+   3. Set `ERROR_LOG_VIA_TAIL=1` in `wrangler.toml` `[env.production.vars]`,
+      deploy main Pages worker. `logError` now emits envelopes; the Tail
+      Worker drains them.
+   4. After ≥7 days of clean dual-stream observation
+      (`error_logs` keeps receiving rows, no new gap in `/admin/error-logs`),
+      remove the `D1Database` overload and the legacy batch path from
+      [functions/api/_helpers.ts](functions/api/_helpers.ts) in a
+      follow-up PR.
 
 ### Service-level objectives
 

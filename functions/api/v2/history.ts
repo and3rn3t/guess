@@ -73,7 +73,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     }), setCookieHeader)
   } catch (e) {
     console.error('history GET error:', e)
-    context.waitUntil(logError(context.env.GUESS_DB, 'history', 'error', 'history GET error', e))
+    context.waitUntil(logError(context.env, 'history', 'error', 'history GET error', e))
     return errorResponse('Internal server error', 500)
   }
 }

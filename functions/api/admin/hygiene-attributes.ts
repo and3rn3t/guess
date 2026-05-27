@@ -123,7 +123,7 @@ Return ONLY JSON in this exact shape:
     if (!response.ok) {
       context.waitUntil(
         logError(
-          env.GUESS_DB,
+          env,
           "admin.hygiene.attributes",
           "error",
           `OpenAI error ${response.status}`,
@@ -168,7 +168,7 @@ Return ONLY JSON in this exact shape:
   } catch (err) {
     context.waitUntil(
       logError(
-        env.GUESS_DB,
+        env,
         "admin.hygiene.attributes",
         "error",
         "Attribute hygiene request failed",
