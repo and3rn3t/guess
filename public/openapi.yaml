@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Guess API",
-    "version": "1.8.0",
+    "version": "1.9.0-pre",
     "description": "Auto-generated API contract from Cloudflare Pages function handlers."
   },
   "servers": [

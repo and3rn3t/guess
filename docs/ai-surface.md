@@ -117,16 +117,16 @@ Gaps Wave AI fills: no continuous evaluation of production prompts (AI.11), no c
 
 ## 8. Baseline metrics
 
-Snapshot pulled at the close of AI.0 and persisted to [data/ai-baseline-2026-05.json](../data/ai-baseline-2026-05.json). Every Wave-AI item refreshes the relevant fields in that file (not this doc) so improvements are measurable.
+Snapshot pulled at the close of AI.0 (2026-05-26) and persisted to [data/ai-baseline-2026-05.json](../data/ai-baseline-2026-05.json). Every Wave-AI item refreshes the relevant fields in that file (not this doc) so improvements are measurable.
 
-Numbers to capture (TODO — needs CF dashboard pull):
+Headline numbers from the 30-day window 2026-04-26 → 2026-05-26 (see JSON for full per-route / per-model breakdown):
 
-- **Cost (last 30 days):** $/day total, $/day per top-5 (route × model) combination.
-- **Gateway cache:** hit ratio per cacheable route.
-- **Latency:** p50 + p95 for `/api/llm`, `/api/v2/game/answer` (LLM-touching path), `/api/admin/questions/duplicates`.
-- **Workers AI:** neurons consumed per day, % of 10 k daily free quota.
-- **Enrichment:** $/character on the last full enrichment run, tokens per character (prompt + completion).
-- **Error rate:** 5xx per 1 k LLM calls (server-side, post-retry).
+- **Cost:** $1.21 total / ≈ $0.043/day across 1 070 requests · 451.92 k tokens (~422 tokens/req).
+- **Gateway cache:** 0.47 % overall hit ratio (expected near-zero — `cf-aig-cache-ttl` shipped 2026-05-25; AI.1 ≥30 % gate measures the fresh 7-day post-deploy window).
+- **Latency** (`/api/llm`): p50 3 ms (cache HIT short-circuit) · p95 1 284 ms · p99 8 094 ms. `/api/v2/game/answer` p95 1 802 ms / p99 6 269 ms. Tail flagged as input for AI.2 fallback-chain SLO.
+- **Workers AI:** 13.45 neurons / 30 days (0.45/day avg) = 0.0045 % of the 10 k/day free quota — effectively unlimited headroom for AI.3 tiered routing.
+- **Errors:** 0 LLM 5xx in the window (post-retry).
+- **Enrichment $/character + tokens/character:** still null pending the next full enrichment run.
 
 ---
 
@@ -148,3 +148,5 @@ Tracked in `/memories/session/plan.md` § "Further considerations":
 | 2026-05-25 | AI.1 shipped: `cf-aig-cache-ttl` plumbed via `getLlmHeaders(env, ttl)` and opted in on `/api/llm` (24 h), `/api/admin/coverage-priority` (6 h), `/api/admin/analytics/insights` (6 h). Other admin LLM endpoints flagged as AI.1 follow-on candidates pending per-route audit. 7-day observation window for cache-hit ratio starts on next deploy. |
 | 2026-05-25 | AI.4 partial shipped: enrichment `buildSystemPrompt` / `buildSystemPromptForChunk` trimmed (dropped redundant `RESPONSE FORMAT: {…}` example block, ~6% shrink); `/api/v2/_llm-rephrase` now enforces `response_format: { type: 'json_object' }` and dropped its `Return ONLY valid JSON: { … }` preamble; `/api/admin/analytics/insights` annotated as the lone intentional free-text endpoint. Aggressive RULES-block rewrite (needed to hit ≥15% reduction) deferred behind a `pnpm golden:regression` quality gate. |
 | 2026-05-25 | AI.6 shipped: new `functions/api/_moderation.ts` with LDNOOBW regex fast-path + `@cf/meta/llama-guard-3-8b` escalation. Gated `POST /api/v2/characters`, `POST /api/admin/proposed-attributes`, `POST /api/v2/game/feedback` — return 422 with `{ reason }` on rejection. New `moderation_rejections` D1 table (migration 0049) + `GET`/`PATCH /api/admin/community/rejected`. Fail-open on missing AI binding or runtime error. 8 unit tests. |
+| 2026-05-25 | AI.6 follow-on: admin review-queue UI at `/admin/community/rejected` ([src/components/admin/routes/RejectedSubmissionsRoute.tsx](../src/components/admin/routes/RejectedSubmissionsRoute.tsx)) — status + source filters, colour-coded rejection-reason badges, mark-reviewed action. Closes the human-review loop end-to-end. |
+| 2026-05-26 | AI.0 closed (✅): `pnpm ai:baseline:pull` populated the last three null sections of [data/ai-baseline-2026-05.json](../data/ai-baseline-2026-05.json) — per-endpoint × model cost, gateway cache hit ratio by route, p50/p95/p99 latency per route. Section 8 of this doc rewritten to reference the JSON snapshot instead of TODO placeholders. |

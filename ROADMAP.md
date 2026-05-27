@@ -41,11 +41,10 @@ An item is `✅` only when **all** apply:
 
 - 🟡 **In progress:** [DQ.v2.1](#dqv2-1) `pnpm dq:report` — orchestrator + CI wired warn-only on `reconcile-nightly`; flips to blocking after ≥7 clean nightly runs.
 - 🟡 **In progress (parallel):** [AI.1](#ai-1) AI Gateway cache TTL — `cf-aig-cache-ttl` plumbed on `/api/llm` + two admin LLM endpoints. 7-day observation window for ≥30% cache-hit gate started this commit.
-- 🟡 **In progress (parallel):** [AI.4](#ai-4) Prompt compression + JSON-mode audit — lossless trim shipped (~6% system-prompt shrink); golden:regression-gated aggressive trim deferred to follow-on.
 - 🟡 **In progress (parallel):** [DX.v2.1](#dxv2-1) Generated typed API client — codegen + `pnpm api:generate/api:check` + CI in-sync gate shipped; consumer migrations land via [RF.v2.1](#rfv2-1) (useServerGame) + [RF.v2.5](#rfv2-5) (adminApi).
 - ⬜ **Next:** [PI.3](#pi-3) Tail Worker → `error_logs` (RF.v2.5 stays blocked, see Decision Log 2026-05-26).
 - ⚪ **Parked:** [MOB.1](#mob-1) — needs physical-device evidence; no engineering blockers. Re-pull when device time available.
-- 📦 **Recently shipped:** DQ.v2.3 (shared source-adapter base — `_base.ts` + 5 adapters refactored + per-adapter tests) · RF.v2.3 (split `question-selection.ts` → orchestrator shell + pure math + fast-check property tests) · AI.0 (AI surface audit + baseline metrics — full Phase 0 pull via `pnpm ai:baseline:pull`) · RF.v2.4 (ungoverned-hotspot sweep — 32 files governed) · SE.1 (CSP violations pipeline + admin digest) · OB.1 (SLO doc + burn queries) · PF.1 (bundle-size budgets) · A11Y.1 (axe-core e2e gate) · PI.3 (`logError` hot-path decoupling) · PI.1 (wrangler post-KV audit) · DX.v2.4 (pre-commit `validate:fast`) · SE.2 (RBAC coverage gate) — see [Shipped — Mobile Wave (May 2026)](#shipped--mobile-wave-may-2026)
+- 📦 **Recently shipped:** AI.4a (prompt compression — lossless trim + JSON-mode audit) · DQ.v2.3 (shared source-adapter base — `_base.ts` + 5 adapters refactored + per-adapter tests) · RF.v2.3 (split `question-selection.ts` → orchestrator shell + pure math + fast-check property tests) · AI.0 (AI surface audit + baseline metrics — full Phase 0 pull via `pnpm ai:baseline:pull`) · RF.v2.4 (ungoverned-hotspot sweep — 32 files governed) · SE.1 (CSP violations pipeline + admin digest) · OB.1 (SLO doc + burn queries) · PF.1 (bundle-size budgets) · A11Y.1 (axe-core e2e gate) · PI.3 (`logError` hot-path decoupling) · PI.1 (wrangler post-KV audit) · DX.v2.4 (pre-commit `validate:fast`) · SE.2 (RBAC coverage gate) — see [Shipped — Mobile Wave (May 2026)](#shipped--mobile-wave-may-2026)
 
 **Active batch (impact-ordered, see Decision Log 2026-05-25):** ~~SE.2~~ → ~~DX.v2.4~~ → ~~PI.1~~ → ~~PI.3~~ → ~~EN.1~~ (parked, see Decision Log 2026-05-25) → ~~A11Y.1~~ + ~~PF.1~~.
 
@@ -72,7 +71,7 @@ Priority × ease, small wins first to re-establish full-product velocity:
 15. [OB.1](#ob-1) SLO definitions + error-budget doc (S, after [PI.3](#pi-3))
 16. [RF.v2.5](#rfv2-5) admin API client consolidation (depends on [DX.v2.1](#dxv2-1))
 17. Remaining items in order: [MOB.2](#mob-2), [DQ.v2.2](#dqv2-2), [DQ.v2.4](#dqv2-4), [EN.2](#en-2), [EN.3](#en-3), [EN.4](#en-4), [PI.2](#pi-2), [PI.4](#pi-4), [DX.v2.2](#dxv2-2), [DX.v2.3](#dxv2-3).
-18. **Wave AI** (new, runs in parallel — docs-only Phase 0 then cost/quality/platform work): [AI.0](#ai-0) → [AI.1](#ai-1) → [AI.2](#ai-2) → [AI.3](#ai-3) → [AI.4](#ai-4) → [AI.5](#ai-5) → [AI.6](#ai-6) → [AI.7](#ai-7) → [AI.8](#ai-8) → [AI.9](#ai-9) → [AI.10](#ai-10) → [AI.11](#ai-11) → [AI.12](#ai-12) → [AI.13](#ai-13). See [Wave AI § Phasing](#wave-ai--ai-capabilities--skills) for gate ordering.
+18. **Wave AI** (new, runs in parallel — docs-only Phase 0 then cost/quality/platform work): [AI.0](#ai-0) → [AI.1](#ai-1) → [AI.2](#ai-2) → [AI.3](#ai-3) → [AI.4a](#ai-4a) → [AI.4b](#ai-4b) → [AI.5](#ai-5) → [AI.6](#ai-6) → [AI.7](#ai-7) → [AI.8](#ai-8) → [AI.9](#ai-9) → [AI.10](#ai-10) → [AI.11](#ai-11) → [AI.12](#ai-12) → [AI.13](#ai-13). See [Wave AI § Phasing](#wave-ai--ai-capabilities--skills) for gate ordering.
 19. Deferred (re-evaluate when ceiling pressure returns): [RF.v2.1](#rfv2-1), [RF.v2.2](#rfv2-2).
 
 ---
@@ -562,7 +561,7 @@ Done when:
 
 > Phased adoption of additional AI surfaces (Cloudflare Workers AI, Vectorize, AI Gateway features, MCP, AutoRAG) and revival of high-impact archived items (DQ.2 vision attrs, EN.23 tiered routing, H.12 moderation, IX.5 MCP). Full plan: session memory `/memories/session/plan.md`. Three lenses: **cost/latency on existing AI**, **data quality**, **platform/DX**. New gameplay surfaces (identify mode, voice, generated portraits) intentionally catalogued as moonshots only.
 >
-> **Phase gates:** P0 (Discover) → P1 (Quick Wins, items AI.1–AI.4 in parallel) → P2 (Quality, AI.5–AI.8) ‖ P3 (Platform, AI.9–AI.13). P2 and P3 can interleave once P1 baseline is captured.
+> **Phase gates:** P0 (Discover) → P1 (Quick Wins, items AI.1–AI.4a in parallel; AI.4b deferred behind golden:regression) → P2 (Quality, AI.5–AI.8) ‖ P3 (Platform, AI.9–AI.13). P2 and P3 can interleave once P1 baseline is captured.
 
 ### AI.0
 
@@ -614,17 +613,30 @@ Done when:
 - [ ] `pnpm golden:regression` deviation stays within the existing 3% threshold against the post-routing model mix.
 - [ ] LLM_COSTS dataset shows ≥30% $/character drop on a 1000-char re-enrichment sample vs. pre-routing baseline.
 
-### AI.4
+### AI.4a
 
-**Title:** Prompt compression + JSON-mode audit
-**Status:** 🟡 in progress
-**Why:** Several call sites parse JSON from a free-text response when they could enforce `response_format: { type: 'json_object' }` (or schema) and drop the "reply with valid JSON only" preamble. Token reduction compounds across enrichment.
+**Title:** Prompt compression + JSON-mode audit (lossless trim)
+**Status:** ✅ 2026-05-25
+**Why:** Several call sites parsed JSON from a free-text response when they could enforce `response_format: { type: 'json_object' }` and drop the "reply with valid JSON only" preamble. Token reduction compounds across enrichment.
 
 Done when:
 
 - [x] Every prompt builder in [scripts/ingest/enrich/prompts.ts](scripts/ingest/enrich/prompts.ts) and [functions/api/llm.ts](functions/api/llm.ts) callers either enforces JSON mode + schema, or has a comment explaining why free-text is required. Audit landed 2026-05-25: enrichment client already enforced `json_object`; `functions/api/v2/_llm-rephrase.ts` had a JSON-parsing path without `response_format` (now fixed); `functions/api/admin/analytics/insights.ts` is the lone intentional free-text endpoint and carries an inline justification comment.
 - [x] Redundant system preambles removed where JSON schema is enforced. Trimmed `RESPONSE FORMAT: {…}` example blocks from `enrich/prompts.ts::buildSystemPrompt` and `bulk-enrich-characters.ts::buildSystemPromptForChunk`; dropped the `Return ONLY valid JSON: { "text": … }` preamble from `_llm-rephrase.ts` system prompt now that json_object is enforced. New regression tests guard against re-introduction.
-- [ ] Sample enrichment batch shows ≥15% prompt-token reduction vs. baseline. Current safe trim achieves ~6% on the enrichment system prompt (lossless re: schema). The remaining gap needs a more aggressive RULES-block rewrite, which requires a `pnpm golden:regression` run (≤3% deviation gate) to verify no quality regression — deferred to a follow-on PR with API budget for the regression sweep.
+- [x] Lossless trim measured: ~6% shrink on the enrichment system prompt with zero schema risk. The ≥15% target moved to AI.4b (gated by `pnpm golden:regression`).
+
+### AI.4b
+
+**Title:** Prompt compression — aggressive RULES-block rewrite (gated by golden:regression)
+**Status:** ⬜
+**Why:** AI.4a captured the lossless gains. Closing the remaining gap to ≥15% reduction requires rewriting the RULES block in the enrichment system prompt, which is a behaviour change and needs `pnpm golden:regression` (≤3% deviation gate) to verify no quality regression. Carved out so the open gap is visible instead of buried under a 🟡 AI.4.
+
+Done when:
+
+- [ ] RULES-block rewrite drafted in [scripts/ingest/enrich/prompts.ts](scripts/ingest/enrich/prompts.ts) (and mirrored in `bulk-enrich-characters.ts`).
+- [ ] `pnpm golden:regression` run shows ≤3% deviation from the pre-rewrite golden set.
+- [ ] Sample enrichment batch shows ≥15% prompt-token reduction vs. the pre-AI.4 baseline (cumulative with AI.4a).
+- [ ] [data/ai-baseline-2026-05.json](data/ai-baseline-2026-05.json) `enrichment.tokens_per_character` refreshed.
 
 ### AI.5
 
