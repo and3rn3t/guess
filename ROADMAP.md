@@ -353,7 +353,7 @@ Done when:
 
 - [x] `openapi-fetch` installed; codegen wired via `pnpm api:generate` (writes `src/lib/api.generated.ts`).
 - [ ] `src/hooks/useServerGame.ts` consumes the generated client (depends on or pairs with [RF.v2.1](#rfv2-1)).
-- [ ] `src/lib/admin/adminApi.ts` consumes the generated client (depends on or pairs with [RF.v2.5](#rfv2-5)).
+- [x] `src/lib/admin/adminApi.ts` consumes the generated client (2026-05-27 — types derived from `paths` via `src/lib/api.generated.ts`; `httpClient` retained as transport).
 - [x] CI step verifies generated client is in sync (`pnpm api:check` runs in `checks-static` job, logs to `.ci-artifacts/checks-static/api-check.log`).
 
 Shipped so far:
@@ -781,6 +781,7 @@ Earlier mobile foundations (MB.1–MB.5, MP.1–MP.7) shipped 2026-05-05 → 202
 
 | Date | Decision | Why |
 |---|---|---|
+| 2026-05-27 | DX.v2.1 `adminApi.ts` consumer migration shipped via **centralized metadata enrichment** rather than per-handler decorators. Extended `OperationMetadata` in [scripts/openapi/lib.ts](scripts/openapi/lib.ts) with `queryParameters` / `pathParameters`; auto-derived path params from `{name}` route segments. Populated query metadata for `get /api/admin/characters` and enriched `AUTOMATION_STATUS_RESPONSE_SCHEMA.report` from `JSON_ANY_SCHEMA` to the full `AdminAutomationReport` shape. `adminApi.ts` now derives types from `paths` in `src/lib/api.generated.ts`; `httpClient` retained as transport. | The 2026-05-26 decision identified handler decorators as the unblocker, but the centralized lookup table in `OPERATION_METADATA` is already the source of truth — adding `parameters` support there delivers the same type-level outcome with one-tenth the surface area. Per-handler decorator refactor remains valuable for ergonomics but is no longer on the critical path for [RF.v2.5](#rfv2-5). |
 | 2026-05-26 | RF.v2.5 (admin API client consolidation) stays ⬜ blocked-by OpenAPI handler decorator enrichment; pivoted to RF.v2.3 instead. | DX.v2.1 generated `src/lib/api.generated.ts` covers 57 admin endpoints but every operation has `query?: never` (rejects the `sort`/`order`/`page`/`pageSize` query params `adminApi.ts` already sends) and `unknown`-shaped response bodies. Migrating now would lose type information — strictly worse than the hand-typed `AdminCharacterRow`/`AdminCharacterDetail` shapes. Unblocker is upstream handler decorator enrichment (separate work, not DX.v2.5 which only detects drift). Re-pull RF.v2.5 after decorators land. |
 | 2026-05-25 | Reframed `ROADMAP.md` from mobile-only back to full-product for v1.9. Mobile becomes one track among five (RF/DQ/EN/PI/DX). | Mobile parity + reliability + release readiness shipped. Remaining leverage is long-deferred code-health, data-quality, engine, platform, and DX/CI investments. |
 | 2026-05-25 | Wave sequence ordered as PI.1 → DX.v2.4 → RF.v2.1 → DQ.v2.1 → RF.v2.4 → EN.1 → DX.v2.1 → … (small wins first). | Re-establish full-product velocity with low-risk infra/DX wins before touching engine constants or undertaking the OpenAPI codegen migration. |

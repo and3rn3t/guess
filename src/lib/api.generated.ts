@@ -1714,8 +1714,30 @@ export interface operations {
                 content: {
                     "application/json": {
                         report: {
-                            [key: string]: unknown;
-                        } | unknown[] | string | number | boolean | null;
+                            ranAt: number;
+                            cron: string;
+                            durationMs: number;
+                            errorCount: number;
+                            /** @enum {string} */
+                            snapshot: "inserted" | "skipped" | "error";
+                            duplicatesEmbedded: number;
+                            /** @enum {string} */
+                            enrichmentKick: "started" | "skipped" | "error";
+                            retiredQuestions: number;
+                            stepDurationsMs: {
+                                snapshot: number;
+                                duplicates: number;
+                                enrichment: number;
+                                retirement: number;
+                            };
+                            stepErrors: {
+                                snapshot: string | null;
+                                duplicates: string | null;
+                                enrichment: string | null;
+                                retirement: string | null;
+                            };
+                            notes: string[];
+                        } | null;
                         fetchedAt: number;
                     };
                 };
@@ -1726,7 +1748,15 @@ export interface operations {
     };
     "get-admin-characters": {
         parameters: {
-            query?: never;
+            query?: {
+                search?: string;
+                category?: string;
+                maxCoverage?: number;
+                page?: number;
+                pageSize?: number;
+                sort?: "popularity" | "name" | "category" | "coverage" | "needsWork" | "createdAt";
+                order?: "asc" | "desc";
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -1767,7 +1797,9 @@ export interface operations {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                id: string;
+            };
             cookie?: never;
         };
         requestBody?: never;
@@ -1811,7 +1843,9 @@ export interface operations {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                id: string;
+            };
             cookie?: never;
         };
         requestBody: {
@@ -1842,7 +1876,9 @@ export interface operations {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                id: string;
+            };
             cookie?: never;
         };
         requestBody: {
@@ -1875,7 +1911,9 @@ export interface operations {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                id: string;
+            };
             cookie?: never;
         };
         requestBody: {
@@ -3435,7 +3473,9 @@ export interface operations {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                id: string;
+            };
             cookie?: never;
         };
         requestBody: {
@@ -3473,7 +3513,9 @@ export interface operations {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                id: string;
+            };
             cookie?: never;
         };
         requestBody: {
@@ -3544,7 +3586,9 @@ export interface operations {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                key: string;
+            };
             cookie?: never;
         };
         requestBody: {
@@ -3576,7 +3620,9 @@ export interface operations {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                key: string;
+            };
             cookie?: never;
         };
         requestBody: {
@@ -3608,7 +3654,9 @@ export interface operations {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                key: string;
+            };
             cookie?: never;
         };
         requestBody: {
@@ -3642,7 +3690,9 @@ export interface operations {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                key: string;
+            };
             cookie?: never;
         };
         requestBody: {
@@ -4441,7 +4491,9 @@ export interface operations {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                path: string;
+            };
             cookie?: never;
         };
         requestBody?: never;

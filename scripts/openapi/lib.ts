@@ -16,11 +16,20 @@ import {
   StartRequestSchema,
 } from "../../functions/api/_schemas";
 
+export interface OpenApiParameter {
+  name: string;
+  in: "query" | "path" | "header" | "cookie";
+  required: boolean;
+  schema: Record<string, unknown>;
+  description?: string;
+}
+
 export interface EndpointOperation {
   operationId: string;
   summary: string;
   tags: string[];
   security?: Array<Record<string, string[]>>;
+  parameters?: OpenApiParameter[];
   requestBody?: {
     required: boolean;
     content: {
@@ -55,11 +64,29 @@ interface GenerationArtifacts {
   inventoryJson: string;
 }
 
+interface OperationParameter {
+  name: string;
+  schema: Record<string, unknown>;
+  description?: string;
+  required?: boolean;
+}
+
 interface OperationMetadata {
   summary?: string;
   tags?: string[];
   requestSchema?: Record<string, unknown>;
   responseSchema?: Record<string, unknown>;
+  /**
+   * Query string parameters. Each becomes an OpenAPI `parameters` entry with
+   * `in: query`. Marked `required: false` by default unless explicitly set.
+   */
+  queryParameters?: OperationParameter[];
+  /**
+   * Path parameters. If omitted, path parameters are auto-derived from
+   * `{name}` segments in the route with default `{ type: "string" }` schema.
+   * Provide entries here to override the schema or add descriptions.
+   */
+  pathParameters?: OperationParameter[];
 }
 
 const ROOT_DIR = resolve(import.meta.dirname, "..", "..");
@@ -1142,21 +1169,61 @@ const CURATOR_QUEUE_POST_RESPONSE_SCHEMA: Record<string, unknown> = {
   ],
 };
 
-const JSON_ANY_SCHEMA: Record<string, unknown> = {
-  oneOf: [
-    { type: "object", additionalProperties: true },
-    { type: "array", items: {} },
-    { type: "string" },
-    { type: "number" },
-    { type: "boolean" },
-    { type: "null" },
+const AUTOMATION_REPORT_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    ranAt: { type: "number" },
+    cron: { type: "string" },
+    durationMs: { type: "number" },
+    errorCount: { type: "number" },
+    snapshot: { type: "string", enum: ["inserted", "skipped", "error"] },
+    duplicatesEmbedded: { type: "number" },
+    enrichmentKick: { type: "string", enum: ["started", "skipped", "error"] },
+    retiredQuestions: { type: "number" },
+    stepDurationsMs: {
+      type: "object",
+      properties: {
+        snapshot: { type: "number" },
+        duplicates: { type: "number" },
+        enrichment: { type: "number" },
+        retirement: { type: "number" },
+      },
+      required: ["snapshot", "duplicates", "enrichment", "retirement"],
+      additionalProperties: false,
+    },
+    stepErrors: {
+      type: "object",
+      properties: {
+        snapshot: { type: ["string", "null"] },
+        duplicates: { type: ["string", "null"] },
+        enrichment: { type: ["string", "null"] },
+        retirement: { type: ["string", "null"] },
+      },
+      required: ["snapshot", "duplicates", "enrichment", "retirement"],
+      additionalProperties: false,
+    },
+    notes: { type: "array", items: { type: "string" } },
+  },
+  required: [
+    "ranAt",
+    "cron",
+    "durationMs",
+    "errorCount",
+    "snapshot",
+    "duplicatesEmbedded",
+    "enrichmentKick",
+    "retiredQuestions",
+    "stepDurationsMs",
+    "stepErrors",
+    "notes",
   ],
+  additionalProperties: false,
 };
 
 const AUTOMATION_STATUS_RESPONSE_SCHEMA: Record<string, unknown> = {
   type: "object",
   properties: {
-    report: JSON_ANY_SCHEMA,
+    report: { oneOf: [AUTOMATION_REPORT_SCHEMA, { type: "null" }] },
     fetchedAt: { type: "number" },
   },
   required: ["report", "fetchedAt"],
@@ -4043,6 +4110,31 @@ const OPERATION_METADATA: Record<string, OperationMetadata> = {
   "get /api/admin/characters": {
     summary: "List admin characters with coverage metrics",
     responseSchema: ADMIN_CHARACTERS_GET_RESPONSE_SCHEMA,
+    queryParameters: [
+      { name: "search", schema: { type: "string" } },
+      { name: "category", schema: { type: "string" } },
+      { name: "maxCoverage", schema: { type: "number" } },
+      { name: "page", schema: { type: "integer", minimum: 1 } },
+      {
+        name: "pageSize",
+        schema: { type: "integer", minimum: 10, maximum: 100 },
+      },
+      {
+        name: "sort",
+        schema: {
+          type: "string",
+          enum: [
+            "popularity",
+            "name",
+            "category",
+            "coverage",
+            "needsWork",
+            "createdAt",
+          ],
+        },
+      },
+      { name: "order", schema: { type: "string", enum: ["asc", "desc"] } },
+    ],
   },
   "get /api/admin/characters/{id}": {
     summary: "Get character attributes and active definitions",
@@ -4426,6 +4518,43 @@ function getOperationMetadata(
   return OPERATION_METADATA[`${method} ${routePath}`];
 }
 
+const PATH_PARAM_RE = /\{([^}]+)\}/g;
+
+function derivePathParameters(
+  routePath: string,
+  overrides: OperationParameter[] | undefined,
+): OpenApiParameter[] {
+  const overrideByName = new Map<string, OperationParameter>();
+  for (const entry of overrides ?? []) overrideByName.set(entry.name, entry);
+
+  const result: OpenApiParameter[] = [];
+  for (const match of routePath.matchAll(PATH_PARAM_RE)) {
+    const name = match[1];
+    const override = overrideByName.get(name);
+    result.push({
+      name,
+      in: "path",
+      required: true,
+      schema: override?.schema ?? { type: "string" },
+      ...(override?.description ? { description: override.description } : {}),
+    });
+  }
+  return result;
+}
+
+function buildQueryParameters(
+  entries: OperationParameter[] | undefined,
+): OpenApiParameter[] {
+  if (!entries || entries.length === 0) return [];
+  return entries.map((entry) => ({
+    name: entry.name,
+    in: "query",
+    required: entry.required ?? false,
+    schema: entry.schema,
+    ...(entry.description ? { description: entry.description } : {}),
+  }));
+}
+
 function buildOperation(
   method: HttpMethod,
   routePath: string,
@@ -4456,6 +4585,12 @@ function buildOperation(
       },
     },
   };
+
+  const parameters: OpenApiParameter[] = [
+    ...derivePathParameters(routePath, metadata?.pathParameters),
+    ...buildQueryParameters(metadata?.queryParameters),
+  ];
+  if (parameters.length > 0) operation.parameters = parameters;
 
   if (isAdmin) {
     operation.security = [{ basicAuth: [] }];

@@ -768,20 +768,122 @@
                       "oneOf": [
                         {
                           "type": "object",
-                          "additionalProperties": true
-                        },
-                        {
-                          "type": "array",
-                          "items": {}
-                        },
-                        {
-                          "type": "string"
-                        },
-                        {
-                          "type": "number"
-                        },
-                        {
-                          "type": "boolean"
+                          "properties": {
+                            "ranAt": {
+                              "type": "number"
+                            },
+                            "cron": {
+                              "type": "string"
+                            },
+                            "durationMs": {
+                              "type": "number"
+                            },
+                            "errorCount": {
+                              "type": "number"
+                            },
+                            "snapshot": {
+                              "type": "string",
+                              "enum": [
+                                "inserted",
+                                "skipped",
+                                "error"
+                              ]
+                            },
+                            "duplicatesEmbedded": {
+                              "type": "number"
+                            },
+                            "enrichmentKick": {
+                              "type": "string",
+                              "enum": [
+                                "started",
+                                "skipped",
+                                "error"
+                              ]
+                            },
+                            "retiredQuestions": {
+                              "type": "number"
+                            },
+                            "stepDurationsMs": {
+                              "type": "object",
+                              "properties": {
+                                "snapshot": {
+                                  "type": "number"
+                                },
+                                "duplicates": {
+                                  "type": "number"
+                                },
+                                "enrichment": {
+                                  "type": "number"
+                                },
+                                "retirement": {
+                                  "type": "number"
+                                }
+                              },
+                              "required": [
+                                "snapshot",
+                                "duplicates",
+                                "enrichment",
+                                "retirement"
+                              ],
+                              "additionalProperties": false
+                            },
+                            "stepErrors": {
+                              "type": "object",
+                              "properties": {
+                                "snapshot": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                },
+                                "duplicates": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                },
+                                "enrichment": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                },
+                                "retirement": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                }
+                              },
+                              "required": [
+                                "snapshot",
+                                "duplicates",
+                                "enrichment",
+                                "retirement"
+                              ],
+                              "additionalProperties": false
+                            },
+                            "notes": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            }
+                          },
+                          "required": [
+                            "ranAt",
+                            "cron",
+                            "durationMs",
+                            "errorCount",
+                            "snapshot",
+                            "duplicatesEmbedded",
+                            "enrichmentKick",
+                            "retiredQuestions",
+                            "stepDurationsMs",
+                            "stepErrors",
+                            "notes"
+                          ],
+                          "additionalProperties": false
                         },
                         {
                           "type": "null"
@@ -917,6 +1019,79 @@
             "$ref": "#/components/responses/InternalError"
           }
         },
+        "parameters": [
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "category",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "maxCoverage",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 10,
+              "maximum": 100
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "popularity",
+                "name",
+                "category",
+                "coverage",
+                "needsWork",
+                "createdAt"
+              ]
+            }
+          },
+          {
+            "name": "order",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "asc",
+                "desc"
+              ]
+            }
+          }
+        ],
         "security": [
           {
             "basicAuth": []
@@ -963,6 +1138,16 @@
             "$ref": "#/components/responses/InternalError"
           }
         },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "security": [
           {
             "basicAuth": []
@@ -1102,6 +1287,16 @@
             "$ref": "#/components/responses/InternalError"
           }
         },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "security": [
           {
             "basicAuth": []
@@ -1142,6 +1337,16 @@
             "$ref": "#/components/responses/InternalError"
           }
         },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "security": [
           {
             "basicAuth": []
@@ -1261,6 +1466,16 @@
             "$ref": "#/components/responses/InternalError"
           }
         },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "security": [
           {
             "basicAuth": []
@@ -5560,6 +5775,16 @@
             "$ref": "#/components/responses/InternalError"
           }
         },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "security": [
           {
             "basicAuth": []
@@ -5639,6 +5864,16 @@
             "$ref": "#/components/responses/InternalError"
           }
         },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "security": [
           {
             "basicAuth": []
@@ -5814,6 +6049,16 @@
             "$ref": "#/components/responses/InternalError"
           }
         },
+        "parameters": [
+          {
+            "name": "key",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "security": [
           {
             "basicAuth": []
@@ -5903,6 +6148,16 @@
             "$ref": "#/components/responses/InternalError"
           }
         },
+        "parameters": [
+          {
+            "name": "key",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "security": [
           {
             "basicAuth": []
@@ -5973,6 +6228,16 @@
             "$ref": "#/components/responses/InternalError"
           }
         },
+        "parameters": [
+          {
+            "name": "key",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "security": [
           {
             "basicAuth": []
@@ -6038,6 +6303,16 @@
             "$ref": "#/components/responses/InternalError"
           }
         },
+        "parameters": [
+          {
+            "name": "key",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "security": [
           {
             "basicAuth": []
@@ -8195,7 +8470,17 @@
           "500": {
             "$ref": "#/components/responses/InternalError"
           }
-        }
+        },
+        "parameters": [
+          {
+            "name": "path",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
       }
     },
     "/api/llm": {
