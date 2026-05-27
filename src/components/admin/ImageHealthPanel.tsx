@@ -3,37 +3,11 @@ import { useEffect, useState } from 'react'
 import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Badge } from '@/components/ui/badge'
+import { httpClient } from '@/lib/http'
+import type { paths } from '@/lib/api.generated'
 
-interface ImageHealthPerCategory {
-  category: string
-  total: number
-  withImage: number
-  validR2Url: number
-  imageCoveragePct: number
-}
-
-interface ImageHealthIssue {
-  characterId: string
-  characterName: string
-  category: string
-  issueType: 'missing-url' | 'invalid-url' | 'external-url'
-  reason: string
-  popularity: number
-}
-
-interface ImageHealthResponse {
-  totals: {
-    totalCharacters: number
-    withImage: number
-    validR2Url: number
-    missingUrl: number
-    invalidUrl: number
-    externalUrl: number
-    usablePct: number
-  }
-  perCategory: ImageHealthPerCategory[]
-  issues: ImageHealthIssue[]
-}
+type ImageHealthResponse =
+  paths['/api/admin/image-health']['get']['responses']['200']['content']['application/json']
 
 export function ImageHealthPanel(): React.JSX.Element {
   const [data, setData] = useState<ImageHealthResponse | null>(null)
@@ -41,8 +15,8 @@ export function ImageHealthPanel(): React.JSX.Element {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    fetch('/api/admin/image-health')
-      .then((r) => (r.ok ? (r.json() as Promise<ImageHealthResponse>) : null))
+    httpClient
+      .getJson<ImageHealthResponse>('/api/admin/image-health')
       .then((d) => {
         if (d) {
           setData(d)

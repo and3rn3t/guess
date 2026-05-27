@@ -2,17 +2,12 @@ import { useEffect, useState } from 'react'
 import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Badge } from '@/components/ui/badge'
+import { httpClient } from '@/lib/http'
+import type { paths } from '@/lib/api.generated'
 
-interface SlaTarget {
-  attributeKey: string
-  displayName: string
-  category: string
-  target: number
-}
-
-interface SlaTargetsResponse {
-  targets: SlaTarget[]
-}
+type SlaTargetsResponse =
+  paths['/api/admin/data-quality-sla']['get']['responses']['200']['content']['application/json']
+type SlaTarget = SlaTargetsResponse['targets'][number]
 
 export function SlaTargetsPanel(): React.JSX.Element {
   const [targets, setTargets] = useState<SlaTarget[] | null>(null)
@@ -20,8 +15,8 @@ export function SlaTargetsPanel(): React.JSX.Element {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    fetch('/api/admin/data-quality-sla')
-      .then((r) => (r.ok ? (r.json() as Promise<SlaTargetsResponse>) : null))
+    httpClient
+      .getJson<SlaTargetsResponse>('/api/admin/data-quality-sla')
       .then((d) => {
         if (d?.targets) {
           setTargets(d.targets)

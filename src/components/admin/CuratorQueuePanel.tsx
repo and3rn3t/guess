@@ -3,39 +3,12 @@ import { useEffect, useState } from 'react'
 import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Badge } from '@/components/ui/badge'
+import { httpClient } from '@/lib/http'
+import type { paths } from '@/lib/api.generated'
 
-interface CurationQueueItem {
-  id: number
-  characterId: string
-  attributeKey: string
-  issueType: 'cannot_infer' | 'canon_conflict' | 'subjective'
-  issueReason: string
-  category: string
-  assignedTo: string | null
-  resolvedAt: number | null
-  locked: boolean
-  lockedUntil: number | null
-  lockReason: string | null
-  agedDays: number
-  popularity: number
-  priorityScore: number
-}
-
-interface CurationQueueResponse {
-  report: {
-    totals: {
-      totalItems: number
-      unresolved: number
-      assigned: number
-      locked: number
-      avgAgedDays: number
-    }
-    perIssueType: Record<string, { count: number; percentOfTotal: number }>
-    items: CurationQueueItem[]
-  }
-  fetchedAt: number
-  limit: number
-}
+type CurationQueueResponse =
+  paths['/api/admin/curator-queue']['get']['responses']['200']['content']['application/json']
+type CurationQueueItem = CurationQueueResponse['report']['items'][number]
 
 export function CuratorQueuePanel(): React.JSX.Element {
   const [data, setData] = useState<CurationQueueResponse | null>(null)
@@ -43,8 +16,8 @@ export function CuratorQueuePanel(): React.JSX.Element {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    fetch('/api/admin/curator-queue')
-      .then((r) => (r.ok ? (r.json() as Promise<CurationQueueResponse>) : null))
+    httpClient
+      .getJson<CurationQueueResponse>('/api/admin/curator-queue')
       .then((d) => {
         if (d) {
           setData(d)
