@@ -4,26 +4,13 @@ import { AdminPageHeader } from '../AdminPageHeader'
 import { FreshnessPill } from '../FreshnessPill'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ChartBarIcon } from '@phosphor-icons/react'
+import { httpClient } from '@/lib/http'
+import type { paths } from '@/lib/api.generated'
 
-type ConfusionSource = 'real' | 'sim'
-
-interface ConfusionPair {
-  targetId: string
-  targetName: string
-  confusedWithId: string
-  confusedWithName: string
-  confusionCount: number
-  winPct: number | null
-  lastSeen: number | null
-}
-
-interface ConfusionData {
-  source: ConfusionSource
-  pairs: ConfusionPair[]
-  total: number
-  generatedAt: number
-  message?: string
-}
+type ConfusionData =
+  paths['/api/admin/confusion']['get']['responses']['200']['content']['application/json']
+type ConfusionSource = ConfusionData['source']
+type ConfusionPair = ConfusionData['pairs'][number]
 
 const SOURCE_COPY: Record<ConfusionSource, { subtitle: string; tableLabel: string }> = {
   real: {
@@ -92,9 +79,10 @@ export default function ConfusionRoute(): React.JSX.Element {
     setLoading(true)
     setError(null)
     try {
-      const res = await fetch(`/api/admin/confusion?source=${src}&limit=60&minConfusions=2`)
-      if (!res.ok) throw new Error(`${res.status}`)
-      setData(await res.json())
+      const json = await httpClient.getJson<ConfusionData>(
+        `/api/admin/confusion?source=${src}&limit=60&minConfusions=2`,
+      )
+      setData(json)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load')
     } finally {

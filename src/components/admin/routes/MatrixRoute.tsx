@@ -2,24 +2,11 @@ import { useEffect, useRef, useState } from 'react'
 import { AdminPageHeader } from '../AdminPageHeader'
 import { FreshnessPill } from '../FreshnessPill'
 import { DnaIcon } from '@phosphor-icons/react'
+import { httpClient } from '@/lib/http'
+import type { paths } from '@/lib/api.generated'
 
-interface MatrixCharacter {
-  id: string
-  name: string
-  category: string
-  popularity: number
-}
-
-interface MatrixAttribute {
-  key: string
-  displayText: string
-}
-
-interface MatrixData {
-  characters: MatrixCharacter[]
-  attributes: MatrixAttribute[]
-  values: Record<string, Record<string, number | null>>
-}
+type MatrixData =
+  paths['/api/admin/matrix']['get']['responses']['200']['content']['application/json']
 
 const CELL_SIZE = 14
 const HEADER_HEIGHT = 80
@@ -118,9 +105,8 @@ export default function MatrixRoute(): React.JSX.Element {
     setLoading(true)
     setError(null)
     try {
-      const res = await fetch('/api/admin/matrix?chars=40&attrs=50')
-      if (!res.ok) throw new Error(`${res.status}`)
-      setData(await res.json())
+      const json = await httpClient.getJson<MatrixData>('/api/admin/matrix?chars=40&attrs=50')
+      setData(json)
       setLastFetchedAt(Date.now())
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load')
