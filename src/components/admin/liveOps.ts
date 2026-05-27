@@ -1,21 +1,9 @@
 import { createContext, useContext } from 'react'
+import type { paths } from '@/lib/api.generated'
 
-/** Mirrors LiveOpsSummary in functions/api/admin/_live_ops.ts */
-export interface LiveOpsSummary {
-  games1h: number
-  wins1h: number
-  losses1h: number
-  errors1h: number
-  warns1h: number
-  gamesPerMin: number
-  errorsPerMin: number
-  winRate: number | null
-  errorRate: number | null
-  p95LatencyMs: number | null
-  telemetryErrors1h: number | null
-  loggingGap: boolean | null
-  generatedAt: number
-}
+/** Derived from OpenAPI schema for GET /api/admin/live-ops. */
+export type LiveOpsSummary =
+  paths['/api/admin/live-ops']['get']['responses']['200']['content']['application/json']
 
 export type HealthStatus = 'unknown' | 'healthy' | 'warn' | 'critical'
 

@@ -31,11 +31,16 @@ import { LiveOpsStrip } from './LiveOpsStrip'
 import { HealthBadge } from './HealthBadge'
 import { RouteErrorBoundary } from './RouteErrorBoundary'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { httpClient } from '@/lib/http'
+import type { paths } from '@/lib/api.generated'
 import {
   ADMIN_ROUTE_MANIFEST,
   type AdminNavIconKey,
   type AdminNavSection,
 } from './adminRouteManifest'
+
+type DashboardResponse =
+  paths['/api/admin/dashboard']['get']['responses']['200']['content']['application/json']
 
 interface NavItem {
   to: string
@@ -160,8 +165,8 @@ function buildNavItems(section: AdminNavSection): NavItem[] {
 function useBadgeCounts(): Record<string, number> {
   const [counts, setCounts] = useState<Record<string, number>>({})
   useEffect(() => {
-    fetch('/api/admin/dashboard')
-      .then((r) => (r.ok ? (r.json() as Promise<{ stats: Record<string, number> }>) : null))
+    httpClient
+      .getJson<DashboardResponse>('/api/admin/dashboard')
       .then((d) => {
         if (!d?.stats) return
         const next: Record<string, number> = {}

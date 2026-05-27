@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { AdminPageHeader } from '../AdminPageHeader'
 import { Skeleton } from '@/components/ui/skeleton'
+import { httpClient } from '@/lib/http'
+import type { paths } from '@/lib/api.generated'
 import {
   ResponsiveContainer,
   LineChart,
@@ -14,50 +16,10 @@ import {
   Legend,
 } from 'recharts'
 
-interface DailyRow {
-  day: string
-  starts: number
-  ends: number
-  abandons: number
-  skips: number
-}
-
-interface SkipLeaderRow {
-  question_id: string
-  text: string | null
-  skips: number
-  avg_questions_asked: number | null
-}
-
-interface PerQuestionRow {
-  questionId: string
-  text: string | null
-  shown: number
-  skipped: number
-  yes: number
-  no: number
-  maybe: number
-  unknown: number
-  skipRate: number
-  maybeRate: number
-  frustrationScore: number
-}
-
-interface FunnelData {
-  windowDays: number
-  totals: {
-    gameStarts: number
-    gameEnds: number
-    gameAbandons: number
-    questionSkips: number
-    completionRate: number
-    abandonRate: number
-    avgSkipsPerGame: number
-  }
-  daily: DailyRow[]
-  skipLeaderboard: SkipLeaderRow[]
-  perQuestion: PerQuestionRow[]
-}
+type FunnelData =
+  paths['/api/admin/funnel']['get']['responses']['200']['content']['application/json']
+type SkipLeaderRow = FunnelData['skipLeaderboard'][number]
+type PerQuestionRow = FunnelData['perQuestion'][number]
 
 function Kpi({
   label,
@@ -81,11 +43,8 @@ export default function FunnelRoute(): React.JSX.Element {
   useEffect(() => {
     let cancelled = false
     setLoading(true)
-    fetch('/api/admin/funnel')
-      .then(async (res) => {
-        if (!res.ok) throw new Error(`${res.status}`)
-        return (await res.json()) as FunnelData
-      })
+    httpClient
+      .getJson<FunnelData>('/api/admin/funnel')
       .then((json) => {
         if (!cancelled) setData(json)
       })

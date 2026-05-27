@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { httpClient } from '@/lib/http'
 import { LiveOpsCtx, computeStatus, type LiveOpsContextValue, type LiveOpsSummary } from './liveOps'
 
 const REFRESH_MS = 30_000
@@ -16,9 +17,7 @@ export function LiveOpsProvider({ children }: { children: React.ReactNode }): Re
   const fetchData = useCallback(async (signal?: AbortSignal) => {
     setRefreshing(true)
     try {
-      const res = await fetch('/api/admin/live-ops', { signal, credentials: 'same-origin' })
-      if (!res.ok) throw new Error(`HTTP ${res.status}`)
-      const json = (await res.json()) as LiveOpsSummary
+      const json = await httpClient.getJson<LiveOpsSummary>('/api/admin/live-ops', { signal, credentials: 'same-origin' })
       setData(json)
       setError(null)
     } catch (err) {

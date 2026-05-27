@@ -128,7 +128,7 @@ describe('HealthBadge', () => {
 
     await waitFor(() => {
       const badge = screen.getByTestId('health-badge')
-      expect(badge.getAttribute('title') ?? '').toMatch(/Live-ops error: HTTP 500/)
+      expect(badge.getAttribute('title') ?? '').toMatch(/Live-ops error:.*500/)
     })
   })
 })
