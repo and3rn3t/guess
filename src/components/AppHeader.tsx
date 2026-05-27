@@ -208,10 +208,11 @@ function AppHeaderBase({
                 onClick={() => navigate("welcome")}
                 variant="outline"
                 size="sm"
+                aria-label="Home"
                 className="flex items-center gap-2 touch-target"
               >
                 <HouseIcon size={20} />
-                <span className="hidden sm:inline">Home</span>
+                <span className="hidden sm:inline" aria-hidden="true">Home</span>
               </Button>
             )}
 
