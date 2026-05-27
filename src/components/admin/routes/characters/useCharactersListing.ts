@@ -3,28 +3,14 @@ import {
   addRecentSearch,
   type QuickFilterPreset,
 } from '@/lib/admin/characterFilters'
+import { httpClient } from '@/lib/http'
+import type { paths } from '@/lib/api.generated'
 import type { SortKey } from './charactersHelpers'
 
-export interface AdminCharacter {
-  id: string
-  name: string
-  category: string
-  source: string
-  popularity: number
-  imageUrl: string | null
-  attributeCount: number
-  totalAttributes: number
-  coveragePct: number
-  isCustom: boolean
-  createdAt: number
-}
+export type PageData =
+  paths['/api/admin/characters']['get']['responses']['200']['content']['application/json']
 
-export interface PageData {
-  characters: AdminCharacter[]
-  total: number
-  page: number
-  pageSize: number
-}
+export type AdminCharacter = PageData['characters'][number]
 
 export interface UseCharactersListingResult {
   // Data
@@ -96,9 +82,8 @@ export function useCharactersListing(): UseCharactersListingResult {
         order,
       })
       if (maxCoverage !== '') params.set('maxCoverage', maxCoverage)
-      const res = await fetch(`/api/admin/characters?${params}`)
-      if (!res.ok) throw new Error(`${res.status} ${res.statusText}`)
-      setData(await res.json())
+      const json = await httpClient.getJson<PageData>(`/api/admin/characters?${params}`)
+      setData(json)
       setSelectedIds(new Set())
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Unknown error')
