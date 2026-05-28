@@ -7,32 +7,15 @@ import { Progress } from '@/components/ui/progress'
 import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { CATEGORY_LABELS, type CharacterCategory } from '@/lib/types'
+import { httpClient } from '@/lib/http'
+import type { paths } from '@/lib/api.generated'
 
-interface CoverageAttribute {
-  key: string
-  displayText: string
-  trueCount: number
-  falseCount: number
-  nullCount: number
-  definedCount: number
-  missingCount: number
-  coveragePct: number
-  diversityScore: number
-}
-
-interface CoverageData {
-  totalEnriched: number
-  totalActive: number
-  category: string | null
-  attributes: CoverageAttribute[]
-}
-
-interface PriorityItem {
-  key: string
-  displayText: string
-  nullPct: number
-  reason: string
-}
+type CoverageData =
+  paths['/api/admin/coverage']['get']['responses']['200']['content']['application/json']
+type CoverageAttribute = CoverageData['attributes'][number]
+type CoveragePriorityResponse =
+  paths['/api/admin/coverage-priority']['post']['responses']['200']['content']['application/json']
+type PriorityItem = CoveragePriorityResponse['items'][number]
 
 type SortOption = 'coverage' | 'diversity' | 'missing' | 'alphabetical'
 type FilterOption = 'all' | 'gaps' | 'complete' | 'partial'
@@ -59,11 +42,8 @@ export default function CoverageRoute(): React.JSX.Element {
     const params = new URLSearchParams()
     if (category !== 'all') params.set('category', category)
 
-    fetch(`/api/admin/coverage?${params.toString()}`)
-      .then(async (res) => {
-        if (!res.ok) throw new Error(`HTTP ${res.status}`)
-        return res.json() as Promise<CoverageData>
-      })
+    httpClient
+      .getJson<CoverageData>(`/api/admin/coverage?${params.toString()}`)
       .then((d) => { if (!cancelled) { setData(d); setLoading(false) } })
       .catch((e: unknown) => {
         if (!cancelled) { setError(e instanceof Error ? e.message : 'Failed to load'); setLoading(false) }
@@ -106,9 +86,10 @@ export default function CoverageRoute(): React.JSX.Element {
   const prioritize = async () => {
     setPrioritizing(true)
     try {
-      const res = await fetch('/api/admin/coverage-priority', { method: 'POST' })
-      if (!res.ok) throw new Error(`${res.status}`)
-      const json = await res.json() as { items: PriorityItem[] }
+      const json = await httpClient.postJson<CoveragePriorityResponse>(
+        '/api/admin/coverage-priority',
+        {},
+      )
       setPriorities(json.items)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Priority analysis failed')

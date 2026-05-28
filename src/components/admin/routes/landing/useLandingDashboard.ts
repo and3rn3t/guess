@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 
 import { fetchAdminAutomationStatus, type AdminAutomationReport } from '@/lib/admin/adminApi'
+import { httpClient } from '@/lib/http'
 
 import type { DashboardData } from './landingHelpers'
 
@@ -26,12 +27,10 @@ export function useLandingDashboard(): LandingDashboardState {
     setLoading(true)
     setError(null)
     try {
-      const [dashboardResponse, automation] = await Promise.all([
-        fetch('/api/admin/dashboard'),
+      const [json, automation] = await Promise.all([
+        httpClient.getJson<DashboardData>('/api/admin/dashboard'),
         fetchAdminAutomationStatus(),
       ])
-      if (!dashboardResponse.ok) throw new Error(`${dashboardResponse.status}`)
-      const json = (await dashboardResponse.json()) as DashboardData
       setData(json)
       setAutomationReport(automation?.report ?? null)
       setAutomationFetchedAt(automation?.fetchedAt ?? null)

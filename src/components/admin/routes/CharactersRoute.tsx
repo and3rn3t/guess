@@ -18,6 +18,7 @@ import {
 } from '@phosphor-icons/react'
 import type { CharacterCategory } from '@/lib/types'
 import { CATEGORY_LABELS } from '@/lib/types'
+import { httpClient } from '@/lib/http'
 import {
   exportAsCSV,
   getNeedsWorkScore,
@@ -237,12 +238,9 @@ export default function CharactersRoute(): React.JSX.Element {
     if (selectedIds.size === 0) return
     setReenriching(true)
     try {
-      const res = await fetch('/api/admin/enrichment', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ characterIds: Array.from(selectedIds) }),
+      await httpClient.postJson('/api/admin/enrichment', {
+        characterIds: Array.from(selectedIds),
       })
-      if (!res.ok) throw new Error(res.statusText)
       toast.success('Queued for re-enrichment')
       clearSelection()
     } catch (e) {

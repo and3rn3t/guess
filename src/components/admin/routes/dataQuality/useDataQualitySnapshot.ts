@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
 
+import { httpClient } from '@/lib/http'
+
 import type {
   ClosureQueueResponse,
   ClosureQueueStatusResponse,
@@ -31,21 +33,18 @@ export function useDataQualitySnapshot(): DataQualitySnapshotState {
     let cancelled = false
     setLoading(true)
     Promise.all([
-      fetch('/api/admin/data-quality').then(async (res) => {
-        if (!res.ok) throw new Error(`${res.status}`)
-        return (await res.json()) as DataQualityResponse
-      }),
-      fetch('/api/admin/data-quality/closure-queue?limit=50')
-        .then(async (res) => (res.ok ? ((await res.json()) as ClosureQueueResponse) : null))
+      httpClient.getJson<DataQualityResponse>('/api/admin/data-quality'),
+      httpClient
+        .getJson<ClosureQueueResponse>('/api/admin/data-quality/closure-queue?limit=50')
         .catch(() => null),
-      fetch('/api/admin/data-quality/closure-queue-status')
-        .then(async (res) => (res.ok ? ((await res.json()) as ClosureQueueStatusResponse) : null))
+      httpClient
+        .getJson<ClosureQueueStatusResponse>('/api/admin/data-quality/closure-queue-status')
         .catch(() => null),
-      fetch('/api/admin/source-health?limit=20')
-        .then(async (res) => (res.ok ? ((await res.json()) as SourceHealthResponse) : null))
+      httpClient
+        .getJson<SourceHealthResponse>('/api/admin/source-health?limit=20')
         .catch(() => null),
-      fetch('/api/admin/source-health-status')
-        .then(async (res) => (res.ok ? ((await res.json()) as SourceHealthStatusResponse) : null))
+      httpClient
+        .getJson<SourceHealthStatusResponse>('/api/admin/source-health-status')
         .catch(() => null),
     ])
       .then(([snapshot, closure, closureStatus, sourceHealthResponse, sourceHealthStatusResponse]) => {
