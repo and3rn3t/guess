@@ -3,46 +3,13 @@ import { AdminPageHeader } from '../AdminPageHeader'
 import { Button } from '@/components/ui/button'
 import { ArrowsClockwiseIcon, TargetIcon } from '@phosphor-icons/react'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts'
+import { httpClient } from '@/lib/http'
+import type { paths } from '@/lib/api.generated'
 
-interface StressSummary {
-  total: number
-  winPct: number
-  avgQuestions: number
-  avgConfidence: number
-}
-
-interface HardestChar {
-  id: string
-  name: string
-  games: number
-  winPct: number
-  avgQuestions: number
-}
-
-interface ByDifficulty {
-  difficulty: string
-  total: number
-  winPct: number
-  avgQuestions: number
-}
-
-interface RecentRun {
-  runId: string
-  games: number
-  winPct: number
-  startedAt: number
-  difficulty: string
-}
-
-interface StressData {
-  hasData: boolean
-  message?: string
-  total?: number
-  summary?: StressSummary
-  hardest?: HardestChar[]
-  byDifficulty?: ByDifficulty[]
-  recentRuns?: RecentRun[]
-}
+type StressResponse =
+  paths['/api/admin/stress-test']['get']['responses']['200']['content']['application/json']
+type StressFull = Extract<StressResponse, { hasData: true }>
+type StressData = Partial<StressFull> & { hasData: boolean; message?: string }
 
 const DIFFICULTY_COLORS: Record<string, string> = {
   easy: '#10b981',
@@ -66,9 +33,8 @@ export default function StressTestRoute(): React.JSX.Element {
     setLoading(true)
     setError(null)
     try {
-      const res = await fetch('/api/admin/stress-test')
-      if (!res.ok) throw new Error(`${res.status}`)
-      setData(await res.json())
+      const json = await httpClient.getJson<StressData>('/api/admin/stress-test')
+      setData(json)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load')
     } finally {

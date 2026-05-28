@@ -3,6 +3,13 @@ import { AdminPageHeader } from '../AdminPageHeader'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { PlayIcon, StopIcon, ArrowsClockwiseIcon } from '@phosphor-icons/react'
+import { httpClient } from '@/lib/http'
+import type { paths } from '@/lib/api.generated'
+
+type EnrichStartRequest =
+  paths['/api/admin/enrich/start']['post']['requestBody']['content']['application/json']
+type EnrichStartResponse =
+  paths['/api/admin/enrich/start']['post']['responses']['200']['content']['application/json']
 
 interface PipelineRun {
   id: number
@@ -110,13 +117,13 @@ export default function EnrichDashboardRoute(): React.JSX.Element {
   const sendSignal = async (action: 'start' | 'stop') => {
     setActionMsg(null)
     try {
-      const res = await fetch('/api/admin/enrich/start', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(action === 'start' ? { action, limit } : { action }),
-      })
-      const body = await res.json() as { message?: string }
-      setActionMsg(body.message ?? 'Done')
+      const body: EnrichStartRequest =
+        action === 'start' ? { action, limit } : { action }
+      const json = await httpClient.postJson<EnrichStartResponse>(
+        '/api/admin/enrich/start',
+        body,
+      )
+      setActionMsg(json.message ?? 'Done')
     } catch {
       setActionMsg('Request failed')
     }

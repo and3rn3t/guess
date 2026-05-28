@@ -9,22 +9,11 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { AdminPageHeader } from '../AdminPageHeader'
+import { httpClient } from '@/lib/http'
+import type { paths } from '@/lib/api.generated'
 
-interface AboutData {
-  appVersion: string
-  schemaVersion: number
-  lastEnrichmentRun: {
-    timestamp: number | null
-    batchId: string | null
-  }
-  lastCronRun: {
-    timestamp: number | null
-    name: string | null
-  }
-  lastD1Backup: {
-    timestamp: number | null
-  }
-}
+type AboutData =
+  paths['/api/admin/about']['get']['responses']['200']['content']['application/json']
 
 const relativeTime = (timestamp: number | null) => {
   if (!timestamp) return 'Never'
@@ -54,9 +43,7 @@ export default function AboutRoute(): React.JSX.Element {
   useEffect(() => {
     const loadAbout = async () => {
       try {
-        const response = await globalThis.fetch('/api/admin/about')
-        if (!response.ok) throw new Error(`HTTP ${response.status}`)
-        const json = (await response.json()) as AboutData
+        const json = await httpClient.getJson<AboutData>('/api/admin/about')
         setData(json)
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to fetch')
