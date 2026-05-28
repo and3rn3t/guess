@@ -10,6 +10,10 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- **RF.v2.5 (consumer migration cont.) — `AnalyticsRoute` + `EnrichmentRoute` consume generated types** — two more admin route pages migrated, including first POST-endpoint migrations of the sweep. [src/components/admin/routes/AnalyticsRoute.tsx](src/components/admin/routes/AnalyticsRoute.tsx) drops `ClientEvent`, `EventSummary`, `AhaMomentSummary`, `PageData` hand interfaces and routes all three call sites through `httpClient` — `getJson` for the events list + aha-moments, `postJson` for the AI insights endpoint with a typed `InsightsRequest` body. [src/components/admin/routes/EnrichmentRoute.tsx](src/components/admin/routes/EnrichmentRoute.tsx) drops `EnrichmentSummary`, `CharacterRow`, `PageData` and switches the GET + both POST retry handlers to `httpClient.{getJson,postJson}<…>(...)`. `pnpm validate` + both builds green. Incremental step on [RF.v2.5](ROADMAP.md#rfv2-5); ~9 admin route bare-fetch call sites remain.
+
+### Added
+
 - **RF.v2.5 (consumer migration cont.) — `MatrixRoute` + `ConfusionRoute` consume generated types** — two more admin route pages swept off hand-typed interfaces and bare `fetch()`. [src/components/admin/routes/MatrixRoute.tsx](src/components/admin/routes/MatrixRoute.tsx) drops `MatrixCharacter`, `MatrixAttribute`, `MatrixData` interfaces and derives `MatrixData` from `paths['/api/admin/matrix']` (now reflects schema-required nullable `popularity`). [src/components/admin/routes/ConfusionRoute.tsx](src/components/admin/routes/ConfusionRoute.tsx) drops `ConfusionPair` + `ConfusionData` interfaces, and the local `ConfusionSource` literal type is now derived from the schema (`ConfusionData['source']`). Both routes now route through `httpClient.getJson<…>(...)`. `pnpm validate` + both builds green. Incremental step on [RF.v2.5](ROADMAP.md#rfv2-5); ~12 admin route bare-fetch call sites remain.
 
 ### Added

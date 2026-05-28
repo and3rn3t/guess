@@ -6,45 +6,18 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { ArrowLeftIcon, ArrowRightIcon, ChartBarIcon, LightningIcon, MagnifyingGlassIcon, SparkleIcon, XIcon, UsersIcon, ClockCounterClockwiseIcon } from '@phosphor-icons/react'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
+import { httpClient } from '@/lib/http'
+import type { paths } from '@/lib/api.generated'
 
-interface ClientEvent {
-  id: string
-  session_id: string | null
-  user_id: string | null
-  event_type: string
-  data: string | null
-  client_ts: number | null
-  created_at: number
-}
-
-interface EventSummary {
-  event_type: string
-  count: number
-}
-
-interface AhaMomentSummary {
-  attribute: string
-  count: number
-  medianJump: number
-  avgJump: number
-}
-
-interface PageData {
-  events: ClientEvent[]
-  total: number
-  page: number
-  pageSize: number
-  summary: EventSummary[]
-  filters: {
-    eventType: string
-    q: string
-    days: number
-  }
-  aggregates: {
-    uniqueSessions: number
-    uniqueUsers: number
-  }
-}
+type PageData =
+  paths['/api/admin/analytics']['get']['responses']['200']['content']['application/json']
+type AhaMomentsResponse =
+  paths['/api/admin/analytics/aha-moments']['get']['responses']['200']['content']['application/json']
+type AhaMomentSummary = AhaMomentsResponse['moments'][number]
+type InsightsRequest =
+  paths['/api/admin/analytics/insights']['post']['requestBody']['content']['application/json']
+type InsightsResponse =
+  paths['/api/admin/analytics/insights']['post']['responses']['200']['content']['application/json']
 
 interface AnalyticsPreset {
   id: string
@@ -147,9 +120,8 @@ export default function AnalyticsRoute(): React.JSX.Element {
       if (type) params.set('event_type', type)
       if (q.trim()) params.set('q', q.trim())
       params.set('days', d)
-      const res = await fetch(`/api/admin/analytics?${params}`)
-      if (!res.ok) throw new Error(`${res.status}`)
-      setData(await res.json())
+      const json = await httpClient.getJson<PageData>(`/api/admin/analytics?${params}`)
+      setData(json)
       setLastFetchedAt(Date.now())
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Unknown error')
@@ -178,11 +150,11 @@ export default function AnalyticsRoute(): React.JSX.Element {
   useEffect(() => { void fetchData(filterType, page, query, days) }, [page]) // eslint-disable-line react-hooks/exhaustive-deps -- explicit args are passed and debounce effect above handles filter/query updates
 
   useEffect(() => {
-    void fetch('/api/admin/analytics/aha-moments')
-      .then((r) => r.ok ? r.json() : null)
+    void httpClient
+      .getJson<AhaMomentsResponse>('/api/admin/analytics/aha-moments')
       .then((json) => {
-        if (json && Array.isArray((json as { moments?: unknown }).moments)) {
-          setAhaMoments((json as { moments: AhaMomentSummary[] }).moments)
+        if (Array.isArray(json.moments)) {
+          setAhaMoments(json.moments)
         }
       })
       .catch(() => { /* non-critical */ })
@@ -196,13 +168,15 @@ export default function AnalyticsRoute(): React.JSX.Element {
     setInsightsLoading(true)
     setShowInsights(true)
     try {
-      const res = await fetch('/api/admin/analytics/insights', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ summary: data?.summary ?? [], totalGames7d: data?.total ?? 0, bustCache: bust }),
-      })
-      if (!res.ok) throw new Error(`${res.status}`)
-      const json = await res.json() as { insights: string }
+      const body: InsightsRequest = {
+        summary: data?.summary ?? [],
+        totalGames7d: data?.total ?? 0,
+        bustCache: bust,
+      }
+      const json = await httpClient.postJson<InsightsResponse>(
+        '/api/admin/analytics/insights',
+        body,
+      )
       setInsights(json.insights)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Insights failed')

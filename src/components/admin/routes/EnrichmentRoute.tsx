@@ -10,30 +10,13 @@ import {
   ArrowLeftIcon,
   ArrowRightIcon,
 } from '@phosphor-icons/react'
+import { httpClient } from '@/lib/http'
+import type { paths } from '@/lib/api.generated'
 
-interface EnrichmentSummary {
-  total: number
-  enriched: number
-  pending: number
-  coveragePct: number
-}
-
-interface CharacterRow {
-  id: string
-  name: string
-  category: string
-  imageUrl: string | null
-  enriched: boolean
-  createdAt: number
-}
-
-interface PageData {
-  summary: EnrichmentSummary
-  characters: CharacterRow[]
-  total: number
-  page: number
-  pageSize: number
-}
+type PageData =
+  paths['/api/admin/enrichment']['get']['responses']['200']['content']['application/json']
+type EnrichmentPostResponse =
+  paths['/api/admin/enrichment']['post']['responses']['200']['content']['application/json']
 
 type Filter = 'pending' | 'enriched' | 'all'
 
@@ -52,9 +35,8 @@ export default function EnrichmentRoute(): React.JSX.Element {
     setError(null)
     try {
       const params = new URLSearchParams({ filter: f, page: String(p), pageSize: String(pageSize) })
-      const res = await fetch(`/api/admin/enrichment?${params}`)
-      if (!res.ok) throw new Error(`${res.status} ${res.statusText}`)
-      setData(await res.json())
+      const json = await httpClient.getJson<PageData>(`/api/admin/enrichment?${params}`)
+      setData(json)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Unknown error')
     } finally {
@@ -67,8 +49,10 @@ export default function EnrichmentRoute(): React.JSX.Element {
   const handleRetry = async () => {
     setRetrying(true)
     try {
-      const res = await fetch('/api/admin/enrichment', { method: 'POST' })
-      const body = await res.json() as { queued?: number; message?: string }
+      const body = await httpClient.postJson<EnrichmentPostResponse>(
+        '/api/admin/enrichment',
+        {},
+      )
       toast.success(body.message ?? `Queued ${body.queued ?? 0} characters for enrichment`)
     } catch {
       toast.error('Retry request failed')
@@ -80,12 +64,9 @@ export default function EnrichmentRoute(): React.JSX.Element {
   const handleRetryOne = async (id: string) => {
     setRetryingId(id)
     try {
-      const res = await fetch('/api/admin/enrichment', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ characterIds: [id] }),
+      await httpClient.postJson<EnrichmentPostResponse>('/api/admin/enrichment', {
+        characterIds: [id],
       })
-      if (!res.ok) throw new Error(res.statusText)
       toast.success('Re-enrich queued')
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'Retry failed')
