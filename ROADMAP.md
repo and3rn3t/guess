@@ -43,7 +43,7 @@ An item is `✅` only when **all** apply:
 - 🟡 **In progress (parallel):** [AI.1](#ai-1) AI Gateway cache TTL — `cf-aig-cache-ttl` plumbed on `/api/llm` + two admin LLM endpoints. 7-day observation window for ≥30% cache-hit gate started this commit.
 - 🟡 **In progress (parallel):** [DX.v2.1](#dxv2-1) Generated typed API client — codegen + CI gate + **`adminApi.ts` consumer migration shipped 2026-05-27**; only `useServerGame.ts` consumer remains (paired with [RF.v2.1](#rfv2-1), deferred).
 - 🟡 **In progress (parallel):** [PI.3.b](#pi-3-b) Tail Worker → `error_logs` — writer + flag + binding shipped 2026-05-26; awaiting operator deploy + `ERROR_LOG_VIA_TAIL=1` flip + 7-day clean dual-stream window before removing the D1 write path.
-- ⬜ **Next:** [RF.v2.5](#rfv2-5) (admin API client consolidation — 18 admin consumers now on `httpClient` + generated types; only `TriageRoute` remains, blocked by a `TRIAGE_STEP_SCHEMA` divergence between `scripts/openapi/lib.ts` and `functions/api/admin/_triage.ts` that needs a schema-fix + regen first).
+- ✅ **2026-05-28:** [RF.v2.5](#rfv2-5) (admin API client consolidation — 19 admin consumers migrated to `httpClient` + generated types; `TRIAGE_STEP_SCHEMA` divergence fixed by regenerating against `functions/api/admin/_triage.ts` source-of-truth).
 - ⚪ **Parked:** [MOB.1](#mob-1) — needs physical-device evidence; no engineering blockers. Re-pull when device time available.
 - 📦 **Recently shipped:** AI.4a (prompt compression — lossless trim + JSON-mode audit) · DQ.v2.3 (shared source-adapter base — `_base.ts` + 5 adapters refactored + per-adapter tests) · RF.v2.3 (split `question-selection.ts` → orchestrator shell + pure math + fast-check property tests) · AI.0 (AI surface audit + baseline metrics — full Phase 0 pull via `pnpm ai:baseline:pull`) · RF.v2.4 (ungoverned-hotspot sweep — 32 files governed) · SE.1 (CSP violations pipeline + admin digest) · OB.1 (SLO doc + burn queries) · PF.1 (bundle-size budgets) · A11Y.1 (axe-core e2e gate) · PI.3 (`logError` hot-path decoupling) · PI.1 (wrangler post-KV audit) · DX.v2.4 (pre-commit `validate:fast`) · SE.2 (RBAC coverage gate) — see [Shipped — Mobile Wave (May 2026)](#shipped--mobile-wave-may-2026)
 
@@ -141,14 +141,14 @@ Shipped: 32 previously-ungoverned files across 7 categories added to `scripts/ch
 ### RF.v2.5
 
 **Title:** Consolidate admin API client
-**Status:** ⬜
+**Status:** ✅ 2026-05-28
 **Why:** `src/lib/admin/adminApi.ts` duplicates fetch patterns across 30+ admin routes; types drift from server-side handler signatures.
 
 Done when:
 
-- [ ] Admin fetch wrappers consume generated types from [DX.v2.1](#dxv2-1) (this item depends on DX.v2.1 landing first).
-- [ ] All admin route components import from a single typed client surface.
-- [ ] No `as any` or `unknown` casts in admin API call sites.
+- [x] Admin fetch wrappers consume generated types from [DX.v2.1](#dxv2-1) (this item depends on DX.v2.1 landing first).
+- [x] All admin route components import from a single typed client surface.
+- [x] No `as any` or `unknown` casts in admin API call sites.
 
 ---
 

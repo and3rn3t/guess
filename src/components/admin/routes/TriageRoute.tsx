@@ -11,44 +11,16 @@ import { FreshnessPill } from '../FreshnessPill'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { CaretDownIcon, CaretRightIcon } from '@phosphor-icons/react'
+import { httpClient } from '@/lib/http'
+import type { paths } from '@/lib/api.generated'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-interface TriageListRow {
-  id: number
-  actual_character_id: string
-  actual_character_name: string | null
-  min_rank: number | null
-  created_at: number
-}
-
-interface TopTenEntry {
-  id: string
-  name: string
-}
-
-interface TriageStep {
-  attr: string
-  answer: string
-  questionText: string
-  top10: TopTenEntry[]
-}
-
-interface TriageDetail {
-  id: number
-  actualCharacterId: string
-  actualCharacterName: string | null
-  minRank: number | null
-  createdAt: number
-  steps: TriageStep[]
-}
-
-interface ListResponse {
-  rows: TriageListRow[]
-  total: number
-  limit: number
-  offset: number
-}
+type TriageResponse =
+  paths['/api/admin/triage']['get']['responses']['200']['content']['application/json']
+type ListResponse = Extract<TriageResponse, { rows: unknown }>
+type TriageDetail = Extract<TriageResponse, { steps: unknown }>
+type TriageListRow = ListResponse['rows'][number]
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -120,9 +92,8 @@ function TriageRow({ row }: TriageRowProps): React.JSX.Element {
     setLoading(true)
     setError(null)
     try {
-      const res = await fetch(`/api/admin/triage?id=${row.id}`)
-      if (!res.ok) throw new Error(await res.text())
-      setDetail(await res.json() as TriageDetail)
+      const json = await httpClient.getJson<TriageDetail>(`/api/admin/triage?id=${row.id}`)
+      setDetail(json)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Load failed')
     } finally {
@@ -179,9 +150,9 @@ export default function TriageRoute(): React.JSX.Element {
     setLoading(true)
     setError(null)
     try {
-      const res = await fetch(`/api/admin/triage?limit=${PAGE_SIZE}&offset=${off}`)
-      if (!res.ok) throw new Error(await res.text())
-      const json = await res.json() as ListResponse
+      const json = await httpClient.getJson<ListResponse>(
+        `/api/admin/triage?limit=${PAGE_SIZE}&offset=${off}`,
+      )
       setData(json)
       setOffset(off)
       setLastFetchedAt(Date.now())

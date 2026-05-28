@@ -4325,11 +4325,10 @@ export interface operations {
                         minRank: number | null;
                         createdAt: number;
                         steps: {
-                            idx: number;
-                            questionId: string;
-                            questionText: string;
+                            attr: string;
                             answer: string;
-                            topTen: {
+                            questionText: string;
+                            top10: {
                                 id: string;
                                 name: string;
                             }[];

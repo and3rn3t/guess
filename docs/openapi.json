@@ -8021,19 +8021,16 @@
                           "items": {
                             "type": "object",
                             "properties": {
-                              "idx": {
-                                "type": "number"
-                              },
-                              "questionId": {
-                                "type": "string"
-                              },
-                              "questionText": {
+                              "attr": {
                                 "type": "string"
                               },
                               "answer": {
                                 "type": "string"
                               },
-                              "topTen": {
+                              "questionText": {
+                                "type": "string"
+                              },
+                              "top10": {
                                 "type": "array",
                                 "items": {
                                   "type": "object",
@@ -8054,11 +8051,10 @@
                               }
                             },
                             "required": [
-                              "idx",
-                              "questionId",
-                              "questionText",
+                              "attr",
                               "answer",
-                              "topTen"
+                              "questionText",
+                              "top10"
                             ],
                             "additionalProperties": false
                           }

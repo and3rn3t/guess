@@ -2284,11 +2284,10 @@ const TRIAGE_LIST_ROW_SCHEMA: Record<string, unknown> = {
 const TRIAGE_STEP_SCHEMA: Record<string, unknown> = {
   type: "object",
   properties: {
-    idx: { type: "number" },
-    questionId: { type: "string" },
-    questionText: { type: "string" },
+    attr: { type: "string" },
     answer: { type: "string" },
-    topTen: {
+    questionText: { type: "string" },
+    top10: {
       type: "array",
       items: {
         type: "object",
@@ -2301,7 +2300,7 @@ const TRIAGE_STEP_SCHEMA: Record<string, unknown> = {
       },
     },
   },
-  required: ["idx", "questionId", "questionText", "answer", "topTen"],
+  required: ["attr", "answer", "questionText", "top10"],
   additionalProperties: false,
 };
 
