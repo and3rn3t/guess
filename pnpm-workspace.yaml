@@ -20,6 +20,15 @@ onlyBuiltDependencies:
   - sharp
   - workerd
 
+# Security version pins. In pnpm v11 these live here — the `pnpm.overrides`
+# field in package.json is no longer read.
+overrides:
+  fast-xml-parser: '>=5.7.0'
+  fast-uri: '>=3.1.2'
+  ip-address: '>=10.1.1'
+  postcss: '>=8.5.10'
+  uuid: '>=11.1.1'
+
 # pnpm v11 defaults to 24h minimumReleaseAge, which blocks same-day Renovate
 # updates. 4h still protects against typosquatting/hijacking attacks while
 # allowing freshly-published packages to install without breaking CI.

@@ -265,23 +265,5 @@
       "limit": "4 kB",
       "gzip": true
     }
-  ],
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "@scarf/scarf",
-      "@swc/core",
-      "better-sqlite3",
-      "esbuild",
-      "msw",
-      "sharp",
-      "workerd"
-    ],
-    "overrides": {
-      "fast-xml-parser": ">=5.7.0",
-      "fast-uri": ">=3.1.2",
-      "ip-address": ">=10.1.1",
-      "postcss": ">=8.5.10",
-      "uuid": ">=11.1.1"
-    }
-  }
+  ]
 }
