@@ -19,3 +19,8 @@ onlyBuiltDependencies:
   - msw
   - sharp
   - workerd
+
+# pnpm v11 defaults to 24h minimumReleaseAge, which blocks same-day Renovate
+# updates. 4h still protects against typosquatting/hijacking attacks while
+# allowing freshly-published packages to install without breaking CI.
+minimumReleaseAge: 4h
