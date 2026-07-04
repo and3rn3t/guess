@@ -1,5 +1,6 @@
 {
   "name": "guess",
+  "description": "A guessing game like \"Akinator\", but with more visibility to the user how it works.",
   "private": true,
   "version": "1.9.0-pre",
   "type": "module",
