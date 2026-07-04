@@ -414,8 +414,14 @@ jobs:
           path: dist
       - name: Extract PR title
         id: meta
+        env:
+          # PR titles are untrusted user input — go through env: rather than
+          # being interpolated directly into the script, so a title
+          # containing shell metacharacters (", $(...), backticks) can't
+          # break out of the string and execute as a command.
+          RAW_TITLE: ${{ github.event.pull_request.title }}
         run: |
-          title=$(echo "${{ github.event.pull_request.title }}" | LC_ALL=C tr -cd '[:print:]' | tr -d '"')
+          title=$(echo "$RAW_TITLE" | LC_ALL=C tr -cd '[:print:]' | tr -d '"')
           echo "title=$title" >> "$GITHUB_OUTPUT"
       - name: Deploy to Cloudflare Pages (preview)
         id: deploy
@@ -429,12 +435,17 @@ jobs:
         run: mkdir -p .ci-artifacts/deploy-preview
 
       - name: Record deploy-preview metadata
+        env:
+          DEPLOYMENT_URL: ${{ steps.deploy.outputs.deployment-url }}
+          PR_TITLE: ${{ steps.meta.outputs.title }}
+          BRANCH_NAME: ${{ github.head_ref }}
+          COMMIT_SHA: ${{ github.sha }}
         run: |
           {
-            echo "deployment_url=${{ steps.deploy.outputs.deployment-url }}"
-            echo "pr_title=${{ steps.meta.outputs.title }}"
-            echo "branch=${{ github.head_ref }}"
-            echo "sha=${{ github.sha }}"
+            echo "deployment_url=$DEPLOYMENT_URL"
+            echo "pr_title=$PR_TITLE"
+            echo "branch=$BRANCH_NAME"
+            echo "sha=$COMMIT_SHA"
           } > .ci-artifacts/deploy-preview/metadata.txt
 
       - name: Smoke test
