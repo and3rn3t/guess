@@ -207,16 +207,18 @@ jobs:
 
       - name: Print summary
         run: |
-          echo "### Adaptive Data Refresh" >> "$GITHUB_STEP_SUMMARY"
-          echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "| File | Size |" >> "$GITHUB_STEP_SUMMARY"
-          echo "|------|------|" >> "$GITHUB_STEP_SUMMARY"
-          for f in maybe-rates net-gains confusion-discriminators; do
-            SIZE=$(wc -c < "scripts/simulate/data/${f}.json")
-            echo "| ${f}.json | ${SIZE} bytes |" >> "$GITHUB_STEP_SUMMARY"
-          done
-          echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "Uploaded to: \`kv_cache\` table keys \`kv:attribute-maybe-rates\`, \`kv:attribute-net-gains\`, \`kv:confusion-discriminators\`" >> "$GITHUB_STEP_SUMMARY"
+          {
+            echo "### Adaptive Data Refresh"
+            echo ""
+            echo "| File | Size |"
+            echo "|------|------|"
+            for f in maybe-rates net-gains confusion-discriminators; do
+              SIZE=$(wc -c < "scripts/simulate/data/${f}.json")
+              echo "| ${f}.json | ${SIZE} bytes |"
+            done
+            echo ""
+            echo "Uploaded to: \`kv_cache\` table keys \`kv:attribute-maybe-rates\`, \`kv:attribute-net-gains\`, \`kv:confusion-discriminators\`"
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload compute diagnostics
         if: always()

@@ -135,22 +135,24 @@ jobs:
 
       - name: Print summary
         run: |
-          echo "### Real-game signal refresh" >> "$GITHUB_STEP_SUMMARY"
-          echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "| File | Size |" >> "$GITHUB_STEP_SUMMARY"
-          echo "|------|------|" >> "$GITHUB_STEP_SUMMARY"
-          for f in attribute-trust character-popularity question-empirical-gain question-quality-penalty; do
-            if [ -f "data/real/${f}.json" ]; then
-              SIZE=$(wc -c < "data/real/${f}.json")
-              echo "| ${f}.json | ${SIZE} bytes |" >> "$GITHUB_STEP_SUMMARY"
+          {
+            echo "### Real-game signal refresh"
+            echo ""
+            echo "| File | Size |"
+            echo "|------|------|"
+            for f in attribute-trust character-popularity question-empirical-gain question-quality-penalty; do
+              if [ -f "data/real/${f}.json" ]; then
+                SIZE=$(wc -c < "data/real/${f}.json")
+                echo "| ${f}.json | ${SIZE} bytes |"
+              fi
+            done
+            echo ""
+            echo "Uploaded to: \`kv_cache\` table keys \`kv:attribute-trust\`, \`kv:character-popularity\`, \`kv:question-empirical-gain\`, \`kv:question-quality-penalty\`"
+            if [ -f data/real/character-confusions.sql ]; then
+              LINES=$(grep -c '^INSERT' data/real/character-confusions.sql || echo 0)
+              echo "Upserted **${LINES}** rows into \`character_confusions\`."
             fi
-          done
-          echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "Uploaded to: \`kv_cache\` table keys \`kv:attribute-trust\`, \`kv:character-popularity\`, \`kv:question-empirical-gain\`, \`kv:question-quality-penalty\`" >> "$GITHUB_STEP_SUMMARY"
-          if [ -f data/real/character-confusions.sql ]; then
-            LINES=$(grep -c '^INSERT' data/real/character-confusions.sql || echo 0)
-            echo "Upserted **${LINES}** rows into \`character_confusions\`." >> "$GITHUB_STEP_SUMMARY"
-          fi
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload aggregate diagnostics artifact
         if: always()

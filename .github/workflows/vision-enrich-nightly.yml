@@ -151,7 +151,6 @@ jobs:
             echo "### Vision Attribute Enrichment Results"
             echo ""
             if [ -f .ci-artifacts/vision-enrich/vision-enrich-output.log ]; then
-              SUMMARY=$(grep '\[vision-enrich\] SUMMARY' .ci-artifacts/vision-enrich/vision-enrich-output.log | tail -1 || true)
               SUCCEEDED=$(grep 'succeeded' .ci-artifacts/vision-enrich/vision-enrich-output.log | tail -1 || true)
               COST=$(grep 'est. cost' .ci-artifacts/vision-enrich/vision-enrich-output.log | tail -1 || true)
               if [ -n "$SUCCEEDED" ]; then
