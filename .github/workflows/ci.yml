@@ -32,7 +32,7 @@ jobs:
       frontend: ${{ steps.filter.outputs.frontend == 'true' || github.event_name == 'workflow_dispatch' }}
       db: ${{ steps.filter.outputs.db == 'true' || github.event_name == 'workflow_dispatch' }}
     steps:
-      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           fetch-depth: 2
       - uses: dorny/paths-filter@7b450fff21473bca461d4b92ce414b9d0420d706 # v4
@@ -90,7 +90,7 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
       - uses: ./.github/actions/setup
       - name: Prepare checks-static artifacts
         run: mkdir -p .ci-artifacts/checks-static
@@ -172,7 +172,7 @@ jobs:
       contents: read
       pull-requests: write
     steps:
-      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
       - uses: ./.github/actions/setup
       - name: Prepare checks-tests artifacts
         run: mkdir -p .ci-artifacts/checks-tests
@@ -208,7 +208,7 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
       - uses: ./.github/actions/setup
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
@@ -249,7 +249,7 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
       - uses: ./.github/actions/setup
       - name: Cache Vite build
         uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5
@@ -329,7 +329,7 @@ jobs:
       CF_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CF_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
     steps:
-      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
       - uses: ./.github/actions/setup
       - name: Prepare db-checks artifacts
         run: mkdir -p .ci-artifacts/db-checks
@@ -404,7 +404,7 @@ jobs:
       # Checkout repo so wrangler can find the sibling `functions/` directory
       # — `pages deploy dist` only ships the static dir; Functions are picked up
       # from `<repo-root>/functions/` at deploy time.
-      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
       # Full setup (pnpm install) so wrangler in devDependencies is available
       # to `pnpm exec wrangler` used internally by wrangler-action.
       - uses: ./.github/actions/setup
@@ -490,7 +490,7 @@ jobs:
       # Checkout repo so wrangler can find the sibling `functions/` directory
       # — `pages deploy dist` only ships the static dir; Functions are picked up
       # from `<repo-root>/functions/` at deploy time.
-      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
       # Full setup (pnpm install) so wrangler in devDependencies is available
       # to `pnpm exec wrangler` used internally by wrangler-action.
       - uses: ./.github/actions/setup
@@ -661,7 +661,7 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
       - uses: treosh/lighthouse-ci-action@3e7e23fb74242897f95c0ba9cabad3d0227b9b18 # v12
         with:
           urls: ${{ needs.deploy-preview.outputs.url }}
