@@ -45,3 +45,5 @@ minimumReleaseAgeExclude:
   - source-map-js@1.2.2
   # Renovate security update: vite@8.1.6
   - vite@8.1.6
+  # First-party shared lint config, adopted the day it was published
+  - '@and3rn3t/eslint-config@0.3.0'
