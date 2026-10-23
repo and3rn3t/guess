@@ -4,7 +4,7 @@ Guessing game ("Andernator") with a data pipeline behind it. The scripts surface
 
 ## Stack
 
-- React + TypeScript + Vite; **pnpm** monorepo (`pnpm@10`, Node `>=22`) with `apps/mobile` (Expo/React Native)
+- React + TypeScript + Vite; **pnpm** monorepo (`pnpm@11`, Node `>=24`) with `apps/mobile` (Expo/React Native)
 - Cloudflare Pages + D1 (`guess-db` prod / `guess-db-preview`) + tail worker (`tail-worker/`)
 - Tests: Vitest (unit/components/hooks/api/workers), Playwright e2e; husky + commitlint
 
