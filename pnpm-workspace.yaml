@@ -32,7 +32,7 @@ overrides:
 # pnpm v11 defaults to 24h minimumReleaseAge, which blocks same-day Renovate
 # updates. 4h still protects against typosquatting/hijacking attacks while
 # allowing freshly-published packages to install without breaking CI.
-minimumReleaseAge: 4h
+minimumReleaseAge: 240
 minimumReleaseAgeExclude:
   # Renovate security update: sharp@0.35.0 || 0.35.4 || 0.35.5
   - sharp@0.35.0 || 0.35.4 || 0.35.5
