@@ -1,27 +1,17 @@
-import js from '@eslint/js'
+// Extends the shared @and3rn3t/eslint-config with guess-specific rules and
+// file contexts (Workers, Node scripts, shadcn/ui).
+import and3rn3t from '@and3rn3t/eslint-config'
 import globals from 'globals'
-import reactHooks from 'eslint-plugin-react-hooks'
-import reactRefresh from 'eslint-plugin-react-refresh'
 import jsxA11y from 'eslint-plugin-jsx-a11y'
-import tseslint from 'typescript-eslint'
 
-export default tseslint.config(
-  { ignores: ['dist', 'coverage/'] },
+export default [
+  ...and3rn3t,
+  { ignores: ['coverage/'] },
   {
-    extends: [js.configs.recommended, ...tseslint.configs.recommended],
     files: ['**/*.{ts,tsx}'],
-    languageOptions: {
-      ecmaVersion: 'latest',
-      globals: globals.browser,
-    },
-    plugins: {
-      'react-hooks': reactHooks,
-      'react-refresh': reactRefresh,
-      'jsx-a11y': jsxA11y,
-    },
+    plugins: { 'jsx-a11y': jsxA11y },
     rules: {
-      ...reactHooks.configs.recommended.rules,
-      // New rules in react-hooks v7 — disabled until codebase is updated
+      // React Compiler rules from react-hooks v7 — disabled until codebase is updated
       'react-hooks/set-state-in-effect': 'off',
       'react-hooks/purity': 'off',
       'react-hooks/refs': 'off',
@@ -29,7 +19,6 @@ export default tseslint.config(
       'react-hooks/immutability': 'off',
       'react-hooks/preserve-manual-memoization': 'off',
       ...jsxA11y.configs.recommended.rules,
-      'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],
       '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
       '@typescript-eslint/no-explicit-any': 'error',
     },
@@ -38,7 +27,6 @@ export default tseslint.config(
     // Cloudflare Workers — no React rules, service-worker globals
     files: ['functions/**/*.ts', 'tail-worker/**/*.ts'],
     languageOptions: {
-      ecmaVersion: 'latest',
       globals: { ...globals.browser, ...globals.serviceworker },
     },
     rules: {
@@ -51,7 +39,6 @@ export default tseslint.config(
     // Node.js scripts — run via tsx in Node, not in the browser
     files: ['scripts/**/*.ts'],
     languageOptions: {
-      ecmaVersion: 'latest',
       globals: { ...globals.node },
     },
     rules: {
@@ -70,4 +57,4 @@ export default tseslint.config(
       'react-refresh/only-export-components': 'off',
     },
   },
-)
+]
