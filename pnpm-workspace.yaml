@@ -47,3 +47,5 @@ minimumReleaseAgeExclude:
   - vite@8.1.6
   # First-party shared lint config, adopted the day it was published
   - '@and3rn3t/eslint-config@0.3.0'
+  # Renovate security update: zod@4.6.6
+  - zod@4.6.6
