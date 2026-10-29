@@ -7,6 +7,18 @@
       "matchPackagePatterns": ["^expo", "^react-native", "^@react-native"],
       "groupName": "Expo & React Native",
       "automerge": false
+    },
+    {
+      "description": "Expo SDK pins these versions (see expo/bundledNativeModules.json); upgrade them with `npx expo install --fix` when bumping the SDK, not independently",
+      "matchFileNames": ["apps/mobile/package.json"],
+      "matchPackageNames": [
+        "react",
+        "react-native",
+        "react-native-safe-area-context",
+        "@react-native-async-storage/async-storage"
+      ],
+      "matchPackagePatterns": ["^@react-native/"],
+      "enabled": false
     }
   ]
 }
