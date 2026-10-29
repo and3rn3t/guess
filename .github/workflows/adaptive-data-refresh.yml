@@ -54,7 +54,7 @@ jobs:
             echo "sample=${{ github.event.inputs.sample || '100' }}"
             echo "sha=${{ github.sha }}"
           } > .ci-artifacts/adaptive/export/metadata.txt
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: sim-data
           path: |
@@ -63,7 +63,7 @@ jobs:
           retention-days: 1
       - name: Upload export diagnostics
         if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: adaptive-export-diagnostics
           path: .ci-artifacts/adaptive/export/
@@ -103,14 +103,14 @@ jobs:
             --difficulty ${{ matrix.difficulty }} \
             --parallel \
             --output scripts/simulate/data/results-ci-${{ matrix.difficulty }}.jsonl 2>&1 | tee .ci-artifacts/adaptive/simulate/simulate-${{ matrix.difficulty }}.log
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: sim-results-${{ matrix.difficulty }}
           path: scripts/simulate/data/results-ci-${{ matrix.difficulty }}.jsonl
           retention-days: 1
       - name: Upload simulate diagnostics
         if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: adaptive-simulate-diagnostics-${{ matrix.difficulty }}
           path: |
@@ -222,7 +222,7 @@ jobs:
 
       - name: Upload compute diagnostics
         if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: adaptive-compute-diagnostics
           path: |
