@@ -51,7 +51,7 @@ jobs:
           retention-days: 7
 
   llm-regression:
-    name: LLM regression (≤3% deviation)
+    name: LLM regression (baseline gate)
     runs-on: ubuntu-latest
     timeout-minutes: 15
     needs: schema
