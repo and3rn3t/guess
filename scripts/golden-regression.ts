@@ -52,7 +52,8 @@ loadEnvFiles();
 
 const GOLDEN_PATH = path.join(REPO_ROOT, 'data', 'data-quality-golden.json');
 const OPENAI_URL = 'https://api.openai.com/v1/chat/completions';
-const MODEL = process.env.GOLDEN_MODEL ?? 'gpt-4o-mini';
+const PINNED_GOLDEN_MODEL = 'gpt-4o-mini-2024-07-18';
+const MODEL = process.env.GOLDEN_MODEL ?? PINNED_GOLDEN_MODEL;
 
 interface GoldenCharacter {
   id: string;
