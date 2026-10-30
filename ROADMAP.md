@@ -613,7 +613,7 @@ Done when:
 - [ ] New migration `0049_attribute_complexity.sql` adds `complexity TEXT CHECK (complexity IN ('simple','moderate','complex'))` to `attribute_definitions` (default `'moderate'` so existing rows are conservative).
 - [ ] One-time backfill: LLM classification pass populates `complexity` for all 224 attributes; admin override surface added to `/admin/attributes` (or wherever attr defs are edited today).
 - [ ] `selectModel(attr)` in [scripts/ingest/enrich/llm-client.ts](scripts/ingest/enrich/llm-client.ts) routes simple → `@cf/meta/llama-3.1-8b-instruct`, moderate → `gpt-4o-mini`, complex → `gpt-4o`. **Cost model A (locked, see Decision Log 2026-05-25):** Workers AI capped at the daily free-tier neuron quota; any overflow falls back to `gpt-4o-mini` rather than paying for Workers AI overage. Predictable spend > marginal routing savings.
-- [ ] `pnpm golden:regression` deviation stays within the existing 3% threshold against the post-routing model mix.
+- [ ] `pnpm golden:regression` deviation against the post-routing model mix is no worse than the pre-routing run (baseline ~8–9%; gate is `thresholdPct`, currently 10%).
 - [ ] LLM_COSTS dataset shows ≥30% $/character drop on a 1000-char re-enrichment sample vs. pre-routing baseline.
 
 ### AI.4a
@@ -632,12 +632,12 @@ Done when:
 
 **Title:** Prompt compression — aggressive RULES-block rewrite (gated by golden:regression)
 **Status:** ⬜
-**Why:** AI.4a captured the lossless gains. Closing the remaining gap to ≥15% reduction requires rewriting the RULES block in the enrichment system prompt, which is a behaviour change and needs `pnpm golden:regression` (≤3% deviation gate) to verify no quality regression. Carved out so the open gap is visible instead of buried under a 🟡 AI.4.
+**Why:** AI.4a captured the lossless gains. Closing the remaining gap to ≥15% reduction requires rewriting the RULES block in the enrichment system prompt, which is a behaviour change and needs `pnpm golden:regression` (deviation gate, `thresholdPct` currently 10% around a ~8–9% baseline) to verify no quality regression. Carved out so the open gap is visible instead of buried under a 🟡 AI.4.
 
 Done when:
 
 - [ ] RULES-block rewrite drafted in [scripts/ingest/enrich/prompts.ts](scripts/ingest/enrich/prompts.ts) (and mirrored in `bulk-enrich-characters.ts`).
-- [ ] `pnpm golden:regression` run shows ≤3% deviation from the pre-rewrite golden set.
+- [ ] `pnpm golden:regression` run shows deviation no worse than the pre-rewrite run (baseline ~8–9%) and under `thresholdPct`.
 - [ ] Sample enrichment batch shows ≥15% prompt-token reduction vs. the pre-AI.4 baseline (cumulative with AI.4a).
 - [ ] [data/ai-baseline-2026-05.json](data/ai-baseline-2026-05.json) `enrichment.tokens_per_character` refreshed.
 

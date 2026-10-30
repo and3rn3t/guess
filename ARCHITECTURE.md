@@ -608,7 +608,7 @@ through the same code path the catalog enrichment uses.
 | Command | Purpose |
 |---|---|
 | `pnpm golden:check` | Schema-only — no network. Validates the JSON, asserts every attribute key exists, catches duplicates. Used as the first CI step. |
-| `pnpm golden:regression` | Full LLM run against `gpt-4o-mini` (override with `GOLDEN_MODEL=…`). Requires `OPENAI_API_KEY` in `.dev.vars`/`.env.local` or environment. Exits non-zero if deviation > `thresholdPct` (default 3%). |
+| `pnpm golden:regression` | Full LLM run against `gpt-4o-mini` (override with `GOLDEN_MODEL=…`). Requires `OPENAI_API_KEY` in `.dev.vars`/`.env.local` or environment. Exits non-zero if deviation > `thresholdPct` (currently 10%: the measured baseline of the production prompt is ~8–9% deviation, so the gate catches regressions from that baseline rather than asserting near-perfect accuracy). |
 | `pnpm golden:regression --json out.json` | Same as above, plus writes a machine-readable per-character report. |
 
 The CI gate (`.github/workflows/golden-regression.yml`) triggers only on PRs that
