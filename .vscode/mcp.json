@@ -1,36 +1,3 @@
 {
-  "servers": {
-    "cloudflare": {
-      "type": "stdio",
-      "command": "npx",
-      "args": [
-        "@cloudflare/mcp-server-cloudflare",
-        "run",
-        "${input:cloudflare-account-id}"
-      ]
-    },
-    "playwright": {
-      "type": "stdio",
-      "command": "npx",
-      "args": [
-        "@playwright/mcp@latest"
-      ]
-    },
-    "context7": {
-      "type": "stdio",
-      "command": "npx",
-      "args": [
-        "-y",
-        "@upstash/context7-mcp@latest"
-      ]
-    }
-  },
-  "inputs": [
-    {
-      "id": "cloudflare-account-id",
-      "type": "promptString",
-      "description": "Your Cloudflare Account ID (find it at dash.cloudflare.com > Workers & Pages > Overview)",
-      "password": false
-    }
-  ]
+  "servers": {}
 }
