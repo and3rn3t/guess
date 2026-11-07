@@ -1,0 +1,26 @@
+{
+  "mcpServers": {
+    "cloudflare": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "@cloudflare/mcp-server-cloudflare",
+        "run",
+        "${CLOUDFLARE_ACCOUNT_ID}"
+      ],
+      "tools": ["*"]
+    },
+    "playwright": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["@playwright/mcp@latest"],
+      "tools": ["*"]
+    },
+    "context7": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@upstash/context7-mcp@latest"],
+      "tools": ["*"]
+    }
+  }
+}
